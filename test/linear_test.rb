@@ -54,10 +54,9 @@ module Trailblazer::Activity::DSL
 
     def self.outputs(stop_tasks, nodes_attributes)
       stop_tasks.collect do |task_ref|
-        puts "@@@@@ #{nodes_attributes.inspect}"
-        nodes_attributes.find { |node_attrs|
+        stop_event = nodes_attributes.find { |node_attrs| task_ref.id == node_attrs.id }.task
 
-          task_ref.id == node_attrs.id }
+        Trailblazer::Activity::Output(stop_event, stop_event.to_h[:semantic]) # DISCUSS: how could we pass the semantic without disassembling?
       end
     end
 
@@ -98,18 +97,18 @@ class LinearTest < Minitest::Spec
     ) # start_nodes: [:a]
 
     implementing = Module.new do
-      extend T.def_tasks(:a, :b, :c, :d, :ES, :EF)
-      # Failure = Activity::End.new(semantic: :failure)
-      # Success = Activity::End.new(semantic: :success)
+      extend T.def_tasks(:a, :b, :c, :d)
     end
+    implementing::Failure = Activity::End(:failure)
+    implementing::Success = Activity::End(:success)
 
     implementation = {
       :a => Inter::Task.new(implementing.method(:a), [Activity::Output(Right,       :success), Activity::Output(Left, :failure)]),
       :b => Inter::Task.new(implementing.method(:b), [Activity::Output("B/success", :success), Activity::Output("B/failure", :failure)]),
       :c => Inter::Task.new(implementing.method(:c), [Activity::Output(Right,       :success), Activity::Output(Left, :failure)]),
       :d => Inter::Task.new(implementing.method(:d), [Activity::Output("D/success", :success), Activity::Output(Left, :failure)]),
-      "End.success" => Inter::Task.new(implementing.method(:ES), []),
-      "End.failure" => Inter::Task.new(implementing.method(:EF), []),
+      "End.success" => Inter::Task.new(implementing::Success, []),
+      "End.failure" => Inter::Task.new(implementing::Failure, []),
     }
 
     nodes = Inter.node_attributes(implementation)
@@ -117,13 +116,32 @@ class LinearTest < Minitest::Spec
     pp nodes
 
     outputs = Inter.outputs(intermediate.stop_tasks, nodes)
-    puts "@@@@@ #{1.inspect}"
+
     pp outputs
-    exit
 
     circuit = Inter.circuit(intermediate, implementation)
     pp circuit
 
-    puts Trailblazer::Developer::Render::Circuit.(circuit)
+    process = Inter::Process.new(circuit, outputs, nodes)
+
+    puts cct = Trailblazer::Developer::Render::Circuit.(process: process)
+
+    cct.must_equal %{
+#<Method: #<Module:0x>.a>
+ {LinearTest::Right} => #<Method: #<Module:0x>.b>
+ {LinearTest::Left} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.b>
+ {B/success} => #<Method: #<Module:0x>.d>
+ {B/failure} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {LinearTest::Right} => #<End/:failure>
+ {LinearTest::Left} => #<End/:failure>
+#<Method: #<Module:0x>.d>
+ {D/success} => #<End/:success>
+ {LinearTest::Left} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
   end
 end
