@@ -8,7 +8,7 @@ module Trailblazer::Activity::DSL
     Process = Struct.new(:circuit, :outputs, :nodes)
 
     # Intermediate structures
-    Node = Struct.new(:id) # TODO: rename to NodeRef
+    TaskRef = Struct.new(:id) # TODO: rename to NodeRef
     # Outs = Class.new(Hash)
     Out  = Struct.new(:semantic, :target)
 
@@ -21,8 +21,8 @@ module Trailblazer::Activity::DSL
     # From the intermediate "template" and the actual implementation, compile a {Circuit} instance.
     def self.circuit(intermediate, implementation)
       wiring = Hash[
-        intermediate.wiring.collect do |node, outs|
-          task = implementation.fetch(node.id)
+        intermediate.wiring.collect do |task_ref, outs|
+          task = implementation.fetch(task_ref.id)
 
           [
             task.circuit_task,
@@ -40,8 +40,8 @@ module Trailblazer::Activity::DSL
 
       Trailblazer::Circuit.new(
         wiring,
-        intermediate.stop_tasks.collect { |node| implementation.fetch(node.id).circuit_task },
-        start_task: intermediate.start_tasks.collect { |node| implementation.fetch(node.id).circuit_task }[0]
+        intermediate.stop_tasks.collect { |task_ref| implementation.fetch(task_ref.id).circuit_task },
+        start_task: intermediate.start_tasks.collect { |task_ref| implementation.fetch(task_ref.id).circuit_task }[0]
       )
     end
 
@@ -85,15 +85,15 @@ class LinearTest < Minitest::Spec
     # DISCUSS: is this considered DSL-independent code?
     # TODO: unique {id}
     intermediate = Inter.new({
-        Inter::Node.new(:a) => [Inter::Out.new(:success, :b), Inter::Out.new(:failure, :c)],
-        Inter::Node.new(:b) => [Inter::Out.new(:success, :d), Inter::Out.new(:failure, :c)],
-        Inter::Node.new(:c) => [Inter::Out.new(:success, "End.failure"), Inter::Out.new(:failure, "End.failure")],
-        Inter::Node.new(:d) => [Inter::Out.new(:success, "End.success"), Inter::Out.new(:failure, "End.success")],
-        Inter::Node.new("End.success") => [],
-        Inter::Node.new("End.failure") => [],
+        Inter::TaskRef.new(:a) => [Inter::Out.new(:success, :b), Inter::Out.new(:failure, :c)],
+        Inter::TaskRef.new(:b) => [Inter::Out.new(:success, :d), Inter::Out.new(:failure, :c)],
+        Inter::TaskRef.new(:c) => [Inter::Out.new(:success, "End.failure"), Inter::Out.new(:failure, "End.failure")],
+        Inter::TaskRef.new(:d) => [Inter::Out.new(:success, "End.success"), Inter::Out.new(:failure, "End.success")],
+        Inter::TaskRef.new("End.success") => [],
+        Inter::TaskRef.new("End.failure") => [],
       },
-      [Inter::Node.new("End.success"), Inter::Node.new("End.failure")],
-      [Inter::Node.new(:a)]
+      [Inter::TaskRef.new("End.success"), Inter::TaskRef.new("End.failure")],
+      [Inter::TaskRef.new(:a)]
     ) # start_nodes: [:a]
 
     implementing = Module.new do
@@ -111,16 +111,15 @@ class LinearTest < Minitest::Spec
       "End.failure" => Inter::Task.new(implementing::Failure, []),
     }
 
+    circuit = Inter.circuit(intermediate, implementation)
+    pp circuit
+
     nodes = Inter.node_attributes(implementation)
     # generic NodeAttributes
     pp nodes
 
     outputs = Inter.outputs(intermediate.stop_tasks, nodes)
-
     pp outputs
-
-    circuit = Inter.circuit(intermediate, implementation)
-    pp circuit
 
     process = Inter::Process.new(circuit, outputs, nodes)
 
