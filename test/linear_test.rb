@@ -2,17 +2,19 @@ require "test_helper"
 
 module Trailblazer::Activity::DSL
   class Intermediate < Struct.new(:wiring, :stop_tasks, :start_tasks)
-  # Intermediate.module_eval do
+
+# FIXME: move those back to Activity::Structure
+    NodeAttributes = Struct.new(:id, :outputs, :task, :data)
+    Process = Struct.new(:circuit, :outputs, :nodes)
+
     # Intermediate structures
-    Node = Struct.new(:id)
+    Node = Struct.new(:id) # TODO: rename to NodeRef
     # Outs = Class.new(Hash)
     Out  = Struct.new(:semantic, :target)
 
-
     # module_function
 
-    # singleton_class.extend Forwardable
-    # singleton_class.def_delegator Trailblazer::Activity, :Output
+
     # Implementation structures
     Task = Struct.new(:circuit_task, :outputs)
 
@@ -24,7 +26,7 @@ module Trailblazer::Activity::DSL
 
           [
             task.circuit_task,
-            Hash[
+            Hash[ # compute the connections for {circuit_task}.
               outs.collect { |required_out|
                 [
                   for_semantic(task.outputs, required_out.semantic).signal,
@@ -43,12 +45,28 @@ module Trailblazer::Activity::DSL
       )
     end
 
+    # DISCUSS: this is intermediate-independent?
+    def self.node_attributes(implementation, nodes_data={}) # TODO: process {nodes_data}
+      implementation.collect do |id, task| # id, Task{circuit_task, outputs}
+        NodeAttributes.new(id, task.outputs, task.circuit_task, {})
+      end
+    end
+
+    def self.outputs(stop_tasks, nodes_attributes)
+      stop_tasks.collect do |task_ref|
+        puts "@@@@@ #{nodes_attributes.inspect}"
+        nodes_attributes.find { |node_attrs|
+
+          task_ref.id == node_attrs.id }
+      end
+    end
+
+    private
+
     # Apply to any array.
     def self.for_semantic(ary, semantic)
       ary.find { |out| out.semantic == semantic } or raise "`#{semantic}` not found"
     end
-
-    private
   end
 
   module Linear
@@ -93,6 +111,15 @@ class LinearTest < Minitest::Spec
       "End.success" => Inter::Task.new(implementing.method(:ES), []),
       "End.failure" => Inter::Task.new(implementing.method(:EF), []),
     }
+
+    nodes = Inter.node_attributes(implementation)
+    # generic NodeAttributes
+    pp nodes
+
+    outputs = Inter.outputs(intermediate.stop_tasks, nodes)
+    puts "@@@@@ #{1.inspect}"
+    pp outputs
+    exit
 
     circuit = Inter.circuit(intermediate, implementation)
     pp circuit
