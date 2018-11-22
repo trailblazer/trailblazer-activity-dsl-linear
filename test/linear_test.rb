@@ -32,29 +32,41 @@ module Trailblazer::Activity::DSL
 
       def call(sequence)
         circuit_map =
-          sequence.collect do |seq_row|
+          sequence.inject([[], []]) do |(implementations, intermediates), seq_row|
             magnetic_to, task, connections, data = seq_row
+            id = data[:id]
 
-            [task, find_connections(seq_row, connections, sequence)]
+            # execute all {Search}s for one sequence row.
+            connections = find_connections(seq_row, connections, sequence)
+
+            implementations += [id, Intermediate::Task(task, connections.collect { |output, _| output }) ]
+
+            intermediates += [[Intermediate::TaskRef(id), connections.collect { |output, target_id| Intermediate::Out(output.semantic, target_id) }] ]
+
+            [implementations, intermediates]
           end
 
-        circuit_map = Hash[circuit_map]
+        intermediate = Intermediate.new(Hash[circuit_map[1]])
+        # circuit_map = Hash[circuit_map]
 
-        pp circuit_map
+puts "@@"
+        pp intermediate
+        raise
       end
 
       # private
 
       def find_connections(seq_row, strategies, sequence)
-        Hash[
-          strategies.collect do |search|
-            output, target_seq_row = search.(sequence, seq_row)
+        strategies.collect do |search|
+          output, target_seq_row = search.(sequence, seq_row)
+          next if output.nil? # FIXME.
 
-            next if output.nil?
-
-            [output.signal, target_seq_row[1]] # FIXME: seqrow api
-          end
-        ]
+          [
+            output,                                     # implementation
+            target_seq_row[3][:id],  # intermediate
+            target_seq_row # DISCUSS: needed?
+          ]
+        end.compact
       end
     end # Compiler
   end
@@ -72,8 +84,7 @@ module Trailblazer::Activity::DSL
 
     def self.TaskRef(*args); TaskRef.new(*args) end
     def self.Out(*args);     Out.new(*args)     end
-
-    # module_function
+    def self.Task(*args);     Task.new(*args)     end
 
 
     # Implementation structures
@@ -169,12 +180,12 @@ class LinearTest < Minitest::Spec
     )
 
     implementation = {
-      :a => Inter::Task.new(implementing.method(:a), [Activity::Output(Right,       :success), Activity::Output(Left, :failure)]),
-      :b => Inter::Task.new(implementing.method(:b), [Activity::Output("B/success", :success), Activity::Output("B/failure", :failure)]),
-      :c => Inter::Task.new(implementing.method(:c), [Activity::Output(Right,       :success), Activity::Output(Left, :failure)]),
-      :d => Inter::Task.new(implementing.method(:d), [Activity::Output("D/success", :success), Activity::Output(Left, :failure)]),
-      "End.success" => Inter::Task.new(implementing::Success, [Activity::Output(implementing::Success, :success)]), # DISCUSS: End has one Output, signal is itself?
-      "End.failure" => Inter::Task.new(implementing::Failure, [Activity::Output(implementing::Failure, :failure)]),
+      :a => Inter::Task(implementing.method(:a), [Activity::Output(Right,       :success), Activity::Output(Left, :failure)]),
+      :b => Inter::Task(implementing.method(:b), [Activity::Output("B/success", :success), Activity::Output("B/failure", :failure)]),
+      :c => Inter::Task(implementing.method(:c), [Activity::Output(Right,       :success), Activity::Output(Left, :failure)]),
+      :d => Inter::Task(implementing.method(:d), [Activity::Output("D/success", :success), Activity::Output(Left, :failure)]),
+      "End.success" => Inter::Task(implementing::Success, [Activity::Output(implementing::Success, :success)]), # DISCUSS: End has one Output, signal is itself?
+      "End.failure" => Inter::Task(implementing::Failure, [Activity::Output(implementing::Failure, :failure)]),
     }
 
     circuit = Inter.circuit(intermediate, implementation)
@@ -259,7 +270,7 @@ class LinearTest < Minitest::Spec
         implementing.method(:c),
         [
           Linear::Search::Forward(
-            Activity::Output(Right, :failure),
+            Activity::Output(Right, :success),
             :failure
           ),
           Linear::Search::Forward(
