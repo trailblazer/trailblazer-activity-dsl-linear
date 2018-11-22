@@ -1,22 +1,62 @@
 require "test_helper"
 
 module Trailblazer::Activity::DSL
+  # Implementing a specific DSL, simplified version of the {Magnetic DSL} from 2017.
+  #
+  # Produces {Implementation} and {Intermediate}.
   module Linear
     module Search
       module_function
 
       def Forward(output, target_color)
+        ->(sequence, me) do
+          target_seq_row = sequence[sequence.index(me)+1..-1].find { |seq_row| seq_row[0] == target_color }
 
+          return output, target_seq_row
+        end
       end
 
       def Noop(output)
-
+        ->(sequence, me) do
+          nil
+        end
       end
 
       def ById(output, id)
 
       end
     end # Search
+
+    module Compiler
+      module_function
+
+      def call(sequence)
+        circuit_map =
+          sequence.collect do |seq_row|
+            magnetic_to, task, connections, data = seq_row
+
+            [task, find_connections(seq_row, connections, sequence)]
+          end
+
+        circuit_map = Hash[circuit_map]
+
+        pp circuit_map
+      end
+
+      # private
+
+      def find_connections(seq_row, strategies, sequence)
+        Hash[
+          strategies.collect do |search|
+            output, target_seq_row = search.(sequence, seq_row)
+
+            next if output.nil?
+
+            [output.signal, target_seq_row[1]] # FIXME: seqrow api
+          end
+        ]
+      end
+    end # Compiler
   end
 
   class Intermediate < Struct.new(:wiring, :stop_task_refs, :start_tasks)
@@ -29,6 +69,9 @@ module Trailblazer::Activity::DSL
     TaskRef = Struct.new(:id) # TODO: rename to NodeRef
     # Outs = Class.new(Hash)
     Out  = Struct.new(:semantic, :target)
+
+    def self.TaskRef(*args); TaskRef.new(*args) end
+    def self.Out(*args);     Out.new(*args)     end
 
     # module_function
 
@@ -114,15 +157,15 @@ class LinearTest < Minitest::Spec
     # TODO: unique {id}
     # Intermediate shall not contain actual object references, since it might be generated.
     intermediate = Inter.new({
-        Inter::TaskRef.new(:a) => [Inter::Out.new(:success, :b), Inter::Out.new(:failure, :c)],
-        Inter::TaskRef.new(:b) => [Inter::Out.new(:success, :d), Inter::Out.new(:failure, :c)],
-        Inter::TaskRef.new(:c) => [Inter::Out.new(:success, "End.failure"), Inter::Out.new(:failure, "End.failure")],
-        Inter::TaskRef.new(:d) => [Inter::Out.new(:success, "End.success"), Inter::Out.new(:failure, "End.success")],
-        Inter::TaskRef.new("End.success") => [],
-        Inter::TaskRef.new("End.failure") => [],
+        Inter::TaskRef(:a) => [Inter::Out(:success, :b), Inter::Out(:failure, :c)],
+        Inter::TaskRef(:b) => [Inter::Out(:success, :d), Inter::Out(:failure, :c)],
+        Inter::TaskRef(:c) => [Inter::Out(:success, "End.failure"), Inter::Out(:failure, "End.failure")],
+        Inter::TaskRef(:d) => [Inter::Out(:success, "End.success"), Inter::Out(:failure, "End.success")],
+        Inter::TaskRef("End.success") => [],
+        Inter::TaskRef("End.failure") => [],
       },
-      [Inter::TaskRef.new("End.success"), Inter::TaskRef.new("End.failure")],
-      [Inter::TaskRef.new(:a)] # start
+      [Inter::TaskRef("End.success"), Inter::TaskRef("End.failure")],
+      [Inter::TaskRef(:a)] # start
     )
 
     implementation = {
@@ -262,6 +305,8 @@ class LinearTest < Minitest::Spec
         {id: "End.failure"},
       ],
     ]
+
+    pp Linear::Compiler.(seq)
 
 
   end
