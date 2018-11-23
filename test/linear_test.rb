@@ -1,5 +1,10 @@
 require "test_helper"
 
+#:intermediate
+  def a(x=1)
+  end
+#:intermediate end
+
 module Trailblazer::Activity::DSL
   # Implementing a specific DSL, simplified version of the {Magnetic DSL} from 2017.
   #
@@ -30,8 +35,18 @@ module Trailblazer::Activity::DSL
     module Compiler
       module_function
 
-      def call(sequence)
-        circuit_map =
+      # Default strategy to find out what's a stop event is to inspect the TaskRef's {data[:stop_event]}.
+      def find_stop_task_refs(intermediate_wiring)
+        intermediate_wiring.collect { |task_ref, outs| task_ref.data[:stop_event] ? task_ref : nil }.compact
+      end
+
+      # The first task in the wiring is the default start task.
+      def find_start_task_refs(intermediate_wiring)
+        [intermediate_wiring.first.first]
+      end
+
+      def call(sequence, find_stops: method(:find_stop_task_refs), find_start: method(:find_start_task_refs))
+        _implementations, intermediate_wiring =
           sequence.inject([[], []]) do |(implementations, intermediates), seq_row|
             magnetic_to, task, connections, data = seq_row
             id = data[:id]
@@ -39,26 +54,27 @@ module Trailblazer::Activity::DSL
             # execute all {Search}s for one sequence row.
             connections = find_connections(seq_row, connections, sequence)
 
-            implementations += [id, Intermediate::Task(task, connections.collect { |output, _| output }) ]
+            implementations += [[id, Intermediate::Task(task, connections.collect { |output, _| output }) ]]
 
-            intermediates += [[Intermediate::TaskRef(id), connections.collect { |output, target_id| Intermediate::Out(output.semantic, target_id) }] ]
+            intermediates += [[Intermediate::TaskRef(id, data), connections.collect { |output, target_id| Intermediate::Out(output.semantic, target_id) }] ]
 
             [implementations, intermediates]
           end
 
-        intermediate = Intermediate.new(Hash[circuit_map[1]])
-        # circuit_map = Hash[circuit_map]
+        start_task_refs = find_start.(intermediate_wiring)
+        stop_task_refs = find_stops.(intermediate_wiring)
 
-puts "@@"
-        pp intermediate
-        raise
+        intermediate   = Intermediate.new(Hash[intermediate_wiring], stop_task_refs, start_task_refs)
+        implementation = Hash[_implementations]
+
+        Intermediate.(intermediate, implementation)
       end
 
       # private
 
       def find_connections(seq_row, strategies, sequence)
         strategies.collect do |search|
-          output, target_seq_row = search.(sequence, seq_row)
+          output, target_seq_row = search.(sequence, seq_row) # invoke the node's "connection search" strategy.
           next if output.nil? # FIXME.
 
           [
@@ -78,17 +94,24 @@ puts "@@"
     Process = Struct.new(:circuit, :outputs, :nodes)
 
     # Intermediate structures
-    TaskRef = Struct.new(:id) # TODO: rename to NodeRef
+    TaskRef = Struct.new(:id, :data) # TODO: rename to NodeRef
     # Outs = Class.new(Hash)
     Out  = Struct.new(:semantic, :target)
 
-    def self.TaskRef(*args); TaskRef.new(*args) end
-    def self.Out(*args);     Out.new(*args)     end
-    def self.Task(*args);     Task.new(*args)     end
+    def self.TaskRef(id, data={}); TaskRef.new(id, data) end
+    def self.Out(*args);           Out.new(*args)        end
+    def self.Task(*args);          Task.new(*args)       end
 
 
     # Implementation structures
     Task = Struct.new(:circuit_task, :outputs)
+
+    def self.call(intermediate, implementation)
+      circuit = circuit(intermediate, implementation)
+      nodes   = node_attributes(implementation)
+      outputs = outputs(intermediate.stop_task_refs, nodes)
+      process = Process.new(circuit, outputs, nodes)
+    end
 
     # From the intermediate "template" and the actual implementation, compile a {Circuit} instance.
     def self.circuit(intermediate, implementation)
@@ -172,8 +195,8 @@ class LinearTest < Minitest::Spec
         Inter::TaskRef(:b) => [Inter::Out(:success, :d), Inter::Out(:failure, :c)],
         Inter::TaskRef(:c) => [Inter::Out(:success, "End.failure"), Inter::Out(:failure, "End.failure")],
         Inter::TaskRef(:d) => [Inter::Out(:success, "End.success"), Inter::Out(:failure, "End.success")],
-        Inter::TaskRef("End.success") => [],
-        Inter::TaskRef("End.failure") => [],
+        Inter::TaskRef("End.success", stop_event: true) => [],
+        Inter::TaskRef("End.failure", stop_event: true) => [],
       },
       [Inter::TaskRef("End.success"), Inter::TaskRef("End.failure")],
       [Inter::TaskRef(:a)] # start
@@ -303,7 +326,7 @@ class LinearTest < Minitest::Spec
             Activity::Output(implementing::Success, :success)
           )
         ],
-        {id: "End.success"},
+        {id: "End.success", stop_event: true},
       ],
       [
         :failure,
@@ -313,12 +336,33 @@ class LinearTest < Minitest::Spec
             Activity::Output(implementing::Failure, :failure)
           )
         ],
-        {id: "End.failure"},
+        {id: "End.failure", stop_event: true},
       ],
     ]
 
-    pp Linear::Compiler.(seq)
+    process = Linear::Compiler.(seq)
 
+    cct = Trailblazer::Developer::Render::Circuit.(process: process)
+
+    cct.must_equal %{
+#<Start/:default>
+ {LinearTest::Right} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.a>
+ {LinearTest::Right} => #<Method: #<Module:0x>.b>
+ {LinearTest::Left} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.b>
+ {B/success} => #<Method: #<Module:0x>.d>
+ {B/failure} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {LinearTest::Right} => #<End/:failure>
+ {LinearTest::Left} => #<End/:failure>
+#<Method: #<Module:0x>.d>
+ {D/success} => #<End/:success>
+ {LinearTest::Left} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
 
   end
 end
