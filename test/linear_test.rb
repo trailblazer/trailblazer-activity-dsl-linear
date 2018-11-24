@@ -89,10 +89,6 @@ module Trailblazer::Activity::DSL
 
   class Intermediate < Struct.new(:wiring, :stop_task_refs, :start_tasks)
 
-# FIXME: move those back to Activity::Structure
-    NodeAttributes = Struct.new(:id, :outputs, :task, :data)
-    Process = Struct.new(:circuit, :outputs, :nodes)
-
     # Intermediate structures
     TaskRef = Struct.new(:id, :data) # TODO: rename to NodeRef
     # Outs = Class.new(Hash)
@@ -110,7 +106,7 @@ module Trailblazer::Activity::DSL
       circuit = circuit(intermediate, implementation)
       nodes   = node_attributes(implementation)
       outputs = outputs(intermediate.stop_task_refs, nodes)
-      process = Process.new(circuit, outputs, nodes)
+      process = Trailblazer::Activity::Process.new(circuit, outputs, nodes)
     end
 
     # From the intermediate "template" and the actual implementation, compile a {Circuit} instance.
@@ -133,7 +129,7 @@ module Trailblazer::Activity::DSL
         end
       ]
 
-      Trailblazer::Circuit.new(
+      Trailblazer::Activity::Circuit.new(
         wiring,
         intermediate.stop_task_refs.collect { |task_ref| implementation.fetch(task_ref.id).circuit_task },
         start_task: intermediate.start_tasks.collect { |task_ref| implementation.fetch(task_ref.id).circuit_task }[0]
@@ -143,7 +139,7 @@ module Trailblazer::Activity::DSL
     # DISCUSS: this is intermediate-independent?
     def self.node_attributes(implementation, nodes_data={}) # TODO: process {nodes_data}
       implementation.collect do |id, task| # id, Task{circuit_task, outputs}
-        NodeAttributes.new(id, task.outputs, task.circuit_task, {})
+        Trailblazer::Activity::NodeAttributes.new(id, task.outputs, task.circuit_task, {})
       end
     end
 
@@ -221,7 +217,7 @@ class LinearTest < Minitest::Spec
     outputs = Inter.outputs(intermediate.stop_task_refs, nodes)
     pp outputs
 
-    process = Inter::Process.new(circuit, outputs, nodes)
+    process = Trailblazer::Activity::Process.new(circuit, outputs, nodes)
 
     puts cct = Trailblazer::Developer::Render::Circuit.(process: process)
 
