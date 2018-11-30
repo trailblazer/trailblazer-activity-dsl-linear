@@ -5,91 +5,6 @@ require "test_helper"
   end
 #:intermediate end
 
-class Trailblazer::Activity
-  module DSL
-    # Implementing a specific DSL, simplified version of the {Magnetic DSL} from 2017.
-    #
-    # Produces {Implementation} and {Intermediate}.
-    module Linear
-      module Search
-        module_function
-
-        def Forward(output, target_color)
-          ->(sequence, me) do
-            target_seq_row = sequence[sequence.index(me)+1..-1].find { |seq_row| seq_row[0] == target_color }
-
-            return output, target_seq_row
-          end
-        end
-
-        def Noop(output)
-          ->(sequence, me) do
-            nil
-          end
-        end
-
-        def ById(output, id)
-
-        end
-      end # Search
-
-      module Compiler
-        module_function
-
-        # Default strategy to find out what's a stop event is to inspect the TaskRef's {data[:stop_event]}.
-        def find_stop_task_refs(intermediate_wiring)
-          intermediate_wiring.collect { |task_ref, outs| task_ref.data[:stop_event] ? task_ref : nil }.compact
-        end
-
-        # The first task in the wiring is the default start task.
-        def find_start_task_refs(intermediate_wiring)
-          [intermediate_wiring.first.first]
-        end
-
-        def call(sequence, find_stops: method(:find_stop_task_refs), find_start: method(:find_start_task_refs))
-          _implementations, intermediate_wiring =
-            sequence.inject([[], []]) do |(implementations, intermediates), seq_row|
-              magnetic_to, task, connections, data = seq_row
-              id = data[:id]
-
-              # execute all {Search}s for one sequence row.
-              connections = find_connections(seq_row, connections, sequence)
-
-              implementations += [[id, Process::Implementation::Task(task, connections.collect { |output, _| output }) ]]
-
-              intermediates += [[Process::Intermediate::TaskRef(id, data), connections.collect { |output, target_id| Process::Intermediate::Out(output.semantic, target_id) }] ]
-
-              [implementations, intermediates]
-            end
-
-          start_task_refs = find_start.(intermediate_wiring)
-          stop_task_refs = find_stops.(intermediate_wiring)
-
-          intermediate   = Process::Intermediate.new(Hash[intermediate_wiring], stop_task_refs, start_task_refs)
-          implementation = Hash[_implementations]
-
-          Process::Intermediate.(intermediate, implementation)
-        end
-
-        # private
-
-        def find_connections(seq_row, strategies, sequence)
-          strategies.collect do |search|
-            output, target_seq_row = search.(sequence, seq_row) # invoke the node's "connection search" strategy.
-            next if output.nil? # FIXME.
-
-            [
-              output,                                     # implementation
-              target_seq_row[3][:id],  # intermediate
-              target_seq_row # DISCUSS: needed?
-            ]
-          end.compact
-        end
-      end # Compiler
-    end
-  end
-end
-
 class LinearTest < Minitest::Spec
   Right = Class.new#Trailblazer::Activity::Right
   Left = Class.new#Trailblazer::Activity::Right
@@ -171,7 +86,51 @@ class LinearTest < Minitest::Spec
 }
   end
 
+  # outputs = task.outputs / default
+
+          # default #step
+      # :success=>[Right, :success]=>[Search.method(:Forward), :success]
+          # override by user
+      # :success=>[Right, :success]=>[Search.method(:ById), :blaId]
+
+  # default {step}: Output(outputs[:success].signal, outputs[:success].semantic)=>[Search::Forward, :success], ...
+  # compile effective Output(signal, semantic) => Search::<strat>
+
   it "simple linear approach where a {Sequence} is compiled into an Intermediate/Implementation" do
+    def default_binary_outputs
+      {success: [Trailblazer::Activity::Right, :success], failure: [Trailblazer::Activity::Left, :failure]}
+    end
+
+    def default_step_connections
+      {success: [Linear::Search.method(:Forward), :success], failure: [Linear::Search.method(:Forward), :failure]}
+    end
+
+    @sequence = Linear::Sequence.new
+
+    def step(task, outputs: self.default_binary_outputs, connections: self.default_step_connections, **local_options)
+      add_task(:success, task, sequence: @sequence, outputs: outputs, connections: connections, **local_options)
+    end
+
+    def add_task(track, task, outputs:, connections:, sequence:, **local_options)
+      # TODO: allow replace, inherit etc!
+      sequence += [
+        track,
+        task,
+        connections.collect do |semantic, (search_strategy, *search_args)|
+          output = outputs[semantic] || raise("No `#{semantic}` output found for #{outputs.inspect}")
+
+          search_strategy.(
+            output,
+            *search_args
+          )
+        end,
+        local_options # {id: "Start.success"}
+      ]
+    end
+
+    pp step(implementing.method(:a), id: :a)
+    raise
+
     seq = [
       [
         nil,
