@@ -11,6 +11,8 @@ class Trailblazer::Activity
       module Search
         module_function
 
+        # From this task onwards, find the next task that's "magnetic to" {target_color}.
+        # Note that we only go forward, no back-references are done here.
         def Forward(output, target_color)
           ->(sequence, me) do
             target_seq_row = sequence[sequence.index(me)+1..-1].find { |seq_row| seq_row[0] == target_color }
@@ -74,7 +76,7 @@ class Trailblazer::Activity
           strategies.collect do |search|
             output, target_seq_row = search.(sequence, seq_row) # invoke the node's "connection search" strategy.
             next if output.nil? # FIXME.
-
+raise "Couldn't find target for #{seq_row}" if target_seq_row.nil?
             [
               output,                                     # implementation
               target_seq_row[3][:id],  # intermediate

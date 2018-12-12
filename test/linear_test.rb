@@ -96,9 +96,9 @@ class LinearTest < Minitest::Spec
   # default {step}: Output(outputs[:success].signal, outputs[:success].semantic)=>[Search::Forward, :success], ...
   # compile effective Output(signal, semantic) => Search::<strat>
 
-  it "simple linear approach where a {Sequence} is compiled into an Intermediate/Implementation" do
+  it "DSL to change {Sequence} and compile it to a {Process}" do
     def default_binary_outputs
-      {success: [Trailblazer::Activity::Right, :success], failure: [Trailblazer::Activity::Left, :failure]}
+      {success: Trailblazer::Activity::Output(Trailblazer::Activity::Right, :success), failure: Trailblazer::Activity::Output(Trailblazer::Activity::Left, :failure)}
     end
 
     def default_step_connections
@@ -107,15 +107,21 @@ class LinearTest < Minitest::Spec
 
     @sequence = Linear::Sequence.new
 
-    def step(task, outputs: self.default_binary_outputs, connections: self.default_step_connections, **local_options)
-      add_task(:success, task, sequence: @sequence, outputs: outputs, connections: connections, **local_options)
+    def step(task, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, **local_options)
+      add_task_to_sequence!(magnetic_to, task, sequence: @sequence, outputs: outputs, connections: connections, **local_options)
+    end
+
+    def add_task_to_sequence!(*args, &block)
+      @sequence = add_task(*args, &block)
     end
 
     def add_task(track, task, outputs:, connections:, sequence:, **local_options)
       # TODO: allow replace, inherit etc!
-      sequence += [
+      sequence += [[
         track,
         task,
+        # DISCUSS: shouldn't we be going through the outputs here?
+        # TODO: or warn if an output is unconnected.
         connections.collect do |semantic, (search_strategy, *search_args)|
           output = outputs[semantic] || raise("No `#{semantic}` output found for #{outputs.inspect}")
 
@@ -125,12 +131,33 @@ class LinearTest < Minitest::Spec
           )
         end,
         local_options # {id: "Start.success"}
-      ]
+      ]]
     end
 
-    pp step(implementing.method(:a), id: :a)
-    raise
 
+    start_default = Activity::Start.new(semantic: :default)
+    end_success   = Activity::End.new(semantic: :success)
+    end_failure   = Activity::End.new(semantic: :failure)
+
+
+    step(start_default, id: "Start.default", outputs: {success: default_binary_outputs[:success]}, connections: {success: default_step_connections[:success]})
+
+
+    step(implementing.method(:a), id: :a)
+    step(implementing.method(:b), id: :b)
+
+
+    step(end_success, id: "End.success", outputs: {success: end_success}, connections: {success: [Linear::Search.method(:Noop)]})
+    step(end_failure, magnetic_to: :failure, id: "End.failure", outputs: {failure: end_failure}, connections: {failure: [Linear::Search.method(:Noop)]})
+
+pp @sequence
+    process = Linear::Compiler.(@sequence)
+
+    cct = Trailblazer::Developer::Render::Circuit.(process: process)
+    puts cct
+  end
+
+  it "simple linear approach where a {Sequence} is compiled into an Intermediate/Implementation" do
     seq = [
       [
         nil,
@@ -252,3 +279,5 @@ class LinearTest < Minitest::Spec
 
   end
 end
+
+# TODO: test when target can't be found
