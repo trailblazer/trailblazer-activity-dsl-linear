@@ -108,17 +108,21 @@ class LinearTest < Minitest::Spec
     @sequence = Linear::Sequence.new
 
     def step(task, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, **local_options)
-      add_task_to_sequence!(magnetic_to, task, sequence: @sequence, outputs: outputs, connections: connections, **local_options)
+      add_task_to_sequence!(task, magnetic_to: magnetic_to, outputs: outputs, connections: connections, **local_options)
     end
 
-    def add_task_to_sequence!(*args, &block)
-      @sequence = add_task(*args, &block)
+    def fail(task, magnetic_to: :failure, **options)
+      step(task, magnetic_to: magnetic_to, **options)
     end
 
-    def add_task(track, task, outputs:, connections:, sequence:, **local_options)
+    def add_task_to_sequence!(task, **options, &block)
+      @sequence = add_task(task, sequence: @sequence, **options, &block)
+    end
+
+    def add_task(task, magnetic_to:, outputs:, connections:, sequence:, **local_options)
       # TODO: allow replace, inherit etc!
       sequence += [[
-        track,
+        magnetic_to,
         task,
         # DISCUSS: shouldn't we be going through the outputs here?
         # TODO: or warn if an output is unconnected.
