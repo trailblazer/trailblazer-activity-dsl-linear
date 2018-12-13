@@ -106,8 +106,8 @@ class LinearTest < Minitest::Spec
     {success: [Linear::Search.method(:Forward), :success], failure: [Linear::Search.method(:Forward), :failure]}
   end
 
-  def step(task, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, sequence_insert: Linear::Insert.method(:Prepend), insert_id: "End.success", **local_options)
-    insert_task_into_sequence!(task, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, insert_id: insert_id, **local_options)
+  def step(task, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, sequence_insert: [Linear::Insert.method(:Prepend), "End.success"], **local_options)
+    insert_task_into_sequence!(task, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, **local_options)
   end
 
   # fail simply wires both {:failure=>} and {:success=>} outputs to the next {=>:failure} task.
@@ -142,8 +142,10 @@ class LinearTest < Minitest::Spec
   def insert_task(task, sequence:, sequence_insert:, **options)
     new_row = create_row(task, **options)
 
-    # {sequence_insert} is usually a function such as {Linear::Insert::Append}.
-    sequence_insert.(sequence, new_row, **options)
+    # {sequence_insert} is usually a function such as {Linear::Insert::Append} and its arguments.
+    insert_function, *args = sequence_insert
+
+    insert_function.(sequence, new_row, *args)
   end
 
   let(:sequence) do
@@ -154,14 +156,14 @@ class LinearTest < Minitest::Spec
     start_event = create_row(start_default, id: "Start.default", magnetic_to: nil, outputs: {success: default_binary_outputs[:success]}, connections: {success: default_step_connections[:success]})
     @sequence   = Linear::Sequence[start_event]
 
-    end_args = {sequence_insert: Linear::Insert.method(:Append), insert_id: "Start.default"}
+    end_args = {sequence_insert: [Linear::Insert.method(:Append), "Start.default"]}
 
     step(end_failure, magnetic_to: :failure, id: "End.failure", outputs: {failure: end_failure}, connections: {failure: [Linear::Search.method(:Noop)]}, **end_args)
     step(end_success, magnetic_to: :success, id: "End.success", outputs: {success: end_success}, connections: {success: [Linear::Search.method(:Noop)]}, **end_args)
 
   # PassFast
     end_pass_fast   = Activity::End.new(semantic: :pass_fast)
-    step(end_pass_fast, magnetic_to: :pass_fast, id: "End.pass_fast", outputs: {pass_fast: end_pass_fast}, connections: {pass_fast: [Linear::Search.method(:Noop)]}, sequence_insert: Linear::Insert.method(:Append), insert_id: "End.success")
+    step(end_pass_fast, magnetic_to: :pass_fast, id: "End.pass_fast", outputs: {pass_fast: end_pass_fast}, connections: {pass_fast: [Linear::Search.method(:Noop)]}, sequence_insert: [Linear::Insert.method(:Append), "End.success"])
 
 
     step implementing.method(:a), id: :a
@@ -207,8 +209,8 @@ pp sequence
   it "supports :replace, :delete, :inherit" do
     @sequence = sequence
 
-    step implementing.method(:g), id: :g, sequence_insert: Linear::Insert.method(:Replace), insert_id: :f
-    step nil, id: nil,                    sequence_insert: Linear::Insert.method(:Delete), insert_id: :d
+    step implementing.method(:g), id: :g, sequence_insert: [Linear::Insert.method(:Replace), :f]
+    step nil, id: nil,                    sequence_insert: [Linear::Insert.method(:Delete), :d]
 # pp @sequence
     process = Linear::Compiler.(@sequence)
 
