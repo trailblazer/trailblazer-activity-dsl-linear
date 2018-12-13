@@ -98,7 +98,7 @@ class LinearTest < Minitest::Spec
 
   it "DSL to change {Sequence} and compile it to a {Process}" do
     def default_binary_outputs
-      {success: Trailblazer::Activity::Output(Trailblazer::Activity::Right, :success), failure: Trailblazer::Activity::Output(Trailblazer::Activity::Left, :failure)}
+      {success: Activity::Output(Activity::Right, :success), failure: Activity::Output(Activity::Left, :failure)}
     end
 
     def default_step_connections
@@ -152,12 +152,20 @@ class LinearTest < Minitest::Spec
     start_event = create_row(start_default, id: "Start.default", magnetic_to: nil, outputs: {success: default_binary_outputs[:success]}, connections: {success: default_step_connections[:success]})
     @sequence   = Linear::Sequence[start_event]
 
-    step(end_failure, magnetic_to: :failure, id: "End.failure", outputs: {failure: end_failure}, connections: {failure: [Linear::Search.method(:Noop)]}, sequence_insert: Linear::Insert.method(:Append), insert_id: "Start.default")
-    step(end_success, magnetic_to: :success, id: "End.success", outputs: {success: end_success}, connections: {success: [Linear::Search.method(:Noop)]}, sequence_insert: Linear::Insert.method(:Append), insert_id: "Start.default")
+    end_args = {sequence_insert: Linear::Insert.method(:Append), insert_id: "Start.default"}
+
+    step(end_failure, magnetic_to: :failure, id: "End.failure", outputs: {failure: end_failure}, connections: {failure: [Linear::Search.method(:Noop)]}, **end_args)
+    step(end_success, magnetic_to: :success, id: "End.success", outputs: {success: end_success}, connections: {success: [Linear::Search.method(:Noop)]}, **end_args)
+
+  # PassFast
+    end_pass_fast   = Activity::End.new(semantic: :pass_fast)
+    step(end_pass_fast, magnetic_to: :pass_fast, id: "End.pass_fast", outputs: {pass_fast: end_pass_fast}, connections: {pass_fast: [Linear::Search.method(:Noop)]}, sequence_insert: Linear::Insert.method(:Append), insert_id: "End.success")
+
 
     step(implementing.method(:a), id: :a)
+    step(implementing.method(:b), id: :b, outputs: default_binary_outputs.merge(pass_fast: Activity::Output("Special signal", :pass_fast)), connections: default_step_connections.merge(pass_fast: [Linear::Search.method(:Forward), :pass_fast]) )
     fail(implementing.method(:c), id: :c)
-    step(implementing.method(:b), id: :b)
+    step(implementing.method(:d), id: :d)
 
 
 pp @sequence
@@ -171,13 +179,19 @@ pp @sequence
 #<Method: #<Module:0x>.a>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
  {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.c>
+ {Special signal} => #<End/:pass_fast>
 #<Method: #<Module:0x>.c>
  {Trailblazer::Activity::Right} => #<End/:failure>
  {Trailblazer::Activity::Left} => #<End/:failure>
-#<Method: #<Module:0x>.b>
+#<Method: #<Module:0x>.d>
  {Trailblazer::Activity::Right} => #<End/:success>
  {Trailblazer::Activity::Left} => #<End/:failure>
 #<End/:success>
+
+#<End/:pass_fast>
 
 #<End/:failure>
 }
