@@ -5,9 +5,11 @@ class Trailblazer::Activity
     # Produces {Implementation} and {Intermediate}.
     module Linear
 
+      # Sequence
       class Sequence < Array
       end
 
+      # Sequence
       module Search
         module_function
 
@@ -31,6 +33,36 @@ class Trailblazer::Activity
 
         end
       end # Search
+
+      # Sequence
+      # Functions to mutate the Sequence by inserting, replacing, or deleting tasks.
+      # These functions are called in {insert_task}
+      module Insert
+        module_function
+
+        # Append {new_row} after {insert_id}.
+        def Append(sequence, new_row, insert_id:, **)
+          index, sequence = find(sequence, insert_id)
+
+          sequence.insert(index+1, new_row)
+        end
+
+        # Insert {new_row} before {insert_id}.
+        def Prepend(sequence, new_row, insert_id:, **)
+          index, sequence = find(sequence, insert_id)
+
+          sequence.insert(index, new_row)
+        end
+
+        # @private
+        def find_index(sequence, insert_id)
+          sequence.find_index { |seq_row| seq_row[3][:id] == insert_id }
+        end
+
+        def find(sequence, insert_id)
+          return find_index(sequence, insert_id), sequence.clone # Ruby doesn't have an easy way to avoid mutating arrays :(
+        end
+      end
 
       module Compiler
         module_function

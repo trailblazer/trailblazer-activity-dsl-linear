@@ -105,23 +105,21 @@ class LinearTest < Minitest::Spec
       {success: [Linear::Search.method(:Forward), :success], failure: [Linear::Search.method(:Forward), :failure]}
     end
 
-    @sequence = Linear::Sequence.new
-
-    def step(task, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, **local_options)
-      add_task_to_sequence!(task, magnetic_to: magnetic_to, outputs: outputs, connections: connections, **local_options)
+    def step(task, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, sequence_insert: Linear::Insert.method(:Prepend), insert_id: "End.success", **local_options)
+      insert_task_into_sequence!(task, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, insert_id: insert_id, **local_options)
     end
 
-    def fail(task, magnetic_to: :failure, **options)
-      step(task, magnetic_to: magnetic_to, **options)
+    # fail simply wires both {:failure=>} and {:success=>} outputs to the next {=>:failure} task.
+    def fail(task, magnetic_to: :failure, connections: default_step_connections.merge(success: default_step_connections[:failure]), **local_options)
+      step(task, magnetic_to: magnetic_to, connections: connections, **local_options)
     end
 
-    def add_task_to_sequence!(task, **options, &block)
-      @sequence = add_task(task, sequence: @sequence, **options, &block)
+    def insert_task_into_sequence!(task, **options, &block)
+      @sequence = insert_task(task, sequence: @sequence, **options, &block)
     end
 
-    def add_task(task, magnetic_to:, outputs:, connections:, sequence:, **local_options)
-      # TODO: allow replace, inherit etc!
-      sequence += [[
+    def create_row(task, magnetic_to:, outputs:, connections:, **options)
+      [
         magnetic_to,
         task,
         # DISCUSS: shouldn't we be going through the outputs here?
@@ -134,31 +132,55 @@ class LinearTest < Minitest::Spec
             *search_args
           )
         end,
-        local_options # {id: "Start.success"}
-      ]]
+        options # {id: "Start.success"}
+      ]
     end
 
+    # Insert the task into the sequence using the {sequence_insert} strategy.
+    # @return Sequence sequence after applied insertion
+    def insert_task(task, sequence:, sequence_insert:, **options)
+      new_row = create_row(task, **options)
+
+      # {sequence_insert} is usually a function such as {Linear::Insert::Append}.
+      sequence_insert.(sequence, new_row, **options)
+    end
 
     start_default = Activity::Start.new(semantic: :default)
     end_success   = Activity::End.new(semantic: :success)
     end_failure   = Activity::End.new(semantic: :failure)
 
+    start_event = create_row(start_default, id: "Start.default", magnetic_to: nil, outputs: {success: default_binary_outputs[:success]}, connections: {success: default_step_connections[:success]})
+    @sequence   = Linear::Sequence[start_event]
 
-    step(start_default, id: "Start.default", outputs: {success: default_binary_outputs[:success]}, connections: {success: default_step_connections[:success]})
-
+    step(end_failure, magnetic_to: :failure, id: "End.failure", outputs: {failure: end_failure}, connections: {failure: [Linear::Search.method(:Noop)]}, sequence_insert: Linear::Insert.method(:Append), insert_id: "Start.default")
+    step(end_success, magnetic_to: :success, id: "End.success", outputs: {success: end_success}, connections: {success: [Linear::Search.method(:Noop)]}, sequence_insert: Linear::Insert.method(:Append), insert_id: "Start.default")
 
     step(implementing.method(:a), id: :a)
+    fail(implementing.method(:c), id: :c)
     step(implementing.method(:b), id: :b)
 
-
-    step(end_success, id: "End.success", outputs: {success: end_success}, connections: {success: [Linear::Search.method(:Noop)]})
-    step(end_failure, magnetic_to: :failure, id: "End.failure", outputs: {failure: end_failure}, connections: {failure: [Linear::Search.method(:Noop)]})
 
 pp @sequence
     process = Linear::Compiler.(@sequence)
 
     cct = Trailblazer::Developer::Render::Circuit.(process: process)
     puts cct
+    cct.must_equal %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
   end
 
   it "simple linear approach where a {Sequence} is compiled into an Intermediate/Implementation" do
