@@ -117,7 +117,8 @@ class LinearTest < Minitest::Spec
   end
 
   def step(task, sequence:, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, sequence_insert: [Linear::Insert.method(:Prepend), "End.success"], **local_options)
-    insert_task(task, sequence: sequence, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, **local_options)
+    # here, we want the final arguments.
+    Linear::DSL.insert_task(task, sequence: sequence, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, **local_options)
   end
 
   # fail simply wires both {:failure=>} and {:success=>} outputs to the next {=>:failure} task.
@@ -129,41 +130,12 @@ class LinearTest < Minitest::Spec
   #   @sequence = insert_task(task, sequence: @sequence, **options, &block)
   # end
 
-  def create_row(task, magnetic_to:, outputs:, connections:, **options)
-    [
-      magnetic_to,
-      task,
-      # DISCUSS: shouldn't we be going through the outputs here?
-      # TODO: or warn if an output is unconnected.
-      connections.collect do |semantic, (search_strategy, *search_args)|
-        output = outputs[semantic] || raise("No `#{semantic}` output found for #{outputs.inspect}")
-
-        search_strategy.(
-          output,
-          *search_args
-        )
-      end,
-      options # {id: "Start.success"}
-    ]
-  end
-
-  # Insert the task into the sequence using the {sequence_insert} strategy.
-  # @return Sequence sequence after applied insertion
-  def insert_task(task, sequence:, sequence_insert:, **options)
-    new_row = create_row(task, **options)
-
-    # {sequence_insert} is usually a function such as {Linear::Insert::Append} and its arguments.
-    insert_function, *args = sequence_insert
-
-    insert_function.(sequence, new_row, *args)
-  end
-
   let(:sequence) do
     start_default = Activity::Start.new(semantic: :default)
     end_success   = Activity::End.new(semantic: :success)
     end_failure   = Activity::End.new(semantic: :failure)
 
-    start_event = create_row(start_default, id: "Start.default", magnetic_to: nil, outputs: {success: default_binary_outputs[:success]}, connections: {success: default_step_connections[:success]})
+    start_event = Linear::DSL.create_row(start_default, id: "Start.default", magnetic_to: nil, outputs: {success: default_binary_outputs[:success]}, connections: {success: default_step_connections[:success]})
     @sequence   = Linear::Sequence[start_event]
 
     end_args = {sequence_insert: [Linear::Insert.method(:Append), "Start.default"]}

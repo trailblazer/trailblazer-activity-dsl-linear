@@ -84,6 +84,39 @@ class Trailblazer::Activity
         end
       end
 
+      module DSL
+        module_function
+
+        # Insert the task into the sequence using the {sequence_insert} strategy.
+        # @return Sequence sequence after applied insertion
+        def insert_task(task, sequence:, sequence_insert:, **options)
+          new_row = create_row(task, **options)
+
+          # {sequence_insert} is usually a function such as {Linear::Insert::Append} and its arguments.
+          insert_function, *args = sequence_insert
+
+          insert_function.(sequence, new_row, *args)
+        end
+
+        def create_row(task, magnetic_to:, outputs:, connections:, **options)
+          [
+            magnetic_to,
+            task,
+            # DISCUSS: shouldn't we be going through the outputs here?
+            # TODO: or warn if an output is unconnected.
+            connections.collect do |semantic, (search_strategy, *search_args)|
+              output = outputs[semantic] || raise("No `#{semantic}` output found for #{outputs.inspect}")
+
+              search_strategy.(
+                output,
+                *search_args
+              )
+            end,
+            options # {id: "Start.success"}
+          ]
+        end
+      end
+
       module Compiler
         module_function
 
