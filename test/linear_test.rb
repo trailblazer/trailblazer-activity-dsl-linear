@@ -101,6 +101,12 @@ class LinearTest < Minitest::Spec
   # id, taskBuilder
   # process_DSL_options Output/Task()
 
+# step
+  # normalize (e.g. macro/task)
+  # step (original)
+  #   PASSFAST::step extending args
+  # insert_task...
+
 
   def default_binary_outputs
     {success: Activity::Output(Activity::Right, :success), failure: Activity::Output(Activity::Left, :failure)}
@@ -110,8 +116,8 @@ class LinearTest < Minitest::Spec
     {success: [Linear::Search.method(:Forward), :success], failure: [Linear::Search.method(:Forward), :failure]}
   end
 
-  def step(task, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, sequence_insert: [Linear::Insert.method(:Prepend), "End.success"], **local_options)
-    insert_task_into_sequence!(task, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, **local_options)
+  def step(task, sequence:, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, sequence_insert: [Linear::Insert.method(:Prepend), "End.success"], **local_options)
+    insert_task(task, sequence: sequence, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, **local_options)
   end
 
   # fail simply wires both {:failure=>} and {:success=>} outputs to the next {=>:failure} task.
@@ -119,9 +125,9 @@ class LinearTest < Minitest::Spec
     step(task, magnetic_to: magnetic_to, connections: connections, **local_options)
   end
 
-  def insert_task_into_sequence!(task, **options, &block)
-    @sequence = insert_task(task, sequence: @sequence, **options, &block)
-  end
+  # def insert_task_into_sequence!(task, **options, &block)
+  #   @sequence = insert_task(task, sequence: @sequence, **options, &block)
+  # end
 
   def create_row(task, magnetic_to:, outputs:, connections:, **options)
     [
@@ -162,19 +168,19 @@ class LinearTest < Minitest::Spec
 
     end_args = {sequence_insert: [Linear::Insert.method(:Append), "Start.default"]}
 
-    step(end_failure, magnetic_to: :failure, id: "End.failure", outputs: {failure: end_failure}, connections: {failure: [Linear::Search.method(:Noop)]}, **end_args)
-    step(end_success, magnetic_to: :success, id: "End.success", outputs: {success: end_success}, connections: {success: [Linear::Search.method(:Noop)]}, **end_args)
+    @sequence = step(end_failure, sequence: @sequence, magnetic_to: :failure, id: "End.failure", outputs: {failure: end_failure}, connections: {failure: [Linear::Search.method(:Noop)]}, **end_args)
+    @sequence = step(end_success, sequence: @sequence, magnetic_to: :success, id: "End.success", outputs: {success: end_success}, connections: {success: [Linear::Search.method(:Noop)]}, **end_args)
 
   # PassFast
     end_pass_fast   = Activity::End.new(semantic: :pass_fast)
-    step(end_pass_fast, magnetic_to: :pass_fast, id: "End.pass_fast", outputs: {pass_fast: end_pass_fast}, connections: {pass_fast: [Linear::Search.method(:Noop)]}, sequence_insert: [Linear::Insert.method(:Append), "End.success"])
+    @sequence = step(end_pass_fast, sequence: @sequence, magnetic_to: :pass_fast, id: "End.pass_fast", outputs: {pass_fast: end_pass_fast}, connections: {pass_fast: [Linear::Search.method(:Noop)]}, sequence_insert: [Linear::Insert.method(:Append), "End.success"])
 
 
-    step implementing.method(:a), id: :a
-    fail implementing.method(:f), id: :f, connections: {success: [Linear::Search.method(:ById), :d], failure: [Linear::Search.method(:ById), :c]}
-    step implementing.method(:b), id: :b, outputs: default_binary_outputs.merge(pass_fast: Activity::Output("Special signal", :pass_fast)), connections: default_step_connections.merge(pass_fast: [Linear::Search.method(:Forward), :pass_fast])
-    fail implementing.method(:c), id: :c
-    step implementing.method(:d), id: :d
+    @sequence = step implementing.method(:a), sequence: @sequence, id: :a
+    @sequence = fail implementing.method(:f), sequence: @sequence, id: :f, connections: {success: [Linear::Search.method(:ById), :d], failure: [Linear::Search.method(:ById), :c]}
+    @sequence = step implementing.method(:b), sequence: @sequence, id: :b, outputs: default_binary_outputs.merge(pass_fast: Activity::Output("Special signal", :pass_fast)), connections: default_step_connections.merge(pass_fast: [Linear::Search.method(:Forward), :pass_fast])
+    @sequence = fail implementing.method(:c), sequence: @sequence, id: :c
+    @sequence = step implementing.method(:d), sequence: @sequence, id: :d
   end
 
   it "DSL to change {Sequence} and compile it to a {Process}" do
@@ -211,12 +217,12 @@ pp sequence
   end
 
   it "supports :replace, :delete, :inherit" do
-    @sequence = sequence
+    _sequence = sequence
 
-    step implementing.method(:g), id: :g, sequence_insert: [Linear::Insert.method(:Replace), :f]
-    step nil, id: nil,                    sequence_insert: [Linear::Insert.method(:Delete), :d]
-# pp @sequence
-    process = Linear::Compiler.(@sequence)
+    _sequence = step implementing.method(:g), sequence: _sequence, id: :g, sequence_insert: [Linear::Insert.method(:Replace), :f]
+    _sequence = step nil, sequence: _sequence, id: nil,                    sequence_insert: [Linear::Insert.method(:Delete), :d]
+# pp _sequence
+    process = Linear::Compiler.(_sequence)
 
     cct = Trailblazer::Developer::Render::Circuit.(process: process)
     # puts cct
