@@ -18,7 +18,7 @@ class LinearTest < Minitest::Spec
 
   let(:implementing) do
     implementing = Module.new do
-      extend T.def_tasks(:a, :b, :c, :d)
+      extend T.def_tasks(:a, :b, :c, :d, :f)
     end
     implementing::Start = Activity::Start.new(semantic: :default)
     implementing::Failure = Activity::End(:failure)
@@ -162,10 +162,11 @@ class LinearTest < Minitest::Spec
     step(end_pass_fast, magnetic_to: :pass_fast, id: "End.pass_fast", outputs: {pass_fast: end_pass_fast}, connections: {pass_fast: [Linear::Search.method(:Noop)]}, sequence_insert: Linear::Insert.method(:Append), insert_id: "End.success")
 
 
-    step(implementing.method(:a), id: :a)
-    step(implementing.method(:b), id: :b, outputs: default_binary_outputs.merge(pass_fast: Activity::Output("Special signal", :pass_fast)), connections: default_step_connections.merge(pass_fast: [Linear::Search.method(:Forward), :pass_fast]) )
-    fail(implementing.method(:c), id: :c)
-    step(implementing.method(:d), id: :d)
+    step implementing.method(:a), id: :a
+    fail implementing.method(:f), id: :f, connections: {success: [Linear::Search.method(:ById), :d], failure: [Linear::Search.method(:ById), :c]}
+    step implementing.method(:b), id: :b, outputs: default_binary_outputs.merge(pass_fast: Activity::Output("Special signal", :pass_fast)), connections: default_step_connections.merge(pass_fast: [Linear::Search.method(:Forward), :pass_fast])
+    fail implementing.method(:c), id: :c
+    step implementing.method(:d), id: :d
 
 
 pp @sequence
@@ -178,6 +179,9 @@ pp @sequence
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
 #<Method: #<Module:0x>.a>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.d>
  {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.c>
 #<Method: #<Module:0x>.b>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.d>
