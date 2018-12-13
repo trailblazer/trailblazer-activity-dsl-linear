@@ -97,6 +97,10 @@ class LinearTest < Minitest::Spec
   # compile effective Output(signal, semantic) => Search::<strat>
 
 
+  # pass_fast: true => outputs+=PassFast, connections+=PassFast
+  # id, taskBuilder
+  # process_DSL_options Output/Task()
+
 
   def default_binary_outputs
     {success: Activity::Output(Activity::Right, :success), failure: Activity::Output(Activity::Left, :failure)}
