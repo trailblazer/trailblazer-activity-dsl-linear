@@ -96,55 +96,57 @@ class LinearTest < Minitest::Spec
   # default {step}: Output(outputs[:success].signal, outputs[:success].semantic)=>[Search::Forward, :success], ...
   # compile effective Output(signal, semantic) => Search::<strat>
 
-  it "DSL to change {Sequence} and compile it to a {Process}" do
-    def default_binary_outputs
-      {success: Activity::Output(Activity::Right, :success), failure: Activity::Output(Activity::Left, :failure)}
-    end
 
-    def default_step_connections
-      {success: [Linear::Search.method(:Forward), :success], failure: [Linear::Search.method(:Forward), :failure]}
-    end
 
-    def step(task, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, sequence_insert: Linear::Insert.method(:Prepend), insert_id: "End.success", **local_options)
-      insert_task_into_sequence!(task, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, insert_id: insert_id, **local_options)
-    end
+  def default_binary_outputs
+    {success: Activity::Output(Activity::Right, :success), failure: Activity::Output(Activity::Left, :failure)}
+  end
 
-    # fail simply wires both {:failure=>} and {:success=>} outputs to the next {=>:failure} task.
-    def fail(task, magnetic_to: :failure, connections: default_step_connections.merge(success: default_step_connections[:failure]), **local_options)
-      step(task, magnetic_to: magnetic_to, connections: connections, **local_options)
-    end
+  def default_step_connections
+    {success: [Linear::Search.method(:Forward), :success], failure: [Linear::Search.method(:Forward), :failure]}
+  end
 
-    def insert_task_into_sequence!(task, **options, &block)
-      @sequence = insert_task(task, sequence: @sequence, **options, &block)
-    end
+  def step(task, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, sequence_insert: Linear::Insert.method(:Prepend), insert_id: "End.success", **local_options)
+    insert_task_into_sequence!(task, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, insert_id: insert_id, **local_options)
+  end
 
-    def create_row(task, magnetic_to:, outputs:, connections:, **options)
-      [
-        magnetic_to,
-        task,
-        # DISCUSS: shouldn't we be going through the outputs here?
-        # TODO: or warn if an output is unconnected.
-        connections.collect do |semantic, (search_strategy, *search_args)|
-          output = outputs[semantic] || raise("No `#{semantic}` output found for #{outputs.inspect}")
+  # fail simply wires both {:failure=>} and {:success=>} outputs to the next {=>:failure} task.
+  def fail(task, magnetic_to: :failure, connections: default_step_connections.merge(success: default_step_connections[:failure]), **local_options)
+    step(task, magnetic_to: magnetic_to, connections: connections, **local_options)
+  end
 
-          search_strategy.(
-            output,
-            *search_args
-          )
-        end,
-        options # {id: "Start.success"}
-      ]
-    end
+  def insert_task_into_sequence!(task, **options, &block)
+    @sequence = insert_task(task, sequence: @sequence, **options, &block)
+  end
 
-    # Insert the task into the sequence using the {sequence_insert} strategy.
-    # @return Sequence sequence after applied insertion
-    def insert_task(task, sequence:, sequence_insert:, **options)
-      new_row = create_row(task, **options)
+  def create_row(task, magnetic_to:, outputs:, connections:, **options)
+    [
+      magnetic_to,
+      task,
+      # DISCUSS: shouldn't we be going through the outputs here?
+      # TODO: or warn if an output is unconnected.
+      connections.collect do |semantic, (search_strategy, *search_args)|
+        output = outputs[semantic] || raise("No `#{semantic}` output found for #{outputs.inspect}")
 
-      # {sequence_insert} is usually a function such as {Linear::Insert::Append}.
-      sequence_insert.(sequence, new_row, **options)
-    end
+        search_strategy.(
+          output,
+          *search_args
+        )
+      end,
+      options # {id: "Start.success"}
+    ]
+  end
 
+  # Insert the task into the sequence using the {sequence_insert} strategy.
+  # @return Sequence sequence after applied insertion
+  def insert_task(task, sequence:, sequence_insert:, **options)
+    new_row = create_row(task, **options)
+
+    # {sequence_insert} is usually a function such as {Linear::Insert::Append}.
+    sequence_insert.(sequence, new_row, **options)
+  end
+
+  let(:sequence) do
     start_default = Activity::Start.new(semantic: :default)
     end_success   = Activity::End.new(semantic: :success)
     end_failure   = Activity::End.new(semantic: :failure)
@@ -167,10 +169,11 @@ class LinearTest < Minitest::Spec
     step implementing.method(:b), id: :b, outputs: default_binary_outputs.merge(pass_fast: Activity::Output("Special signal", :pass_fast)), connections: default_step_connections.merge(pass_fast: [Linear::Search.method(:Forward), :pass_fast])
     fail implementing.method(:c), id: :c
     step implementing.method(:d), id: :d
+  end
 
-
-pp @sequence
-    process = Linear::Compiler.(@sequence)
+  it "DSL to change {Sequence} and compile it to a {Process}" do
+pp sequence
+    process = Linear::Compiler.(sequence)
 
     cct = Trailblazer::Developer::Render::Circuit.(process: process)
     puts cct
