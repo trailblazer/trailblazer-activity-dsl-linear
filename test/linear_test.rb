@@ -18,7 +18,7 @@ class LinearTest < Minitest::Spec
 
   let(:implementing) do
     implementing = Module.new do
-      extend T.def_tasks(:a, :b, :c, :d, :f)
+      extend T.def_tasks(:a, :b, :c, :d, :f, :g)
     end
     implementing::Start = Activity::Start.new(semantic: :default)
     implementing::Failure = Activity::End(:failure)
@@ -195,6 +195,40 @@ pp sequence
  {Trailblazer::Activity::Left} => #<End/:failure>
 #<Method: #<Module:0x>.d>
  {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:failure>
+}
+  end
+
+  it "supports :replace, :delete, :inherit" do
+    @sequence = sequence
+
+    step implementing.method(:g), id: :g, sequence_insert: Linear::Insert.method(:Replace), insert_id: :f
+    step nil, id: nil,                    sequence_insert: Linear::Insert.method(:Delete), insert_id: :d
+# pp @sequence
+    process = Linear::Compiler.(@sequence)
+
+    cct = Trailblazer::Developer::Render::Circuit.(process: process)
+    # puts cct
+    cct.must_equal %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.c>
+ {Special signal} => #<End/:pass_fast>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Right} => #<End/:failure>
  {Trailblazer::Activity::Left} => #<End/:failure>
 #<End/:success>
 

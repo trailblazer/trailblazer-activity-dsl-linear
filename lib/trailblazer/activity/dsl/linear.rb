@@ -32,7 +32,7 @@ class Trailblazer::Activity
         # Find the seq_row with {id} and connect the current node to it.
         def ById(output, id)
           ->(sequence, me) do
-            index          = Insert.find_index(sequence, id)
+            index          = Insert.find_index(sequence, id) or raise "Couldn't find {#{id}}"
             target_seq_row = sequence[index]
 
             return output, target_seq_row
@@ -58,6 +58,20 @@ class Trailblazer::Activity
           index, sequence = find(sequence, insert_id)
 
           sequence.insert(index, new_row)
+        end
+
+        def Replace(sequence, new_row, insert_id:, **)
+          index, sequence = find(sequence, insert_id)
+
+          sequence[index] = new_row
+          sequence
+        end
+
+        def Delete(sequence, _, insert_id:, **)
+          index, sequence = find(sequence, insert_id)
+
+          sequence.delete(sequence[index])
+          sequence
         end
 
         # @private
