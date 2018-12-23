@@ -107,6 +107,108 @@ class LinearTest < Minitest::Spec
   #   PASSFAST::step extending args
   # insert_task...
 
+=begin
+Railway.step(my_step_pipeline:Railway.step_pipe)
+  my_step_pipeline.(..)
+  insert_task
+
+FastTrack.step(my=Railway.step_pipe+..)
+
+=end
+
+
+  def compile_process(sequence)
+    process = Linear::Compiler.(sequence)
+  end
+  # Pseudo-DSL that prepends {steps} to {sequence}.
+  def self.prepend_to_path(sequence, steps)
+    steps.each do |id, task|
+      sequence = Linear::DSL.insert_task(task, sequence: sequence,
+        magnetic_to: :success, id: id, outputs: Path.unary_outputs, connections: Path.unary_connections,
+        sequence_insert: [Linear::Insert.method(:Prepend), "End.success"])
+    end
+
+    sequence
+  end
+
+
+  module DSL
+    module_function
+    def initial_sequence
+      start_default = Activity::Start.new(semantic: :default)
+      start_event   = Linear::DSL.create_row(start_default, id: "Start.default", magnetic_to: nil, outputs: Path.unary_outputs, connections: Path.unary_connections)
+      sequence      = Linear::Sequence[start_event]
+    end
+  end
+
+  module Path
+    module_function
+
+    def unary_outputs
+      {success: Activity::Output(Activity::Right, :success)}
+    end
+    def unary_connections
+      {success: [Linear::Search.method(:Forward), :success]}
+    end
+
+    Right = Trailblazer::Activity::Right
+
+    def merge_path_outputs((ctx, flow_options), *)
+      ctx = {outputs: Path.unary_outputs}.merge(ctx)
+
+      return Right, [ctx, flow_options]
+    end
+
+    def merge_path_connections((ctx, flow_options), *)
+      ctx = {connections: Path.unary_connections}.merge(ctx)
+
+      return Right, [ctx, flow_options]
+    end
+
+    def step_options_for_path(sequence)
+      LinearTest.prepend_to_path(
+        sequence,
+
+        "path.outputs"     => method(:merge_path_outputs),
+        "path.connections" => method(:merge_path_connections),
+      )
+    end
+
+    def initial_sequence
+      # TODO: this could be an Activity itself but maybe a bit too much for now.
+      sequence = DSL.initial_sequence
+      sequence = append_end_success(sequence)
+    end
+
+    def append_end_success(sequence)
+      end_success   = Activity::End.new(semantic: :success)
+
+      end_args = {sequence_insert: [Linear::Insert.method(:Append), "Start.default"], stop_event: true}
+
+      sequence = Linear::DSL.insert_task(end_success, sequence: sequence, magnetic_to: :success, id: "End.success", outputs: {success: end_success}, connections: {success: [Linear::Search.method(:Noop)]}, **end_args)
+    end
+  end
+
+  it do
+    # {seq} is the succession of steps to compile the options for a {step} call.
+    seq = Path.initial_sequence
+    seq = Path.step_options_for_path(seq)
+
+    process = compile_process(seq)
+
+    pp process
+
+    signal, (ctx, _) = process.to_h[:circuit].([{}])
+
+    puts "@@@@@ #{ctx.inspect}"
+  end
+
+  def step_pipeline(task, **options)
+    options = {outputs: default_binary_outputs}.merge(options)
+    options = {connections: default_step_connections}.merge(options)
+
+  end
+
 
   def default_binary_outputs
     {success: Activity::Output(Activity::Right, :success), failure: Activity::Output(Activity::Left, :failure)}
