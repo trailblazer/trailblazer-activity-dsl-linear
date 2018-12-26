@@ -189,6 +189,65 @@ FastTrack.step(my=Railway.step_pipe+..)
     end
   end
 
+  module Railway
+    module_function
+    def step_options(sequence)
+      LinearTest.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
+        sequence,
+
+        "railway.outputs"     => method(:reverse_merge_path_outputs),
+        "railway.connections" => method(:reverse_merge_path_connections),
+      )
+    end
+
+    def reverse_merge_path_outputs((ctx, flow_options), *)
+      outputs = failure_outputs.merge(ctx[:outputs])
+      ctx     = ctx.merge(outputs: outputs)
+
+      return Right, [ctx, flow_options]
+    end
+
+    def reverse_merge_path_connections((ctx, flow_options), *)
+      connections = failure_connections.merge(ctx[:connections])
+      ctx         = ctx.merge(connections: connections)
+
+      return Right, [ctx, flow_options]
+    end
+
+    def failure_outputs
+      {failure: Activity::Output(Activity::Right, :failure)}
+    end
+    def failure_connections
+      {failure: [Linear::Search.method(:Forward), :failure]}
+    end
+
+    Right = Trailblazer::Activity::Right
+
+  end
+
+  module FastTrack
+    module_function
+    Right = Trailblazer::Activity::Right
+
+    def step_options(sequence)
+      LinearTest.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
+        sequence,
+
+        "fast_track.outputs"     => method(:reverse_merge_path_outputs),
+        "fast_track.connections" => method(:reverse_merge_path_connections),
+      )
+    end
+
+    def process_pass_fast_option((ctx, flow_options))
+      return Right, [ctx, flow_options] unless ctx[:user_options][:pass_fast]
+
+      connections  = ctx[:connections].merge(success: Activity::Output(Activity::Right, :pass_fast)
+      ctx          = ctx.merge(connections: connections)
+
+      return Right, [ctx, flow_options]
+    end
+  end
+
   it do
     # {seq} is the succession of steps to compile the options for a {step} call.
     seq = Path.initial_sequence
@@ -201,12 +260,16 @@ FastTrack.step(my=Railway.step_pipe+..)
     signal, (ctx, _) = process.to_h[:circuit].([{}])
 
     puts "@@@@@ #{ctx.inspect}"
-  end
 
-  def step_pipeline(task, **options)
-    options = {outputs: default_binary_outputs}.merge(options)
-    options = {connections: default_step_connections}.merge(options)
+    seq = Railway.step_options(Path.step_options_for_path(Path.initial_sequence))
 
+    process = compile_process(seq)
+
+    pp process
+
+    signal, (ctx, _) = process.to_h[:circuit].([{}])
+
+    puts "@@@@@RW #{ctx.inspect}"
   end
 
 
