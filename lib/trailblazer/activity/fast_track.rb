@@ -36,27 +36,29 @@ module Trailblazer
           Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
             sequence,
 
-            "fast_track.pass_fast_option"  => method(:process_pass_fast_option),
-            "fast_track.fail_fast_option"  => method(:process_fail_fast_option),
-            "fast_track.fast_track_option" => method(:process_fast_track_option),
+            "fast_track.pass_fast_option"  => method(:pass_fast_option),
+            "fast_track.fail_fast_option"  => method(:fail_fast_option),
+            "fast_track.fast_track_option" => method(:fast_track_option),
           )
         end
 
-        def process_pass_fast_option((ctx, flow_options), *)
+        def pass_fast_option((ctx, flow_options), *)
           ctx = merge_connections_for(ctx, ctx[:user_options], :pass_fast, :success)
 
           return Right, [ctx, flow_options]
         end
 
-        def process_fail_fast_option((ctx, flow_options), *)
+        def fail_fast_option((ctx, flow_options), *)
           ctx = merge_connections_for(ctx, ctx[:user_options], :fail_fast, :failure)
 
           return Right, [ctx, flow_options]
         end
 
-        def process_fast_track_option((ctx, flow_options), *)
-          ctx = merge_connections_for(ctx, ctx[:user_options], :fail_fast, :fail_fast)
-          ctx = merge_connections_for(ctx, ctx[:user_options], :pass_fast, :pass_fast)
+        def fast_track_option((ctx, flow_options), *)
+          return Right, [ctx, flow_options] unless ctx[:user_options][:fast_track]
+
+          ctx = merge_connections_for(ctx, ctx[:user_options], :fast_track, :fail_fast, :fail_fast)
+          ctx = merge_connections_for(ctx, ctx[:user_options], :fast_track, :pass_fast, :pass_fast)
 
           ctx = ctx.merge(
             outputs: {
@@ -70,6 +72,7 @@ module Trailblazer
 
         def merge_connections_for(ctx, options, option_name, semantic, magnetic_to=option_name)
           return ctx unless options[option_name]
+
 
           connections  = ctx[:connections].merge(semantic => [Linear::Search.method(:Forward), magnetic_to])
           ctx          = ctx.merge(connections: connections)
