@@ -176,6 +176,7 @@ end
 
 require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
+require "trailblazer/activity/fast_track"
 require "trailblazer/activity/dsl/linear/helper" # FIXME
 
 # require "trailblazer/activity/dsl/linear/normalizer"

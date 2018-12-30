@@ -98,15 +98,7 @@ module Trailblazer
         def initial_sequence
           # TODO: this could be an Activity itself but maybe a bit too much for now.
           sequence = Path::DSL.initial_sequence
-          sequence = append_end_failure(sequence)
-        end
-
-        def append_end_failure(sequence) # TODO: merge with Path::append_end_success
-          end_failure   = Activity::End.new(semantic: :failure)
-
-          end_args = {sequence_insert: [Linear::Insert.method(:Append), "Start.default"], stop_event: true}
-
-          sequence = Linear::DSL.insert_task(end_failure, sequence: sequence, magnetic_to: :failure, id: "End.failure", outputs: {failure: end_failure}, connections: {failure: [Linear::Search.method(:Noop)]}, **end_args)
+          sequence = Path::DSL.append_end(Activity::End.new(semantic: :failure), sequence, magnetic_to: :failure, id: "End.failure")
         end
       end # DSL
     end
