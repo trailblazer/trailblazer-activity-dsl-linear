@@ -120,110 +120,9 @@ FastTrack.step(my=Railway.step_pipe+..)
   def compile_process(sequence)
     process = Linear::Compiler.(sequence)
   end
-  # Pseudo-DSL that prepends {steps} to {sequence}.
-  def self.prepend_to_path(sequence, steps)
-    steps.each do |id, task|
-      sequence = Linear::DSL.insert_task(task, sequence: sequence,
-        magnetic_to: :success, id: id, outputs: Path.unary_outputs, connections: Path.unary_connections,
-        sequence_insert: [Linear::Insert.method(:Prepend), "End.success"])
-    end
-
-    sequence
-  end
 
 
-  module DSL
-    module_function
-    def initial_sequence
-      start_default = Activity::Start.new(semantic: :default)
-      start_event   = Linear::DSL.create_row(start_default, id: "Start.default", magnetic_to: nil, outputs: Path.unary_outputs, connections: Path.unary_connections)
-      sequence      = Linear::Sequence[start_event]
-    end
-  end
 
-  module Path
-    module_function
-
-    def unary_outputs
-      {success: Activity::Output(Activity::Right, :success)}
-    end
-    def unary_connections
-      {success: [Linear::Search.method(:Forward), :success]}
-    end
-
-    Right = Trailblazer::Activity::Right
-
-    def merge_path_outputs((ctx, flow_options), *)
-      ctx = {outputs: Path.unary_outputs}.merge(ctx)
-
-      return Right, [ctx, flow_options]
-    end
-
-    def merge_path_connections((ctx, flow_options), *)
-      ctx = {connections: Path.unary_connections}.merge(ctx)
-
-      return Right, [ctx, flow_options]
-    end
-
-    def step_options_for_path(sequence)
-      LinearTest.prepend_to_path(
-        sequence,
-
-        "path.outputs"     => method(:merge_path_outputs),
-        "path.connections" => method(:merge_path_connections),
-      )
-    end
-
-    def initial_sequence
-      # TODO: this could be an Activity itself but maybe a bit too much for now.
-      sequence = DSL.initial_sequence
-      sequence = append_end_success(sequence)
-    end
-
-    def append_end_success(sequence)
-      end_success   = Activity::End.new(semantic: :success)
-
-      end_args = {sequence_insert: [Linear::Insert.method(:Append), "Start.default"], stop_event: true}
-
-      sequence = Linear::DSL.insert_task(end_success, sequence: sequence, magnetic_to: :success, id: "End.success", outputs: {success: end_success}, connections: {success: [Linear::Search.method(:Noop)]}, **end_args)
-    end
-  end
-
-  module Railway
-    module_function
-    def step_options(sequence)
-      LinearTest.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
-        sequence,
-
-        "railway.outputs"     => method(:reverse_merge_path_outputs),
-        "railway.connections" => method(:reverse_merge_path_connections),
-      )
-    end
-
-    def reverse_merge_path_outputs((ctx, flow_options), *)
-      outputs = failure_outputs.merge(ctx[:outputs])
-      ctx     = ctx.merge(outputs: outputs)
-
-      return Right, [ctx, flow_options]
-    end
-
-    def reverse_merge_path_connections((ctx, flow_options), *)
-      connections = failure_connections.merge(ctx[:connections])
-      ctx         = ctx.merge(connections: connections)
-
-      return Right, [ctx, flow_options]
-    end
-
-    def failure_outputs
-      {failure: Activity::Output(Activity::Right, :failure)}
-    end
-    def failure_connections
-      {failure: [Linear::Search.method(:Forward), :failure]}
-    end
-
-    Right = Trailblazer::Activity::Right
-
-  end
 
   module FastTrack
     module_function
@@ -233,18 +132,43 @@ FastTrack.step(my=Railway.step_pipe+..)
       LinearTest.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
         sequence,
 
-        "fast_track.outputs"     => method(:reverse_merge_path_outputs),
-        "fast_track.connections" => method(:reverse_merge_path_connections),
+        "fast_track.pass_fast_option"  => method(:process_pass_fast_option),
+        "fast_track.fail_fast_option"  => method(:process_fail_fast_option),
+        "fast_track.fast_track_option" => method(:process_fast_track_option),
       )
     end
 
-    def process_pass_fast_option((ctx, flow_options))
-      return Right, [ctx, flow_options] unless ctx[:user_options][:pass_fast]
-
-      connections  = ctx[:connections].merge(success: Activity::Output(Activity::Right, :pass_fast)
-      ctx          = ctx.merge(connections: connections)
+    def process_pass_fast_option((ctx, flow_options), *)
+      ctx = merge_connections_for(ctx, ctx[:user_options], :pass_fast, :success)
 
       return Right, [ctx, flow_options]
+    end
+
+    def process_fail_fast_option((ctx, flow_options), *)
+      ctx = merge_connections_for(ctx, ctx[:user_options], :fail_fast, :failure)
+
+      return Right, [ctx, flow_options]
+    end
+
+    def process_fast_track_option((ctx, flow_options), *)
+      ctx = merge_connections_for(ctx, ctx[:user_options], :fail_fast, :fail_fast)
+      ctx = merge_connections_for(ctx, ctx[:user_options], :pass_fast, :pass_fast)
+
+      ctx = ctx.merge(
+        outputs: {
+          pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast),
+          fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast),
+        }.merge(ctx[:outputs])
+      )
+
+      return Right, [ctx, flow_options]
+    end
+
+    def merge_connections_for(ctx, options, option_name, semantic, magnetic_to=option_name)
+      return ctx unless options[option_name]
+
+      connections  = ctx[:connections].merge(semantic => [Linear::Search.method(:Forward), magnetic_to])
+      ctx          = ctx.merge(connections: connections)
     end
   end
 
@@ -267,9 +191,77 @@ FastTrack.step(my=Railway.step_pipe+..)
 
     pp process
 
-    signal, (ctx, _) = process.to_h[:circuit].([{}])
+    signal, (ctx, _) = process.to_h[:circuit].([{user_options: {pass_fast: true}}])
 
     puts "@@@@@RW #{ctx.inspect}"
+
+    # build the Path for FastTrack.step_options
+    seq = FastTrack.step_options(Railway.step_options(Path.step_options_for_path(Path.initial_sequence)))
+
+    process = compile_process(seq)
+
+    pp process
+
+    signal, (ctx, _) = process.to_h[:circuit].([{user_options: {pass_fast: true}}])
+
+    puts "@@@@@FTW #{ctx.inspect}"
+
+    signal, (ctx, _) = process.to_h[:circuit].([{user_options: {fast_track: true}}])
+
+    puts "@@@@@FTW2 #{ctx.inspect}"
+  end
+
+  it "Path.initial_sequence" do
+    seq = Trailblazer::Activity::Path::DSL.initial_sequence
+
+    pp seq
+  end
+
+  it "Path.normalizer" do
+    seq = Trailblazer::Activity::Path::DSL.normalizer
+
+    process = compile_process(seq)
+    circuit = process.to_h[:circuit]
+
+    signal, (ctx, _) = circuit.([{user_options: {}}])
+
+    ctx.inspect.must_equal %{{:connections=>{:success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{}}}
+  end
+
+  it "Railway.normalizer" do
+    seq = Trailblazer::Activity::Railway::DSL.initial_sequence
+
+    pp seq
+
+    seq = Trailblazer::Activity::Railway::DSL.normalizer
+
+    process = compile_process(seq)
+    circuit = process.to_h[:circuit]
+
+    signal, (ctx, _) = circuit.([{user_options: {}}])
+
+    ctx.inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{}}}
+  end
+
+  it "Railway.normalizer_for_fail" do
+    seq = Trailblazer::Activity::Railway::DSL.initial_sequence
+
+    pp seq
+
+    seq = Trailblazer::Activity::Railway::DSL.normalizer_for_fail
+
+    process = compile_process(seq)
+    circuit = process.to_h[:circuit]
+
+    signal, (ctx, _) = circuit.([{user_options: {}}])
+
+    ctx.inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :outputs=>{:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{}, :magnetic_to=>:failure}}
+  end
+
+  it "FastTrack.initial_sequence" do
+    seq = FastTrack.initial_sequence
+
+    pp seq
   end
 
 
