@@ -233,6 +233,21 @@ FastTrack.step(my=Railway.step_pipe+..)
 
       ctx.inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :fail_fast], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{:fail_fast=>true}}}
     end
+
+    describe "normalizer_for_fail" do
+      let(:normalizer) do
+        seq = Trailblazer::Activity::FastTrack::DSL.normalizer_for_fail
+
+        process = compile_process(seq)
+        circuit = process.to_h[:circuit]
+      end
+
+      it " accepts :fast_track => true" do
+        signal, (ctx, _) = normalizer.([{user_options: {fast_track: true}}])
+
+        ctx.inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :fail_fast=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :fail_fast], :pass_fast=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :pass_fast]}, :outputs=>{:pass_fast=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::FastTrack::PassFast, semantic=:pass_fast>, :fail_fast=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::FastTrack::FailFast, semantic=:fail_fast>, :failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{:fast_track=>true}, :magnetic_to=>:failure}}
+      end
+    end
   end
   it "FastTrack.normalizer" do
     seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence

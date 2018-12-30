@@ -32,6 +32,10 @@ module Trailblazer
           step_options(Trailblazer::Activity::Railway::DSL.normalizer)
         end
 
+        def normalizer_for_fail
+          step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_fail)
+        end
+
         def step_options(sequence)
           Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
             sequence,
