@@ -3,6 +3,49 @@ require "test_helper"
 # Test the normalizer "activity".
 # Here we simply run the normalizers and check if they generate the correct input hash (for the DSL).
 class NormalizerTest < Minitest::Spec
+  describe "Path" do
+    let(:normalizer) do
+      seq = Trailblazer::Activity::Path::DSL.normalizer
+
+      process = compile_process(seq)
+      circuit = process.to_h[:circuit]
+    end
+
+    it "normalizer" do
+      signal, (ctx, _) = normalizer.([{user_options: {}}])
+
+      ctx.inspect.must_equal %{{:connections=>{:success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:success}}
+    end
+  end
+
+  describe "Railway" do
+    let(:normalizer) do
+      seq = Trailblazer::Activity::Railway::DSL.normalizer
+
+      process = compile_process(seq)
+      circuit = process.to_h[:circuit]
+    end
+
+    let(:normalizer_for_fail) do
+      seq = Trailblazer::Activity::Railway::DSL.normalizer_for_fail
+
+      process = compile_process(seq)
+      circuit = process.to_h[:circuit]
+    end
+
+    it "normalizer" do
+      signal, (ctx, _) = normalizer.([{user_options: {}}])
+
+      ctx.inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:success}}
+    end
+
+    it "normalizer_for_fail" do
+      signal, (ctx, _) = normalizer_for_fail.([{user_options: {}}])
+
+      ctx.inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :outputs=>{:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:failure}}
+    end
+  end
+
   describe "FastTrack" do
     let(:normalizer) do
       seq = Trailblazer::Activity::FastTrack::DSL.normalizer
