@@ -16,5 +16,9 @@ Minitest::Spec.class_eval do
     cct = Trailblazer::Developer::Render::Circuit.(activity)
   end
 
+  def compile_process(sequence)
+    process = Linear::Compiler.(sequence)
+  end
+
   Linear = Trailblazer::Activity::DSL::Linear
 end

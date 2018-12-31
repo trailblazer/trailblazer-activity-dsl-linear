@@ -116,11 +116,6 @@ FastTrack.step(my=Railway.step_pipe+..)
 =end
 
 
-  def compile_process(sequence)
-    process = Linear::Compiler.(sequence)
-  end
-
-
   it do
     # {seq} is the succession of steps to compile the options for a {step} call.
     seq = Path.initial_sequence

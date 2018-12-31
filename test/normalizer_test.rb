@@ -7,7 +7,7 @@ class NormalizerTest < Minitest::Spec
     let(:normalizer) do
       seq = Trailblazer::Activity::FastTrack::DSL.normalizer
 
-      process = Linear::Compiler.(seq)
+      process = compile_process(seq)
       circuit = process.to_h[:circuit]
     end
 
@@ -39,7 +39,7 @@ class NormalizerTest < Minitest::Spec
       let(:normalizer_for_fail) do
         seq = Trailblazer::Activity::FastTrack::DSL.normalizer_for_fail
 
-        process = Linear::Compiler.(seq)
+        process = compile_process(seq)
         circuit = process.to_h[:circuit]
       end
 
