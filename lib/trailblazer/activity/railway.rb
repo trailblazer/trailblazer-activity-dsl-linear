@@ -67,19 +67,19 @@ module Trailblazer
           Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
             sequence,
 
-            "railway.outputs"     => method(:reverse_merge_path_outputs),
-            "railway.connections" => method(:reverse_merge_path_connections),
+            "railway.outputs"     => method(:normalize_path_outputs),
+            "railway.connections" => method(:normalize_path_connections),
           )
         end
 
-        def reverse_merge_path_outputs((ctx, flow_options), *)
+        def normalize_path_outputs((ctx, flow_options), *)
           outputs = failure_outputs.merge(ctx[:outputs])
           ctx     = ctx.merge(outputs: outputs)
 
           return Right, [ctx, flow_options]
         end
 
-        def reverse_merge_path_connections((ctx, flow_options), *)
+        def normalize_path_connections((ctx, flow_options), *)
           connections = failure_connections.merge(ctx[:connections])
           ctx         = ctx.merge(connections: connections)
 
@@ -87,7 +87,7 @@ module Trailblazer
         end
 
         def failure_outputs
-          {failure: Activity::Output(Activity::Right, :failure)}
+          {failure: Activity::Output(Activity::Left, :failure)}
         end
         def failure_connections
           {failure: [Linear::Search.method(:Forward), :failure]}

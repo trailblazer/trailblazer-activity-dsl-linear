@@ -270,12 +270,34 @@ FastTrack.step(my=Railway.step_pipe+..)
         signal, (ctx, _) = normalizer_for_fail.([{user_options: {}}])
         fail_options = ctx
 
+        # a stateful "DSL object" will keep {seq}
         seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence
         seq = Linear::DSL.insert_task(implementing.method(:a), sequence: seq, id: :a, **step_options)
         seq = Linear::DSL.insert_task(implementing.method(:b), sequence: seq, id: :b, **fail_options)
 
         process = compile_process(seq)
-        circuit = process.to_h[:circuit]
+
+        puts cct = Trailblazer::Developer::Render::Circuit.(process: process)
+
+        cct.must_equal %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
+ {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
       end
     end
   end
