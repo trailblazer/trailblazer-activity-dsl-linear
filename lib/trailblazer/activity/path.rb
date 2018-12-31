@@ -70,26 +70,37 @@ module Trailblazer
           return Right, [ctx, flow_options]
         end
 
+        def normalize_sequence_insert((ctx, flow_options), *)
+          ctx = ctx.merge(sequence_insert: [Linear::Insert.method(:Prepend), "End.success"])
+          return Right, [ctx, flow_options]
+        end
+
+        def normalize_magnetic_to((ctx, flow_options), *) # TODO: merge with Railway.merge_magnetic_to
+          ctx = ctx.merge(magnetic_to: :success)
+
+          return Right, [ctx, flow_options]
+        end
+
         def step_options_for_path(sequence)
           prepend_to_path(
             sequence,
 
-            "path.outputs"     => method(:merge_path_outputs),
-            "path.connections" => method(:merge_path_connections),
+            "path.outputs"          => method(:merge_path_outputs),
+            "path.connections"      => method(:merge_path_connections),
+            "path.sequence_insert"  => method(:normalize_sequence_insert),
+            "path.magnetic_to"      => method(:normalize_magnetic_to),
           )
         end
-
-
 
         # Returns an initial two-step sequence with {Start.default > End.success}.
         def initial_sequence
           # TODO: this could be an Activity itself but maybe a bit too much for now.
           sequence = start_sequence
-          sequence = append_end(Activity::End.new(semantic: :success), sequence, magnetic_to: :success, id: "End.success")
+          sequence = append_end(Activity::End.new(semantic: :success), sequence, magnetic_to: :success, id: "End.success", append_to: "Start.default")
         end
 
-        def append_end(end_event, sequence, magnetic_to:, id:)
-          end_args = {sequence_insert: [Linear::Insert.method(:Append), "Start.default"], stop_event: true}
+        def append_end(end_event, sequence, magnetic_to:, id:, append_to: "End.success")
+          end_args = {sequence_insert: [Linear::Insert.method(:Append), append_to], stop_event: true}
 
           sequence = Linear::DSL.insert_task(end_event, sequence: sequence, magnetic_to: magnetic_to, id: id, outputs: {magnetic_to => end_event}, connections: {magnetic_to => [Linear::Search.method(:Noop)]}, **end_args)
         end
