@@ -117,6 +117,7 @@ class Trailblazer::Activity
         end
       end
 
+      # Compile a {Process} by computing {implementations} and {intermediate} from a {Sequence}.
       module Compiler
         module_function
 
@@ -152,7 +153,7 @@ class Trailblazer::Activity
           intermediate   = Process::Intermediate.new(Hash[intermediate_wiring], stop_task_refs, start_task_refs)
           implementation = Hash[_implementations]
 
-          Process::Intermediate.(intermediate, implementation)
+          Process::Intermediate.(intermediate, implementation) # implemented in the generic {trailblazer-activity} gem.
         end
 
         # private

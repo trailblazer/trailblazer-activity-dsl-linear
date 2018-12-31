@@ -15,4 +15,6 @@ Minitest::Spec.class_eval do
   def Cct(activity)
     cct = Trailblazer::Developer::Render::Circuit.(activity)
   end
+
+  Linear = Trailblazer::Activity::DSL::Linear
 end
