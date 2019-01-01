@@ -133,6 +133,11 @@ class NormalizerTest < Minitest::Spec
 
       cfg.keys.must_equal [:connections, :outputs, :fast_track, :bla, :sequence_insert, :magnetic_to]
       cfg[:connections].keys.must_equal [:failure, :success, :fail_fast, :pass_fast]
+
+      # FIXME: move this somewhere else
+      seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence
+      seq = Linear::DSL.insert_task(implementing.method(:a), sequence: seq, id: :a, **cfg)
+      seq[1][3].must_equal({:id=>:a, :fast_track=>true, :bla=>1})
     end
 
     it "user_options can override options" do
@@ -140,6 +145,11 @@ class NormalizerTest < Minitest::Spec
 
       cfg.keys.must_equal [:connections, :outputs, :fast_track, :bla, :sequence_insert, :magnetic_to]
       cfg[:connections].keys.must_equal [:failure, :success] # fast_track: false overrides the macro.
+
+      # FIXME: move this somewhere else
+      seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence
+      seq = Linear::DSL.insert_task(implementing.method(:a), sequence: seq, id: :a, **cfg)
+      seq[1][3].must_equal({:id=>:a, :fast_track=>false, :bla=>1})
     end
   end
 end
