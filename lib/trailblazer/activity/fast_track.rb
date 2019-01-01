@@ -47,22 +47,22 @@ module Trailblazer
         end
 
         def pass_fast_option((ctx, flow_options), *)
-          ctx = merge_connections_for(ctx, ctx[:user_options], :pass_fast, :success)
+          ctx = merge_connections_for(ctx, ctx, :pass_fast, :success)
 
           return Right, [ctx, flow_options]
         end
 
         def fail_fast_option((ctx, flow_options), *)
-          ctx = merge_connections_for(ctx, ctx[:user_options], :fail_fast, :failure)
+          ctx = merge_connections_for(ctx, ctx, :fail_fast, :failure)
 
           return Right, [ctx, flow_options]
         end
 
         def fast_track_option((ctx, flow_options), *)
-          return Right, [ctx, flow_options] unless ctx[:user_options][:fast_track]
+          return Right, [ctx, flow_options] unless ctx[:fast_track]
 
-          ctx = merge_connections_for(ctx, ctx[:user_options], :fast_track, :fail_fast, :fail_fast)
-          ctx = merge_connections_for(ctx, ctx[:user_options], :fast_track, :pass_fast, :pass_fast)
+          ctx = merge_connections_for(ctx, ctx, :fast_track, :fail_fast, :fail_fast)
+          ctx = merge_connections_for(ctx, ctx, :fast_track, :pass_fast, :pass_fast)
 
           ctx = ctx.merge(
             outputs: {
