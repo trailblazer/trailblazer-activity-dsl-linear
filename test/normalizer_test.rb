@@ -17,8 +17,10 @@ class NormalizerTest < Minitest::Spec
       ctx.inspect.must_equal %{{:connections=>{:success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:success}}
     end
 
-    it "before: :a" do
-      signal, (ctx, _) = normalizer.([{before: :a}])
+    it "after: :a" do
+      signal, (ctx, _) = normalizer.([{after: :a}])
+
+      ctx.inspect.must_equal %{{:connections=>{:success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :after=>:a, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Append>, :a], :magnetic_to=>:success}}
     end
   end
 

@@ -133,10 +133,10 @@ FastTrack.step(my=Railway.step_pipe+..)
       end
 
       it "PROTOTYPING step" do
-        signal, (ctx, _) = normalizer.([{user_options: {fast_track: true}}])
+        signal, (ctx, _) = normalizer.([{fast_track: true}])
         step_options = ctx
 
-        signal, (ctx, _) = normalizer_for_fail.([{user_options: {}}])
+        signal, (ctx, _) = normalizer_for_fail.([{}])
         fail_options = ctx
 
         # a stateful "DSL object" will keep {seq}

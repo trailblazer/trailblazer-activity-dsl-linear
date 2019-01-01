@@ -70,9 +70,28 @@ module Trailblazer
           return Right, [ctx, flow_options]
         end
 
+        # Processes {:before,:after,:replace,:delete} options and
+        # defaults to {before: "End.success"} which, yeah.
         def normalize_sequence_insert((ctx, flow_options), *)
-          ctx = ctx.merge(sequence_insert: [Linear::Insert.method(:Prepend), "End.success"])
+          insertion = ctx.keys & sequence_insert_options.keys
+          insertion = insertion[0]   || :before
+          target    = ctx[insertion] || "End.success"
+
+          insertion_method = sequence_insert_options[insertion]
+
+          ctx = ctx.merge(sequence_insert: [Linear::Insert.method(insertion_method), target])
+
           return Right, [ctx, flow_options]
+        end
+
+        # @private
+        def sequence_insert_options
+          {
+            :before  => :Prepend,
+            :after   => :Append,
+            :replace => :Replace,
+            :delete  => :Delete,
+          }
         end
 
         def normalize_magnetic_to((ctx, flow_options), *) # TODO: merge with Railway.merge_magnetic_to
