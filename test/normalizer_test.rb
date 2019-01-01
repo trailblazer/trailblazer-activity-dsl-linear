@@ -93,4 +93,49 @@ class NormalizerTest < Minitest::Spec
       end
     end
   end
+
+  describe "Activity-style normalizer" do
+    let(:implementing) do
+      implementing = Module.new do
+        extend T.def_tasks(:a, :b, :c, :d, :f, :g)
+      end
+    end
+
+    it "what" do
+
+
+      def my_step_interface_builder(callable_with_step_interface)
+        ->((ctx, flow_options), *) do
+          ctx = callable_with_step_interface.(ctx, **ctx)
+          return Trailblazer::Activity::Right, [ctx, flow_options]
+        end
+      end
+
+
+
+      macro_hash = {task: implementing.method(:b)}
+
+      normalizer.(options: implementing.method(:a), user_options: {step_interface_builder: method(:my_step_interface_builder)}).must_equal({})  # step WrapMe, output: 1
+      normalizer.(options: macro_hash, user_options: {})               # step task: Me, output: 1 (not using macro)
+      normalizer.(options: macro_hash, user_options: {output: 1})         # step {task: Me}, output: 1   macro, user_opts
+    end
+
+    let(:normalizer) do
+      seq = Trailblazer::Activity::FastTrack::DSL.normalizer
+      seq = Linear::Normalizer.activity_normalizer(seq)
+
+      process = compile_process(seq)
+      normalizer = process.to_h[:circuit]
+    end
+
+    it "macro hash can set user_options such as {fast_track: true}" do
+      signal, (cfg, _) = normalizer.(options: {fast_track: true}, user_options: {bla: 1})
+      pp cfg
+      cfg[:connections].keys.must_equal []
+    end
+    it "user_options can override options" do
+      signal, (cfg, _) = normalizer.(options: {fast_track: true}, user_options: {bla: 1, fast_track: false})
+      pp cfg
+    end
+  end
 end

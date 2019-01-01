@@ -176,6 +176,7 @@ raise "Couldn't find target for #{seq_row}" if target_seq_row.nil?
 end
 
 require "trailblazer/activity/path"
+require "trailblazer/activity/dsl/linear/normalizer"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"
 require "trailblazer/activity/dsl/linear/helper" # FIXME

@@ -28,6 +28,7 @@ module Trailblazer
           step_options(Trailblazer::Activity::Path::DSL.normalizer)
         end
 
+        # Change some parts of the "normal" {normalizer} pipeline.
         def normalizer_for_fail
           sequence = normalizer
 
