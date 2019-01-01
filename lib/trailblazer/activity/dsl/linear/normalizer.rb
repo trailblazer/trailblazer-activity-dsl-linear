@@ -41,7 +41,6 @@ module Trailblazer
           options = ctx[:options] # either a <#task> or {} from macro
 
           ctx = options.merge(ctx[:user_options]) # Note that the user options are merged over the macro options.
-# puts "@@@@@ #{ctx.inspect}"
 
           return Trailblazer::Activity::Right, [ctx, flow_options]
         end

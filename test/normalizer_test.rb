@@ -12,9 +12,13 @@ class NormalizerTest < Minitest::Spec
     end
 
     it "normalizer" do
-      signal, (ctx, _) = normalizer.([{user_options: {}}])
+      signal, (ctx, _) = normalizer.([{}])
 
-      ctx.inspect.must_equal %{{:connections=>{:success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:success}}
+      ctx.inspect.must_equal %{{:connections=>{:success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:success}}
+    end
+
+    it "before: :a" do
+      signal, (ctx, _) = normalizer.([{before: :a}])
     end
   end
 
@@ -34,15 +38,15 @@ class NormalizerTest < Minitest::Spec
     end
 
     it "normalizer" do
-      signal, (ctx, _) = normalizer.([{user_options: {}}])
+      signal, (ctx, _) = normalizer.([{}])
 
-      ctx.inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:success}}
+      ctx.inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:success}}
     end
 
     it "normalizer_for_fail" do
-      signal, (ctx, _) = normalizer_for_fail.([{user_options: {}}])
+      signal, (ctx, _) = normalizer_for_fail.([{}])
 
-      ctx.inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :outputs=>{:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :user_options=>{}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:failure}}
+      ctx.inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :outputs=>{:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:failure}}
     end
   end
 
@@ -116,7 +120,7 @@ class NormalizerTest < Minitest::Spec
       macro_hash = {task: implementing.method(:b)}
 
       normalizer.(options: implementing.method(:a), user_options: {step_interface_builder: method(:my_step_interface_builder)}).must_equal({})  # step WrapMe, output: 1
-      normalizer.(options: macro_hash, user_options: {})               # step task: Me, output: 1 (not using macro)
+      normalizer.(options: macro_hash, )               # step task: Me, output: 1 (not using macro)
       normalizer.(options: macro_hash, user_options: {output: 1})         # step {task: Me}, output: 1   macro, user_opts
     end
 
@@ -134,10 +138,15 @@ class NormalizerTest < Minitest::Spec
       cfg.keys.must_equal [:connections, :outputs, :fast_track, :bla, :sequence_insert, :magnetic_to]
       cfg[:connections].keys.must_equal [:failure, :success, :fail_fast, :pass_fast]
 
+  # insert a
       # FIXME: move this somewhere else
       seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence
       seq = Linear::DSL.insert_task(implementing.method(:a), sequence: seq, id: :a, **cfg)
       seq[1][3].must_equal({:id=>:a, :fast_track=>true, :bla=>1})
+
+  # insert b, before: :a
+      # seq = Linear::DSL.insert_task(implementing.method(:b), sequence: seq, id: :b, **cfg)
+      # seq[1][3].must_equal({:id=>:a, :fast_track=>true, :bla=>1})
     end
 
     it "user_options can override options" do
@@ -151,5 +160,8 @@ class NormalizerTest < Minitest::Spec
       seq = Linear::DSL.insert_task(implementing.method(:a), sequence: seq, id: :a, **cfg)
       seq[1][3].must_equal({:id=>:a, :fast_track=>false, :bla=>1})
     end
+
+    # Output => End
+    # :replace => :id
   end
 end
