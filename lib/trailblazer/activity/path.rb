@@ -54,8 +54,8 @@ module Trailblazer
           {success: Activity::Output(Activity::Right, :success)}
         end
 
-        def unary_connections
-          {success: [Linear::Search.method(:Forward), :success]}
+        def unary_connections(track_name: :success)
+          {success: [Linear::Search.method(:Forward), track_name]}
         end
 
         def merge_path_outputs((ctx, flow_options), *)
@@ -65,7 +65,9 @@ module Trailblazer
         end
 
         def merge_path_connections((ctx, flow_options), *)
-          ctx = {connections: unary_connections}.merge(ctx)
+          track_name = ctx[:track_name] || :success
+
+          ctx = {connections: unary_connections(track_name: track_name)}.merge(ctx)
 
           return Right, [ctx, flow_options]
         end
@@ -95,7 +97,9 @@ module Trailblazer
         end
 
         def normalize_magnetic_to((ctx, flow_options), *) # TODO: merge with Railway.merge_magnetic_to
-          ctx = ctx.merge(magnetic_to: :success)
+          track_name = ctx[:track_name] || :success
+
+          ctx = ctx.merge(magnetic_to: track_name)
 
           return Right, [ctx, flow_options]
         end

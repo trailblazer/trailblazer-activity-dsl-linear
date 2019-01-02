@@ -17,10 +17,16 @@ class NormalizerTest < Minitest::Spec
       ctx.inspect.must_equal %{{:connections=>{:success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, \"End.success\"], :magnetic_to=>:success}}
     end
 
-    it "after: :a" do
+    it "{after: :a} sets sequence_insert to [:Append, :a]" do
       signal, (ctx, _) = normalizer.([{after: :a}])
 
       ctx.inspect.must_equal %{{:connections=>{:success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :outputs=>{:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :after=>:a, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Append>, :a], :magnetic_to=>:success}}
+    end
+
+    it "{track_name: :random}" do
+      signal, (ctx, _) = normalizer.([{track_name: :upper_path}])
+
+      ctx.inspect.must_equal %{{:connections=>{:success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :upper_path]}, :outputs=>{:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}, :track_name=>:upper_path, :sequence_insert=>[#<Method: Trailblazer::Activity::DSL::Linear::Insert.Prepend>, "End.success"], :magnetic_to=>:upper_path}}
     end
   end
 
@@ -164,6 +170,8 @@ class NormalizerTest < Minitest::Spec
     end
 
     # Output => End
+    # Output => Path() do ... end
+    # :id => :a
     # :replace => :id
   end
 end
