@@ -115,7 +115,41 @@ class Trailblazer::Activity
             options # {id: "Start.success"}
           ]
         end
+
+
+
+        def State(strategy)
+          # raise strategy.initial_sequence.inspect
+          FastTrackState.new(
+            normalizers: {step: FastTrack::DSL.normalizer, fail: FastTrack::DSL.normalizer_for_fail},
+            initial_sequence: FastTrack::DSL.initial_sequence,
+          )
+        end
+      end # DSL
+
+      class FastTrackState # TODO: change name
+        def initialize(normalizers:, initial_sequence:, track_name: :success)
+          @normalizer = FTD
+
+          @sequence    = initial_sequence
+
+          # remembers how to call normalizers (e.g. track_color)
+          # remembers sequence
+        end
+
+        def step(task, options={}, &block)
+          options = @normalizer.(:step, options)                              # FIXME: don't we have to pass in {task}, too?
+          @sequence = Linear::DSL.insert_task(task, sequence: @sequence, **options)
+        end
+
+        def fail(task, options={}, &block)
+          options = @normalizer.(:fail, options)                              # FIXME: don't we have to pass in {task}, too?
+          @sequence = Linear::DSL.insert_task(task, sequence: @sequence, **options)
+        end
       end
+
+      # extend Railway( ) # include DSL
+      # extend Activity::Intermediate(implementation: , intermediate: ) # NO DSL
 
       # Compile a {Process} by computing {implementations} and {intermediate} from a {Sequence}.
       module Compiler
@@ -179,6 +213,5 @@ require "trailblazer/activity/path"
 require "trailblazer/activity/dsl/linear/normalizer"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"
+        FTD = Trailblazer::Activity::FastTrack::DSL::Normalizer.new # compiled normalizers for #step, etc
 require "trailblazer/activity/dsl/linear/helper" # FIXME
-
-# require "trailblazer/activity/dsl/linear/normalizer"

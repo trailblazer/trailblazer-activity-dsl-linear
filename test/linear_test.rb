@@ -145,10 +145,17 @@ FastTrack.step(my=Railway.step_pipe+..)
         seq = Linear::DSL.insert_task(implementing.method(:b), sequence: seq, id: :b, **fail_options)
 
         process = compile_process(seq)
+        cct = Cct(process: process)
 
-        pp process
 
-        puts cct = Cct(process: process)
+
+        state = Linear::DSL.State(Activity::FastTrack)
+        state.step implementing.method(:a), id: :a, fast_track: true
+  seq = state.fail implementing.method(:b), id: :b
+
+        process = compile_process(seq)
+        cct = Cct(process: process)
+
 
         cct.must_equal %{
 #<Start/:default>

@@ -23,7 +23,34 @@ module Trailblazer
       PassFast = Class.new(Signal)
 
       module DSL
-        Linear = Activity::DSL::Linear # FIXME
+        class Normalizer # FIXME: TOTALLY GENERIC, MOVE
+          def compile_normalizer(normalizer_sequence)
+            process = Linear::Compiler.(normalizer_sequence)
+            process.to_h[:circuit]
+          end
+
+          Linear = Activity::DSL::Linear # FIXME
+
+          # [gets instantiated at compile time.]
+          #
+          # We simply compile the activities that represent the normalizers for #step, #pass, etc.
+          # This can happen at compile-time, as normalizers are stateless.
+          def initialize
+            @normalizers = {
+              step: compile_normalizer(DSL.normalizer),
+              fail: compile_normalizer(DSL.normalizer_for_fail),
+              # step: compile_normalizer(normalizer),
+            }
+          end
+
+          # Execute the specific normalizer (step, fail, pass) for a particular option set provided
+          # by the DSL user. This is usually when you call Operation::step.
+          def call(name, *args)
+            normalizer = @normalizers.fetch(name)
+            signal, (options, _) = normalizer.(*args)
+            options
+          end
+        end
 
         module_function
         Right = Trailblazer::Activity::Right
@@ -91,6 +118,10 @@ module Trailblazer
           sequence = Path::DSL.append_end(Activity::End.new(semantic: :fail_fast), sequence, magnetic_to: :fail_fast, id: "End.fail_fast")
           sequence = Path::DSL.append_end(Activity::End.new(semantic: :pass_fast), sequence, magnetic_to: :pass_fast, id: "End.pass_fast")
         end
+      end # DSL
+
+      def self.initial_sequence # FIXME: 2BRM
+        DSL.initial_sequence
       end
     end
   end
