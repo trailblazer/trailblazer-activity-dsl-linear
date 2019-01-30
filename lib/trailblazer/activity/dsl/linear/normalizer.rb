@@ -9,8 +9,10 @@ module Trailblazer
             sequence,
 
             {
-            "activity.normalize_for_macro"      => method(:normalize_options_hash),    # last
-            "activity.normalize_step_interface" => method(:normalize_step_interface),  # first
+            "activity.normalize_context"            => method(:normalize_context),           # last
+            "activity.normalize_framework_options"  => method(:merge_framework_options),
+            "activity.normalize_for_macro"          => method(:merge_user_options),
+            "activity.normalize_step_interface"     => method(:normalize_step_interface),    # first
             },
 
             sequence_insert: [Linear::Insert.method(:Append), "Start.default"]
@@ -37,10 +39,25 @@ module Trailblazer
 
 
         # make ctx[:options] the actual ctx
-        def normalize_options_hash((ctx, flow_options), *)
+        def merge_user_options((ctx, flow_options), *)
           options = ctx[:options] # either a <#task> or {} from macro
 
-          ctx = options.merge(ctx[:user_options]) # Note that the user options are merged over the macro options.
+          ctx = ctx.merge(options: options.merge(ctx[:user_options])) # Note that the user options are merged over the macro options.
+
+          return Trailblazer::Activity::Right, [ctx, flow_options]
+        end
+
+        # {:framework_options} such as {:track_name} get overridden by user/macro.
+        def merge_framework_options((ctx, flow_options), *)
+          framework_options = ctx[:framework_options] # either a <#task> or {} from macro
+
+          ctx = ctx.merge(options: framework_options.merge(ctx[:options])) #
+
+          return Trailblazer::Activity::Right, [ctx, flow_options]
+        end
+
+        def normalize_context((ctx, flow_options), *)
+          ctx = ctx[:options]
 
           return Trailblazer::Activity::Right, [ctx, flow_options]
         end

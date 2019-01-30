@@ -104,7 +104,6 @@ module Trailblazer
         def merge_connections_for(ctx, options, option_name, semantic, magnetic_to=option_name)
           return ctx unless options[option_name]
 
-
           connections  = ctx[:connections].merge(semantic => [Linear::Search.method(:Forward), magnetic_to])
           ctx          = ctx.merge(connections: connections)
         end

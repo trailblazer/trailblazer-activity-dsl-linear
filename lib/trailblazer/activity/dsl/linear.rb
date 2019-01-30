@@ -128,16 +128,18 @@ class Trailblazer::Activity
       end # DSL
 
       class FastTrackState # TODO: change name
-        def initialize(normalizers:, initial_sequence:, track_name: :success)
+        def initialize(normalizers:, initial_sequence:, track_name: :success, **options)
           @normalizer = FTD
 
           @sequence    = initial_sequence
 
           # remembers how to call normalizers (e.g. track_color)
           # remembers sequence
+
+          @options = {track_name: :success, **options}
         end
 
-        def step(task, options={}, &block)
+        def step(task, options={}, &block) # TODO: merge "our" options, such as {track_name: :success} should that be per "state"(block)?
           options = @normalizer.(:step, options)                              # FIXME: don't we have to pass in {task}, too?
           @sequence = Linear::DSL.insert_task(task, sequence: @sequence, **options)
         end

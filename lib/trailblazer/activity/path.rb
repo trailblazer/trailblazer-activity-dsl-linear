@@ -22,6 +22,7 @@ module Trailblazer
       end
 
       module DSL
+        # move out defaulting ( {|| :success} ) and move it into one central place. easier to debug/understand where values come from.
         Linear = Activity::DSL::Linear # FIXME
 
         module_function
@@ -65,8 +66,7 @@ module Trailblazer
         end
 
         def merge_path_connections((ctx, flow_options), *)
-          track_name = ctx[:track_name] || :success
-
+          raise unless track_name = ctx[:track_name]# TODO: make track_name required kw.
           ctx = {connections: unary_connections(track_name: track_name)}.merge(ctx)
 
           return Right, [ctx, flow_options]
@@ -97,7 +97,7 @@ module Trailblazer
         end
 
         def normalize_magnetic_to((ctx, flow_options), *) # TODO: merge with Railway.merge_magnetic_to
-          track_name = ctx[:track_name] || :success
+          raise unless track_name = ctx[:track_name]# TODO: make track_name required kw.
 
           ctx = ctx.merge(magnetic_to: track_name)
 

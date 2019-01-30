@@ -176,6 +176,17 @@ FastTrack.step(my=Railway.step_pipe+..)
 
 #<End/:failure>
 }
+
+
+        state = Linear::DSL.State(Activity::FastTrack, )
+        state.step implementing.method(:a), id: :a, fast_track: true
+  seq = state.fail implementing.method(:b), id: :b#, Output(:success)=>Path() do ... end
+pp seq
+        process = compile_process(seq)
+        cct = Cct(process: process)
+
+
+        cct.must_equal %{sdfsa}
       end
     end
   end
