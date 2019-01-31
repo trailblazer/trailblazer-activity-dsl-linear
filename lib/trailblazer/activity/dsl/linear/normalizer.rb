@@ -4,19 +4,33 @@ module Trailblazer
       module Normalizer
         module_function
 
+        #   activity_normalizer.([{options:, user_options:, framework_options: }])
         def activity_normalizer(sequence)
-          Trailblazer::Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
+          seq = Trailblazer::Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
             sequence,
 
             {
-            "activity.normalize_context"            => method(:normalize_context),           # last
-            "activity.normalize_framework_options"  => method(:merge_framework_options),
-            "activity.normalize_for_macro"          => method(:merge_user_options),
-            "activity.normalize_step_interface"     => method(:normalize_step_interface),    # first
+            "activity.wrap_task_with_step_interface"  => method(:wrap_task_with_step_interface), # last
+            "activity.normalize_context"              => method(:normalize_context),
+            "activity.normalize_framework_options"    => method(:merge_framework_options),
+            "activity.normalize_for_macro"            => method(:merge_user_options),
+            "activity.normalize_step_interface"       => method(:normalize_step_interface),      # first
             },
 
             sequence_insert: [Linear::Insert.method(:Append), "Start.default"]
           )
+
+          seq = Trailblazer::Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
+            seq,
+
+            {
+            "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
+            },
+
+            sequence_insert: [Linear::Insert.method(:Append), "path.connections"]
+          )
+
+          seq
         end
 
         # Specific to the "step DSL": if the first argument is a callable, wrap it in a {step_interface_builder}
@@ -25,15 +39,24 @@ module Trailblazer
           options = ctx[:options] # either a <#task> or {} from macro
 
           unless options.is_a?(::Hash)
-            task = wrap_with_step_interface(task: options, step_interface_builder: ctx[:user_options][:step_interface_builder]) # TODO: make this optional with appropriate wiring.
+            # task = wrap_with_step_interface(task: options, step_interface_builder: ctx[:user_options][:step_interface_builder]) # TODO: make this optional with appropriate wiring.
+            task = options
 
-            ctx = ctx.merge(options: {task: task})
+            ctx = ctx.merge(options: {task: task, wrap_task: true})
           end
 
           return Trailblazer::Activity::Right, [ctx, flow_options]
         end
-        def wrap_with_step_interface(task:, step_interface_builder:)
-          step_interface_builder.(task)
+
+        def wrap_task_with_step_interface((ctx, flow_options), **)
+          return Trailblazer::Activity::Right, [ctx, flow_options] unless ctx[:wrap_task]
+
+          step_interface_builder = ctx[:step_interface_builder] # FIXME: use kw!
+          task                   = ctx[:task] # FIXME: use kw!
+
+          wrapped_task = step_interface_builder.(task)
+
+          return Trailblazer::Activity::Right, [ctx, flow_options]
         end
 
 
@@ -61,8 +84,52 @@ module Trailblazer
 
           return Trailblazer::Activity::Right, [ctx, flow_options]
         end
-      end
 
+
+
+# if task.kind_of?(Activity::End)
+#             # raise %{An end event with semantic `#{task.to_h[:semantic]}` has already been added. Please use an ID reference: `=> "End.#{task.to_h[:semantic]}"`} if
+#             new_edge = "#{id}-#{output.signal}"
+
+#             [
+#               Polarization.new( output: output, color: new_edge ),
+#               [ [:add, [task.to_h[:semantic], [ [new_edge], task, [] ], group: :end]] ]
+#             ]
+#           # procs come from DSL calls such as `Path() do ... end`.
+#           elsif task.is_a?(Proc)
+#             start_color, activity = task.(block)
+
+#             adds = activity.to_h[:adds]
+
+#             [
+#               Polarization.new( output: output, color: start_color ),
+#               # TODO: this is a pseudo-"merge" and should be public API at some point.
+#             # TODO: we also need to merge all the other states such as debug.
+#               adds[1..-1] # drop start
+#             ]
+#           elsif task.is_a?(Activity::DSL::Track) # An additional plus polarization. Example: Output => :success
+#             [
+#               Polarization.new( output: output, color: task.color )
+#             ]
+        # Process {Output(:semantic) => target}.
+        def normalize_connections_from_dsl((ctx, flow_options), *)
+          new_ctx = ctx.reject { |output, cfg| output.kind_of?(Activity::DSL::Linear::OutputSemantic) }
+          connections = new_ctx[:connections]
+
+          # Find all {Output() => Track()/Id()/End()}
+          (ctx.keys - new_ctx.keys).each do |output|
+            cfg = ctx[output]
+
+            if cfg.is_a?(Activity::DSL::Linear::Track)
+raise
+            end
+
+            raise cfg.inspect
+          end
+
+          return Trailblazer::Activity::Right, [new_ctx, flow_options]
+        end
+      end
 
     end # Normalizer
   end

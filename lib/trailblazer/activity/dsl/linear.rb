@@ -159,9 +159,12 @@ class Trailblazer::Activity
 
       class FastTrackState # TODO: change name
         def initialize(normalizers:, initial_sequence:, track_name: :success, left_track_name: :failure, **options)
+      #     seq = Trailblazer::Activity::FastTrack::DSL.normalizer
+      # seq = Linear::Normalizer.activity_normalizer(seq)
+
           normalizers =
           {
-              step: FastTrack::DSL.normalizer,
+              step:  Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
               fail: FastTrack::DSL.normalizer_for_fail,
               # step: compile_normalizer(normalizer),
             }
@@ -170,19 +173,19 @@ class Trailblazer::Activity
 
           @sequence    = initial_sequence
 
-          # remembers how to call normalizers (e.g. track_color)
+          # remembers how to call normalizers (e.g. track_color), TaskBuilder
           # remembers sequence
 
-          @options = {track_name: track_name, left_track_name: left_track_name, **options}
+          @framework_options = {track_name: track_name, left_track_name: left_track_name, step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), **options}
         end
 
         def step(task, options={}, &block) # TODO: merge "our" options, such as {track_name: :success} should that be per "state"(block)?
-          options = @normalizer.(:step, **@options, **options)                              # FIXME: don't we have to pass in {task}, too?
+          options = @normalizer.(:step, framework_options: @framework_options, options: task, user_options: options)
           @sequence = Linear::DSL.insert_task(task, sequence: @sequence, **options)
         end
 
         def fail(task, options={}, &block)
-          options = @normalizer.(:fail, **@options, **options)                              # FIXME: don't we have to pass in {task}, too?
+          options = @normalizer.(:fail, **@framework_options, **options)                              # FIXME: don't we have to pass in {task}, too?
           @sequence = Linear::DSL.insert_task(task, sequence: @sequence, **options)
         end
       end

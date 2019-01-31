@@ -179,10 +179,11 @@ FastTrack.step(my=Railway.step_pipe+..)
 #<End/:failure>
 }
 
+        DSL = Trailblazer::Activity::DSL::Linear
 
         state = Linear::DSL.State(Activity::FastTrack, )
-        state.step implementing.method(:a), id: :a, fast_track: true
-  seq = state.fail implementing.method(:b), id: :b#, Output(:success)=>Path() do ... end
+        state.step implementing.method(:a), id: :a, fast_track: true, DSL.Output(:fail_fast) => DSL.Track(:pass_fast)
+  seq = state.fail implementing.method(:b), id: :b#, Output(:succei)=>Path() do ... end
 pp seq
         process = compile_process(seq)
         cct = Cct(process: process)
