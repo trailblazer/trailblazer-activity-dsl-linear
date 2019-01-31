@@ -120,16 +120,53 @@ class Trailblazer::Activity
 
         def State(strategy)
           # raise strategy.initial_sequence.inspect
+          step_normalizer_with_dsl = Normalizer.activity_normalizer(FastTrack::DSL.normalizer)
+
           FastTrackState.new(
-            normalizers: {step: FastTrack::DSL.normalizer, fail: FastTrack::DSL.normalizer_for_fail},
+            normalizers: {step: step_normalizer_with_dsl, fail: FastTrack::DSL.normalizer_for_fail},
             initial_sequence: FastTrack::DSL.initial_sequence,
           )
         end
       end # DSL
 
+      module State
+        # Compiles and maintains all final normalizers for a specific DSL.
+        class Normalizer
+          def compile_normalizer(normalizer_sequence)
+            process = Trailblazer::Activity::DSL::Linear::Compiler.(normalizer_sequence)
+            process.to_h[:circuit]
+          end
+
+          # [gets instantiated at compile time.]
+          #
+          # We simply compile the activities that represent the normalizers for #step, #pass, etc.
+          # This can happen at compile-time, as normalizers are stateless.
+          def initialize(normalizer_sequences)
+            @normalizers = Hash[
+              normalizer_sequences.collect { |name, seq| [name, compile_normalizer(seq)] }
+            ]
+          end
+
+          # Execute the specific normalizer (step, fail, pass) for a particular option set provided
+          # by the DSL user. This is usually when you call Operation::step.
+          def call(name, *args)
+            normalizer = @normalizers.fetch(name)
+            signal, (options, _) = normalizer.(*args)
+            options
+          end
+        end
+      end
+
       class FastTrackState # TODO: change name
         def initialize(normalizers:, initial_sequence:, track_name: :success, left_track_name: :failure, **options)
-          @normalizer = FTD
+          normalizers =
+          {
+              step: FastTrack::DSL.normalizer,
+              fail: FastTrack::DSL.normalizer_for_fail,
+              # step: compile_normalizer(normalizer),
+            }
+# FIXME: only do this ONCE at compile time
+          @normalizer = State::Normalizer.new(normalizers)
 
           @sequence    = initial_sequence
 
@@ -215,5 +252,4 @@ require "trailblazer/activity/path"
 require "trailblazer/activity/dsl/linear/normalizer"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"
-        FTD = Trailblazer::Activity::FastTrack::DSL::Normalizer.new # compiled normalizers for #step, etc
 require "trailblazer/activity/dsl/linear/helper" # FIXME
