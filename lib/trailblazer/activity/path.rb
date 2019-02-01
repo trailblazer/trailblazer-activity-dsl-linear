@@ -107,10 +107,20 @@ module Trailblazer
           sequence = append_end(Activity::End.new(semantic: :success), sequence, magnetic_to: :success, id: "End.success", append_to: "Start.default")
         end
 
-        def append_end(end_event, sequence, magnetic_to:, id:, append_to: "End.success")
+        def append_end(end_event, sequence, **options)
+          sequence = Linear::DSL.insert_task(end_event, sequence: sequence, **append_end_options(end_event, **options))
+        end
+
+        def append_end_options(end_event, magnetic_to:, id:, append_to: "End.success")
           end_args = {sequence_insert: [Linear::Insert.method(:Append), append_to], stop_event: true}
 
-          sequence = Linear::DSL.insert_task(end_event, sequence: sequence, magnetic_to: magnetic_to, id: id, outputs: {magnetic_to => end_event}, connections: {magnetic_to => [Linear::Search.method(:Noop)]}, **end_args)
+          {
+            magnetic_to:  magnetic_to,
+            id:           id,
+            outputs:      {magnetic_to => end_event},
+            connections:  {magnetic_to => [Linear::Search.method(:Noop)]},
+             **end_args
+           }
         end
       end # DSL
     end # Path

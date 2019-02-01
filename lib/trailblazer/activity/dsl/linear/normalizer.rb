@@ -127,7 +127,7 @@ module Trailblazer
               elsif cfg.is_a?(Activity::DSL::Linear::Id)
                 [output_to_id(ctx, output, cfg.value), []]
               elsif cfg.is_a?(Activity::End)
-                [output_to_id(ctx, output, Linear.end_id(cfg)),[]]
+                [output_to_id(ctx, output, end_id=Linear.end_id(cfg)), [add_end(cfg, magnetic_to: end_id, id: end_id)]]
               end
 
             connections = connections.merge(new_connections)
@@ -145,6 +145,11 @@ module Trailblazer
 
         def output_to_id(ctx, output, target)
           {output.value => [Linear::Search.method(:ById), target]}
+        end
+
+        # {#insert_task} options to add another end.
+        def add_end(end_event, magnetic_to:, id:)
+          Path::DSL.append_end_options(end_event, magnetic_to: magnetic_to, id: id)
         end
       end
 
