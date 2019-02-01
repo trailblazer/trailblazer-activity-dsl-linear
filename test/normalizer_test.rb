@@ -113,13 +113,21 @@ class NormalizerTest < Minitest::Spec
   end
 
   describe "Activity-style normalizer" do
+    let(:normalizer) do
+      seq = Trailblazer::Activity::FastTrack::DSL.normalizer
+      seq = Linear::Normalizer.activity_normalizer(seq)
+
+      process = compile_process(seq)
+      normalizer = process.to_h[:circuit]
+    end
+
     let(:implementing) do
       implementing = Module.new do
         extend T.def_tasks(:a, :b, :c, :d, :f, :g)
       end
     end
 
-    it "what" do
+    it "half-assed test" do
 
 
       def my_step_interface_builder(callable_with_step_interface)
@@ -133,17 +141,24 @@ class NormalizerTest < Minitest::Spec
 
       macro_hash = {task: implementing.method(:b)}
 
-      normalizer.(**default_options, options: implementing.method(:a), user_options: {step_interface_builder: method(:my_step_interface_builder)}).must_equal({})  # step WrapMe, output: 1
-      normalizer.(**default_options, options: macro_hash, )               # step task: Me, output: 1 (not using macro)
-      normalizer.(**default_options, options: macro_hash, user_options: {output: 1})         # step {task: Me}, output: 1   macro, user_opts
+      signal, (ctx, _) = normalizer.(framework_options: default_options, options: implementing.method(:a), user_options: {step_interface_builder: method(:my_step_interface_builder)})
+
+      ctx.keys.must_equal([:connections, :outputs, :track_name, :left_track_name, :task, :wrap_task, :step_interface_builder, :sequence_insert, :magnetic_to])  # step WrapMe, output: 1
+pp ctx[:sequence_insert]
+
+      # normalizer.(**default_options, options: macro_hash, )               # step task: Me, output: 1 (not using macro)
+      # normalizer.(**default_options, options: macro_hash, user_options: {output: 1})         # step {task: Me}, output: 1   macro, user_opts
     end
 
-    let(:normalizer) do
-      seq = Trailblazer::Activity::FastTrack::DSL.normalizer
-      seq = Linear::Normalizer.activity_normalizer(seq)
+    it "half-assed test for DSL options" do
+      signal, (ctx, _) = normalizer.(
+        framework_options:  default_options,
+        options:            implementing.method(:a),
+        user_options:       {step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), Linear.Output(:success) => Linear.End(:new)}
+      )
 
-      process = compile_process(seq)
-      normalizer = process.to_h[:circuit]
+      ctx.keys.must_equal([:connections, :outputs, :track_name, :left_track_name, :task, :wrap_task, :step_interface_builder, :sequence_insert, :magnetic_to, :adds ])  # step WrapMe, output: 1
+pp ctx[:sequence_insert]
     end
 
     it "macro hash can set user_options such as {fast_track: true}" do

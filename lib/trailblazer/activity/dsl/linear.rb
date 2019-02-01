@@ -176,7 +176,7 @@ class Trailblazer::Activity
           # remembers how to call normalizers (e.g. track_color), TaskBuilder
           # remembers sequence
 
-          @framework_options = {track_name: track_name, left_track_name: left_track_name, step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), **options}
+          @framework_options = {track_name: track_name, left_track_name: left_track_name, step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), adds: [],**options}
         end
 
         def step(task, options={}, &block) # TODO: merge "our" options, such as {track_name: :success} should that be per "state"(block)?

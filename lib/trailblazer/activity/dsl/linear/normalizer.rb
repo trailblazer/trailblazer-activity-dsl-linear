@@ -27,7 +27,7 @@ module Trailblazer
             "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
             },
 
-            sequence_insert: [Linear::Insert.method(:Append), "path.connections"]
+            sequence_insert: [Linear::Insert.method(:Prepend), "End.success"]
           )
 
           seq
@@ -115,19 +115,36 @@ module Trailblazer
         def normalize_connections_from_dsl((ctx, flow_options), *)
           new_ctx = ctx.reject { |output, cfg| output.kind_of?(Activity::DSL::Linear::OutputSemantic) }
           connections = new_ctx[:connections]
+          adds        = new_ctx[:adds]
 
           # Find all {Output() => Track()/Id()/End()}
           (ctx.keys - new_ctx.keys).each do |output|
             cfg = ctx[output]
 
-            if cfg.is_a?(Activity::DSL::Linear::Track)
-raise
-            end
+            new_connections, add_adds =
+              if cfg.is_a?(Activity::DSL::Linear::Track)
+                [output_to_track(ctx, output, cfg), []]
+              elsif cfg.is_a?(Activity::DSL::Linear::Id)
+                [output_to_id(ctx, output, cfg.value), []]
+              elsif cfg.is_a?(Activity::End)
+                [output_to_id(ctx, output, Linear.end_id(cfg)),[]]
+              end
 
-            raise cfg.inspect
+            connections = connections.merge(new_connections)
+            adds += add_adds
           end
 
+          new_ctx = new_ctx.merge(connections: connections, adds: adds)
+
           return Trailblazer::Activity::Right, [new_ctx, flow_options]
+        end
+
+        def output_to_track(ctx, output, target)
+          {output.value => [Linear::Search.method(:Forward), target.color]}
+        end
+
+        def output_to_id(ctx, output, target)
+          {output.value => [Linear::Search.method(:ById), target]}
         end
       end
 
@@ -140,34 +157,7 @@ raise
     #
     # The Normalizer sits in the `@builder`, which receives all DSL calls from the Operation subclass.
     class Normalizer
-      def self.build(task_builder: Activity::TaskBuilder.method(:Binary), default_outputs: Builder::Path.default_outputs, pipeline: Pipeline, extension:[], **options)
-        return new(
-          default_outputs: default_outputs,
-          extension:       extension,
-          task_builder:    task_builder,
-          pipeline:        pipeline,
-        ), options
-      end
 
-      def initialize(task_builder:, default_outputs:, pipeline:, **options)
-        @task_builder    = task_builder
-        @default_outputs = default_outputs
-        @pipeline        = pipeline # TODO: test me.
-        freeze
-      end
-
-      def call(task, options)
-        ctx = {
-          task:            task,
-          options:         options,
-          task_builder:    @task_builder,
-          default_outputs: @default_outputs,
-        }
-
-        signal, (ctx, ) = @pipeline.( [ctx], {} )
-
-        return ctx[:options][:task], ctx[:local_options], ctx[:connection_options], ctx[:sequence_options], ctx[:extension_options]
-      end
 
       # needs the basic Normalizer
 

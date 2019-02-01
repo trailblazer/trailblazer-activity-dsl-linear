@@ -25,6 +25,10 @@ class Trailblazer::Activity
       Trailblazer::Activity.End(semantic)
     end
 
+    def end_id(_end)
+      "End.#{_end.to_h[:semantic]}" # TODO: use everywhere
+    end
+
     def Track(color)
       Track.new(color).freeze
     end

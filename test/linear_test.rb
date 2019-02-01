@@ -183,13 +183,35 @@ FastTrack.step(my=Railway.step_pipe+..)
 
         state = Linear::DSL.State(Activity::FastTrack, )
         state.step implementing.method(:a), id: :a, fast_track: true, DSL.Output(:fail_fast) => DSL.Track(:pass_fast)
-  seq = state.fail implementing.method(:b), id: :b#, Output(:succei)=>Path() do ... end
+  seq = state.step implementing.method(:b), id: :b, DSL.Output(:success) => DSL.Id(:a) #Path() do ... end
+  seq = state.step implementing.method(:c), id: :c, DSL.Output(:success) => DSL.End(:new) #Path() do ... end
+  seq = state.fail implementing.method(:d), id: :d#, DSL.Output(:success) => DSL.End(:new) #Path() do ... end
 pp seq
         process = compile_process(seq)
         cct = Cct(process: process)
 
 
-        cct.must_equal %{sdfsa}
+        cct.must_equal %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::FastTrack::FailFast} => #<End/:pass_fast>
+ {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+
+#<End/:new>
+}
       end
     end
   end
