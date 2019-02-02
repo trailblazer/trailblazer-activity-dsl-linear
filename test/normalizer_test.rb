@@ -152,13 +152,15 @@ pp ctx[:sequence_insert]
 
     it "half-assed test for DSL options" do
       signal, (ctx, _) = normalizer.(
-        framework_options:  default_options,
+        framework_options:  default_options.merge(adds: []),
         options:            implementing.method(:a),
         user_options:       {step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), Linear.Output(:success) => Linear.End(:new)}
       )
 
-      ctx.keys.must_equal([:connections, :outputs, :track_name, :left_track_name, :task, :wrap_task, :step_interface_builder, :sequence_insert, :magnetic_to, :adds ])  # step WrapMe, output: 1
-pp ctx[:sequence_insert]
+      ctx.keys.must_equal([:connections, :outputs, :track_name, :left_track_name, :adds, :task, :wrap_task, :step_interface_builder, :sequence_insert, :magnetic_to ])  # step WrapMe, output: 1
+
+      ctx[:adds].size.must_equal 1
+      ctx[:adds][0].keys.must_equal [:connections, :outputs, :track_name, :left_track_name, :task, :step_interface_builder, :sequence_insert, :magnetic_to]
     end
 
     it "macro hash can set user_options such as {fast_track: true}" do
@@ -170,11 +172,11 @@ pp ctx[:sequence_insert]
   # insert a
       # FIXME: move this somewhere else
       seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence
-      seq = Linear::DSL.insert_task(implementing.method(:a), sequence: seq, id: :a, **cfg)
+      seq = Linear::DSL.insert_task(seq, implementing.method(:a), id: :a, **cfg)
       seq[1][3].must_equal({:id=>:a, :track_name=>:success, :left_track_name=>:failure, :fast_track=>true, :bla=>1})
 
   # insert b, before: :a
-      # seq = Linear::DSL.insert_task(implementing.method(:b), sequence: seq, id: :b, **cfg)
+      # seq = Linear::DSL.insert_task(seq, implementing.method(:b), id: :b, **cfg)
       # seq[1][3].must_equal({:id=>:a, :fast_track=>true, :bla=>1})
     end
 
@@ -190,7 +192,7 @@ pp ctx[:sequence_insert]
 
       # FIXME: move this somewhere else
       seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence
-      seq = Linear::DSL.insert_task(implementing.method(:a), sequence: seq, id: :a, **cfg)
+      seq = Linear::DSL.insert_task(seq, implementing.method(:a), id: :a, **cfg)
       seq[1][3].must_equal({:id=>:a, :track_name=>:success, :left_track_name=>:failure, :fast_track=>false, :bla=>1})
     end
 

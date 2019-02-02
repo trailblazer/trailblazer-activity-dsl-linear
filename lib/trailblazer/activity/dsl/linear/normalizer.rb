@@ -149,7 +149,7 @@ module Trailblazer
 
         # {#insert_task} options to add another end.
         def add_end(end_event, magnetic_to:, id:)
-          Path::DSL.append_end_options(end_event, magnetic_to: magnetic_to, id: id)
+          Path::DSL.append_end_options(task: end_event, magnetic_to: magnetic_to, id: id)
         end
       end
 

@@ -20,7 +20,7 @@ module Trailblazer
         Right = Trailblazer::Activity::Right
         def start_sequence
           start_default = Trailblazer::Activity::Start.new(semantic: :default)
-          start_event   = Linear::DSL.create_row(start_default, id: "Start.default", magnetic_to: nil, outputs: unary_outputs, connections: unary_connections)
+          start_event   = Linear::DSL.create_row(task: start_default, id: "Start.default", magnetic_to: nil, outputs: unary_outputs, connections: unary_connections)
           sequence      = Linear::Sequence[start_event]
         end
 
@@ -28,7 +28,7 @@ module Trailblazer
         # Pseudo-DSL that prepends {steps} to {sequence}.
         def prepend_to_path(sequence, steps, **options)
           steps.each do |id, task|
-            sequence = Linear::DSL.insert_task(task, sequence: sequence,
+            sequence = Linear::DSL.insert_task(sequence, task: task,
               magnetic_to: :success, id: id, outputs: unary_outputs, connections: unary_connections,
               sequence_insert: [Linear::Insert.method(:Prepend), "End.success"], **options)
           end
@@ -104,22 +104,23 @@ module Trailblazer
         def initial_sequence
           # TODO: this could be an Activity itself but maybe a bit too much for now.
           sequence = start_sequence
-          sequence = append_end(Activity::End.new(semantic: :success), sequence, magnetic_to: :success, id: "End.success", append_to: "Start.default")
+          sequence = append_end(sequence, task: Activity::End.new(semantic: :success), magnetic_to: :success, id: "End.success", append_to: "Start.default")
         end
 
-        def append_end(end_event, sequence, **options)
-          sequence = Linear::DSL.insert_task(end_event, sequence: sequence, **append_end_options(end_event, **options))
+        def append_end(sequence, **options)
+          sequence = Linear::DSL.insert_task(sequence, **append_end_options(options))
         end
 
-        def append_end_options(end_event, magnetic_to:, id:, append_to: "End.success")
+        def append_end_options(task:, magnetic_to:, id:, append_to: "End.success")
           end_args = {sequence_insert: [Linear::Insert.method(:Append), append_to], stop_event: true}
 
           {
+            task:         task,
             magnetic_to:  magnetic_to,
             id:           id,
-            outputs:      {magnetic_to => end_event},
+            outputs:      {magnetic_to => task},
             connections:  {magnetic_to => [Linear::Search.method(:Noop)]},
-             **end_args
+            **end_args
            }
         end
       end # DSL

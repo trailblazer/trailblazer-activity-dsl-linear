@@ -102,8 +102,8 @@ class Trailblazer::Activity
 
         # Insert the task into the sequence using the {sequence_insert} strategy.
         # @return Sequence sequence after applied insertion
-        def insert_task(task, sequence:, sequence_insert:, **options)
-          new_row = create_row(task, **options)
+        def insert_task(sequence, sequence_insert:, **options)
+          new_row = create_row(**options)
 
           # {sequence_insert} is usually a function such as {Linear::Insert::Append} and its arguments.
           insert_function, *args = sequence_insert
@@ -111,7 +111,7 @@ class Trailblazer::Activity
           insert_function.(sequence, new_row, *args)
         end
 
-        def create_row(task, magnetic_to:, outputs:, connections:, **options)
+        def create_row(task:, magnetic_to:, outputs:, connections:, **options)
           [
             magnetic_to,
             task,
@@ -194,12 +194,12 @@ class Trailblazer::Activity
 
         def step(task, options={}, &block) # TODO: merge "our" options, such as {track_name: :success} should that be per "state"(block)?
           options = @normalizer.(:step, framework_options: @framework_options, options: task, user_options: options)
-          @sequence = Linear::DSL.insert_task(task, sequence: @sequence, **options)
+          @sequence = Linear::DSL.insert_task(@sequence, task: task, **options)
         end
 
         def fail(task, options={}, &block)
           options = @normalizer.(:fail, **@framework_options, **options)                              # FIXME: don't we have to pass in {task}, too?
-          @sequence = Linear::DSL.insert_task(task, sequence: @sequence, **options)
+          @sequence = Linear::DSL.insert_task(@sequence, task: task, **options)
         end
       end
 

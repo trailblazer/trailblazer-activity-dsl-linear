@@ -143,8 +143,8 @@ FastTrack.step(my=Railway.step_pipe+..)
 
         # a stateful "DSL object" will keep {seq}
         seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence
-        seq = Linear::DSL.insert_task(implementing.method(:a), sequence: seq, id: :a, **step_options)
-        seq = Linear::DSL.insert_task(implementing.method(:b), sequence: seq, id: :b, **fail_options)
+        seq = Linear::DSL.insert_task(seq, task: implementing.method(:a), id: :a, **step_options)
+        seq = Linear::DSL.insert_task(seq, task: implementing.method(:b), id: :b, **fail_options)
 
         process = compile_process(seq)
         cct = Cct(process: process)
@@ -227,7 +227,7 @@ pp seq
 
   def step(task, sequence:, magnetic_to: :success, outputs: self.default_binary_outputs, connections: self.default_step_connections, sequence_insert: [Linear::Insert.method(:Prepend), "End.success"], **local_options)
     # here, we want the final arguments.
-    Linear::DSL.insert_task(task, sequence: sequence, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, **local_options)
+    Linear::DSL.insert_task(sequence, task: task, magnetic_to: magnetic_to, outputs: outputs, connections: connections, sequence_insert: sequence_insert, **local_options)
   end
 
   # fail simply wires both {:failure=>} and {:success=>} outputs to the next {=>:failure} task.
@@ -235,16 +235,12 @@ pp seq
     step(task, magnetic_to: magnetic_to, connections: connections, **local_options)
   end
 
-  # def insert_task_into_sequence!(task, **options, &block)
-  #   @sequence = insert_task(task, sequence: @sequence, **options, &block)
-  # end
-
   let(:sequence) do
     start_default = Activity::Start.new(semantic: :default)
     end_success   = Activity::End.new(semantic: :success)
     end_failure   = Activity::End.new(semantic: :failure)
 
-    start_event = Linear::DSL.create_row(start_default, id: "Start.default", magnetic_to: nil, outputs: {success: default_binary_outputs[:success]}, connections: {success: default_step_connections[:success]})
+    start_event = Linear::DSL.create_row(task: start_default, id: "Start.default", magnetic_to: nil, outputs: {success: default_binary_outputs[:success]}, connections: {success: default_step_connections[:success]})
     @sequence   = Linear::Sequence[start_event]
 
     end_args = {sequence_insert: [Linear::Insert.method(:Append), "Start.default"]}

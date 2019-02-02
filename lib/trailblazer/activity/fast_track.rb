@@ -73,8 +73,8 @@ module Trailblazer
           # TODO: this could be an Activity itself but maybe a bit too much for now.
           sequence = Railway::DSL.initial_sequence
 
-          sequence = Path::DSL.append_end(Activity::End.new(semantic: :fail_fast), sequence, magnetic_to: :fail_fast, id: "End.fail_fast")
-          sequence = Path::DSL.append_end(Activity::End.new(semantic: :pass_fast), sequence, magnetic_to: :pass_fast, id: "End.pass_fast")
+          sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :fail_fast), magnetic_to: :fail_fast, id: "End.fail_fast")
+          sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :pass_fast), magnetic_to: :pass_fast, id: "End.pass_fast")
         end
       end # DSL
 
