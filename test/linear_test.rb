@@ -186,7 +186,7 @@ FastTrack.step(my=Railway.step_pipe+..)
   seq = state.step implementing.method(:b), id: :b, DSL.Output(:success) => DSL.Id(:a) #Path() do ... end
   seq = state.step implementing.method(:c), id: :c, DSL.Output(:success) => DSL.End(:new) #Path() do ... end
   seq = state.fail implementing.method(:d), id: :d#, DSL.Output(:success) => DSL.End(:new) #Path() do ... end
-pp seq
+# pp seq
         process = compile_process(seq)
         cct = Cct(process: process)
 
@@ -218,6 +218,19 @@ pp seq
 
 #<End/:failure>
 }
+      end
+
+      it "breaks with not-yet existing reference" do
+        state = Linear::DSL.State(Activity::FastTrack, )
+
+        # seq = state.step implementing.method(:a), id: :a
+        seq = state.step implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
+assert_raises do # TODO: fix me, of course
+        process = compile_process(seq)
+end
+        # cct = Cct(process: process)
+
+        # cct.must_equal %{}
       end
     end
   end

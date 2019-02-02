@@ -200,6 +200,8 @@ class Trailblazer::Activity
           [options, *locals[:adds]].each do |insertion|
             @sequence = Linear::DSL.insert_task(@sequence, **insertion)
           end
+
+          @sequence
         end
 
         def fail(task, options={}, &block)
