@@ -202,15 +202,21 @@ pp seq
 #<Method: #<Module:0x>.b>
  {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.d>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Right} => #<End/:new>
+#<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
 #<End/:success>
+
+#<End/:new>
 
 #<End/:pass_fast>
 
 #<End/:fail_fast>
 
 #<End/:failure>
-
-#<End/:new>
 }
       end
     end

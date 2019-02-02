@@ -192,9 +192,14 @@ class Trailblazer::Activity
           @framework_options = {track_name: track_name, left_track_name: left_track_name, step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), adds: [],**options}
         end
 
-        def step(task, options={}, &block) # TODO: merge "our" options, such as {track_name: :success} should that be per "state"(block)?
+        def step(task, options={}, &block)
           options = @normalizer.(:step, framework_options: @framework_options, options: task, user_options: options)
-          @sequence = Linear::DSL.insert_task(@sequence, task: task, **options)
+
+          options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
+
+          [options, *locals[:adds]].each do |insertion|
+            @sequence = Linear::DSL.insert_task(@sequence, **insertion)
+          end
         end
 
         def fail(task, options={}, &block)
