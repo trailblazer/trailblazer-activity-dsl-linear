@@ -5,6 +5,19 @@ class Trailblazer::Activity
     # Produces {Implementation} and {Intermediate}.
     module Linear
 
+=begin
+      # The following 9 lines are due to the rubbish way Struct works in Ruby.
+      def self.Insertion(*args)
+        Insertion.new(*args).freeze
+      end
+
+      class Insertion < Struct.new(:connections, :outputs, :task, :wrap_task, :sequence_insert, :magnetic_to)
+        def initialize(connections:, outputs:, task:, wrap_task:, sequence_insert:, magnetic_to:)
+          super(connections, outputs, task, wrap_task, sequence_insert, magnetic_to)
+        end
+      end
+=end
+
       # Sequence
       class Sequence < Array
       end
