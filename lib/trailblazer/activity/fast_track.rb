@@ -81,6 +81,32 @@ module Trailblazer
       def self.initial_sequence # FIXME: 2BRM
         DSL.initial_sequence
       end
-    end
+
+      Linear = Activity::DSL::Linear
+      # This is slow and should be done only once at compile-time,
+      # DISCUSS: maybe make this a function?
+      # These are the normalizers for an {Activity}, to be injected into a State.
+      Normalizers = Linear::State::Normalizer.new(
+        step:  Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
+        fail: FastTrack::DSL.normalizer_for_fail,
+      )
+
+
+      def self.OptionsForState(normalizers: Normalizers, track_name: :success, left_track_name: :failure, **options)
+        initial_sequence = FastTrack::DSL.initial_sequence
+
+        {
+          normalizers: normalizers,
+          initial_sequence: initial_sequence,
+          framework_options: {
+            track_name: track_name,
+            left_track_name: left_track_name,
+            step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
+            adds: [], # FIXME: EH.
+            **options
+          }
+        }
+      end
+    end # options_for_state
   end
 end

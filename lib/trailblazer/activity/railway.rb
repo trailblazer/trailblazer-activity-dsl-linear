@@ -101,6 +101,36 @@ module Trailblazer
           sequence = Path::DSL.initial_sequence
           sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :failure), magnetic_to: :failure, id: "End.failure")
         end
+
+        class State
+          def initialize(normalizers:, initial_sequence:, track_name: :success, left_track_name: :failure, **options)
+            @normalizer  = normalizers # compiled normalizers.
+            @sequence    = initial_sequence
+
+            # remembers how to call normalizers (e.g. track_color), TaskBuilder
+            # remembers sequence
+
+            @framework_options = {track_name: track_name, left_track_name: left_track_name, step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), adds: [],**options}
+          end
+
+          def step(task, options={}, &block)
+            options = @normalizer.(:step, framework_options: @framework_options, options: task, user_options: options)
+
+            options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
+
+            [options, *locals[:adds]].each do |insertion|
+              @sequence = Linear::DSL.insert_task(@sequence, **insertion)
+            end
+
+            @sequence
+          end
+
+          def fail(task, options={}, &block)
+            options = @normalizer.(:fail, **@framework_options, **options)                              # FIXME: don't we have to pass in {task}, too?
+            @sequence = Linear::DSL.insert_task(@sequence, task: task, **options)
+          end
+        end # State
+
       end # DSL
     end
   end

@@ -37,7 +37,8 @@ class Trailblazer::Activity
       Id.new(id).freeze
     end
 
-    def Path(normalizer, track_color: "track_#{rand}", end_semantic: track_color, **options)
+    def Path(track_color: "track_#{rand}", end_semantic: track_color, **options, &block)
+      raise block.inspect
       options = options.merge(track_color: track_color, end_semantic: end_semantic)
 
       # Build an anonymous class which will be where the block is evaluated in.

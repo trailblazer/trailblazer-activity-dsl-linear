@@ -179,13 +179,11 @@ FastTrack.step(my=Railway.step_pipe+..)
 #<End/:failure>
 }
 
-        DSL = Trailblazer::Activity::DSL::Linear
-
         state = Linear::DSL.State(Activity::FastTrack, )
-        state.step implementing.method(:a), id: :a, fast_track: true, DSL.Output(:fail_fast) => DSL.Track(:pass_fast)
-  seq = state.step implementing.method(:b), id: :b, DSL.Output(:success) => DSL.Id(:a) #Path() do ... end
-  seq = state.step implementing.method(:c), id: :c, DSL.Output(:success) => DSL.End(:new) #Path() do ... end
-  seq = state.fail implementing.method(:d), id: :d#, DSL.Output(:success) => DSL.End(:new) #Path() do ... end
+        state.step implementing.method(:a), id: :a, fast_track: true, Linear.Output(:fail_fast) => Linear.Track(:pass_fast)
+  seq = state.step implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
+  seq = state.step implementing.method(:c), id: :c, Linear.Output(:success) => Linear.End(:new)
+  seq = state.fail implementing.method(:d), id: :d#, Linear.Output(:success) => Linear.End(:new)
 # pp seq
         process = compile_process(seq)
         cct = Cct(process: process)
@@ -225,12 +223,31 @@ FastTrack.step(my=Railway.step_pipe+..)
 
         # seq = state.step implementing.method(:a), id: :a
         seq = state.step implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
-assert_raises do # TODO: fix me, of course
+# TODO: fix me, of course
+assert_raises do
         process = compile_process(seq)
 end
         # cct = Cct(process: process)
 
         # cct.must_equal %{}
+      end
+
+      it "Path()" do
+        state = Activity::Railway::DSL::State.new(Activity::FastTrack.OptionsForState)
+        state.step( implementing.method(:a), id: :a, fast_track: true, Linear.Output(:fail_fast) => Linear.Path do |path|
+          path.step
+        end
+        )
+        state.step implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
+        state.step implementing.method(:c), id: :c, Linear.Output(:success) => Linear.End(:new)
+        state.fail implementing.method(:d), id: :d#, Linear.Output(:success) => Linear.End(:new)
+# pp seq
+        process = compile_process(seq)
+        cct = Cct(process: process)
+
+
+        cct.must_equal %{}
+
       end
     end
   end

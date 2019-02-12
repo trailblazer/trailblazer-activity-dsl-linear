@@ -170,46 +170,6 @@ class Trailblazer::Activity
         end
       end
 
-      class FastTrackState # TODO: change name
-        def initialize(normalizers:, initial_sequence:, track_name: :success, left_track_name: :failure, **options)
-      #     seq = Trailblazer::Activity::FastTrack::DSL.normalizer
-      # seq = Linear::Normalizer.activity_normalizer(seq)
-
-          normalizers =
-          {
-              step:  Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
-              fail: FastTrack::DSL.normalizer_for_fail,
-              # step: compile_normalizer(normalizer),
-            }
-# FIXME: only do this ONCE at compile time
-          @normalizer = State::Normalizer.new(normalizers)
-
-          @sequence    = initial_sequence
-
-          # remembers how to call normalizers (e.g. track_color), TaskBuilder
-          # remembers sequence
-
-          @framework_options = {track_name: track_name, left_track_name: left_track_name, step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), adds: [],**options}
-        end
-
-        def step(task, options={}, &block)
-          options = @normalizer.(:step, framework_options: @framework_options, options: task, user_options: options)
-
-          options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
-
-          [options, *locals[:adds]].each do |insertion|
-            @sequence = Linear::DSL.insert_task(@sequence, **insertion)
-          end
-
-          @sequence
-        end
-
-        def fail(task, options={}, &block)
-          options = @normalizer.(:fail, **@framework_options, **options)                              # FIXME: don't we have to pass in {task}, too?
-          @sequence = Linear::DSL.insert_task(@sequence, task: task, **options)
-        end
-      end
-
       # extend Railway( ) # include DSL
       # extend Activity::Intermediate(implementation: , intermediate: ) # NO DSL
 
