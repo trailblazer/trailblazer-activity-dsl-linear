@@ -128,18 +128,6 @@ class Trailblazer::Activity
             options # {id: "Start.success"}
           ]
         end
-
-
-
-        def State(strategy)
-          # raise strategy.initial_sequence.inspect
-          step_normalizer_with_dsl = Normalizer.activity_normalizer(FastTrack::DSL.normalizer)
-
-          FastTrackState.new(
-            normalizers: {step: step_normalizer_with_dsl, fail: FastTrack::DSL.normalizer_for_fail},
-            initial_sequence: FastTrack::DSL.initial_sequence,
-          )
-        end
       end # DSL
 
       module State
@@ -195,13 +183,24 @@ class Trailblazer::Activity
 
               # execute all {Search}s for one sequence row.
               connections = find_connections(seq_row, connections, sequence)
+              pp connections
 
+              # FIXME: ends don't have connections, hence no outputs
               implementations += [[id, Process::Implementation::Task(task, connections.collect { |output, _| output }) ]]
 
-              intermediates += [[Process::Intermediate::TaskRef(id, data), connections.collect { |output, target_id| Process::Intermediate::Out(output.semantic, target_id) }] ]
+              intermediates += [
+                [
+                  Process::Intermediate::TaskRef(id, data),
+                  # Compute outputs.
+                  connections.collect { |output, target_id| Process::Intermediate::Out(output.semantic, target_id) }
+                ]
+              ]
 
               [implementations, intermediates]
             end
+
+            puts "yooo  "
+            pp intermediate_wiring # ends don't have any output?
 
           start_task_refs = find_start.(intermediate_wiring)
           stop_task_refs = find_stops.(intermediate_wiring)
@@ -231,8 +230,8 @@ raise "Couldn't find target for #{seq_row}" if target_seq_row.nil?
   end
 end
 
-require "trailblazer/activity/path"
 require "trailblazer/activity/dsl/linear/normalizer"
+require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"
 require "trailblazer/activity/dsl/linear/helper" # FIXME

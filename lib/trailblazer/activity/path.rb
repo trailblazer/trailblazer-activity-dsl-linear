@@ -123,6 +123,54 @@ module Trailblazer
             **end_args
            }
         end
+
+        class State # TODO : MERGE WITH RAILWAY::State
+          def initialize(normalizers:, initial_sequence:, track_name: :success, **options)
+            @normalizer  = normalizers # compiled normalizers.
+            @sequence    = initial_sequence
+
+            # remembers how to call normalizers (e.g. track_color), TaskBuilder
+            # remembers sequence
+
+            @framework_options = {track_name: track_name, step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), adds: [],**options}
+          end
+
+          def step(task, options={}, &block)
+            options = @normalizer.(:step, framework_options: @framework_options, options: task, user_options: options)
+
+            options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
+
+            [options, *locals[:adds]].each do |insertion|
+              @sequence = Linear::DSL.insert_task(@sequence, **insertion)
+            end
+
+            @sequence
+          end
+        end # State
+        Linear = Activity::DSL::Linear
+        # This is slow and should be done only once at compile-time,
+        # DISCUSS: maybe make this a function?
+        # These are the normalizers for an {Activity}, to be injected into a State.
+        Normalizers = Linear::State::Normalizer.new(
+          step:  Linear::Normalizer.activity_normalizer( Path::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
+        )
+
+
+        def self.OptionsForState(normalizers: Normalizers, track_name: :success, **options)
+          initial_sequence = Path::DSL.initial_sequence
+
+          {
+            normalizers: normalizers,
+            initial_sequence: initial_sequence,
+            framework_options: {
+              track_name: track_name,
+              step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
+              adds: [], # FIXME: EH.
+              **options
+            }
+          }
+        end
+
       end # DSL
     end # Path
   end

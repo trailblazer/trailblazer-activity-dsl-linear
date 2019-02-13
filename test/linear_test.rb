@@ -60,7 +60,6 @@ class LinearTest < Minitest::Spec
     pp nodes
 
     outputs = Inter.outputs(intermediate.stop_task_refs, nodes)
-    pp outputs
 
     process = Trailblazer::Activity::Process.new(circuit, outputs, nodes)
 
@@ -83,6 +82,7 @@ class LinearTest < Minitest::Spec
 
 #<End/:failure>
 }
+    process.to_h[:outputs].inspect.must_equal %{[#<struct Trailblazer::Activity::Output signal=#<Trailblazer::Activity::End semantic=:success>, semantic=:success>, #<struct Trailblazer::Activity::Output signal=#<Trailblazer::Activity::End semantic=:failure>, semantic=:failure>]}
   end
 
   # outputs = task.outputs / default
@@ -235,7 +235,8 @@ end
       it "Path()" do
         state = Activity::Railway::DSL::State.new(Activity::FastTrack.OptionsForState)
         state.step( implementing.method(:a), id: :a, fast_track: true, Linear.Output(:fail_fast) => Linear.Path do |path|
-          path.step
+          path.step implementing.method(:f), id: :f
+          path.step implementing.method(:g), id: :g
         end
         )
         state.step implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)

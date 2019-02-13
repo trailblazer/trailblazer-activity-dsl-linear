@@ -38,7 +38,14 @@ class Trailblazer::Activity
     end
 
     def Path(track_color: "track_#{rand}", end_semantic: track_color, **options, &block)
-      raise block.inspect
+      # DISCUSS: here, we use the global normalizer and don't allow injection.
+      state = Trailblazer::Activity::Path::DSL::State.new(Trailblazer::Activity::Path::DSL.OptionsForState(track_name: track_color))
+
+      seq = block.call(state) # state changes.
+
+      raise seq.inspect
+
+      # raise block.inspect
       options = options.merge(track_color: track_color, end_semantic: end_semantic)
 
       # Build an anonymous class which will be where the block is evaluated in.
@@ -49,7 +56,6 @@ class Trailblazer::Activity
 
       # this block is called in DSL::ProcessTuples. This could be improved somehow.
       ->(block) {
-        path.instance_exec(&block)
 
         [ track_color, path ]
       }
