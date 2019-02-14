@@ -38,7 +38,7 @@ class Trailblazer::Activity
 
         def Noop(output)
           ->(sequence, me) do
-            nil
+            return output, [nil,nil,nil,{}] # FIXME
           end
         end
 
@@ -183,7 +183,6 @@ class Trailblazer::Activity
 
               # execute all {Search}s for one sequence row.
               connections = find_connections(seq_row, connections, sequence)
-              pp connections
 
               # FIXME: ends don't have connections, hence no outputs
               implementations += [[id, Process::Implementation::Task(task, connections.collect { |output, _| output }) ]]
@@ -199,9 +198,6 @@ class Trailblazer::Activity
               [implementations, intermediates]
             end
 
-            puts "yooo  "
-            pp intermediate_wiring # ends don't have any output?
-
           start_task_refs = find_start.(intermediate_wiring)
           stop_task_refs = find_stops.(intermediate_wiring)
 
@@ -216,11 +212,10 @@ class Trailblazer::Activity
         def find_connections(seq_row, strategies, sequence)
           strategies.collect do |search|
             output, target_seq_row = search.(sequence, seq_row) # invoke the node's "connection search" strategy.
-            next if output.nil? # FIXME.
 raise "Couldn't find target for #{seq_row}" if target_seq_row.nil?
             [
               output,                                     # implementation
-              target_seq_row[3][:id],  # intermediate
+              target_seq_row[3][:id],  # intermediate   # FIXME. this sucks.
               target_seq_row # DISCUSS: needed?
             ]
           end.compact

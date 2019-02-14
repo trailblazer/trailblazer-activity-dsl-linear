@@ -118,7 +118,7 @@ module Trailblazer
             task:         task,
             magnetic_to:  magnetic_to,
             id:           id,
-            outputs:      {magnetic_to => task},
+            outputs:      {magnetic_to => Activity::Output.new(task, task.to_h[:semantic])}, # DISCUSS: do we really want to transport the semantic "in" the object?
             connections:  {magnetic_to => [Linear::Search.method(:Noop)]},
             **end_args
            }
