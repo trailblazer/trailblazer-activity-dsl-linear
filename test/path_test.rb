@@ -49,7 +49,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:end}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState.merge(end: Activity::End.new(semantic: :winning)))
+    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(end_task: Activity::End.new(semantic: :winning)))
     seq = state.step implementing.method(:f), id: :f
     seq = state.step implementing.method(:g), id: :g
 

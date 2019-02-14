@@ -13,7 +13,7 @@ module Trailblazer
         module_function
 
         def normalizer
-          step_options_for_path(Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success))
+          step_options_for_path(Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success)))
         end
 
         # FIXME: where does Start come from?
@@ -101,10 +101,10 @@ module Trailblazer
         end
 
         # Returns an initial two-step sequence with {Start.default > End.success}.
-        def initial_sequence(track_name:)
+        def initial_sequence(track_name:, end_task:)
           # TODO: this could be an Activity itself but maybe a bit too much for now.
           sequence = start_sequence(track_name: track_name)
-          sequence = append_end(sequence, task: Activity::End.new(semantic: :success), magnetic_to: track_name, id: "End.success", append_to: "Start.default")
+          sequence = append_end(sequence, task: end_task, magnetic_to: track_name, id: "End.success", append_to: "Start.default")
         end
 
         def append_end(sequence, **options)
@@ -156,8 +156,8 @@ module Trailblazer
         )
 
 
-        def self.OptionsForState(normalizers: Normalizers, track_name: :success, **options)
-          initial_sequence = Path::DSL.initial_sequence(track_name: track_name)
+        def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), **options)
+          initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task)
 
           {
             normalizers: normalizers,
