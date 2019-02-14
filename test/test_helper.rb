@@ -21,4 +21,13 @@ Minitest::Spec.class_eval do
   end
 
   Linear = Trailblazer::Activity::DSL::Linear
+
+  def assert_process(seq, semantic, circuit)
+    process = compile_process(seq)
+
+    process.to_h[:outputs].inspect.must_equal %{[#<struct Trailblazer::Activity::Output signal=#<Trailblazer::Activity::End semantic=#{semantic.inspect}>, semantic=#{semantic.inspect}>]}
+
+    cct = Cct(process: process)
+    cct.must_equal %{#{circuit}}
+  end
 end

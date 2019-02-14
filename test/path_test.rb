@@ -19,13 +19,7 @@ class PathTest < Minitest::Spec
     seq = state.step implementing.method(:f), id: :f
     seq = state.step implementing.method(:g), id: :g
 
-    process = compile_process(seq)
-
-    process.to_h[:outputs].inspect.must_equal %{[#<struct Trailblazer::Activity::Output signal=#<Trailblazer::Activity::End semantic=:success>, semantic=:success>]}
-
-
-    cct = Cct(process: process)
-    cct.must_equal %{
+    assert_process seq, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
 #<Method: #<Module:0x>.f>
@@ -34,5 +28,9 @@ class PathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
+  end
+
+  it "accepts {:end}" do
+
   end
 end
