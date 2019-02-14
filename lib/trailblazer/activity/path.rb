@@ -13,14 +13,14 @@ module Trailblazer
         module_function
 
         def normalizer
-          step_options_for_path(Trailblazer::Activity::Path::DSL.initial_sequence)
+          step_options_for_path(Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success))
         end
 
         # FIXME: where does Start come from?
         Right = Trailblazer::Activity::Right
-        def start_sequence
+        def start_sequence(track_name:)
           start_default = Trailblazer::Activity::Start.new(semantic: :default)
-          start_event   = Linear::DSL.create_row(task: start_default, id: "Start.default", magnetic_to: nil, outputs: unary_outputs, connections: unary_connections)
+          start_event   = Linear::DSL.create_row(task: start_default, id: "Start.default", magnetic_to: nil, outputs: unary_outputs, connections: unary_connections(track_name: track_name))
           sequence      = Linear::Sequence[start_event]
         end
 
@@ -101,10 +101,10 @@ module Trailblazer
         end
 
         # Returns an initial two-step sequence with {Start.default > End.success}.
-        def initial_sequence
+        def initial_sequence(track_name:)
           # TODO: this could be an Activity itself but maybe a bit too much for now.
-          sequence = start_sequence
-          sequence = append_end(sequence, task: Activity::End.new(semantic: :success), magnetic_to: :success, id: "End.success", append_to: "Start.default")
+          sequence = start_sequence(track_name: track_name)
+          sequence = append_end(sequence, task: Activity::End.new(semantic: :success), magnetic_to: track_name, id: "End.success", append_to: "Start.default")
         end
 
         def append_end(sequence, **options)
@@ -125,14 +125,14 @@ module Trailblazer
         end
 
         class State # TODO : MERGE WITH RAILWAY::State
-          def initialize(normalizers:, initial_sequence:, track_name: :success, **options)
+          def initialize(normalizers:, initial_sequence:, framework_options:)
             @normalizer  = normalizers # compiled normalizers.
             @sequence    = initial_sequence
 
             # remembers how to call normalizers (e.g. track_color), TaskBuilder
             # remembers sequence
 
-            @framework_options = {track_name: track_name, step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), adds: [],**options}
+            @framework_options = framework_options
           end
 
           def step(task, options={}, &block)
@@ -157,7 +157,7 @@ module Trailblazer
 
 
         def self.OptionsForState(normalizers: Normalizers, track_name: :success, **options)
-          initial_sequence = Path::DSL.initial_sequence
+          initial_sequence = Path::DSL.initial_sequence(track_name: track_name)
 
           {
             normalizers: normalizers,
