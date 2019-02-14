@@ -96,9 +96,9 @@ module Trailblazer
 
         Right = Trailblazer::Activity::Right
 
-        def initial_sequence
+        def initial_sequence(options)
           # TODO: this could be an Activity itself but maybe a bit too much for now.
-          sequence = Path::DSL.initial_sequence
+          sequence = Path::DSL.initial_sequence(options)
           sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :failure), magnetic_to: :failure, id: "End.failure")
         end
 
@@ -130,6 +130,27 @@ module Trailblazer
             @sequence = Linear::DSL.insert_task(@sequence, task: task, **options)
           end
         end # State
+
+Linear = Activity::DSL::Linear
+        Normalizers = Linear::State::Normalizer.new(
+          step:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
+        )
+
+
+        def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), **options)
+          initial_sequence = Railway::DSL.initial_sequence(track_name: track_name, end_task: end_task)
+
+          {
+            normalizers: normalizers,
+            initial_sequence: initial_sequence,
+            framework_options: {
+              track_name: track_name,
+              step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
+              adds: [], # FIXME: EH.
+              **options
+            }
+          }
+        end
 
       end # DSL
     end

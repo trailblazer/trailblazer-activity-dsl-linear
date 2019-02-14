@@ -29,7 +29,7 @@ Minitest::Spec.class_eval do
 
     inspects = semantics.collect { |semantic| %{#<struct Trailblazer::Activity::Output signal=#<Trailblazer::Activity::End semantic=#{semantic.inspect}>, semantic=#{semantic.inspect}>} }
 
-    process.to_h[:outputs].inspect.must_equal %{[#{inspects.join("")}]}
+    process.to_h[:outputs].inspect.must_equal %{[#{inspects.join(", ")}]}
 
     cct = Cct(process: process)
     cct.must_equal %{#{circuit}}
