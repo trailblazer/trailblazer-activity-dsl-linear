@@ -3,7 +3,7 @@ class Trailblazer::Activity
     # @api private
     OutputSemantic = Struct.new(:value)
     Id             = Struct.new(:value)
-    Track          = Struct.new(:color)
+    Track          = Struct.new(:color, :adds)
     Extension      = Struct.new(:callable) do
       def call(*args, &block)
         callable.(*args, &block)
@@ -30,7 +30,7 @@ class Trailblazer::Activity
     end
 
     def Track(color)
-      Track.new(color).freeze
+      Track.new(color, []).freeze
     end
 
     def Id(id)
@@ -42,6 +42,8 @@ class Trailblazer::Activity
       state = Trailblazer::Activity::Path::DSL::State.new(Trailblazer::Activity::Path::DSL.OptionsForState(track_name: track_color, **options)) # TODO: test injecting {:normalizers}.
 
       seq = block.call(state) # state changes.
+
+      seq = seq[1..-1] # remove {Start}.
 
 
       # remove start

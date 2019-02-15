@@ -124,7 +124,7 @@ module Trailblazer
 
               new_connections, add_adds =
                 if cfg.is_a?(Activity::DSL::Linear::Track)
-                  [output_to_track(ctx, output, cfg), []]
+                  [output_to_track(ctx, output, cfg), cfg.adds]
                 elsif cfg.is_a?(Activity::DSL::Linear::Id)
                   [output_to_id(ctx, output, cfg.value), []]
                 elsif cfg.is_a?(Activity::End)
