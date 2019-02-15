@@ -29,6 +29,8 @@ module Trailblazer
         end
 
         # Change some parts of the "normal" {normalizer} pipeline.
+        # TODO: make this easier, even at this step.
+
         def normalizer_for_fail
           sequence = normalizer
 
@@ -126,14 +128,22 @@ module Trailblazer
           end
 
           def fail(task, options={}, &block)
-            options = @normalizer.(:fail, **@framework_options, **options)                              # FIXME: don't we have to pass in {task}, too?
-            @sequence = Linear::DSL.insert_task(@sequence, task: task, **options)
+            options = @normalizer.(:fail, framework_options: @framework_options, options: task, user_options: options)
+
+            options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
+
+            [options, *locals[:adds]].each do |insertion|
+              @sequence = Linear::DSL.insert_task(@sequence, **insertion)
+            end
+
+            @sequence
           end
         end # State
 
 Linear = Activity::DSL::Linear
         Normalizers = Linear::State::Normalizer.new(
           step:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
+          fail:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_fail ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
         )
 
 

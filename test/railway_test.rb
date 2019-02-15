@@ -4,17 +4,33 @@ class RailwayTest < Minitest::Spec
   it "provides defaults" do
     state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState)
     seq = state.step implementing.method(:f), id: :f
+    seq = state.fail implementing.method(:a), id: :a
     seq = state.step implementing.method(:g), id: :g
+    seq = state.step implementing.method(:c), id: :c
+    seq = state.fail implementing.method(:b), id: :b
+    seq = state.step implementing.method(:d), id: :d
 
     assert_process seq, :success, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Left} => #<End/:failure>
 #<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.a>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.g>
- {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.d>
+#<Method: #<Module:0x>.b>
  {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
 #<End/:failure>
