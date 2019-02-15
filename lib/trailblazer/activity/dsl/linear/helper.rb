@@ -37,11 +37,15 @@ class Trailblazer::Activity
       Id.new(id).freeze
     end
 
-    def Path(track_color: "track_#{rand}", end_semantic: track_color, **options, &block)
+    def Path(track_color: "track_#{rand}", **options, &block)
       # DISCUSS: here, we use the global normalizer and don't allow injection.
-      state = Trailblazer::Activity::Path::DSL::State.new(Trailblazer::Activity::Path::DSL.OptionsForState(track_name: track_color))
+      state = Trailblazer::Activity::Path::DSL::State.new(Trailblazer::Activity::Path::DSL.OptionsForState(track_name: track_color, **options)) # TODO: test injecting {:normalizers}.
 
       seq = block.call(state) # state changes.
+
+
+      # remove start
+      # add connections => return Track(track_color) and :adds
 
       raise seq.inspect
 

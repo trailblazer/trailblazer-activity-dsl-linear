@@ -10,21 +10,21 @@ class LinearTest < Minitest::Spec
   Left = Class.new#Trailblazer::Activity::Right
   PassFast = Class.new#Trailblazer::Activity::Right
 
-  Process = Trailblazer::Activity::Process
-  Inter = Trailblazer::Activity::Process::Intermediate
-  Activity = Trailblazer::Activity
+  # Process = Trailblazer::Activity::Process
+  # Inter = Trailblazer::Activity::Process::Intermediate
+  # Activity = Trailblazer::Activity
 
 
-  let(:implementing) do
-    implementing = Module.new do
-      extend T.def_tasks(:a, :b, :c, :d, :f, :g)
-    end
-    implementing::Start = Activity::Start.new(semantic: :default)
-    implementing::Failure = Activity::End(:failure)
-    implementing::Success = Activity::End(:success)
+  # let(:implementing) do
+  #   implementing = Module.new do
+  #     extend T.def_tasks(:a, :b, :c, :d, :f, :g)
+  #   end
+  #   implementing::Start = Activity::Start.new(semantic: :default)
+  #   implementing::Failure = Activity::End(:failure)
+  #   implementing::Success = Activity::End(:success)
 
-    implementing
-  end
+  #   implementing
+  # end
 
   # outputs = task.outputs / default
 
@@ -174,8 +174,10 @@ end
       end
 
       it "Path()" do
-        state = Activity::Railway::DSL::State.new(Activity::FastTrack.OptionsForState)
-        state.step( implementing.method(:a), id: :a, fast_track: true, Linear.Output(:fail_fast) => Linear.Path do |path|
+        path_end = Activity::End.new(semantic: :roundtrip)
+
+        state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState)
+        state.step( implementing.method(:a), id: :a, fast_track: true, Linear.Output(:fail_fast) => Linear.Path(end_task: path_end) do |path|
           path.step implementing.method(:f), id: :f
           path.step implementing.method(:g), id: :g
         end
@@ -184,11 +186,13 @@ end
         state.step implementing.method(:c), id: :c, Linear.Output(:success) => Linear.End(:new)
         state.fail implementing.method(:d), id: :d#, Linear.Output(:success) => Linear.End(:new)
 # pp seq
-        process = compile_process(seq)
-        cct = Cct(process: process)
+        # process = compile_process(seq)
+        # cct = Cct(process: process)
 
 
-        cct.must_equal %{}
+        assert_process seq, :success, :failure, :roundtrip, %{
+
+}
 
       end
     end
