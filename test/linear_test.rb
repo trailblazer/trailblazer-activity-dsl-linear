@@ -173,7 +173,31 @@ end
         # cct.must_equal %{}
       end
 
-      it "Path()" do
+      it "Railway / Path()" do
+        path_end = Activity::End.new(semantic: :roundtrip)
+
+        state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState)
+        state.step( implementing.method(:a), id: :a, Linear.Output(:failure) => Linear.Path(end_task: path_end) do |path|
+          path.step implementing.method(:f), id: :f
+          path.step implementing.method(:g), id: :g
+        end
+        )
+        state.step implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
+        state.step implementing.method(:c), id: :c, Linear.Output(:success) => Linear.End(:new)
+        state.fail implementing.method(:d), id: :d#, Linear.Output(:success) => Linear.End(:new)
+# pp seq
+        # process = compile_process(seq)
+        # cct = Cct(process: process)
+
+
+        assert_process seq, :success, :failure, :roundtrip, %{
+
+}
+
+      end
+
+
+      it "FastTrack / Path()" do
         path_end = Activity::End.new(semantic: :roundtrip)
 
         state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState)
