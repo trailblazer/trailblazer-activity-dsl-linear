@@ -13,7 +13,7 @@ module Trailblazer
         module_function
 
         def normalizer
-          step_options_for_path(Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success)))
+          step_options_for_path(Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"))
         end
 
         # FIXME: where does Start come from?
@@ -62,7 +62,8 @@ module Trailblazer
         def normalize_sequence_insert((ctx, flow_options), *)
           insertion = ctx.keys & sequence_insert_options.keys
           insertion = insertion[0]   || :before
-          target    = ctx[insertion] || "End.success"
+          raise if ctx[:end_id].nil? # FIXME
+          target    = ctx[insertion] || ctx[:end_id]
 
           insertion_method = sequence_insert_options[insertion]
 
@@ -101,10 +102,10 @@ module Trailblazer
         end
 
         # Returns an initial two-step sequence with {Start.default > End.success}.
-        def initial_sequence(track_name:, end_task:)
+        def initial_sequence(track_name:, end_task:, end_id:)
           # TODO: this could be an Activity itself but maybe a bit too much for now.
           sequence = start_sequence(track_name: track_name)
-          sequence = append_end(sequence, task: end_task, magnetic_to: track_name, id: "End.success", append_to: "Start.default")
+          sequence = append_end(sequence, task: end_task, magnetic_to: track_name, id: end_id, append_to: "Start.default")
         end
 
         def append_end(sequence, **options)
@@ -156,14 +157,14 @@ module Trailblazer
         )
 
 
-        def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), **options)
-          initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task)
-
+        def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
+          initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id)
           {
             normalizers: normalizers,
             initial_sequence: initial_sequence,
             framework_options: {
               track_name: track_name,
+              end_id: end_id,
               step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
               adds: [], # FIXME: EH.
               **options

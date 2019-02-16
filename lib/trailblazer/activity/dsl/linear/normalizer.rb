@@ -150,7 +150,11 @@ module Trailblazer
 
           # {#insert_task} options to add another end.
           def add_end(end_event, magnetic_to:, id:)
-            Path::DSL.append_end_options(task: end_event, magnetic_to: magnetic_to, id: id)
+
+            options = Path::DSL.append_end_options(task: end_event, magnetic_to: magnetic_to, id: id)
+            options = Linear::DSL.create_row(options)
+            return [options, *options[3][:sequence_insert]]
+            raise options.inspect
           end
         end
 

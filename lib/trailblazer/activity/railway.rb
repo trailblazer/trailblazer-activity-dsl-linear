@@ -6,19 +6,6 @@ module Trailblazer
     end
 
     class Railway < Activity
-      def self.config
-        Path.config.merge(
-          builder_class:   Magnetic::Builder::Railway,
-          default_outputs: Magnetic::Builder::Path.default_outputs,
-          extend:          [
-            DSL::Linear.def_dsl(:step, Magnetic::Builder::Railway, :StepPolarizations),
-            DSL::Linear.def_dsl(:fail, Magnetic::Builder::Railway, :FailPolarizations),
-            DSL::Linear.def_dsl(:pass, Magnetic::Builder::Railway, :PassPolarizations),
-            DSL::Linear.def_dsl(:_end, Magnetic::Builder::Path,    :EndEventPolarizations), # TODO: TEST ME
-          ],
-        )
-      end
-
       module DSL
         Linear = Activity::DSL::Linear # FIXME
 
@@ -105,14 +92,14 @@ module Trailblazer
         end
 
         class State
-          def initialize(normalizers:, initial_sequence:, track_name: :success, left_track_name: :failure, **options)
+          def initialize(normalizers:, initial_sequence:, framework_options:, **options)
             @normalizer  = normalizers # compiled normalizers.
             @sequence    = initial_sequence
 
             # remembers how to call normalizers (e.g. track_color), TaskBuilder
             # remembers sequence
 
-            @framework_options = {track_name: track_name, left_track_name: left_track_name, step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), adds: [],**options}
+            @framework_options = framework_options
           end
 
           def step(task, options={}, &block)
@@ -120,9 +107,16 @@ module Trailblazer
 
             options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
 
-            [options, *locals[:adds]].each do |insertion|
-              @sequence = Linear::DSL.insert_task(@sequence, **insertion)
-            end
+            # raise locals.inspect if locals[:adds].any?
+            # FIXME: use the same abstraction!
+            # [options, *locals[:adds]].each do |insertion|
+            #   @sequence = Linear::DSL.insert_task(@sequence, **insertion)
+            # end
+@sequence = Linear::DSL.insert_task(@sequence, **options)
+locals[:adds].each do |row|
+  # pp row
+            @sequence = Linear::DSL.insert_row(@sequence, *row)
+          end
 
             @sequence
           end
@@ -147,14 +141,15 @@ Linear = Activity::DSL::Linear
         )
 
 
-        def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), **options)
-          initial_sequence = Railway::DSL.initial_sequence(track_name: track_name, end_task: end_task)
+        def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
+          initial_sequence = Railway::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id)
 
           {
             normalizers: normalizers,
             initial_sequence: initial_sequence,
             framework_options: {
               track_name: track_name,
+              end_id: end_id,
               step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
               adds: [], # FIXME: EH.
               **options

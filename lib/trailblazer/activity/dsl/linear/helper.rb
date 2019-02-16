@@ -45,26 +45,15 @@ class Trailblazer::Activity
 
       seq = seq[1..-1] # remove {Start}.
 
-
-      # remove start
-      # add connections => return Track(track_color) and :adds
-
-      raise seq.inspect
-
-      # raise block.inspect
-      options = options.merge(track_color: track_color, end_semantic: end_semantic)
-
-      # Build an anonymous class which will be where the block is evaluated in.
-      # We use the same normalizer here, so DSL calls in the inner block have the same behavior.
-      path = Module.new do
-        extend Activity::Path( options.merge( normalizer: normalizer ) )
+      # FIXME: FUCK, we have two different abstractions: {insert_task} interface and the pure {SEQ row}.
+      # Add the path before End.success - not sure this is bullet-proof.
+      insert_rows = seq.collect do |row|
+        [row, Linear::Insert.method(:Prepend), "End.success"]
       end
 
-      # this block is called in DSL::ProcessTuples. This could be improved somehow.
-      ->(block) {
-
-        [ track_color, path ]
-      }
+      return Track.new(track_color, insert_rows)
+      # remove start
+      # add connections => return Track(track_color) and :adds
     end
 
     # Computes the :outputs options for {activity}

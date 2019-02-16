@@ -36,9 +36,11 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:end}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(end_task: Activity::End.new(semantic: :winning)))
+    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner"))
     seq = state.step implementing.method(:f), id: :f
     seq = state.step implementing.method(:g), id: :g
+
+    seq.last[3][:id].must_equal "End.winner"
 
     assert_process seq, :winning, %{
 #<Start/:default>
