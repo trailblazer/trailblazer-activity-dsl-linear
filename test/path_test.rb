@@ -52,4 +52,20 @@ class PathTest < Minitest::Spec
 #<End/:winning>
 }
   end
+
+  it "accepts {Output() => Id()}" do
+    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    seq = state.step implementing.method(:f), id: :f
+    seq = state.step implementing.method(:g), id: :g, Linear.Output(:success) => Linear.Id(:f)
+
+    assert_process seq, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<End/:success>
+}
+  end
 end

@@ -25,14 +25,18 @@ module Trailblazer
           task = Fail.method(:merge_magnetic_to)
 
           sequence = Linear::DSL.insert_task(sequence, task: task,
-                magnetic_to: :success, id: id, outputs: Path::DSL.unary_outputs, connections: Path::DSL.unary_connections,
-                sequence_insert: [Linear::Insert.method(:Prepend), "End.success"])
+                magnetic_to: :success, id: id,
+                #outputs: Path::DSL.unary_outputs, connections: Path::DSL.unary_connections,
+                wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
+                sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"])
 
           id = "railway.connections.fail.success_to_failure"
           task = Fail.method(:connect_success_to_failure)
 
           sequence = Linear::DSL.insert_task(sequence, task: task,
-                magnetic_to: :success, id: id, outputs: Path::DSL.unary_outputs, connections: Path::DSL.unary_connections,
+                magnetic_to: :success, id: id,
+                #outputs: Path::DSL.unary_outputs, connections: Path::DSL.unary_connections,
+                wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
                 sequence_insert: [Linear::Insert.method(:Replace), "path.connections"])
         end
 
@@ -57,8 +61,12 @@ module Trailblazer
           Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
             sequence,
 
-            "railway.outputs"     => method(:normalize_path_outputs),
-            "railway.connections" => method(:normalize_path_connections),
+            {
+              "railway.outputs"     => method(:normalize_path_outputs),
+              "railway.connections" => method(:normalize_path_connections),
+            },
+
+            sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"] # override where it's added.
           )
         end
 

@@ -20,7 +20,7 @@ module Trailblazer
         Right = Trailblazer::Activity::Right
         def start_sequence(track_name:)
           start_default = Trailblazer::Activity::Start.new(semantic: :default)
-          start_event   = Linear::DSL.create_row(task: start_default, id: "Start.default", magnetic_to: nil, outputs: unary_outputs, connections: unary_connections(track_name: track_name))
+          start_event   = Linear::DSL.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
           sequence      = Linear::Sequence[start_event]
         end
 
@@ -29,7 +29,9 @@ module Trailblazer
         def prepend_to_path(sequence, steps, **options)
           steps.each do |id, task|
             sequence = Linear::DSL.insert_task(sequence, task: task,
-              magnetic_to: :success, id: id, outputs: unary_outputs, connections: unary_connections,
+              magnetic_to: :success, id: id,
+              wirings: [Linear::Search::Forward(unary_outputs[:success], :success)],
+              #outputs: unary_outputs, connections: unary_connections,
               sequence_insert: [Linear::Insert.method(:Prepend), "End.success"], **options)
           end
 
@@ -90,6 +92,7 @@ module Trailblazer
           return Right, [ctx, flow_options]
         end
 
+        # Return {Path::Normalizer} sequence.
         def step_options_for_path(sequence)
           prepend_to_path(
             sequence,
@@ -98,6 +101,7 @@ module Trailblazer
             "path.connections"      => method(:merge_path_connections),
             "path.sequence_insert"  => method(:normalize_sequence_insert),
             "path.magnetic_to"      => method(:normalize_magnetic_to),
+            "path.wirings"          => Linear::Normalizer.method(:compile_wirings),
           )
         end
 
@@ -119,8 +123,13 @@ module Trailblazer
             task:         task,
             magnetic_to:  magnetic_to,
             id:           id,
-            outputs:      {magnetic_to => Activity::Output.new(task, task.to_h[:semantic])}, # DISCUSS: do we really want to transport the semantic "in" the object?
-            connections:  {magnetic_to => [Linear::Search.method(:Noop)]},
+            wirings:      [
+              Linear::Search::Noop(
+                Activity::Output.new(task, task.to_h[:semantic]), # DISCUSS: do we really want to transport the semantic "in" the object?
+                # magnetic_to
+              )],
+            # outputs:      {magnetic_to => },
+            # connections:  {magnetic_to => [Linear::Search.method(:Noop)]},
             **end_args
            }
         end
@@ -140,7 +149,7 @@ module Trailblazer
             options = @normalizer.(:step, framework_options: @framework_options, options: task, user_options: options)
 
             options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
-
+# raise options.inspect
             [options, *locals[:adds]].each do |insertion|
               @sequence = Linear::DSL.insert_task(@sequence, **insertion)
             end

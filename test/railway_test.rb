@@ -37,39 +37,49 @@ class RailwayTest < Minitest::Spec
 }
   end
 
+  it "provides defaults" do
+    state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState)
+    seq = state.step implementing.method(:f), id: :f
+    seq = state.fail implementing.method(:a), id: :a
+    seq = state.step implementing.method(:g), id: :g
+    seq = state.step implementing.method(:c), id: :c
+    seq = state.fail implementing.method(:b), id: :b
+    seq = state.step implementing.method(:d), id: :d
 
-
-
-
-
-  it "accepts Railway as a builder" do
-    activity = Module.new do
-      extend Activity::Railway()
-      step task: T.def_task(:a)
-      step task: T.def_task(:b)
-      fail task: T.def_task(:c)
-    end
-
-    Cct(activity).must_equal %{
+    assert_process seq, :success, :failure, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
 #<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.c>
-#<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.c>
- {Trailblazer::Activity::Right} => #<End/:success>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
 #<Method: #<Module:0x>.c>
- {Trailblazer::Activity::Right} => #<End/:failure>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.d>
+#<Method: #<Module:0x>.b>
  {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
 #<End/:failure>
 }
-    end
+  end
+
+
+
+
 
   describe "#pass" do
     it "accepts Railway as a builder" do
+      skip
       activity = Module.new do
         extend Activity::Railway()
         step task: T.def_task(:a)
@@ -98,6 +108,7 @@ class RailwayTest < Minitest::Spec
 
   describe ":track_end and :failure_end" do
     it "allows to define custom End instance" do
+      skip
       class MyFail; end
       class MySuccess; end
 

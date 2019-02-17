@@ -28,9 +28,10 @@ module Trailblazer
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
               },
 
-              sequence_insert: [Linear::Insert.method(:Prepend), "End.success"]
+              # sequence_insert: [Linear::Insert.method(:Prepend), "End.success"]
+              sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"]
             )
-
+# pp seq
             seq
           end
 
@@ -86,32 +87,24 @@ module Trailblazer
             return Trailblazer::Activity::Right, [ctx, flow_options]
           end
 
+          # Compile the actual {Seq::Row}'s {wiring}.
+          def compile_wirings((ctx, flow_options), *)
+            connections = ctx[:connections] || raise # FIXME
+            outputs = ctx[:outputs] || raise # FIXME
 
+            ctx[:wirings] =
+              connections.collect do |semantic, (search_strategy_builder, *search_args)|
+                output = outputs[semantic] || raise("No `#{semantic}` output found for #{outputs.inspect}")
 
-  # if task.kind_of?(Activity::End)
-  #             # raise %{An end event with semantic `#{task.to_h[:semantic]}` has already been added. Please use an ID reference: `=> "End.#{task.to_h[:semantic]}"`} if
-  #             new_edge = "#{id}-#{output.signal}"
+                search_strategy_builder.( # return proc to be called when compiling Seq, e.g. {ById(output, :id)}
+                  output,
+                  *search_args
+                )
+              end
 
-  #             [
-  #               Polarization.new( output: output, color: new_edge ),
-  #               [ [:add, [task.to_h[:semantic], [ [new_edge], task, [] ], group: :end]] ]
-  #             ]
-  #           # procs come from DSL calls such as `Path() do ... end`.
-  #           elsif task.is_a?(Proc)
-  #             start_color, activity = task.(block)
+            return Trailblazer::Activity::Right, [ctx, flow_options]
+          end
 
-  #             adds = activity.to_h[:adds]
-
-  #             [
-  #               Polarization.new( output: output, color: start_color ),
-  #               # TODO: this is a pseudo-"merge" and should be public API at some point.
-  #             # TODO: we also need to merge all the other states such as debug.
-  #               adds[1..-1] # drop start
-  #             ]
-  #           elsif task.is_a?(Activity::DSL::Track) # An additional plus polarization. Example: Output => :success
-  #             [
-  #               Polarization.new( output: output, color: task.color )
-  #             ]
           # Process {Output(:semantic) => target}.
           def normalize_connections_from_dsl((ctx, flow_options), *)
             new_ctx = ctx.reject { |output, cfg| output.kind_of?(Activity::DSL::Linear::OutputSemantic) }
@@ -153,8 +146,8 @@ module Trailblazer
 
             options = Path::DSL.append_end_options(task: end_event, magnetic_to: magnetic_to, id: id)
             options = Linear::DSL.create_row(options)
-            return [options, *options[3][:sequence_insert]]
-            raise options.inspect
+
+            [options, *options[3][:sequence_insert]]
           end
         end
 
@@ -175,26 +168,6 @@ module Trailblazer
         module Pipeline
           # extend Trailblazer::Activity::Path( normalizer_class: DefaultNormalizer, plus_poles: PlusPoles.new.merge( Builder::Path.default_outputs.values ) ) # FIXME: the DefaultNormalizer actually doesn't need Left.
 
-          def self.split_options( ctx, task:, options:, ** )
-            keywords   = extract_dsl_keywords(options)
-            extensions = extract_extensions(options)
-
-             # sort through the "original" user DSL options.
-            options, extension_options      = Options.normalize( options, extensions ) # DISCUSS:
-            options, local_options          = Options.normalize( options, keywords ) # DISCUSS:
-            local_options, sequence_options = Options.normalize( local_options, Activity::Schema::Dependencies.sequence_keywords )
-
-            ctx[:local_options],
-            ctx[:connection_options],
-            ctx[:sequence_options],
-            ctx[:extension_options] = local_options, options, sequence_options, extension_options
-          end
-
-          # Filter out connections, e.g. `Output(:fail_fast) => :success` and return only the keywords like `:id` or `:replace`.
-          def self.extract_dsl_keywords(options, connection_classes = [Activity::Output, Activity::DSL::OutputSemantic])
-            options.keys - options.keys.find_all { |k| connection_classes.include?( k.class ) }
-          end
-
           def self.extract_extensions(options, extensions_classes = [Activity::DSL::Extension])
             options.keys.find_all { |k| extensions_classes.include?( k.class ) }
           end
@@ -205,22 +178,6 @@ module Trailblazer
           end
 
 
-
-          # :outputs passed: I know what I want to have connected.
-          # no :outputs: use default_outputs
-          # ALWAYS connect all outputs to their semantic-color.
-
-          # Create the `plus_poles: <PlusPoles>` tuple where the PlusPoles instance will act as the interface
-          # to rewire or add connections for the DSL.
-          def self.initialize_plus_poles( ctx, local_options:, default_outputs:, ** )
-            outputs = local_options[:outputs] || default_outputs
-
-            ctx[:local_options] =
-              {
-                plus_poles: PlusPoles.initial(outputs),
-              }
-              .merge(local_options)
-          end
 
           # task Activity::TaskBuilder::Binary( method(:initialize_extension_option) ), id: "initialize_extension_option"
           # task Activity::TaskBuilder::Binary( method(:normalize_for_macro) ),         id: "normalize_for_macro"

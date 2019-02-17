@@ -18,7 +18,8 @@ class Trailblazer::Activity
       end
 =end
 
-      # Sequence
+      # {Sequence} consists of rows.
+      # {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
       class Sequence < Array
       end
 
@@ -110,24 +111,16 @@ class Trailblazer::Activity
         end
 
         # Return {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
-        def create_row(task:, magnetic_to:, outputs:, connections:, **options)
+        def create_row(task:, magnetic_to:, wirings:, **options)
           [
             magnetic_to,
             task,
-            # DISCUSS: shouldn't we be going through the outputs here?
-            # TODO: or warn if an output is unconnected.
-            connections.collect do |semantic, (search_strategy_builder, *search_args)|
-              output = outputs[semantic] || raise("No `#{semantic}` output found for #{outputs.inspect}")
-
-              search_strategy_builder.( # return proc to be called when compiling Seq, e.g. {ById(output, :id)}
-                output,
-                *search_args
-              )
-            end,
+            wirings,
             options # {id: "Start.success"}
           ]
         end
 
+        # @returns Sequence New sequence instance
         def insert_row(sequence, new_row, insert_function, *args)
           insert_function.(sequence, new_row, *args)
         end
@@ -216,6 +209,7 @@ class Trailblazer::Activity
           strategies.collect do |search|
             output, target_seq_row = search.(sequence, seq_row) # invoke the node's "connection search" strategy.
 raise "Couldn't find target for #{seq_row}" if target_seq_row.nil?
+
             [
               output,                                     # implementation
               target_seq_row[3][:id],  # intermediate   # FIXME. this sucks.
