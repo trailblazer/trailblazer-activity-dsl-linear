@@ -33,6 +33,8 @@ Minitest::Spec.class_eval do
 
     cct = Cct(process: process)
     cct.must_equal %{#{circuit}}
+
+    process
   end
 
   Activity = Trailblazer::Activity

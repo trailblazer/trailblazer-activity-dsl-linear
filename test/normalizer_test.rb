@@ -121,12 +121,6 @@ class NormalizerTest < Minitest::Spec
       normalizer = process.to_h[:circuit]
     end
 
-    let(:implementing) do
-      implementing = Module.new do
-        extend T.def_tasks(:a, :b, :c, :d, :f, :g)
-      end
-    end
-
     it "half-assed test" do
 
 
@@ -141,7 +135,7 @@ class NormalizerTest < Minitest::Spec
 
       macro_hash = {task: implementing.method(:b)}
 
-      signal, (ctx, _) = normalizer.(framework_options: default_options, options: implementing.method(:a), user_options: {step_interface_builder: method(:my_step_interface_builder)})
+      signal, (ctx, _) = normalizer.(normalizer_options: default_options, options: implementing.method(:a), user_options: {step_interface_builder: method(:my_step_interface_builder)})
 
       ctx.keys.must_equal([:connections, :outputs, :track_name, :left_track_name, :task, :wrap_task, :step_interface_builder, :sequence_insert, :magnetic_to])  # step WrapMe, output: 1
 pp ctx[:sequence_insert]
@@ -152,7 +146,7 @@ pp ctx[:sequence_insert]
 
     it "half-assed test for DSL options" do
       signal, (ctx, _) = normalizer.(
-        framework_options:  default_options.merge(adds: []),
+        normalizer_options:  default_options.merge(adds: []),
         options:            implementing.method(:a),
         user_options:       {step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), Linear.Output(:success) => Linear.End(:new)}
       )
@@ -164,7 +158,7 @@ pp ctx[:sequence_insert]
     end
 
     it "macro hash can set user_options such as {fast_track: true}" do
-      signal, (cfg, _) = normalizer.(framework_options: default_options, options: {fast_track: true}, user_options: {bla: 1})
+      signal, (cfg, _) = normalizer.(normalizer_options: default_options, options: {fast_track: true}, user_options: {bla: 1})
 
       cfg.keys.must_equal [:connections, :outputs, :track_name, :left_track_name, :fast_track, :bla, :sequence_insert, :magnetic_to]
       cfg[:connections].keys.must_equal [:failure, :success, :fail_fast, :pass_fast]
@@ -182,7 +176,7 @@ pp ctx[:sequence_insert]
 
     it "user_options can override options" do
       signal, (cfg, _) = normalizer.(
-        framework_options:  default_options,
+        normalizer_options:  default_options,
         options:            {fast_track: true},
         user_options:       {bla: 1, fast_track: false}
       )

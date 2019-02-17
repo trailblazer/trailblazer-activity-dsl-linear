@@ -5,7 +5,7 @@ module Trailblazer
         module Normalizer
           module_function
 
-          #   activity_normalizer.([{options:, user_options:, framework_options: }])
+          #   activity_normalizer.([{options:, user_options:, normalizer_options: }])
           def activity_normalizer(sequence)
             seq = Trailblazer::Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
               sequence,
@@ -13,7 +13,7 @@ module Trailblazer
               {
               "activity.wrap_task_with_step_interface"  => method(:wrap_task_with_step_interface), # last
               "activity.normalize_context"              => method(:normalize_context),
-              "activity.normalize_framework_options"    => method(:merge_framework_options),
+              "activity.normalize_normalizer_options"   => method(:merge_normalizer_options),
               "activity.normalize_for_macro"            => method(:merge_user_options),
               "activity.normalize_step_interface"       => method(:normalize_step_interface),      # first
               },
@@ -71,11 +71,11 @@ module Trailblazer
             return Trailblazer::Activity::Right, [ctx, flow_options]
           end
 
-          # {:framework_options} such as {:track_name} get overridden by user/macro.
-          def merge_framework_options((ctx, flow_options), *)
-            framework_options = ctx[:framework_options] # either a <#task> or {} from macro
+          # {:normalizer_options} such as {:track_name} get overridden by user/macro.
+          def merge_normalizer_options((ctx, flow_options), *)
+            normalizer_options = ctx[:normalizer_options] # either a <#task> or {} from macro
 
-            ctx = ctx.merge(options: framework_options.merge(ctx[:options])) #
+            ctx = ctx.merge(options: normalizer_options.merge(ctx[:options])) #
 
             return Trailblazer::Activity::Right, [ctx, flow_options]
           end

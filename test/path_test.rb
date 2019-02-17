@@ -86,4 +86,59 @@ class PathTest < Minitest::Spec
 #<End/:success>
 }
   end
+
+  describe "Path()" do
+    it "accepts {:end_task} and {:end_id}" do
+      path_end = Activity::End.new(semantic: :roundtrip)
+
+      state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState())
+      state.step( implementing.method(:a), id: :a, Linear.Output(:failure) => Linear.Path(end_task: path_end, end_id: "End.roundtrip") do |path|
+        path.step implementing.method(:f), id: :f
+        path.step implementing.method(:g), id: :g
+      end
+      )
+      state.step implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
+      state.step implementing.method(:c), id: :c, Linear.Output(:success) => Linear.End(:new)
+      seq = state.fail implementing.method(:d), id: :d#, Linear.Output(:success) => Linear.End(:new)
+
+
+      process = assert_process seq, :roundtrip, :success, :new, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Right} => #<End/:roundtrip>
+#<End/:roundtrip>
+
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Right} => #<End/:new>
+#<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<End/:success>
+
+#<End/:new>
+
+#<End/:failure>
+}
+
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: false}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:roundtrip>}
+      ctx.inspect.must_equal     %{{:seq=>[:a, :f, :g], :a=>false}}
+    end
+
+    it "allows using a different task builder, etc" do
+
+    end
+  end
+
 end

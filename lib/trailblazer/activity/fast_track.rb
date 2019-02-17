@@ -98,7 +98,7 @@ module Trailblazer
         {
           normalizers: normalizers,
           initial_sequence: initial_sequence,
-          framework_options: {
+          normalizer_options: {
             track_name: track_name,
             left_track_name: left_track_name,
             step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),

@@ -98,23 +98,23 @@ module Trailblazer
         end
 
         class State
-          def initialize(normalizers:, initial_sequence:, framework_options:, **options)
+          def initialize(normalizers:, initial_sequence:, normalizer_options:, **options)
             @normalizer  = normalizers # compiled normalizers.
             @sequence    = initial_sequence
-            @framework_options = framework_options
+            @normalizer_options = normalizer_options
 
             # remembers how to call normalizers (e.g. track_color), TaskBuilder
             # remembers sequence
           end
 
           def step(task, options={}, &block)
-            options = @normalizer.(:step, framework_options: @framework_options, options: task, user_options: options)
+            options = @normalizer.(:step, normalizer_options: @normalizer_options, options: task, user_options: options)
 
             @sequence = Linear::DSL.apply_adds(@sequence, options)
           end
 
           def fail(task, options={}, &block)
-            options = @normalizer.(:fail, framework_options: @framework_options, options: task, user_options: options)
+            options = @normalizer.(:fail, normalizer_options: @normalizer_options, options: task, user_options: options)
 
             @sequence = Linear::DSL.apply_adds(@sequence, options)
           end
@@ -133,7 +133,7 @@ Linear = Activity::DSL::Linear
           {
             normalizers: normalizers,
             initial_sequence: initial_sequence,
-            framework_options: {
+            normalizer_options: {
               track_name: track_name,
               end_id: end_id,
               step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
