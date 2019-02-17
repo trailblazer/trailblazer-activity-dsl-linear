@@ -57,6 +57,7 @@ class PathTest < Minitest::Spec
     state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
     seq = state.step implementing.method(:f), id: :f
     seq = state.step implementing.method(:g), id: :g, Linear.Output(:success) => Linear.Id(:f)
+    seq = state.step implementing.method(:a), id: :a
 
     assert_process seq, :success, %{
 #<Start/:default>
@@ -65,6 +66,8 @@ class PathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
 #<Method: #<Module:0x>.g>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
   end
