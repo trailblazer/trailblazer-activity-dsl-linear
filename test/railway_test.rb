@@ -73,8 +73,53 @@ class RailwayTest < Minitest::Spec
 }
   end
 
+  it "allows {Output() => Id()}" do
+    state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState())
+    seq = state.step implementing.method(:f), id: :f, Linear.Output(:failure) => Linear.Id(:g)
+    seq = state.fail implementing.method(:a), id: :a
+    seq = state.step implementing.method(:g), id: :g
 
+    assert_process seq, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
 
+#<End/:failure>
+}
+  end
+
+  it "allows {Output() => Track()}" do
+    state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState())
+    seq = state.step implementing.method(:f), id: :f
+    seq = state.fail implementing.method(:a), id: :a, Linear.Output(:success) => Linear.Track(:success)
+    seq = state.step implementing.method(:g), id: :g
+
+    assert_process seq, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
 
 
   describe "#pass" do
