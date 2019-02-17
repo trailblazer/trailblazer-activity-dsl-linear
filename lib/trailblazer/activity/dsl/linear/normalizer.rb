@@ -28,7 +28,6 @@ module Trailblazer
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
               },
 
-              # sequence_insert: [Linear::Insert.method(:Prepend), "End.success"]
               sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"]
             )
 # pp seq

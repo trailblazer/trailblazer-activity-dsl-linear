@@ -10,7 +10,7 @@ class Trailblazer::Activity
       end
     end
 
-    # Shortcut functions for the DSL. These have no state.
+    # Shortcut functions for the DSL.
     module_function
 
     #   Output( Left, :failure )
@@ -45,15 +45,12 @@ class Trailblazer::Activity
 
       seq = seq[1..-1] # remove {Start}.
 
-      # FIXME: FUCK, we have two different abstractions: {insert_task} interface and the pure {SEQ row}.
       # Add the path before End.success - not sure this is bullet-proof.
       insert_rows = seq.collect do |row|
         [row, Linear::Insert.method(:Prepend), "End.success"]
       end
 
       return Track.new(track_color, insert_rows)
-      # remove start
-      # add connections => return Track(track_color) and :adds
     end
 
     # Computes the :outputs options for {activity}
