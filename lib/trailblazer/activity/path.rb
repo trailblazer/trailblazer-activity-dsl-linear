@@ -135,7 +135,7 @@ module Trailblazer
         end
 
         class State # TODO : MERGE WITH RAILWAY::State
-          def initialize(normalizers:, initial_sequence:, normalizer_options:)
+          def initialize(normalizers:, initial_sequence:, **normalizer_options)
             @normalizer  = normalizers # compiled normalizers.
             @sequence    = initial_sequence
 
@@ -164,15 +164,14 @@ module Trailblazer
         def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
           initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id)
           {
-            normalizers: normalizers,
+            normalizers:      normalizers,
             initial_sequence: initial_sequence,
-            normalizer_options: {
-              track_name: track_name,
-              end_id: end_id,
-              step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
-              adds: [], # FIXME: EH.
-              **options
-            }
+
+            track_name:             track_name,
+            end_id:                 end_id,
+            step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
+            adds:                   [],
+            **options
           }
         end
 

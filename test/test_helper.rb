@@ -32,6 +32,7 @@ Minitest::Spec.class_eval do
     process.to_h[:outputs].inspect.must_equal %{[#{inspects.join(", ")}]}
 
     cct = Cct(process: process)
+    cct = cct.gsub("#<Trailblazer::Activity::TaskBuilder::Task user_proc=", "<*")
     cct.must_equal %{#{circuit}}
 
     process
