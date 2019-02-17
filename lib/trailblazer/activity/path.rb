@@ -148,15 +148,10 @@ module Trailblazer
           def step(task, options={}, &block)
             options = @normalizer.(:step, framework_options: @framework_options, options: task, user_options: options)
 
-            options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
-# raise options.inspect
-            [options, *locals[:adds]].each do |insertion|
-              @sequence = Linear::DSL.insert_task(@sequence, **insertion)
-            end
-
-            @sequence
+            @sequence = Linear::DSL.apply_adds(@sequence, options)
           end
         end # State
+
         Linear = Activity::DSL::Linear
         # This is slow and should be done only once at compile-time,
         # DISCUSS: maybe make this a function?

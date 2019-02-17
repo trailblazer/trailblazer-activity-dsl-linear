@@ -26,7 +26,6 @@ module Trailblazer
 
           sequence = Linear::DSL.insert_task(sequence, task: task,
                 magnetic_to: :success, id: id,
-                #outputs: Path::DSL.unary_outputs, connections: Path::DSL.unary_connections,
                 wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
                 sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"])
 
@@ -35,7 +34,6 @@ module Trailblazer
 
           sequence = Linear::DSL.insert_task(sequence, task: task,
                 magnetic_to: :success, id: id,
-                #outputs: Path::DSL.unary_outputs, connections: Path::DSL.unary_connections,
                 wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
                 sequence_insert: [Linear::Insert.method(:Replace), "path.connections"])
         end
@@ -103,42 +101,22 @@ module Trailblazer
           def initialize(normalizers:, initial_sequence:, framework_options:, **options)
             @normalizer  = normalizers # compiled normalizers.
             @sequence    = initial_sequence
+            @framework_options = framework_options
 
             # remembers how to call normalizers (e.g. track_color), TaskBuilder
             # remembers sequence
-
-            @framework_options = framework_options
           end
 
           def step(task, options={}, &block)
             options = @normalizer.(:step, framework_options: @framework_options, options: task, user_options: options)
 
-            options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
-
-            # raise locals.inspect if locals[:adds].any?
-            # FIXME: use the same abstraction!
-            # [options, *locals[:adds]].each do |insertion|
-            #   @sequence = Linear::DSL.insert_task(@sequence, **insertion)
-            # end
-@sequence = Linear::DSL.insert_task(@sequence, **options)
-locals[:adds].each do |row|
-  # pp row
-            @sequence = Linear::DSL.insert_row(@sequence, *row)
-          end
-
-            @sequence
+            @sequence = Linear::DSL.apply_adds(@sequence, options)
           end
 
           def fail(task, options={}, &block)
             options = @normalizer.(:fail, framework_options: @framework_options, options: task, user_options: options)
 
-            options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
-
-            [options, *locals[:adds]].each do |insertion|
-              @sequence = Linear::DSL.insert_task(@sequence, **insertion)
-            end
-
-            @sequence
+            @sequence = Linear::DSL.apply_adds(@sequence, options)
           end
         end # State
 

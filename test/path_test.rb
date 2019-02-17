@@ -71,4 +71,19 @@ class PathTest < Minitest::Spec
 #<End/:success>
 }
   end
+
+  it "accepts {:adds}" do
+    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    seq = state.step implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}], Linear::Insert.method(:Prepend), :f]]
+
+    assert_process seq, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+  end
 end

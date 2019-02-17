@@ -121,6 +121,31 @@ class RailwayTest < Minitest::Spec
 }
   end
 
+  it "accepts {:adds}" do
+    state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState())
+    seq = state.step implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {id: :g}], Linear::Insert.method(:Prepend), :f]]
+    seq = state.fail implementing.method(:a), id: :a, adds: [[[:failure, implementing.method(:b), [Linear::Search.Forward(Activity.Output("f/signal", :failure), :failure)], {}], Linear::Insert.method(:Prepend), :g]]
+    # seq = state.pass implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}], Linear::Insert.method(:Prepend), :f]]
+
+    assert_process seq, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.b>
+ {f/signal} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
+
 
   describe "#pass" do
     it "accepts Railway as a builder" do
