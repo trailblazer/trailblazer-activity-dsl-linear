@@ -143,7 +143,15 @@ class Trailblazer::Activity
         end
       end # DSL
 
-      module State
+      class State
+          # remembers how to call normalizers (e.g. track_color), TaskBuilder
+          # remembers sequence
+        def initialize(normalizers:, initial_sequence:, **normalizer_options)
+          @normalizer         = normalizers # compiled normalizers.
+          @sequence           = initial_sequence
+          @normalizer_options = normalizer_options
+        end
+
         # Compiles and maintains all final normalizers for a specific DSL.
         class Normalizer
           def compile_normalizer(normalizer_sequence)

@@ -97,16 +97,9 @@ module Trailblazer
           sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :failure), magnetic_to: :failure, id: "End.failure")
         end
 
-        class State
-          def initialize(normalizers:, initial_sequence:, normalizer_options:, **options)
-            @normalizer  = normalizers # compiled normalizers.
-            @sequence    = initial_sequence
-            @normalizer_options = normalizer_options
+Linear = Activity::DSL::Linear
 
-            # remembers how to call normalizers (e.g. track_color), TaskBuilder
-            # remembers sequence
-          end
-
+        class State < Linear::State
           def step(task, options={}, &block)
             options = @normalizer.(:step, normalizer_options: @normalizer_options, options: task, user_options: options)
 
@@ -120,7 +113,6 @@ module Trailblazer
           end
         end # State
 
-Linear = Activity::DSL::Linear
         Normalizers = Linear::State::Normalizer.new(
           step:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
           fail:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_fail ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
@@ -133,13 +125,12 @@ Linear = Activity::DSL::Linear
           {
             normalizers: normalizers,
             initial_sequence: initial_sequence,
-            normalizer_options: {
-              track_name: track_name,
-              end_id: end_id,
-              step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
-              adds: [], # FIXME: EH.
-              **options
-            }
+
+            track_name: track_name,
+            end_id: end_id,
+            step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
+            adds: [], # FIXME: EH.
+            **options
           }
         end
 

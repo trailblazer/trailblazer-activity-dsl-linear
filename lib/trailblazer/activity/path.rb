@@ -134,17 +134,9 @@ module Trailblazer
            }
         end
 
-        class State # TODO : MERGE WITH RAILWAY::State
-          def initialize(normalizers:, initial_sequence:, **normalizer_options)
-            @normalizer  = normalizers # compiled normalizers.
-            @sequence    = initial_sequence
+        Linear = Activity::DSL::Linear
 
-            # remembers how to call normalizers (e.g. track_color), TaskBuilder
-            # remembers sequence
-
-            @normalizer_options = normalizer_options
-          end
-
+        class State < Linear::State
           def step(task, options={}, &block)
             options = @normalizer.(:step, normalizer_options: @normalizer_options, options: task, user_options: options)
 
@@ -152,7 +144,6 @@ module Trailblazer
           end
         end # State
 
-        Linear = Activity::DSL::Linear
         # This is slow and should be done only once at compile-time,
         # DISCUSS: maybe make this a function?
         # These are the normalizers for an {Activity}, to be injected into a State.
@@ -162,14 +153,15 @@ module Trailblazer
 
 
         def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
-          initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id)
+          initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id) # DISCUSS: the standard initial_seq could be cached.
+
           {
             normalizers:      normalizers,
             initial_sequence: initial_sequence,
 
             track_name:             track_name,
             end_id:                 end_id,
-            step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
+            step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), # DISCUSS: this is currently the only option we want to pass on in Path() ?
             adds:                   [],
             **options
           }
