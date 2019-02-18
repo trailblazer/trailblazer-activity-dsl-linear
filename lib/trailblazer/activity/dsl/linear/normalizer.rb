@@ -30,7 +30,7 @@ module Trailblazer
 
               Linear::Insert.method(:Prepend), "path.wirings"
             )
-pp seq
+# pp seq
             seq
           end
 

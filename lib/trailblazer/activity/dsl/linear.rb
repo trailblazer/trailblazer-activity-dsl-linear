@@ -128,14 +128,13 @@ class Trailblazer::Activity
 
         # Add one or several rows to the {sequence}.
         # This is usually called from DSL methods such as {step}.
-        def apply_adds(sequence, end_id:, **options)
+        def apply_adds(sequence, sequence_insert:, **options)
           options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
 
           # This is the ADDS for the actual task.
-          task_adds = [Linear::DSL.create_row(options), Linear::Insert.method(:Prepend), end_id]
+          task_adds = [Linear::DSL.create_row(options), *sequence_insert] # Linear::Insert.method(:Prepend), end_id
 
           [task_adds, *locals[:adds]].each do |adds|
-            # puts "@@@@@ #{adds.inspect}"
             sequence = Linear::DSL.insert_row(sequence, *adds)
           end
 

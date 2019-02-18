@@ -97,6 +97,22 @@ class PathTest < Minitest::Spec
 }
   end
 
+  it "accepts {:before}" do
+    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    seq = state.step task: implementing.method(:f), id: :f
+    seq = state.step task: implementing.method(:a), id: :a, before: :f
+
+    assert_process seq, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+  end
+
   describe "Path()" do
     it "accepts {:end_task} and {:end_id}" do
       path_end = Activity::End.new(semantic: :roundtrip)
