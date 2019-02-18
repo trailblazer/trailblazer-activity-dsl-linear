@@ -61,23 +61,23 @@ class Trailblazer::Activity
         module_function
 
         # Append {new_row} after {insert_id}.
-        def Append(sequence, new_row, insert_id)
+        def Append(sequence, new_rows, insert_id)
           index, sequence = find(sequence, insert_id)
 
-          sequence.insert(index+1, new_row)
+          sequence.insert(index+1, *new_rows)
         end
 
-        # Insert {new_row} before {insert_id}.
-        def Prepend(sequence, new_row, insert_id)
+        # Insert {new_rows} before {insert_id}.
+        def Prepend(sequence, new_rows, insert_id)
           index, sequence = find(sequence, insert_id)
 
-          sequence.insert(index, new_row)
+          sequence.insert(index, *new_rows)
         end
 
-        def Replace(sequence, new_row, insert_id)
+        def Replace(sequence, new_rows, insert_id)
           index, sequence = find(sequence, insert_id)
 
-          sequence[index] = new_row
+          sequence[index], _ = *new_rows # TODO: replace and insert remaining, if any.
           sequence
         end
 
@@ -90,7 +90,7 @@ class Trailblazer::Activity
 
         # @private
         def find_index(sequence, insert_id)
-          sequence.find_index { |seq_row| seq_row[3][:id] == insert_id }
+          sequence.find_index { |seq_row| seq_row[3][:id] == insert_id } # TODO: optimize id location!
         end
 
         def find(sequence, insert_id)
@@ -123,7 +123,7 @@ class Trailblazer::Activity
         # @returns Sequence New sequence instance
         # TODO: name it {apply_adds or something}
         def insert_row(sequence, new_row, insert_function, *args)
-          insert_function.(sequence, new_row, *args)
+          insert_function.(sequence, [new_row], *args)
         end
 
         # Add one or several rows to the {sequence}.

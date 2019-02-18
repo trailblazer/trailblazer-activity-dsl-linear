@@ -26,16 +26,18 @@ module Trailblazer
 
         # DISCUSS: still not sure this should sit here.
         # Pseudo-DSL that prepends {steps} to {sequence}.
-        def prepend_to_path(sequence, steps, **options)
-          steps.each do |id, task|
-            sequence = Linear::DSL.insert_task(sequence, task: task,
-              magnetic_to: :success, id: id,
-              wirings: [Linear::Search::Forward(unary_outputs[:success], :success)],
+        def prepend_to_path(sequence, steps, insertion_method=Linear::Insert.method(:Prepend), insert_id="End.success")
+          new_rows = steps.collect do |id, task|
+            Linear::DSL.create_row(
+              task:        task,
+              magnetic_to: :success,
+              wirings:     [Linear::Search::Forward(unary_outputs[:success], :success)],
+              id: id,
               #outputs: unary_outputs, connections: unary_connections,
-              sequence_insert: [Linear::Insert.method(:Prepend), "End.success"], **options)
+            )
           end
 
-          sequence
+          insertion_method.(sequence, new_rows, insert_id)
         end
 
         def unary_outputs

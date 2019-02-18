@@ -64,7 +64,7 @@ module Trailblazer
               "railway.connections" => method(:normalize_path_connections),
             },
 
-            sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"] # override where it's added.
+            Linear::Insert.method(:Prepend), "path.wirings" # override where it's added.
           )
         end
 

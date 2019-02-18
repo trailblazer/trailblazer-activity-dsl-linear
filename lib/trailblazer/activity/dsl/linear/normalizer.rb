@@ -11,14 +11,14 @@ module Trailblazer
               sequence,
 
               {
-              "activity.wrap_task_with_step_interface"  => method(:wrap_task_with_step_interface), # last
-              "activity.normalize_context"              => method(:normalize_context),
-              "activity.normalize_normalizer_options"   => method(:merge_normalizer_options),
-              "activity.normalize_for_macro"            => method(:merge_user_options),
               "activity.normalize_step_interface"       => method(:normalize_step_interface),      # first
+              "activity.normalize_for_macro"            => method(:merge_user_options),
+              "activity.normalize_normalizer_options"   => method(:merge_normalizer_options),
+              "activity.normalize_context"              => method(:normalize_context),
+              "activity.wrap_task_with_step_interface"  => method(:wrap_task_with_step_interface), # last
               },
 
-              sequence_insert: [Linear::Insert.method(:Append), "Start.default"]
+              Linear::Insert.method(:Append), "Start.default"
             )
 
             seq = Trailblazer::Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
@@ -28,9 +28,9 @@ module Trailblazer
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
               },
 
-              sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"]
+              Linear::Insert.method(:Prepend), "path.wirings"
             )
-# pp seq
+pp seq
             seq
           end
 
