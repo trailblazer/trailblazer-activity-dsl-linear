@@ -25,6 +25,10 @@ Minitest::Spec.class_eval do
   def assert_process(seq, *args)
     process = compile_process(seq)
 
+    assert_process_for(process, *args)
+  end
+
+  def assert_process_for(process, *args)
     semantics, circuit = args[0..-2], args[-1]
 
     inspects = semantics.collect { |semantic| %{#<struct Trailblazer::Activity::Output signal=#<Trailblazer::Activity::End semantic=#{semantic.inspect}>, semantic=#{semantic.inspect}>} }
