@@ -168,6 +168,12 @@ module Trailblazer
 
       end # DSL
 
+      # {Activity}
+      #   holds the process (why?) (for modelling/connecting!)
+      #   provides DSL step/merge!
+      #   provides DSL inheritance
+      #   provides run-time {call}
+      #   maintains the {state} with {seq} and normalizer options
       class << self
         def initialize!(state)
           @state = state
@@ -180,10 +186,20 @@ module Trailblazer
           inheriter.initialize!(DSL::State.new(normalizers: @state.instance_variable_get(:@normalizer), initial_sequence: @state.instance_variable_get(:@sequence), **@state.instance_variable_get(:@normalizer_options)))
         end
 
-        def step(*args)
+        private def step(*args)
           seq = @state.step(*args)
 
           @process = Linear::Compiler.(seq)
+        end
+
+        private def merge!(activity)
+          old_seq = @state.instance_variable_get(:@sequence) # TODO: fixme
+          new_seq = activity.instance_variable_get(:@state).instance_variable_get(:@sequence) # TODO: fix the interfaces
+          new_seq = new_seq[1..-2] # FIXME.
+
+          seq = Linear::Insert.Prepend(old_seq, new_seq, "End.success")
+
+          @state.instance_variable_set(:@sequence, seq) # FIXME: hate this so much.
         end
 
         def to_h
@@ -192,7 +208,6 @@ module Trailblazer
       end
 
       initialize!(DSL::State.new(DSL.OptionsForState()))
-
 
     end # Path
 

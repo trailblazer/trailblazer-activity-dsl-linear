@@ -106,6 +106,39 @@ class ActivityTest < Minitest::Spec
 }
   end
 
+  describe "#merge!" do
+    it "what" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:a), id: :a
+        step implementing.method(:b), id: :b
+      end
+
+      sub_activity = Class.new(Activity::Path) do
+        step implementing.method(:c), id: :c
+        merge!(activity)
+        step implementing.method(:d), id: :d
+      end
+
+      process = sub_activity.to_h[:process]
+
+    assert_process_for process, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
+<*#<Method: #<Module:0x>.c>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.d>>
+<*#<Method: #<Module:0x>.d>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+    end
+  end
+
 
 
   # inheritance
