@@ -4,6 +4,7 @@ class Trailblazer::Activity
     #
     # Produces {Implementation} and {Intermediate}.
     module Linear
+      module_function
 
 =begin
       # The following 9 lines are due to the rubbish way Struct works in Ruby.
@@ -96,6 +97,17 @@ class Trailblazer::Activity
         def find(sequence, insert_id)
           return find_index(sequence, insert_id), sequence.clone # Ruby doesn't have an easy way to avoid mutating arrays :(
         end
+      end
+
+      def Merge(old_seq, new_seq, end_id: "End.success") # DISCUSS: also Insert
+        new_seq = strip_start_and_ends(new_seq, end_id: end_id)
+
+        seq = Insert.Prepend(old_seq, new_seq, end_id)
+      end
+      def strip_start_and_ends(seq, end_id:)
+        cut_off_index = end_id.nil? ? seq.size : Insert.find_index(seq, end_id) # find the "first" end.
+
+        seq[1..cut_off_index-1]
       end
 
       module DSL

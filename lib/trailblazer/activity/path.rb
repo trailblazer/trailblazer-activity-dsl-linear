@@ -195,9 +195,8 @@ module Trailblazer
         private def merge!(activity)
           old_seq = @state.instance_variable_get(:@sequence) # TODO: fixme
           new_seq = activity.instance_variable_get(:@state).instance_variable_get(:@sequence) # TODO: fix the interfaces
-          new_seq = new_seq[1..-2] # FIXME.
 
-          seq = Linear::Insert.Prepend(old_seq, new_seq, "End.success")
+          seq = Linear.Merge(old_seq, new_seq, end_id: "End.success")
 
           @state.instance_variable_set(:@sequence, seq) # FIXME: hate this so much.
         end
