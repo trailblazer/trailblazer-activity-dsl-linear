@@ -176,6 +176,7 @@ module Trailblazer
         def inherited(inheriter)
           super
 
+          # inherits the {@sequence}
           inheriter.initialize!(DSL::State.new(normalizers: @state.instance_variable_get(:@normalizer), initial_sequence: @state.instance_variable_get(:@sequence), **@state.instance_variable_get(:@normalizer_options)))
         end
 

@@ -91,7 +91,6 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
 
-
     process = sub_activity.to_h[:process]
 
     assert_process_for process, :success, %{
@@ -109,9 +108,9 @@ class ActivityTest < Minitest::Spec
 
 
 
+  # inheritance
+  # macaroni
   # Path() with macaroni
   # merge!
-  # inheritance
   # :step_method
-  # macaroni
 end
