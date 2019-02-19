@@ -176,7 +176,6 @@ module Trailblazer
           @state = state
         end
 
-
         def inherited(inheriter)
           super
 

@@ -17,7 +17,7 @@ class ActivityTest < Minitest::Spec
     sub_sub_activity = Class.new(sub_activity) do
       step implementing.method(:g), id: :g, before: :b
       step implementing.method(:f), id: :f, replace: :a
-      step nil                            , delete: :c
+      step nil,                             delete: :c
     end
 
     process = activity.to_h[:process]
@@ -64,6 +64,17 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
   end
+
+  it "allows inheritance / INSERTION options" do
+    implementing = self.implementing
+
+    activity = Class.new(Activity::Path()) do
+      step implementing.method(:a), id: :a
+      step implementing.method(:b), id: :b
+    end
+  end
+
+
 
   # Path() with macaroni
   # merge!
