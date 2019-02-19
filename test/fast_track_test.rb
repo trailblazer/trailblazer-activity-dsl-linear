@@ -1,6 +1,23 @@
 require "test_helper"
 
 class FastTrackTest < Minitest::Spec
+  it "#initial_sequence" do
+      seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
+
+
+      Cct(process: compile_process(seq)).must_equal %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+    end
+
   it "provides defaults" do
     state = Activity::FastTrack::DSL::State.new(Activity::FastTrack::DSL.OptionsForState)
     seq = state.step implementing.method(:f), id: :f

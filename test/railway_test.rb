@@ -1,6 +1,18 @@
 require "test_helper"
 
 class RailwayTest < Minitest::Spec
+  it "#initial_sequence" do
+    seq = Trailblazer::Activity::Railway::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
+
+    Cct(process: compile_process(seq)).must_equal %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
+
   it "provides defaults" do
     state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState)
     seq = state.step task: implementing.method(:f), id: :f
