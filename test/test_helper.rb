@@ -55,3 +55,23 @@ Minitest::Spec.class_eval do
     implementing
   end
 end
+
+module Fixtures
+  module_function
+
+  def circuit_interface_builder(step)
+    CircuitInterface.new(step)
+  end
+
+  class CircuitInterface
+    def initialize(step)
+      @step = step
+    end
+
+    def call((ctx, flow_options), *)
+      @step.(ctx)
+
+      return Activity::Right, [ctx, flow_options]
+    end
+  end
+end

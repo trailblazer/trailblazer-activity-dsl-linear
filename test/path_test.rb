@@ -1,16 +1,6 @@
 require "test_helper"
 
 class PathTest < Minitest::Spec
-  let(:step_interface_builder) {
-    step_interface_builder = ->(step) {
-      ->((ctx, flow_options), *) do
-        step.(ctx)
-
-        return Activity::Right, [ctx, flow_options]
-      end
-    }
-  }
-
   it "#initial_sequence" do
     seq = Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
 
@@ -224,7 +214,7 @@ class PathTest < Minitest::Spec
 
       path_end = Activity::End.new(semantic: :roundtrip)
 
-      shared_options = {step_interface_builder: step_interface_builder}
+      shared_options = {step_interface_builder: Fixtures.method(:circuit_interface_builder)}
       state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(**shared_options))
 
       state.step( implementing.method(:a), id: :a, Linear.Output(:success) => Linear.Path(end_task: path_end, end_id: "End.roundtrip", **shared_options) do |path|
@@ -236,15 +226,15 @@ class PathTest < Minitest::Spec
 
       process = assert_process seq, :roundtrip, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Proc:0x@test/path_test.rb:6 (lambda)>
-#<Proc:0x@test/path_test.rb:6 (lambda)>
- {Trailblazer::Activity::Right} => #<Proc:0x@test/path_test.rb:6 (lambda)>
-#<Proc:0x@test/path_test.rb:6 (lambda)>
+ {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
+#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.f>>
+#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.f>>
  {Trailblazer::Activity::Right} => #<End/:roundtrip>
 #<End/:roundtrip>
 
-#<Proc:0x@test/path_test.rb:6 (lambda)>
- {Trailblazer::Activity::Right} => #<Proc:0x@test/path_test.rb:6 (lambda)>
+#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
 #<End/:success>
 }
 
