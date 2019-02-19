@@ -1,11 +1,11 @@
 module Trailblazer
-  class Activity < Module
+  class Activity
     def self.Path(options={})
       Activity::Path.new(Path, options)
     end
 
     # Implementation module that can be passed to `Activity[]`.
-    class Path < Activity
+    class Path# < Activity
       module DSL
         # move out defaulting ( {|| :success} ) and move it into one central place. easier to debug/understand where values come from.
         Linear = Activity::DSL::Linear # FIXME
@@ -170,6 +170,32 @@ module Trailblazer
         end
 
       end # DSL
+
+      class << self
+        def initialize!(state)
+          @state = state
+        end
+
+
+        def inherited(inheriter)
+          super
+
+          inheriter.initialize!(DSL::State.new(normalizers: @state.instance_variable_get(:@normalizer), initial_sequence: @state.instance_variable_get(:@sequence), **@state.instance_variable_get(:@normalizer_options)))
+        end
+
+        def step(*args)
+          seq = @state.step(*args)
+
+          @process = Linear::Compiler.(seq)
+        end
+
+        def to_h
+          {process: @process}
+        end
+      end
+
+      initialize!(DSL::State.new(DSL.OptionsForState()))
+
     end # Path
   end
 end
