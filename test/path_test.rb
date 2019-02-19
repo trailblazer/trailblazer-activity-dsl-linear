@@ -209,7 +209,7 @@ class PathTest < Minitest::Spec
 
     it "allows using a different task builder, etc" do
       implementing = Module.new do
-        extend Activity::Testing.def_steps(:a, :f, :b)
+        extend Activity::Testing.def_steps(:a, :f, :b) # circuit interface.
       end
 
       path_end = Activity::End.new(semantic: :roundtrip)

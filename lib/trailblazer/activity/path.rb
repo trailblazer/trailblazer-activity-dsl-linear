@@ -1,8 +1,5 @@
 module Trailblazer
   class Activity
-    def self.Path(options={})
-      Activity::Path.new(Path, options)
-    end
 
     # Implementation module that can be passed to `Activity[]`.
     class Path# < Activity
@@ -195,7 +192,14 @@ module Trailblazer
 
       initialize!(DSL::State.new(DSL.OptionsForState()))
 
+
     end # Path
+
+    def self.Path(options)
+      Class.new(Path) do
+        initialize!(Path::DSL::State.new(Path::DSL.OptionsForState(options)))
+      end
+    end
   end
 end
 
