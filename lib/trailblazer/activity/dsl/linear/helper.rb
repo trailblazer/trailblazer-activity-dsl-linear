@@ -43,7 +43,7 @@ class Trailblazer::Activity
 
       seq = block.call(state) # state changes.
 
-      seq = Linear.strip_start_and_ends(seq, end_id: nil) # don't cut off end
+      seq = Linear.strip_start_and_ends(seq, end_id: nil) # don't cut off end.
 
       # Add the path before End.success - not sure this is bullet-proof.
       insert_rows = seq.collect do |row|

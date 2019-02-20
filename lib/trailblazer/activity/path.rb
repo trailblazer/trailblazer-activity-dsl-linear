@@ -186,11 +186,34 @@ module Trailblazer
           inheriter.initialize!(DSL::State.new(normalizers: @state.instance_variable_get(:@normalizer), initial_sequence: @state.instance_variable_get(:@sequence), **@state.instance_variable_get(:@normalizer_options)))
         end
 
-        private def step(*args)
+        # @public
+        private def step(*args, &block)
+          args = forward_block(args, block)
+
           seq = @state.step(*args)
 
           @process = Linear::Compiler.(seq)
         end
+
+        # @private
+        private def forward_block(args, block)
+          options = args[1]
+          if options.is_a?(Hash) # FIXME: doesn't account {task: <>} and repeats logic from Normalizer.
+            output, proxy = (options.find { |k,v| v.is_a?(BlockProxy) } or return args)
+            return args[0], options.merge(output => DSL::Linear.Path(proxy.options, &block))
+          end
+
+          args
+        end
+
+        extend Forwardable
+        def_delegators DSL::Linear, :Output, :End
+
+        def Path(options) # we can't access {block} here, syntactically.
+          BlockProxy.new(options)
+        end
+
+        BlockProxy = Struct.new(:options)
 
         private def merge!(activity)
           old_seq = @state.instance_variable_get(:@sequence) # TODO: fixme

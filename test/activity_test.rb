@@ -139,6 +139,35 @@ class ActivityTest < Minitest::Spec
     end
   end
 
+  describe "Path()" do
+    it "allows referencing the activity classes' methods in the {Path} block" do
+      activity = Class.new(Activity::Path) do
+        extend T.def_tasks(:a, :b, :c)
+
+        step method(:a), id: :a, Output(:success) => Path(end_id: "End.path", end_task: End(:path)) do |path|
+          path.step method(:c), id: :c
+        end
+        step method(:b), id: :b
+      end
+
+      process = activity.to_h[:process]
+
+    assert_process_for process, :path, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Class:0x>.a>>
+<*#<Method: #<Class:0x>.a>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Class:0x>.c>>
+<*#<Method: #<Class:0x>.c>>
+ {Trailblazer::Activity::Right} => #<End/:path>
+#<End/:path>
+
+<*#<Method: #<Class:0x>.b>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+    end
+  end
+
 
 
   # inheritance
