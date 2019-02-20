@@ -206,4 +206,5 @@ class ActivityTest < Minitest::Spec
   # Path() with macaroni
   # merge!
   # :step_method
+  # :extension API/state for taskWrap, also in Path()
 end
