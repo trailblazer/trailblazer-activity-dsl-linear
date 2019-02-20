@@ -200,7 +200,8 @@ module Trailblazer
           options = args[1]
           if options.is_a?(Hash) # FIXME: doesn't account {task: <>} and repeats logic from Normalizer.
             output, proxy = (options.find { |k,v| v.is_a?(BlockProxy) } or return args)
-            return args[0], options.merge(output => DSL::Linear.Path(proxy.options, &block))
+            shared_options = {step_interface_builder: @state.instance_variable_get(:@normalizer_options)[:step_interface_builder]} # FIXME: how do we know what to pass on and what not?
+            return args[0], options.merge(output => DSL::Linear.Path(**shared_options, **proxy.options, &block))
           end
 
           args
