@@ -1,6 +1,30 @@
 require "test_helper"
 
 class ActivityTest < Minitest::Spec
+  describe "::task with macro style" do
+    it "accepts sequence_options" do
+
+      activity = Module.new do
+        extend Trailblazer::Activity::Path()
+
+        task task: A, id: "a"
+        task task: B, before: "a", id: "b"
+      end
+
+      assert_path activity, %{
+ {Trailblazer::Activity::Right} => ActivityTest::B
+ActivityTest::B
+ {Trailblazer::Activity::Right} => ActivityTest::A
+ {Trailblazer::Activity::Left} => ActivityTest::A
+ActivityTest::A
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::Left} => #<End/:success>
+}
+    end
+  end
+
+
+
   it "allows inheritance / INSERTION options" do
     implementing = self.implementing
 
