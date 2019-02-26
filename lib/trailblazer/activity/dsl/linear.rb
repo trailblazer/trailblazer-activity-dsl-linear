@@ -193,7 +193,7 @@ class Trailblazer::Activity
       # extend Railway( ) # include DSL
       # extend Activity::Intermediate(implementation: , intermediate: ) # NO DSL
 
-      # Compile a {Process} by computing {implementations} and {intermediate} from a {Sequence}.
+      # Compile a {Schema} by computing {implementations} and {intermediate} from a {Sequence}.
       module Compiler
         module_function
 
@@ -217,13 +217,13 @@ class Trailblazer::Activity
               connections = find_connections(seq_row, connections, sequence)
 
               # FIXME: ends don't have connections, hence no outputs
-              implementations += [[id, Process::Implementation::Task(task, connections.collect { |output, _| output }) ]]
+              implementations += [[id, Schema::Implementation::Task(task, connections.collect { |output, _| output }) ]]
 
               intermediates += [
                 [
-                  Process::Intermediate::TaskRef(id, data),
+                  Schema::Intermediate::TaskRef(id, data),
                   # Compute outputs.
-                  connections.collect { |output, target_id| Process::Intermediate::Out(output.semantic, target_id) }
+                  connections.collect { |output, target_id| Schema::Intermediate::Out(output.semantic, target_id) }
                 ]
               ]
 
@@ -233,10 +233,10 @@ class Trailblazer::Activity
           start_task_refs = find_start.(intermediate_wiring)
           stop_task_refs = find_stops.(intermediate_wiring)
 
-          intermediate   = Process::Intermediate.new(Hash[intermediate_wiring], stop_task_refs, start_task_refs)
+          intermediate   = Schema::Intermediate.new(Hash[intermediate_wiring], stop_task_refs, start_task_refs)
           implementation = Hash[_implementations]
 
-          Process::Intermediate.(intermediate, implementation) # implemented in the generic {trailblazer-activity} gem.
+          Schema::Intermediate.(intermediate, implementation) # implemented in the generic {trailblazer-activity} gem.
         end
 
         # private
