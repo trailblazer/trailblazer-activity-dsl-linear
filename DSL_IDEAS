@@ -1,0 +1,91 @@
+
+
+step a + b, Left => c           # split
+# OR
+step a, Right => b, Left => c   # split
+
+step b + b2 + b3 + d    # path
+step c + c2 + d
+step d
+
+# Introspect adds Start and end?
+
+
+step a + b + c + d # long path
+step b, Left => b  # loop
+
+# railway
+step a + b + c
+
+
+start set_model + decide, A => stripe, B => int1, C => int2
+  path stripe + send_invoice, Left =>
+
+
+railway model, build, validate, persist
+railway model, build, validate, Fail(log), persist, Fail(log_again),
+
+end(End.failure)
+end(End.success)
+path(a, decider,
+  {
+    A => railway(charge, invoice, {Left=>"End.failure", Right=>"End.success"}),
+    B => railway(int1, int_invoice, {Left=>"End.failure", Right=>"End.success"})
+    C => railway(int2, Right=>"int_invoice", {Left=>"End.failure", Right=>"End.success"})
+  }
+)
+
+path(charge =>{Left=>fail), invoice=>{Left=>fail})
+
+
+
+magnetic_to: [*]
+on:          Track(*)
+
+Path(
+  {a, :a, R+L-}
+  {b, :b, R+L-}
+  {c, :c, R+L-}, -=>a
+)
+
+Path(
+  +{a, :a, R+L-},       +=>b,  -=>b
+  +{b, :b, R+L-}        +=>c,  -=>c
+  +{c, :c, R+L-}, -=>a  +=>ES, -=>a
+  +{ES, :ES, }
+)
+
+
+
+# intermediate, e.g. from editor:
+# allows {:replace} and {:implement}, wires correct signals
+# to outgoing connections by semantic
+A{ +-} => {+=>B, -=>B}
+B{ +-} => {+=>C, -=>C}
+C{ +-} => {+=>ES, -=>A}
+ES{}
+
+=> circuit
+
+
+
+
+Path(
+  {a, :a, R+L-},       +=>b,  -=>b
+  {b, :b, R+L-}        +=>c,  -=>c
+  {c, :c, R+L-}, -=>a  +=>ES, -=>a
+  {ES, :ES, }
+)
+
+
+
+
+task [A, id: :a], [B, id: b], [C, id: c, outputs: {..}]
+
+
+
+circuit(
+  A,
+  B,
+  C=>{..}
+)
