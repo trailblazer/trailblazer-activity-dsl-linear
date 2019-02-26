@@ -4,7 +4,7 @@ class PathTest < Minitest::Spec
   it "#initial_sequence" do
     seq = Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
 
-    Cct(process: compile_process(seq)).must_equal %{
+    Cct(compile_process(seq)).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
