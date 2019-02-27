@@ -151,42 +151,5 @@ module Trailblazer
 
       end # Normalizer
     end
-    module Activity::Magnetic
-      # One {Normalizer} instance is called for every DSL call (step/pass/fail etc.) and normalizes/defaults
-      # the user options, such as setting `:id`, connecting the task's outputs or wrapping the user's
-      # task via {TaskBuilder::Binary} in order to translate true/false to `Right` or `Left`.
-      #
-      # The Normalizer sits in the `@builder`, which receives all DSL calls from the Operation subclass.
-      class Normalizer
-
-
-        # needs the basic Normalizer
-
-        # :default_plus_poles is an injectable option.
-        module Pipeline
-          # extend Trailblazer::Activity::Path( normalizer_class: DefaultNormalizer, plus_poles: PlusPoles.new.merge( Builder::Path.default_outputs.values ) ) # FIXME: the DefaultNormalizer actually doesn't need Left.
-
-          def self.extract_extensions(options, extensions_classes = [Activity::DSL::Extension])
-            options.keys.find_all { |k| extensions_classes.include?( k.class ) }
-          end
-
-          # FIXME; why don't we use the extensions passed into the initializer?
-          def self.initialize_extension_option( ctx, options:, ** )
-            ctx[:options] = options.merge( Activity::DSL::Extension.new( Activity::DSL.method(:record) ) => true )
-          end
-
-
-
-          # task Activity::TaskBuilder::Binary( method(:initialize_extension_option) ), id: "initialize_extension_option"
-          # task Activity::TaskBuilder::Binary( method(:normalize_for_macro) ),         id: "normalize_for_macro"
-
-          # task Activity::TaskBuilder::Binary( Activity::TaskWrap::VariableMapping.method(:normalizer_step_for_input_output) )
-
-          # task Activity::TaskBuilder::Binary( method(:split_options) ),              id: "split_options"
-          # task Activity::TaskBuilder::Binary( method(:initialize_plus_poles) ),      id: "initialize_plus_poles"
-          # task ->((ctx, _), **) { pp ctx; [Activity::Right, [ctx, _]] }
-        end
-      end # Normalizer
-    end
- end
+  end
 end
