@@ -198,16 +198,16 @@ class Trailblazer::Activity
         module_function
 
         # Default strategy to find out what's a stop event is to inspect the TaskRef's {data[:stop_event]}.
-        def find_stop_task_refs(intermediate_wiring)
-          intermediate_wiring.collect { |task_ref, outs| task_ref.data[:stop_event] ? task_ref : nil }.compact
+        def find_stop_task_ids(intermediate_wiring)
+          intermediate_wiring.collect { |task_ref, outs| task_ref.data[:stop_event] ? task_ref.id : nil }.compact
         end
 
         # The first task in the wiring is the default start task.
-        def find_start_task_refs(intermediate_wiring)
-          [intermediate_wiring.first.first]
+        def find_start_task_ids(intermediate_wiring)
+          [intermediate_wiring.first.first.id]
         end
 
-        def call(sequence, find_stops: method(:find_stop_task_refs), find_start: method(:find_start_task_refs))
+        def call(sequence, find_stops: method(:find_stop_task_ids), find_start: method(:find_start_task_ids))
           _implementations, intermediate_wiring =
             sequence.inject([[], []]) do |(implementations, intermediates), seq_row|
               magnetic_to, task, connections, data = seq_row
@@ -230,10 +230,10 @@ class Trailblazer::Activity
               [implementations, intermediates]
             end
 
-          start_task_refs = find_start.(intermediate_wiring)
+          start_task_ids = find_start.(intermediate_wiring)
           stop_task_refs = find_stops.(intermediate_wiring)
 
-          intermediate   = Schema::Intermediate.new(Hash[intermediate_wiring], stop_task_refs, start_task_refs)
+          intermediate   = Schema::Intermediate.new(Hash[intermediate_wiring], stop_task_refs, start_task_ids)
           implementation = Hash[_implementations]
 
           Schema::Intermediate.(intermediate, implementation) # implemented in the generic {trailblazer-activity} gem.

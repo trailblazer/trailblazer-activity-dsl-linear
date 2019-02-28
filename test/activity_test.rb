@@ -3,6 +3,7 @@ require "test_helper"
 class ActivityTest < Minitest::Spec
   describe "::task with macro style" do
     it "accepts sequence_options" do
+      raise "macro that adds :before"
 
       activity = Module.new do
         extend Trailblazer::Activity::Path()
