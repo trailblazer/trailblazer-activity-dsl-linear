@@ -1,26 +1,32 @@
 require "test_helper"
 
+# macro Output => End
+
 class ActivityTest < Minitest::Spec
-  describe "::task with macro style" do
-    it "accepts sequence_options" do
-      raise "macro that adds :before"
+  describe "macro" do
 
-      activity = Module.new do
-        extend Trailblazer::Activity::Path()
+    it "accepts {:before} in macro options" do
+      implementing = self.implementing
 
-        task task: A, id: "a"
-        task task: B, before: "a", id: "b"
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:a), id: :a
+        # step MyMacro()
+        step({id: :b, task: implementing.method(:b), before: :a})
       end
 
-      assert_path activity, %{
- {Trailblazer::Activity::Right} => ActivityTest::B
-ActivityTest::B
- {Trailblazer::Activity::Right} => ActivityTest::A
- {Trailblazer::Activity::Left} => ActivityTest::A
-ActivityTest::A
+      assert_process_for activity.to_h[:process], :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
  {Trailblazer::Activity::Right} => #<End/:success>
- {Trailblazer::Activity::Left} => #<End/:success>
+#<End/:success>
 }
+    end
+
+    it "accepts {:connections}" do
+
     end
   end
 
