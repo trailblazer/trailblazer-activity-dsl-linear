@@ -1,6 +1,7 @@
 require "test_helper"
 
 # macro Output => End
+# Output(NewSignal, :semantic)
 
 class ActivityTest < Minitest::Spec
   describe "macro" do
@@ -25,8 +26,47 @@ class ActivityTest < Minitest::Spec
 }
     end
 
-    it "accepts {:connections}" do
+    it "accepts {:outputs}" do
+      implementing = self.implementing
 
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:a), id: :a
+        # step MyMacro()
+        step({id: :b, task: implementing.method(:b), before: :a, outputs: {success: Activity.Output("Yo", :success)}})
+      end
+
+      assert_process_for activity.to_h[:process], :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+#<Method: #<Module:0x>.b>
+ {Yo} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+    end
+
+    it "accepts {:outputs} and {:connections}" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:a), id: :a
+        # step MyMacro()
+        # step({id: :b, task: implementing.method(:b), before: :a, Linear.Output("Yo", :success) => Activity.End(:new)})
+        step({id: :b, task: implementing.method(:b), before: :a, Linear.Output(:success) => Activity.End(:new)})
+      end
+
+      assert_process_for activity.to_h[:process], :success, :new, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<End/:new>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:new>
+}
     end
   end
 
