@@ -106,7 +106,38 @@ class ActivityTest < Minitest::Spec
     end
 
     # TODO: adds
+    it "accepts {:adds}" do
+      implementing = self.implementing
 
+      circuit_interface_tasks = T.def_tasks(:c)
+
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:a), id: :a
+
+        row = Linear::DSL.create_row(task: circuit_interface_tasks.method(:c), id: :c, magnetic_to: :success,
+            wirings: [Linear::Search::Forward(Activity.Output(Activity::Right, :success), :success)])
+
+        step({id: :b, task: implementing.method(:b), adds: [
+
+          [
+            row,
+            Linear::Insert.method(:Prepend), :a
+          ]]
+        })
+      end
+
+      assert_process_for activity.to_h[:process], :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+    end
   end
 
 
