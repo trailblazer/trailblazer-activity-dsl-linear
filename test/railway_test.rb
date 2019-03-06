@@ -74,7 +74,7 @@ class RailwayTest < Minitest::Spec
       ctx.inspect.must_equal     %{{:seq=>[:f, :g, :b], :g=>false}}
     end
 
-    it "allows {Output() => ..}" do
+    it "allows {Output() => Track/Id}" do
       implementing = self.implementing
 
       activity = Class.new(Activity::Railway) do

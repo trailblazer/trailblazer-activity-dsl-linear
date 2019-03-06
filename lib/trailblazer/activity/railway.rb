@@ -1,7 +1,7 @@
 module Trailblazer
   # Implementation module that can be passed to `Activity[]`.
   class Activity
-    class Railway < Path # FIXME.
+    class Railway
       module DSL
         Linear = Activity::DSL::Linear # FIXME
 
