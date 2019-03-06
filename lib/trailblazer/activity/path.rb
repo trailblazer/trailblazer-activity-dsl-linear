@@ -174,7 +174,7 @@ module Trailblazer
       #   provides DSL inheritance
       #   provides run-time {call}
       #   maintains the {state} with {seq} and normalizer options
-      class << self
+      module Strategy
         def initialize!(state)
           @state = state
         end
@@ -230,6 +230,7 @@ module Trailblazer
         end
       end
 
+      extend Strategy
       initialize!(DSL::State.new(DSL.OptionsForState()))
 
     end # Path
