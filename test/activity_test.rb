@@ -117,11 +117,11 @@ class ActivityTest < Minitest::Spec
             wirings: [Linear::Search::Forward(Activity.Output(Activity::Right, :success), :success)])
 
         step({id: :b, task: implementing.method(:b), adds: [
-
-          [
-            row,
-            Linear::Insert.method(:Prepend), :a
-          ]]
+          {
+            row:    row,
+            insert: [Linear::Insert.method(:Prepend), :a]
+          }
+        ]
         })
       end
 

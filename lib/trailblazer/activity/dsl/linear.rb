@@ -34,14 +34,16 @@ class Trailblazer::Activity
 
         # @returns Sequence New sequence instance
         # TODO: name it {apply_adds or something}
-        def self.insert_row(sequence, new_row, insert_function, *args)
-          insert_function.(sequence, [new_row], *args)
+        def self.insert_row(sequence, row:, insert:)
+          insert_function, *args = insert
+
+          insert_function.(sequence, [row], *args)
         end
 
 
         def self.apply_adds(sequence, adds)
           adds.each do |add|
-            sequence = insert_row(sequence, *add)
+            sequence = insert_row(sequence, **add)
           end
 
           sequence
@@ -144,16 +146,16 @@ class Trailblazer::Activity
           new_row = Sequence.create_row(**options)
 
           # {sequence_insert} is usually a function such as {Linear::Insert::Append} and its arguments.
-          seq = Sequence.insert_row(sequence, new_row, *sequence_insert)
+          seq = Sequence.insert_row(sequence, row: new_row, insert: sequence_insert)
         end
 
         # Add one or several rows to the {sequence}.
         # This is usually called from DSL methods such as {step}.
         def apply_adds_from_dsl(sequence, sequence_insert:, adds:, **options)
           # This is the ADDS for the actual task.
-          task_adds = [Sequence.create_row(options), *sequence_insert] # Linear::Insert.method(:Prepend), end_id
+          task_add = {row: Sequence.create_row(options), insert: sequence_insert} # Linear::Insert.method(:Prepend), end_id
 
-          Sequence.apply_adds(sequence, [task_adds] + adds)
+          Sequence.apply_adds(sequence, [task_add] + adds)
         end
       end # DSL
 

@@ -46,11 +46,14 @@ class Trailblazer::Activity
       seq = Linear.strip_start_and_ends(seq, end_id: nil) # don't cut off end.
 
       # Add the path before End.success - not sure this is bullet-proof.
-      insert_rows = seq.collect do |row|
-        [row, Linear::Insert.method(:Prepend), "End.success"]
+      adds = seq.collect do |row|
+        {
+          row:    row,
+          insert: [Linear::Insert.method(:Prepend), "End.success"]
+        }
       end
 
-      return Track.new(track_color, insert_rows)
+      return Track.new(track_color, adds)
     end
 
     # Computes the :outputs options for {activity}

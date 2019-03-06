@@ -84,7 +84,12 @@ class PathTest < Minitest::Spec
 
   it "accepts {:adds}" do
     state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
-    seq = state.step task: implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}], Linear::Insert.method(:Prepend), :f]]
+    seq = state.step task: implementing.method(:f), id: :f, adds: [
+      {
+        row:    [:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}],
+        insert: [Linear::Insert.method(:Prepend), :f]
+      }
+    ]
 
     assert_process seq, :success, %{
 #<Start/:default>

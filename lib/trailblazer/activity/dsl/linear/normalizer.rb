@@ -113,7 +113,7 @@ module Trailblazer
             (ctx.keys - new_ctx.keys).each do |output|
               cfg = ctx[output]
 
-              new_connections, add_adds =
+              new_connections, add =
                 if cfg.is_a?(Activity::DSL::Linear::Track)
                   [output_to_track(ctx, output, cfg), cfg.adds]
                 elsif cfg.is_a?(Activity::DSL::Linear::Id)
@@ -123,7 +123,7 @@ module Trailblazer
                 end
 
               connections = connections.merge(new_connections)
-              adds += add_adds
+              adds += add
             end
 
             new_ctx = new_ctx.merge(connections: connections, adds: adds)
@@ -143,9 +143,12 @@ module Trailblazer
           def add_end(end_event, magnetic_to:, id:)
 
             options = Path::DSL.append_end_options(task: end_event, magnetic_to: magnetic_to, id: id)
-            options = Linear::Sequence.create_row(options)
+            row     = Linear::Sequence.create_row(options)
 
-            [options, *options[3][:sequence_insert]]
+            {
+              row:    row,
+              insert: row[3][:sequence_insert]
+            }
           end
         end
 
