@@ -105,7 +105,6 @@ class ActivityTest < Minitest::Spec
 }
     end
 
-    # TODO: adds
     it "accepts {:adds}" do
       implementing = self.implementing
 

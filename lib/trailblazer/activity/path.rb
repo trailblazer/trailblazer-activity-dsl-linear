@@ -139,7 +139,7 @@ module Trailblazer
           def step(task, options={}, &block)
             options = @normalizer.(:step, normalizer_options: @normalizer_options, options: task, user_options: options)
 
-            @sequence = Linear::DSL.apply_adds(@sequence, options)
+            @sequence = Linear::DSL.apply_adds_from_dsl(@sequence, options)
           end
         end # State
 

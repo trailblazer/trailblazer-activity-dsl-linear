@@ -115,6 +115,7 @@ class Trailblazer::Activity
 
         # Insert the task into the sequence using the {sequence_insert} strategy.
         # @return Sequence sequence after applied insertion
+# FIXME: DSL for strategies
         def insert_task(sequence, sequence_insert:, **options)
           new_row = create_row(**options)
 
@@ -140,14 +141,17 @@ class Trailblazer::Activity
 
         # Add one or several rows to the {sequence}.
         # This is usually called from DSL methods such as {step}.
-        def apply_adds(sequence, sequence_insert:, **options)
-          options, locals = Linear.normalize(options, [:adds]) # DISCUSS: Part of the DSL API.
-
+# FIXME: DSL
+        def apply_adds_from_dsl(sequence, sequence_insert:, adds:, **options)
           # This is the ADDS for the actual task.
           task_adds = [Linear::DSL.create_row(options), *sequence_insert] # Linear::Insert.method(:Prepend), end_id
 
-          [task_adds, *locals[:adds]].each do |adds|
-            sequence = Linear::DSL.insert_row(sequence, *adds)
+          apply_adds(sequence, [task_adds] + adds)
+        end
+
+        def apply_adds(sequence, adds)
+          adds.each do |add|
+            sequence = Linear::DSL.insert_row(sequence, *add)
           end
 
           sequence
