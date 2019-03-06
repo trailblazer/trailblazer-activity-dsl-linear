@@ -113,7 +113,7 @@ class ActivityTest < Minitest::Spec
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
 
-        row = Linear::DSL.create_row(task: circuit_interface_tasks.method(:c), id: :c, magnetic_to: :success,
+        row = Linear::Sequence.create_row(task: circuit_interface_tasks.method(:c), id: :c, magnetic_to: :success,
             wirings: [Linear::Search::Forward(Activity.Output(Activity::Right, :success), :success)])
 
         step({id: :b, task: implementing.method(:b), adds: [

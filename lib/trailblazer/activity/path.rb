@@ -17,7 +17,7 @@ module Trailblazer
         Right = Trailblazer::Activity::Right
         def start_sequence(track_name:)
           start_default = Trailblazer::Activity::Start.new(semantic: :default)
-          start_event   = Linear::DSL.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
+          start_event   = Linear::Sequence.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
           sequence      = Linear::Sequence[start_event]
         end
 
@@ -25,7 +25,7 @@ module Trailblazer
         # Pseudo-DSL that prepends {steps} to {sequence}.
         def prepend_to_path(sequence, steps, insertion_method=Linear::Insert.method(:Prepend), insert_id="End.success")
           new_rows = steps.collect do |id, task|
-            Linear::DSL.create_row(
+            Linear::Sequence.create_row(
               task:        task,
               magnetic_to: :success,
               wirings:     [Linear::Search::Forward(unary_outputs[:success], :success)],

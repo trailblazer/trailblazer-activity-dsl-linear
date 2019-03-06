@@ -22,6 +22,30 @@ class Trailblazer::Activity
       # {Sequence} consists of rows.
       # {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
       class Sequence < Array
+        # Return {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
+        def self.create_row(task:, magnetic_to:, wirings:, **options)
+          [
+            magnetic_to,
+            task,
+            wirings,
+            options # {id: "Start.success"}
+          ]
+        end
+
+        # @returns Sequence New sequence instance
+        # TODO: name it {apply_adds or something}
+        def self.insert_row(sequence, new_row, insert_function, *args)
+          insert_function.(sequence, [new_row], *args)
+        end
+
+
+        def self.apply_adds(sequence, adds)
+          adds.each do |add|
+            sequence = insert_row(sequence, *add)
+          end
+
+          sequence
+        end
       end
 
       # Sequence
@@ -117,44 +141,19 @@ class Trailblazer::Activity
         # @return Sequence sequence after applied insertion
 # FIXME: DSL for strategies
         def insert_task(sequence, sequence_insert:, **options)
-          new_row = create_row(**options)
+          new_row = Sequence.create_row(**options)
 
           # {sequence_insert} is usually a function such as {Linear::Insert::Append} and its arguments.
-          seq = insert_row(sequence, new_row, *sequence_insert)
-        end
-
-        # Return {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
-        def create_row(task:, magnetic_to:, wirings:, **options)
-          [
-            magnetic_to,
-            task,
-            wirings,
-            options # {id: "Start.success"}
-          ]
-        end
-
-        # @returns Sequence New sequence instance
-        # TODO: name it {apply_adds or something}
-        def insert_row(sequence, new_row, insert_function, *args)
-          insert_function.(sequence, [new_row], *args)
+          seq = Sequence.insert_row(sequence, new_row, *sequence_insert)
         end
 
         # Add one or several rows to the {sequence}.
         # This is usually called from DSL methods such as {step}.
-# FIXME: DSL
         def apply_adds_from_dsl(sequence, sequence_insert:, adds:, **options)
           # This is the ADDS for the actual task.
-          task_adds = [Linear::DSL.create_row(options), *sequence_insert] # Linear::Insert.method(:Prepend), end_id
+          task_adds = [Sequence.create_row(options), *sequence_insert] # Linear::Insert.method(:Prepend), end_id
 
-          apply_adds(sequence, [task_adds] + adds)
-        end
-
-        def apply_adds(sequence, adds)
-          adds.each do |add|
-            sequence = Linear::DSL.insert_row(sequence, *add)
-          end
-
-          sequence
+          Sequence.apply_adds(sequence, [task_adds] + adds)
         end
       end # DSL
 
