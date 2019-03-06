@@ -20,18 +20,33 @@ module Trailblazer
           id = "railway.magnetic_to.fail"
           task = Fail.method(:merge_magnetic_to)
 
-          sequence = Linear::DSL.insert_task(sequence, task: task,
-                magnetic_to: :success, id: id,
-                wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
-                sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"])
+          sequence = Linear::DSL.insert_task(sequence,
+            task: task,
+            magnetic_to: :success, id: id,
+            wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
+            sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"])
 
           id = "railway.connections.fail.success_to_failure"
           task = Fail.method(:connect_success_to_failure)
 
-          sequence = Linear::DSL.insert_task(sequence, task: task,
-                magnetic_to: :success, id: id,
-                wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
-                sequence_insert: [Linear::Insert.method(:Replace), "path.connections"])
+          sequence = Linear::DSL.insert_task(sequence,
+            task: task,
+            magnetic_to: :success, id: id,
+            wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
+            sequence_insert: [Linear::Insert.method(:Replace), "path.connections"])
+        end
+
+        def normalizer_for_pass
+          sequence = normalizer
+
+          id = "railway.connections.pass.failure_to_success"
+          task = Pass.method(:connect_failure_to_success)
+
+          sequence = Linear::DSL.insert_task(sequence,
+            task: task,
+            magnetic_to: :success, id: id,
+            wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
+            sequence_insert: [Linear::Insert.method(:Append), "path.connections"])
         end
 
         module Fail
@@ -47,6 +62,16 @@ module Trailblazer
             ctx = {connections: {success: [Linear::Search.method(:Forward), :failure]}}.merge(ctx)
 
             return Right, [ctx, flow_options]
+          end
+        end
+
+        module Pass
+          module_function
+
+          def connect_failure_to_success((ctx, flow_options), *)
+            connections = ctx[:connections].merge({failure: [Linear::Search.method(:Forward), :success]})
+
+            return Right, [ctx.merge(connections: connections), flow_options]
           end
         end
 
@@ -107,11 +132,18 @@ Linear = Activity::DSL::Linear
 
             @sequence = Linear::DSL.apply_adds_from_dsl(@sequence, options)
           end
+
+          def pass(task, options={}, &block)
+            options = @normalizer.(:pass, normalizer_options: @normalizer_options, options: task, user_options: options)
+
+            @sequence = Linear::DSL.apply_adds_from_dsl(@sequence, options)
+          end
         end # State
 
         Normalizers = Linear::State::Normalizer.new(
           step:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
-          fail:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_fail ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
+          fail:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_fail ),
+          pass:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_pass ),
         )
 
 
@@ -141,6 +173,13 @@ Linear = Activity::DSL::Linear
           @process = Linear::Compiler.(seq)
         end
 
+        private def pass(*args, &block)
+          args = forward_block(args, block)
+
+          seq = @state.pass(*args)
+
+          @process = Linear::Compiler.(seq)
+        end
       end
 
       extend Path::Strategy
