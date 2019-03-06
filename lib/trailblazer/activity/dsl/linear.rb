@@ -159,6 +159,7 @@ class Trailblazer::Activity
         end
       end # DSL
 
+      # A {State} instance is kept per DSL client, which usually is a subclass of {Path}, {Railway}, etc.
       class State
           # remembers how to call normalizers (e.g. track_color), TaskBuilder
           # remembers sequence
@@ -166,6 +167,11 @@ class Trailblazer::Activity
           @normalizer         = normalizers # compiled normalizers.
           @sequence           = initial_sequence
           @normalizer_options = normalizer_options
+        end
+
+        # Called to "inherit" a state.
+        def copy
+          self.class.new(normalizers: @normalizer, initial_sequence: @sequence, **@normalizer_options)
         end
 
         # Compiles and maintains all final normalizers for a specific DSL.

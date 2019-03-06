@@ -1,11 +1,7 @@
 module Trailblazer
   # Implementation module that can be passed to `Activity[]`.
   class Activity
-    def self.Railway(options={})
-      Railway.new(Railway, options)
-    end
-
-    class Railway < Activity
+    class Railway < Path # FIXME.
       module DSL
         Linear = Activity::DSL::Linear # FIXME
 
@@ -135,6 +131,22 @@ Linear = Activity::DSL::Linear
         end
 
       end # DSL
-    end
+
+      class << self
+        private def fail(*args, &block)
+          args = forward_block(args, block)
+
+          seq = @state.fail(*args)
+
+          @process = Linear::Compiler.(seq)
+        end
+
+      end
+
+      extend Path::Strategy
+
+      initialize!(DSL::State.new(DSL.OptionsForState()))
+
+    end # Railway
   end
 end

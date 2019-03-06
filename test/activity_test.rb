@@ -322,7 +322,7 @@ class ActivityTest < Minitest::Spec
 
       process = activity.to_h[:process]
 
-    assert_process_for process, :path, :success, %{
+      assert_process_for process, :path, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.a>>
 #<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.a>>

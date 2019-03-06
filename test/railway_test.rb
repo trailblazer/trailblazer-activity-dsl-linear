@@ -13,16 +13,28 @@ class RailwayTest < Minitest::Spec
 }
   end
 
-  it "provides defaults" do
-    state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState)
-    seq = state.step task: implementing.method(:f), id: :f
-    seq = state.fail task: implementing.method(:a), id: :a
-    seq = state.step task: implementing.method(:g), id: :g
-    seq = state.step task: implementing.method(:c), id: :c
-    seq = state.fail task: implementing.method(:b), id: :b
-    seq = state.step task: implementing.method(:d), id: :d
+  describe "Activity::Railway" do
 
-    assert_process seq, :success, :failure, %{
+  end
+
+
+# State tests.
+
+  it "provides defaults" do
+    implementing = self.implementing
+
+    activity = Class.new(Activity::Railway) do
+      step task: implementing.method(:f), id: :f
+      fail task: implementing.method(:a), id: :a
+      step task: implementing.method(:g), id: :g
+      step task: implementing.method(:c), id: :c
+      fail task: implementing.method(:b), id: :b
+      step task: implementing.method(:d), id: :d
+    end
+
+    process = activity.to_h[:process]
+
+    assert_process_for process, :success, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
 #<Method: #<Module:0x>.f>
@@ -47,6 +59,18 @@ class RailwayTest < Minitest::Spec
 
 #<End/:failure>
 }
+
+# right track
+    signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
+
+    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c, :d]}}
+
+# left track
+    signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false}])
+
+    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+    ctx.inspect.must_equal     %{{:seq=>[:f, :a, :b], :f=>false}}
   end
 
   it "provides defaults" do
@@ -135,8 +159,10 @@ class RailwayTest < Minitest::Spec
 
   it "accepts {:adds}" do
     state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState())
-    seq = state.step task: implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {id: :g}], Linear::Insert.method(:Prepend), :f]]
-    seq = state.fail task: implementing.method(:a), id: :a, adds: [[[:failure, implementing.method(:b), [Linear::Search.Forward(Activity.Output("f/signal", :failure), :failure)], {}], Linear::Insert.method(:Prepend), :g]]
+    seq = state.step task: implementing.method(:f), id: :f, adds: [
+      {row: [:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {id: :g}], insert: [Linear::Insert.method(:Prepend), :f]}]
+    seq = state.fail task: implementing.method(:a), id: :a, adds: [
+      {row: [:failure, implementing.method(:b), [Linear::Search.Forward(Activity.Output("f/signal", :failure), :failure)], {}], insert: [Linear::Insert.method(:Prepend), :g]}]
     # seq = state.pass implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}], Linear::Insert.method(:Prepend), :f]]
 
     assert_process seq, :success, :failure, %{
