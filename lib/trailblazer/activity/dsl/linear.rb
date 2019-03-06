@@ -73,7 +73,7 @@ class Trailblazer::Activity
         # Find the seq_row with {id} and connect the current node to it.
         def ById(output, id)
           ->(sequence, me) do
-            index          = Insert.find_index(sequence, id) or raise "Couldn't find {#{id}}"
+            index          = Insert.find_index(sequence, id) or return output, sequence[0] # FIXME # or raise "Couldn't find {#{id}}"
             target_seq_row = sequence[index]
 
             return output, target_seq_row
