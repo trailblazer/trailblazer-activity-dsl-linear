@@ -159,6 +159,35 @@ class ActivityTest < Minitest::Spec
     end
   end
 
+  it "provides incomplete circuit when referencing non-existant task" do
+    implementing = self.implementing
+
+    activity = Class.new(Activity::Railway) do
+      step task: implementing.method(:f), id: :f
+      pass task: implementing.method(:c), id: :c, Output(:failure) => Id(:idontexist)
+      step task: implementing.method(:b), id: :b
+    end
+
+    process = activity.to_h[:process]
+
+    assert_process_for process, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Left} => #<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
+
 
 
   it "allows inheritance / INSERTION options" do

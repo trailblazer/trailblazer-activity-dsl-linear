@@ -229,7 +229,6 @@ class RailwayTest < Minitest::Spec
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
       ctx.inspect.must_equal     %{{:seq=>[:f, :c, :b], :c=>false}}
     end
-
   end
 
 # {State} tests.
