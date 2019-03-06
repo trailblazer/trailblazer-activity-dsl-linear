@@ -15,26 +15,21 @@ class RailwayTest < Minitest::Spec
 
   describe "Activity::Railway" do
 
-  end
+    it "provides defaults" do
+      implementing = self.implementing
 
+      activity = Class.new(Activity::Railway) do
+        step task: implementing.method(:f), id: :f
+        fail task: implementing.method(:a), id: :a
+        step task: implementing.method(:g), id: :g
+        step task: implementing.method(:c), id: :c
+        fail task: implementing.method(:b), id: :b
+        step task: implementing.method(:d), id: :d
+      end
 
-# State tests.
+      process = activity.to_h[:process]
 
-  it "provides defaults" do
-    implementing = self.implementing
-
-    activity = Class.new(Activity::Railway) do
-      step task: implementing.method(:f), id: :f
-      fail task: implementing.method(:a), id: :a
-      step task: implementing.method(:g), id: :g
-      step task: implementing.method(:c), id: :c
-      fail task: implementing.method(:b), id: :b
-      step task: implementing.method(:d), id: :d
-    end
-
-    process = activity.to_h[:process]
-
-    assert_process_for process, :success, :failure, %{
+      assert_process_for process, :success, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
 #<Method: #<Module:0x>.f>
@@ -60,18 +55,92 @@ class RailwayTest < Minitest::Spec
 #<End/:failure>
 }
 
-# right track
-    signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
+  # right track
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
 
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c, :d]}}
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c, :d]}}
 
-# left track
-    signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false}])
+  # left track
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false}])
 
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-    ctx.inspect.must_equal     %{{:seq=>[:f, :a, :b], :f=>false}}
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :a, :b], :f=>false}}
+
+  # left track
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], g: false}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :b], :g=>false}}
+    end
+
+    it "allows {Output() => ..}" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Railway) do
+        step task: implementing.method(:f), id: :f
+        fail task: implementing.method(:a), id: :a, Output(:success) => Track(:success)
+        step task: implementing.method(:g), id: :g
+        step task: implementing.method(:c), id: :c
+        fail task: implementing.method(:b), id: :b
+        step task: implementing.method(:d), id: :d, Output(:failure) => Id(:b)
+      end
+
+      process = activity.to_h[:process]
+
+      assert_process_for process, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.d>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+  # right track
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c, :d]}}
+
+  # left track, {a} goes back to success
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false, a: true}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :a, :g, :c, :d], :f=>false, :a=>true}}
+
+  # left track, {a} stays on failure
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false, a: false}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :a, :b], :f=>false, :a=>false}}
+
+  # {d} goes to {b}
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], d: false}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c, :d, :b], :d=>false}}
+    end
   end
+
+# {State} tests.
 
   it "provides defaults" do
     state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState)

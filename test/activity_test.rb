@@ -51,7 +51,7 @@ class ActivityTest < Minitest::Spec
 
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
-        step({id: :b, task: implementing.method(:b), before: :a, Linear.Output(:success) => Activity.End(:new)})
+        step({id: :b, task: implementing.method(:b), before: :a, Output(:success) => End(:new)})
       end
 
       assert_process_for activity.to_h[:process], :success, :new, %{
@@ -72,7 +72,27 @@ class ActivityTest < Minitest::Spec
 
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
-        step({id: :b, task: implementing.method(:b), Linear.Output(:success) => Linear.Id(:a)})
+        step({id: :b, task: implementing.method(:b), Output(:success) => Id(:a)})
+      end
+
+      assert_process_for activity.to_h[:process], :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+#<End/:success>
+}
+    end
+
+    it "accepts {Output() => Track()}" do
+      skip "FIXME: don't raise on unknown targets"
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:a), id: :a
+        step({id: :b, task: implementing.method(:b), Output(:success) => Track(:unknown)})
       end
 
       assert_process_for activity.to_h[:process], :success, %{

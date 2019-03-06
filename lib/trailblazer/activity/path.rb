@@ -208,7 +208,7 @@ module Trailblazer
         end
 
         extend Forwardable
-        def_delegators DSL::Linear, :Output, :End
+        def_delegators DSL::Linear, :Output, :End, :Track, :Id
 
         def Path(options) # we can't access {block} here, syntactically.
           BlockProxy.new(options)
