@@ -106,6 +106,28 @@ class ActivityTest < Minitest::Spec
 }
     end
 
+    it "accepts {Output(Signal, :semantic) => Track()}" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:a), id: :a
+        step({id: :b, task: implementing.method(:b),
+          Output(Activity::Left, :success) => Track(:success),
+          Output("Signalovich", :new)      => Id(:a)})
+      end
+
+      assert_process_for activity.to_h[:process], :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Left} => #<End/:success>
+ {Signalovich} => <*#<Method: #<Module:0x>.a>>
+#<End/:success>
+}
+    end
+
     it "accepts {:connections}" do
       implementing = self.implementing
 

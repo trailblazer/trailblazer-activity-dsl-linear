@@ -25,6 +25,7 @@ module Trailblazer
               seq,
 
               {
+              "activity.normalize_outputs_from_dsl"     => method(:normalize_outputs_from_dsl),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
               },
 
@@ -149,6 +150,25 @@ module Trailblazer
               row:    row,
               insert: row[3][:sequence_insert]
             }
+          end
+
+          # Output(Signal, :semantic) => Id()
+          def normalize_outputs_from_dsl((ctx, flow_options), *)
+            new_ctx = ctx.reject { |output, cfg| output.kind_of?(Activity::Output) }
+
+            outputs     = ctx[:outputs]
+            dsl_options = {}
+
+            (ctx.keys - new_ctx.keys).collect do |output|
+              cfg      = ctx[output] # e.g. Track(:success)
+
+              outputs = outputs.merge(output.semantic => output)
+              dsl_options = dsl_options.merge(Linear.Output(output.semantic) => cfg)
+            end
+
+            new_ctx = new_ctx.merge(outputs: outputs).merge(dsl_options)
+
+            return Trailblazer::Activity::Right, [new_ctx, flow_options]
           end
         end
 
