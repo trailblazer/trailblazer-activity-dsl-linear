@@ -15,7 +15,7 @@ class ActivityTest < Minitest::Spec
         step({id: :b, task: implementing.method(:b), before: :a})
       end
 
-      assert_process_for activity.to_h[:process], :success, %{
+      assert_process_for activity.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.b>
@@ -35,7 +35,7 @@ class ActivityTest < Minitest::Spec
         step({id: :b, task: implementing.method(:b), before: :a, outputs: {success: Activity.Output("Yo", :success)}})
       end
 
-      assert_process_for activity.to_h[:process], :success, %{
+      assert_process_for activity.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.b>
@@ -54,7 +54,7 @@ class ActivityTest < Minitest::Spec
         step({id: :b, task: implementing.method(:b), before: :a, Output(:success) => End(:new)})
       end
 
-      assert_process_for activity.to_h[:process], :success, :new, %{
+      assert_process_for activity.to_h, :success, :new, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.b>
@@ -75,7 +75,7 @@ class ActivityTest < Minitest::Spec
         step({id: :b, task: implementing.method(:b), Output(:success) => Id(:a)})
       end
 
-      assert_process_for activity.to_h[:process], :success, %{
+      assert_process_for activity.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
 <*#<Method: #<Module:0x>.a>>
@@ -95,7 +95,7 @@ class ActivityTest < Minitest::Spec
         step({id: :b, task: implementing.method(:b), Output(:success) => Track(:unknown)})
       end
 
-      assert_process_for activity.to_h[:process], :success, %{
+      assert_process_for activity.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
 <*#<Method: #<Module:0x>.a>>
@@ -116,7 +116,7 @@ class ActivityTest < Minitest::Spec
           Output("Signalovich", :new)      => Id(:a)})
       end
 
-      assert_process_for activity.to_h[:process], :success, %{
+      assert_process_for activity.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
 <*#<Method: #<Module:0x>.a>>
@@ -136,7 +136,7 @@ class ActivityTest < Minitest::Spec
         step({id: :b, task: implementing.method(:b), connections: {success: [Linear::Search.method(:ById), :a]}})
       end
 
-      assert_process_for activity.to_h[:process], :success, %{
+      assert_process_for activity.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
 <*#<Method: #<Module:0x>.a>>
@@ -167,7 +167,7 @@ class ActivityTest < Minitest::Spec
         })
       end
 
-      assert_process_for activity.to_h[:process], :success, %{
+      assert_process_for activity.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
 #<Method: #<Module:0x>.c>
@@ -190,7 +190,7 @@ class ActivityTest < Minitest::Spec
       step task: implementing.method(:b), id: :b
     end
 
-    process = activity.to_h[:process]
+    process = activity.to_h
 
     assert_process_for process, :success, :failure, %{
 #<Start/:default>
@@ -231,7 +231,7 @@ class ActivityTest < Minitest::Spec
       step nil,                             delete: :c
     end
 
-    process = activity.to_h[:process]
+    process = activity.to_h
 
     assert_process_for process, :success, %{
 #<Start/:default>
@@ -243,7 +243,7 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
 
-    process = sub_activity.to_h[:process]
+    process = sub_activity.to_h
 
     assert_process_for process, :success, %{
 #<Start/:default>
@@ -259,7 +259,7 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
 
-    process = sub_sub_activity.to_h[:process]
+    process = sub_sub_activity.to_h
 
     assert_process_for process, :success, %{
 #<Start/:default>
@@ -290,7 +290,7 @@ class ActivityTest < Minitest::Spec
       step implementing.method(:f), id: :f
     end
 
-    process = activity.to_h[:process]
+    process = activity.to_h
 
     assert_process_for process, :success, %{
 #<Start/:default>
@@ -302,7 +302,7 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
 
-    process = sub_activity.to_h[:process]
+    process = sub_activity.to_h
 
     assert_process_for process, :success, %{
 #<Start/:default>
@@ -332,7 +332,7 @@ class ActivityTest < Minitest::Spec
         step implementing.method(:d), id: :d
       end
 
-      process = sub_activity.to_h[:process]
+      process = sub_activity.to_h
 
     assert_process_for process, :success, %{
 #<Start/:default>
@@ -361,7 +361,7 @@ class ActivityTest < Minitest::Spec
         step method(:b), id: :b
       end
 
-      process = activity.to_h[:process]
+      process = activity.to_h
 
     assert_process_for process, :path, :success, %{
 #<Start/:default>
@@ -391,7 +391,7 @@ class ActivityTest < Minitest::Spec
         step method(:b), id: :b
       end
 
-      process = activity.to_h[:process]
+      process = activity.to_h
 
       assert_process_for process, :path, :success, %{
 #<Start/:default>

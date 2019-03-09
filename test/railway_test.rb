@@ -27,7 +27,7 @@ class RailwayTest < Minitest::Spec
         step task: implementing.method(:d), id: :d
       end
 
-      process = activity.to_h[:process]
+      process = activity.to_h
 
       assert_process_for process, :success, :failure, %{
 #<Start/:default>
@@ -86,7 +86,7 @@ class RailwayTest < Minitest::Spec
         step task: implementing.method(:d), id: :d, Output(:failure) => Id(:b)
       end
 
-      process = activity.to_h[:process]
+      process = activity.to_h
 
       assert_process_for process, :success, :failure, %{
 #<Start/:default>
@@ -149,7 +149,7 @@ class RailwayTest < Minitest::Spec
         step task: implementing.method(:g), id: :g
       end
 
-      process = activity.to_h[:process]
+      process = activity.to_h
 
       assert_process_for process, :success, :failure, %{
 #<Start/:default>
@@ -195,7 +195,7 @@ class RailwayTest < Minitest::Spec
         step task: implementing.method(:b), id: :b
       end
 
-      process = activity.to_h[:process]
+      process = activity.to_h
 
       assert_process_for process, :success, :failure, %{
 #<Start/:default>

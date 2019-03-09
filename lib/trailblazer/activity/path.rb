@@ -192,7 +192,9 @@ module Trailblazer
 
           seq = @state.step(*args)
 
-          @process = Linear::Compiler.(seq)
+          schema = DSL::Linear::Compiler.(seq)
+
+          @activity = Activity.new(schema)
         end
 
         # @private
@@ -225,9 +227,8 @@ module Trailblazer
           @state.instance_variable_set(:@sequence, seq) # FIXME: hate this so much.
         end
 
-        def to_h
-          {process: @process}
-        end
+        extend Forwardable
+        def_delegators :@activity, :to_h, :call
       end
 
       extend Strategy

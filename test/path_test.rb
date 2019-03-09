@@ -1,6 +1,32 @@
 require "test_helper"
 
 class PathTest < Minitest::Spec
+  Implementing = T.def_tasks(:a, :b, :c, :d, :f, :g)
+
+  it "exposes {#call}" do
+    activity = Class.new(Activity::Path) do
+      step Implementing.method(:a), id: :a
+      step Implementing.method(:b)
+    end
+
+    assert_process_for activity.to_h, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: PathTest::Implementing.a>>
+<*#<Method: PathTest::Implementing.a>>
+ {Trailblazer::Activity::Right} => <*#<Method: PathTest::Implementing.b>>
+<*#<Method: PathTest::Implementing.b>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+
+    # Call without taskWrap!
+    signal, (ctx, _) = activity.({seq: []}, {})
+
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[:a, :b]}}
+  end
+
+
   it "#initial_sequence" do
     seq = Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
 
