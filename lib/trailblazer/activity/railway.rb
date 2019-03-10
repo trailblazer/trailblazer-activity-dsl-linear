@@ -75,7 +75,7 @@ module Trailblazer
           end
         end
 
-
+        # Add {Railway} steps to normalizer path.
         def step_options(sequence)
           Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
             sequence,
@@ -117,8 +117,6 @@ module Trailblazer
           sequence = Path::DSL.initial_sequence(options)
           sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :failure), magnetic_to: :failure, id: "End.failure")
         end
-
-Linear = Activity::DSL::Linear
 
         class State < Linear::State
           def step(task, options={}, &block)
