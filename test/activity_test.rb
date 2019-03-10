@@ -179,6 +179,40 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
     end
+
+    def add_1(wrap_ctx, original_args)
+      ctx, _ = original_args[0]
+      ctx[:seq] << 1
+      return wrap_ctx, original_args # yay to mutable state. not.
+    end
+
+    it "accepts {:extensions}" do
+      implementing = self.implementing
+
+      merge = [
+        [Trailblazer::Activity::TaskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
+      ]
+
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:a), id: :a, extensions: [Trailblazer::Activity::TaskWrap::Extension(merge: merge)]
+        step implementing.method(:b), id: :b
+      end
+
+      assert_process_for activity.to_h, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
+
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal %{{:seq=>[1, :a, :b]}}
+    end
   end
 
   it "provides incomplete circuit when referencing non-existant task" do

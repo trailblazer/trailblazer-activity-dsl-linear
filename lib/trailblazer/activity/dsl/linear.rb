@@ -227,8 +227,8 @@ class Trailblazer::Activity
               # execute all {Search}s for one sequence row.
               connections = find_connections(seq_row, connections, sequence)
 
-              # FIXME: ends don't have connections, hence no outputs
-              implementations += [[id, Schema::Implementation::Task(task, connections.collect { |output, _| output }) ]]
+              # FIXME: {:extensions} should be initialized
+              implementations += [[id, Schema::Implementation::Task(task, connections.collect { |output, _| output }, data[:extensions] || []) ]]
 
               intermediates += [
                 [
