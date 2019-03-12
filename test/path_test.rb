@@ -190,7 +190,7 @@ class PathTest < Minitest::Spec
   end
 
   describe "Path()" do
-    it "accepts {:end_task} and {:end_id}" do
+    it "accepts {:end_task} and {:end_id}" do # TODO: don't use Railway here.
       path_end = Activity::End.new(semantic: :roundtrip)
 
       state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState())

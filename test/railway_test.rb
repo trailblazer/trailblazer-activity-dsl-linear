@@ -6,7 +6,8 @@ class RailwayTest < Minitest::Spec
       # options for Railway
       failure_end: Class.new(Activity::End).new(semantic: :ready),
       # options going to Path.initial_sequence
-      track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"
+
+      initial_sequence: Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"),
     )
 
     Cct(compile_process(seq)).must_equal %{
