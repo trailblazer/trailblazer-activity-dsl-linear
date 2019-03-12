@@ -71,7 +71,7 @@ class PathTest < Minitest::Spec
 }
   end
 
-  it "accepts {:end}" do
+  it "accepts {:end_task}" do
     state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner"))
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g

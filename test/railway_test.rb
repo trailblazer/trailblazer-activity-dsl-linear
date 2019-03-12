@@ -2,14 +2,19 @@ require "test_helper"
 
 class RailwayTest < Minitest::Spec
   it "#initial_sequence" do
-    seq = Trailblazer::Activity::Railway::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
+    seq = Trailblazer::Activity::Railway::DSL.initial_sequence(
+      # options for Railway
+      failure_end: Class.new(Activity::End).new(semantic: :ready),
+      # options going to Path.initial_sequence
+      track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"
+    )
 
     Cct(compile_process(seq)).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
-#<End/:failure>
+#<#<Class:0x>/:ready>
 }
   end
 
@@ -374,31 +379,29 @@ class RailwayTest < Minitest::Spec
     end
   end
 
-  describe ":track_end and :failure_end" do
-    it "allows to define custom End instance" do
-      skip
-      class MyFail; end
-      class MySuccess; end
+  describe "{:end_task}, {:failure_end}" do
+    it "allows to define custom End instances" do
+      MyFailure = Class.new(Activity::End)
+      MySuccess = Class.new(Activity::End)
 
-      activity = Module.new do
-        extend Activity::Railway( track_end: MySuccess, failure_end: MyFail )
-
+      activity = Class.new(Activity::Railway(end_task: MySuccess.new(semantic: :my_success), failure_end: MyFailure.new(semantic: :my_failure))) do
         step task: T.def_task(:a)
       end
 
-      Cct(activity).must_equal %{
+      activity.to_h[:outputs].inspect.must_equal %{[#<struct Trailblazer::Activity::Output signal=#<RailwayTest::MySuccess semantic=:my_success>, semantic=:my_success>, \
+#<struct Trailblazer::Activity::Output signal=#<RailwayTest::MyFailure semantic=:my_failure>, semantic=:my_failure>]}
+
+      assert_circuit activity.to_h, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
 #<Method: #<Module:0x>.a>
- {Trailblazer::Activity::Right} => RailwayTest::MySuccess
- {Trailblazer::Activity::Left} => RailwayTest::MyFail
-RailwayTest::MySuccess
+ {Trailblazer::Activity::Left} => #<RailwayTest::MyFailure/:my_failure>
+ {Trailblazer::Activity::Right} => #<RailwayTest::MySuccess/:my_success>
+#<RailwayTest::MySuccess/:my_success>
 
-RailwayTest::MyFail
+#<RailwayTest::MyFailure/:my_failure>
 }
     end
   end
 
-
-    # normalizer
 end

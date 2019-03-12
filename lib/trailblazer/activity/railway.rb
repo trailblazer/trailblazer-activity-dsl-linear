@@ -112,10 +112,10 @@ module Trailblazer
 
         Right = Trailblazer::Activity::Right
 
-        def initial_sequence(options)
+        def initial_sequence(failure_end:, **path_options)
           # TODO: this could be an Activity itself but maybe a bit too much for now.
-          sequence = Path::DSL.initial_sequence(options)
-          sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :failure), magnetic_to: :failure, id: "End.failure")
+          sequence = Path::DSL.initial_sequence(path_options)
+          sequence = Path::DSL.append_end(sequence, task: failure_end, magnetic_to: :failure, id: "End.failure")
         end
 
         class State < Linear::State
@@ -145,8 +145,11 @@ module Trailblazer
         )
 
 
-        def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
-          initial_sequence = Railway::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id)
+        def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success",
+          failure_end: Activity::End.new(semantic: :failure),
+          **options)
+
+          initial_sequence = Railway::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id, failure_end: failure_end)
 
           {
             normalizers: normalizers,
@@ -185,5 +188,11 @@ module Trailblazer
       initialize!(DSL::State.new(DSL.OptionsForState()))
 
     end # Railway
+
+    def self.Railway(options)
+      Class.new(Railway) do
+        initialize!(Railway::DSL::State.new(Railway::DSL.OptionsForState(options)))
+      end
+    end
   end
 end
