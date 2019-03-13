@@ -4,7 +4,6 @@ module Trailblazer
     # Implementation module that can be passed to `Activity[]`.
     class Path# < Activity
       module DSL
-        # move out defaulting ( {|| :success} ) and move it into one central place. easier to debug/understand where values come from.
         Linear = Activity::DSL::Linear # FIXME
 
         module_function
@@ -133,8 +132,6 @@ module Trailblazer
            }
         end
 
-        Linear = Activity::DSL::Linear
-
         class State < Linear::State
           def step(task, options={}, &block)
             options = @normalizer.(:step, normalizer_options: @normalizer_options, options: task, user_options: options)
@@ -149,7 +146,6 @@ module Trailblazer
         Normalizers = Linear::State::Normalizer.new(
           step:  Linear::Normalizer.activity_normalizer( Path::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
         )
-
 
         def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
           initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id) # DISCUSS: the standard initial_seq could be cached.
