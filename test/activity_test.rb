@@ -349,6 +349,17 @@ class ActivityTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
+
+
+    signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
+
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[:a, :b]}}
+
+    signal, (ctx, _) = Activity::TaskWrap.invoke(sub_activity, [{seq: []}, {}])
+
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[:a, :b, :f]}}
   end
 
   describe "#merge!" do
