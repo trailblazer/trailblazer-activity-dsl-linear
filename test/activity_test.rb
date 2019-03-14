@@ -362,6 +362,17 @@ class ActivityTest < Minitest::Spec
     ctx.inspect.must_equal %{{:seq=>[:a, :b, :f]}}
   end
 
+  it "assigns default {:id}" do
+    implementing = self.implementing
+
+    activity = Class.new(Activity::Path) do
+      step implementing.method(:a), id: :a
+      step task: implementing.method(:b)
+    end
+
+    activity.to_h[:nodes].collect(&:id).must_equal ["Start.default", :a, implementing.method(:b), "End.success"]
+  end
+
   describe "#merge!" do
     it "what" do
       implementing = self.implementing

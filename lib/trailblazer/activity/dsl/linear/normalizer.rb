@@ -27,6 +27,7 @@ module Trailblazer
               {
               "activity.normalize_outputs_from_dsl"     => method(:normalize_outputs_from_dsl),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
+              "activity.normalize_id"                   => method(:normalize_id),
               },
 
               Linear::Insert.method(:Prepend), "path.wirings"
@@ -60,6 +61,11 @@ module Trailblazer
             return Trailblazer::Activity::Right, [ctx.merge(task: wrapped_task), flow_options]
           end
 
+          def normalize_id((ctx, flow_options), **)
+            id = ctx[:id] || ctx[:task]
+
+            return Trailblazer::Activity::Right, [ctx.merge(id: id), flow_options]
+          end
 
 
           # make ctx[:options] the actual ctx
