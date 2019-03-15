@@ -367,7 +367,7 @@ class ActivityTest < Minitest::Spec
 
     activity = Class.new(Activity::Path) do
       step implementing.method(:a), id: :a
-      step task: implementing.method(:b)
+      step implementing.method(:b)
     end
 
     activity.to_h[:nodes].collect(&:id).must_equal ["Start.default", :a, implementing.method(:b), "End.success"]

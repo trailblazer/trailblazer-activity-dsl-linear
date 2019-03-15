@@ -15,6 +15,7 @@ module Trailblazer
               "activity.normalize_for_macro"            => method(:merge_user_options),
               "activity.normalize_normalizer_options"   => method(:merge_normalizer_options),
               "activity.normalize_context"              => method(:normalize_context),
+              "activity.normalize_id"                   => method(:normalize_id),
               "activity.wrap_task_with_step_interface"  => method(:wrap_task_with_step_interface), # last
               },
 
@@ -27,7 +28,6 @@ module Trailblazer
               {
               "activity.normalize_outputs_from_dsl"     => method(:normalize_outputs_from_dsl),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
-              "activity.normalize_id"                   => method(:normalize_id),
               },
 
               Linear::Insert.method(:Prepend), "path.wirings"
