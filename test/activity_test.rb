@@ -105,6 +105,35 @@ class ActivityTest < Minitest::Spec
 }
     end
 
+    it "provides incomplete circuit when referencing non-existant task" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Railway) do
+        step task: implementing.method(:f), id: :f
+        pass task: implementing.method(:c), id: :c, Output(:failure) => Id(:idontexist)
+        step task: implementing.method(:b), id: :b
+      end
+
+      process = activity.to_h
+
+      assert_process_for process, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Left} => #<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
+#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+    end
+
     it "accepts {Output() => Track()}"
 
     it "accepts {Output(Signal, :semantic) => Track()}" do
@@ -216,34 +245,24 @@ class ActivityTest < Minitest::Spec
     end
   end
 
-  it "provides incomplete circuit when referencing non-existant task" do
-    implementing = self.implementing
+  it "accepts {:magnetic_to}" do
+      implementing = self.implementing
 
-    activity = Class.new(Activity::Railway) do
-      step task: implementing.method(:f), id: :f
-      pass task: implementing.method(:c), id: :c, Output(:failure) => Id(:idontexist)
-      step task: implementing.method(:b), id: :b
-    end
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:a), id: :a, Output(:success) => Track(:new)
+        step implementing.method(:b), magnetic_to: :new
+      end
 
-    process = activity.to_h
-
-    assert_process_for process, :success, :failure, %{
+      assert_process_for activity.to_h, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
-#<Method: #<Module:0x>.c>
- {Trailblazer::Activity::Left} => #<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
 #<End/:success>
-
-#<End/:failure>
 }
-  end
+    end
 
 # Introspect
   it "provides additional {:data} for introspection" do
