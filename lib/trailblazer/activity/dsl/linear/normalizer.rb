@@ -189,7 +189,7 @@ module Trailblazer
 
           # TODO: make this extendable!
           def cleanup_options((ctx, flow_options), *)
-            new_ctx = ctx.reject { |k, v| [:connections, :outputs, :end_id, :step_interface_builder, :failure_end].include?(k) }
+            new_ctx = ctx.reject { |k, v| [:connections, :outputs, :end_id, :step_interface_builder, :failure_end, :track_name].include?(k) }
 
             return Trailblazer::Activity::Right, [new_ctx, flow_options]
           end
