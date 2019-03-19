@@ -32,6 +32,16 @@ module Trailblazer
 
               Linear::Insert.method(:Prepend), "path.wirings"
             )
+
+            seq = Trailblazer::Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
+              seq,
+
+              {
+              "activity.cleanup_options"     => method(:cleanup_options),
+              },
+
+              Linear::Insert.method(:Prepend), "End.success"
+            )
 # pp seq
             seq
           end
@@ -173,6 +183,13 @@ module Trailblazer
             end
 
             new_ctx = new_ctx.merge(outputs: outputs).merge(dsl_options)
+
+            return Trailblazer::Activity::Right, [new_ctx, flow_options]
+          end
+
+          # TODO: make this extendable!
+          def cleanup_options((ctx, flow_options), *)
+            new_ctx = ctx.reject { |k, v| [:connections, :outputs, :end_id, :step_interface_builder, :failure_end].include?(k) }
 
             return Trailblazer::Activity::Right, [new_ctx, flow_options]
           end
