@@ -170,7 +170,9 @@ module Trailblazer
       #   maintains the {state} with {seq} and normalizer options
       module Strategy
         def initialize!(state)
-          @state = state
+          @state    = state
+
+          recompile_activity!(state.to_h[:sequence]) # DISCUSS: move that to {State}?
         end
 
         def inherited(inheriter)
@@ -190,7 +192,11 @@ module Trailblazer
 
           seq = @state.send(type, *args) # E.g. {@state.step(..)}
 
-          schema = DSL::Linear::Compiler.(seq)
+          recompile_activity!(seq)
+        end
+
+        private def recompile_activity!(seq)
+          schema    = DSL::Linear::Compiler.(seq)
 
           @activity = Activity.new(schema)
         end

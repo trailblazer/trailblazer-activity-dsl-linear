@@ -272,7 +272,15 @@ class ActivityTest < Minitest::Spec
     exc.inspect.must_equal %{#<Trailblazer::Activity::DSL::Linear::Sequence::IndexError: :e>}
   end
 
+  it "allows empty inheritance" do
+    activity = Class.new(Activity::Path)
 
+    assert_process_for activity.to_h, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+  end
 
   it "allows inheritance / INSERTION options" do
     implementing = self.implementing
@@ -281,6 +289,8 @@ class ActivityTest < Minitest::Spec
       step implementing.method(:a), id: :a
       step implementing.method(:b), id: :b
     end
+
+    copy = Class.new(activity)
 
     sub_activity = Class.new(activity) do
       step implementing.method(:c), id: :c
@@ -296,6 +306,16 @@ class ActivityTest < Minitest::Spec
     process = activity.to_h
 
     assert_process_for process, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+
+    assert_process_for copy.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
 <*#<Method: #<Module:0x>.a>>

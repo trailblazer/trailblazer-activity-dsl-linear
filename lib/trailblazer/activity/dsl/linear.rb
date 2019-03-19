@@ -178,6 +178,10 @@ class Trailblazer::Activity
           self.class.new(normalizers: @normalizer, initial_sequence: @sequence, **@normalizer_options)
         end
 
+        def to_h
+          {sequence: @sequence} # FIXME.
+        end
+
         # Called from {#step} and friends.
         def task_for(type, task, options={}, &block)
           options = options.merge(dsl_track: type)
