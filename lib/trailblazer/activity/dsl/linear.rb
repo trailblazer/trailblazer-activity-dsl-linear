@@ -6,19 +6,6 @@ class Trailblazer::Activity
     module Linear
       module_function
 
-=begin
-      # The following 9 lines are due to the rubbish way Struct works in Ruby.
-      def self.Insertion(*args)
-        Insertion.new(*args).freeze
-      end
-
-      class Insertion < Struct.new(:connections, :outputs, :task, :wrap_task, :sequence_insert, :magnetic_to)
-        def initialize(connections:, outputs:, task:, wrap_task:, sequence_insert:, magnetic_to:)
-          super(connections, outputs, task, wrap_task, sequence_insert, magnetic_to)
-        end
-      end
-=end
-
       # {Sequence} consists of rows.
       # {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
       class Sequence < Array
@@ -39,7 +26,6 @@ class Trailblazer::Activity
 
           insert_function.(sequence, [row], *args)
         end
-
 
         def self.apply_adds(sequence, adds)
           adds.each do |add|
@@ -272,7 +258,8 @@ class Trailblazer::Activity
         def find_connections(seq_row, strategies, sequence)
           strategies.collect do |search|
             output, target_seq_row = search.(sequence, seq_row) # invoke the node's "connection search" strategy.
-raise "Couldn't find target for #{seq_row}" if target_seq_row.nil?
+
+            target_seq_row = sequence[0] if target_seq_row.nil? # connect to Start.default if target unknown. # DISCUSS: make this configurable, maybe?
 
             [
               output,                                     # implementation

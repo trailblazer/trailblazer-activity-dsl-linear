@@ -86,8 +86,7 @@ class ActivityTest < Minitest::Spec
 }
     end
 
-    it "accepts {Output() => Track()}" do
-      skip "FIXME: don't raise on unknown targets"
+    it "allows {Output() => Track(:unknown)} and connects unknown to Start.default" do
       implementing = self.implementing
 
       activity = Class.new(Activity::Path) do
@@ -101,10 +100,12 @@ class ActivityTest < Minitest::Spec
 <*#<Method: #<Module:0x>.a>>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => #<Start/:default>
 #<End/:success>
 }
     end
+
+    it "accepts {Output() => Track()}"
 
     it "accepts {Output(Signal, :semantic) => Track()}" do
       implementing = self.implementing
