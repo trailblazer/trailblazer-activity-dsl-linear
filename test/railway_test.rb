@@ -152,6 +152,47 @@ class RailwayTest < Minitest::Spec
         step task: implementing.method(:f), id: :f
         pass task: implementing.method(:c), id: :c
         fail task: implementing.method(:a), id: :a
+      end
+
+      process = activity.to_h
+
+      assert_process_for process, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Left} => #<End/:success>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
+
+  # right track
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :c]}}
+
+  # pass returns false
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: false}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :c], :c=>false}}
+    end
+
+    it "provides {pass}, II" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Railway) do
+        step task: implementing.method(:f), id: :f
+        pass task: implementing.method(:c), id: :c
+        fail task: implementing.method(:a), id: :a
         step task: implementing.method(:g), id: :g
       end
 

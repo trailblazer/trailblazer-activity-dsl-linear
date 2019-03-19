@@ -154,19 +154,11 @@ module Trailblazer
 
       class << self
         private def fail(*args, &block)
-          args = forward_block(args, block)
-
-          seq = @state.fail(*args)
-
-          @process = Linear::Compiler.(seq)
+          recompile_activity_for(:fail, *args, &block)
         end
 
         private def pass(*args, &block)
-          args = forward_block(args, block)
-
-          seq = @state.pass(*args)
-
-          @process = Linear::Compiler.(seq)
+          recompile_activity_for(:pass, *args, &block)
         end
       end
 

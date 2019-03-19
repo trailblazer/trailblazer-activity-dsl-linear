@@ -250,11 +250,14 @@ class ActivityTest < Minitest::Spec
 
     activity = Class.new(Activity::Railway) do
       step task: implementing.method(:f)
-      pass task: implementing.method(:c)
-      fail task: implementing.method(:b)
+      pass task: implementing.method(:c), id: :c
+      fail task: implementing.method(:b), id: :b
     end
+pp activity.to_h[:circuit]
 
-    activity.to_h[:nodes][1][:data].keys.inspect.must_equal %{[:track_name, :id, :track]}
+    activity.to_h[:nodes][1][:data].inspect.must_equal %{{:dsl_track=>:step}}
+    activity.to_h[:nodes][2][:data].inspect.must_equal %{{:dsl_track=>:pass}}
+    activity.to_h[:nodes][3][:data].inspect.must_equal %{{:dsl_track=>:fail}}
   end
 
 

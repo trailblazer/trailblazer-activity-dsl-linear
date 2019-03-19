@@ -182,16 +182,19 @@ module Trailblazer
 
         # @public
         private def step(*args, &block)
+          recompile_activity_for(:step, *args, &block)
+        end
+
+        private def recompile_activity_for(type, *args, &block)
           args = forward_block(args, block)
 
-          seq = @state.step(*args)
+          seq = @state.send(type, *args) # E.g. {@state.step(..)}
 
           schema = DSL::Linear::Compiler.(seq)
 
           @activity = Activity.new(schema)
         end
 
-        # @private
         private def forward_block(args, block)
           options = args[1]
           if options.is_a?(Hash) # FIXME: doesn't account {task: <>} and repeats logic from Normalizer.
