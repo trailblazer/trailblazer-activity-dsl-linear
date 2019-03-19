@@ -63,6 +63,7 @@ module Trailblazer
 
           def wrap_task_with_step_interface((ctx, flow_options), **)
             return Trailblazer::Activity::Right, [ctx, flow_options] unless ctx[:wrap_task]
+
             step_interface_builder = ctx[:step_interface_builder] # FIXME: use kw!
             task                   = ctx[:task] # FIXME: use kw!
 
