@@ -174,6 +174,14 @@ class Trailblazer::Activity
           self.class.new(normalizers: @normalizer, initial_sequence: @sequence, **@normalizer_options)
         end
 
+        def task_for(type, task, options={}, &block)
+          options = options.merge(dsl_track: type)
+
+          options = @normalizer.(type, normalizer_options: @normalizer_options, options: task, user_options: options)
+
+          @sequence = Linear::DSL.apply_adds_from_dsl(@sequence, options)
+        end
+
         # Compiles and maintains all final normalizers for a specific DSL.
         class Normalizer
           def compile_normalizer(normalizer_sequence)

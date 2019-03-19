@@ -119,21 +119,15 @@ module Trailblazer
 
         class State < Linear::State
           def step(task, options={}, &block)
-            options = @normalizer.(:step, normalizer_options: @normalizer_options, options: task, user_options: options)
-
-            @sequence = Linear::DSL.apply_adds_from_dsl(@sequence, options)
+            task_for(:step, task, options, &block)
           end
 
           def fail(task, options={}, &block)
-            options = @normalizer.(:fail, normalizer_options: @normalizer_options, options: task, user_options: options)
-
-            @sequence = Linear::DSL.apply_adds_from_dsl(@sequence, options)
+            task_for(:fail, task, options, &block)
           end
 
           def pass(task, options={}, &block)
-            options = @normalizer.(:pass, normalizer_options: @normalizer_options, options: task, user_options: options)
-
-            @sequence = Linear::DSL.apply_adds_from_dsl(@sequence, options)
+            task_for(:pass, task, options, &block)
           end
         end # State
 

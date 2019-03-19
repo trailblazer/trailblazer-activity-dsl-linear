@@ -9,7 +9,7 @@ module Trailblazer
         module_function
 
         def normalizer
-          step_options_for_path(Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"))
+          prepend_step_options(Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"))
         end
 
         # FIXME: where does Start come from?
@@ -91,7 +91,7 @@ module Trailblazer
         end
 
         # Return {Path::Normalizer} sequence.
-        def step_options_for_path(sequence)
+        def prepend_step_options(sequence)
           prepend_to_path(
             sequence,
 
@@ -134,9 +134,7 @@ module Trailblazer
 
         class State < Linear::State
           def step(task, options={}, &block)
-            options = @normalizer.(:step, normalizer_options: @normalizer_options, options: task, user_options: options)
-
-            @sequence = Linear::DSL.apply_adds_from_dsl(@sequence, options)
+            task_for(:step, task, options, &block)
           end
         end # State
 

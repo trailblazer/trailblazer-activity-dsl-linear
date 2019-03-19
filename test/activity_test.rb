@@ -244,6 +244,19 @@ class ActivityTest < Minitest::Spec
 }
   end
 
+# Introspect
+  it "provides additional {:data} for introspection" do
+    implementing = self.implementing
+
+    activity = Class.new(Activity::Railway) do
+      step task: implementing.method(:f)
+      pass task: implementing.method(:c)
+      fail task: implementing.method(:b)
+    end
+
+    activity.to_h[:nodes][1][:data].keys.inspect.must_equal %{[:track_name, :id, :track]}
+  end
+
 
 
   it "allows inheritance / INSERTION options" do
