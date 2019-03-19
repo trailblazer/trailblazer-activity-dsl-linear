@@ -48,6 +48,8 @@ class Trailblazer::Activity
 
           sequence
         end
+
+        class IndexError < IndexError; end
       end
 
       # Sequence
@@ -121,7 +123,9 @@ class Trailblazer::Activity
         end
 
         def find(sequence, insert_id)
-          return find_index(sequence, insert_id), sequence.clone # Ruby doesn't have an easy way to avoid mutating arrays :(
+          index = find_index(sequence, insert_id) or raise Sequence::IndexError.new(insert_id.inspect)
+
+          return index, sequence.clone # Ruby doesn't have an easy way to avoid mutating arrays :(
         end
       end
 

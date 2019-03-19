@@ -259,6 +259,19 @@ class ActivityTest < Minitest::Spec
     activity.to_h[:nodes][3][:data].inspect.must_equal %{{:id=>:b, :dsl_track=>:fail}}
   end
 
+# Sequence insert
+  it "throws an IndexError exception when {:after} references non-existant" do
+    implementing = self.implementing
+
+    exc = assert_raises Activity::DSL::Linear::Sequence::IndexError do
+      activity = Class.new(Activity::Railway) do
+        step task: implementing.method(:f), after: :e
+      end
+    end
+
+    exc.inspect.must_equal %{#<Trailblazer::Activity::DSL::Linear::Sequence::IndexError: :e>}
+  end
+
 
 
   it "allows inheritance / INSERTION options" do
