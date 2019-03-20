@@ -476,6 +476,14 @@ class ActivityTest < Minitest::Spec
   end
 
   describe "#Subprocess" do
+    def scenario(*, &block) # TODO: move to {organic}.
+      yield
+    end
+    def test(*, &block)
+      yield
+    end
+
+    # scenario
     it "automatically provides {:outputs}" do
       implementing = T.def_steps(:a, :b, :c)
 
@@ -489,17 +497,41 @@ class ActivityTest < Minitest::Spec
         step implementing.method(:c)
       end
 
-# a --> Nested(b) --> c
-      signal, (ctx, _) = activity.([{seq: []}])
+      scenario "automatic wiring from Subprocess()" do
+  # a --> Nested(b) --> c
+        signal, (ctx, _) = activity.([{seq: []}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal     %{{:seq=>[:a, :b, :c]}}
+        signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+        ctx.inspect.must_equal     %{{:seq=>[:a, :b, :c]}}
 
-# a --> Nested(b) --> :failure
-      signal, (ctx, _) = activity.([{seq: [], b: false}])
+  # a --> Nested(b) --> :failure
+        signal, (ctx, _) = activity.([{seq: [], b: false}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      ctx.inspect.must_equal     %{{:seq=>[:a, :b], :b=>false}}
+        signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+        ctx.inspect.must_equal     %{{:seq=>[:a, :b], :b=>false}}
+      end
+
+      scenario "manual wiring with Subprocess()" do
+        activity = Class.new(Activity::Railway) do
+          step implementing.method(:a)
+          step Subprocess(nested), Output(:success) => Track(:failure)
+          step implementing.method(:c)
+        end
+
+        test "Nested's :success End is mapped to outer :failure" do
+          signal, (ctx, _) = activity.([{seq: []}])
+
+          signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+          ctx.inspect.must_equal     %{{:seq=>[:a, :b]}}
+        end
+
+        test "Nested's :failure goes to outer :failure per default" do
+          signal, (ctx, _) = activity.([{seq: [], b: false}])
+
+          signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+          ctx.inspect.must_equal     %{{:seq=>[:a, :b], :b=>false}}
+        end
+      end
     end
   end
 
