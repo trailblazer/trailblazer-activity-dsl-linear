@@ -38,7 +38,7 @@ class FastTrackTest < Minitest::Spec
 
       process = activity.to_h
 
-      assert_process_for process, :success, :failure, %{
+      assert_process_for process, :success, :pass_fast, :fail_fast, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
 #<Method: #<Module:0x>.f>
@@ -60,6 +60,10 @@ class FastTrackTest < Minitest::Spec
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
 
 #<End/:failure>
 }

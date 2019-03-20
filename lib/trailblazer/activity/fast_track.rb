@@ -7,6 +7,7 @@ module Trailblazer
     # Implementation module that can be passed to `Activity[]`.
     class FastTrack < Trailblazer::Activity
       Linear = Activity::DSL::Linear
+      Right  = Trailblazer::Activity::Right
 
       # Signals
       FailFast = Class.new(Signal)
@@ -14,7 +15,6 @@ module Trailblazer
 
       module DSL
         module_function
-        Right = Trailblazer::Activity::Right
 
         def normalizer
           step_options(Trailblazer::Activity::Railway::DSL.normalizer)
@@ -77,28 +77,46 @@ module Trailblazer
           sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :fail_fast), magnetic_to: :fail_fast, id: "End.fail_fast")
           sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :pass_fast), magnetic_to: :pass_fast, id: "End.pass_fast")
         end
+
+
+
+        # This is slow and should be done only once at compile-time,
+        # DISCUSS: maybe make this a function?
+        # These are the normalizers for an {Activity}, to be injected into a State.
+        Normalizers = Linear::State::Normalizer.new(
+          step: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
+          fail: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer_for_fail ),
+        )
+
+
+        def self.OptionsForState(normalizers: Normalizers, **options)
+          options = Railway::DSL.OptionsForState(options).
+              merge(normalizers: normalizers)
+
+          initial_sequence = FastTrack::DSL.initial_sequence(**options)
+
+          {
+            **options,
+            initial_sequence: initial_sequence,
+          }
+        end
       end # DSL
 
-      # This is slow and should be done only once at compile-time,
-      # DISCUSS: maybe make this a function?
-      # These are the normalizers for an {Activity}, to be injected into a State.
-      Normalizers = Linear::State::Normalizer.new(
-        step:  Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
-        fail: FastTrack::DSL.normalizer_for_fail,
-      )
 
+      class << self
+        private def fail(*args, &block)
+          recompile_activity_for(:fail, *args, &block) # from Path::Strategy
+        end
 
-      def self.OptionsForState(normalizers: Normalizers, **options)
-        options = Railway::DSL.OptionsForState(options).
-            merge(normalizers: normalizers)
-
-        initial_sequence = FastTrack::DSL.initial_sequence(**options)
-
-        {
-          **options,
-          initial_sequence: initial_sequence,
-        }
+        private def pass(*args, &block)
+          recompile_activity_for(:pass, *args, &block) # from Path::Strategy
+        end
       end
-    end # options_for_state
+
+      extend Path::Strategy
+
+      initialize!(Railway::DSL::State.new(DSL.OptionsForState()))
+
+    end # FastTrack
   end
 end
