@@ -57,7 +57,7 @@ class Trailblazer::Activity
     end
 
     # Computes the {:outputs} options for {activity}.
-    def Subprocess(activity) # TODO: test me.
+    def Subprocess(activity)
       {
         task:    activity,
         outputs: Hash[activity.to_h[:outputs].collect { |output| [output.semantic, output] }]

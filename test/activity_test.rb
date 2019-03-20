@@ -475,6 +475,34 @@ class ActivityTest < Minitest::Spec
     end
   end
 
+  describe "#Subprocess" do
+    it "automatically provides {:outputs}" do
+      implementing = T.def_steps(:a, :b, :c)
+
+      nested = Class.new(Activity::Railway) do
+        step implementing.method(:b)
+      end
+
+      activity = Class.new(Activity::Railway) do
+        step implementing.method(:a)
+        step Subprocess(nested)
+        step implementing.method(:c)
+      end
+
+# a --> Nested(b) --> c
+      signal, (ctx, _) = activity.([{seq: []}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal     %{{:seq=>[:a, :b, :c]}}
+
+# a --> Nested(b) --> :failure
+      signal, (ctx, _) = activity.([{seq: [], b: false}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+      ctx.inspect.must_equal     %{{:seq=>[:a, :b], :b=>false}}
+    end
+  end
+
   describe "Path()" do
     it "allows referencing the activity classes' methods in the {Path} block" do
       activity = Class.new(Activity::Path) do
