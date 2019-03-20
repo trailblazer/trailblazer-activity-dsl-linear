@@ -26,6 +26,10 @@ module Trailblazer
           step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_fail)
         end
 
+        def normalizer_for_pass
+          step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_pass)
+        end
+
         def step_options(sequence)
           Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
             sequence,
@@ -91,6 +95,7 @@ module Trailblazer
         Normalizers = Linear::State::Normalizer.new(
           step: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
           fail: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer_for_fail ),
+          pass: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer_for_pass ),
         )
 
         def self.OptionsForState(normalizers: Normalizers, **options)

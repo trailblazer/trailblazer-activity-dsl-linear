@@ -69,7 +69,7 @@ class FastTrackTest < Minitest::Spec
         step implementing.method(:g), id: :g
         step implementing.method(:c), id: :c, fast_track: true
         fail implementing.method(:b), id: :b
-        step implementing.method(:d), id: :d
+        pass implementing.method(:d), id: :d
       end
 
       process = activity.to_h
@@ -95,7 +95,7 @@ class FastTrackTest < Minitest::Spec
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
 <*#<Method: #<Module:0x>.d>>
- {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Left} => #<End/:success>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
