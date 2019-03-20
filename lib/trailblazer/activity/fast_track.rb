@@ -6,6 +6,8 @@ module Trailblazer
 
     # Implementation module that can be passed to `Activity[]`.
     class FastTrack < Trailblazer::Activity
+      Linear = Activity::DSL::Linear
+
       # Signals
       FailFast = Class.new(Signal)
       PassFast = Class.new(Signal)
@@ -69,20 +71,14 @@ module Trailblazer
 
 
 
-        def initial_sequence
-          # TODO: this could be an Activity itself but maybe a bit too much for now.
-          sequence = Railway::DSL.initial_sequence
+        def initial_sequence(initial_sequence:, **)
+          sequence = initial_sequence
 
           sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :fail_fast), magnetic_to: :fail_fast, id: "End.fail_fast")
           sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :pass_fast), magnetic_to: :pass_fast, id: "End.pass_fast")
         end
       end # DSL
 
-      def self.initial_sequence # FIXME: 2BRM
-        DSL.initial_sequence
-      end
-
-      Linear = Activity::DSL::Linear
       # This is slow and should be done only once at compile-time,
       # DISCUSS: maybe make this a function?
       # These are the normalizers for an {Activity}, to be injected into a State.
@@ -92,19 +88,15 @@ module Trailblazer
       )
 
 
-      def self.OptionsForState(normalizers: Normalizers, track_name: :success, left_track_name: :failure, **options)
-        initial_sequence = FastTrack::DSL.initial_sequence
+      def self.OptionsForState(normalizers: Normalizers, **options)
+        options = Railway::DSL.OptionsForState(options).
+            merge(normalizers: normalizers)
+
+        initial_sequence = FastTrack::DSL.initial_sequence(**options)
 
         {
-          normalizers: normalizers,
+          **options,
           initial_sequence: initial_sequence,
-          normalizer_options: {
-            track_name: track_name,
-            left_track_name: left_track_name,
-            step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary),
-            adds: [], # FIXME: EH.
-            **options
-          }
         }
       end
     end # options_for_state
