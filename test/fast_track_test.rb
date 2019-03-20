@@ -22,43 +22,48 @@ class FastTrackTest < Minitest::Spec
 }
     end
 
+    it "allows overriding all 4 ends" do
+      raise
+    end
+
+
   describe "Activity::FastTrack" do
 
     it "provides defaults" do
-      implementing = self.implementing
+      implementing = T.def_steps(:f, :a, :g, :c, :b, :d)
 
       activity = Class.new(Activity::FastTrack) do
-        step task: implementing.method(:f), id: :f
-        fail task: implementing.method(:a), id: :a
-        step task: implementing.method(:g), id: :g
-        step task: implementing.method(:c), id: :c, fast_track: true
-        fail task: implementing.method(:b), id: :b
-        step task: implementing.method(:d), id: :d
+        step implementing.method(:f), id: :f
+        fail implementing.method(:a), id: :a
+        step implementing.method(:g), id: :g
+        step implementing.method(:c), id: :c, fast_track: true
+        fail implementing.method(:b), id: :b
+        step implementing.method(:d), id: :d
       end
 
       process = activity.to_h
 
       assert_process_for process, :success, :pass_fast, :fail_fast, :failure, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.a>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
-#<Method: #<Module:0x>.a>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.g>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
-#<Method: #<Module:0x>.c>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.d>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
+<*#<Method: #<Module:0x>.f>>
+ {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.g>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+<*#<Method: #<Module:0x>.g>>
+ {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
+<*#<Method: #<Module:0x>.c>>
+ {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.d>>
  {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
  {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
-#<Method: #<Module:0x>.b>
+<*#<Method: #<Module:0x>.b>>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
-#<Method: #<Module:0x>.d>
+<*#<Method: #<Module:0x>.d>>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
@@ -87,6 +92,19 @@ class FastTrackTest < Minitest::Spec
 
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
       ctx.inspect.must_equal     %{{:seq=>[:f, :g, :b], :g=>false}}
+
+  # c --> pass_fast
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: Trailblazer::Activity::FastTrack::PassFast}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c], :c=>Trailblazer::Activity::FastTrack::PassFast}}
+
+  # c --> fail_fast
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: Trailblazer::Activity::FastTrack::FailFast}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c], :c=>Trailblazer::Activity::FastTrack::FailFast}}
+
     end
   end
 
