@@ -28,9 +28,12 @@ module Trailblazer
           Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
             sequence,
 
-            "fast_track.pass_fast_option"  => method(:pass_fast_option),
-            "fast_track.fail_fast_option"  => method(:fail_fast_option),
-            "fast_track.fast_track_option" => method(:fast_track_option),
+            {
+              "fast_track.pass_fast_option"  => method(:pass_fast_option),
+              "fast_track.fail_fast_option"  => method(:fail_fast_option),
+              "fast_track.fast_track_option" => method(:fast_track_option),
+            },
+            Linear::Insert.method(:Prepend), "path.wirings"
           )
         end
 
@@ -87,7 +90,6 @@ module Trailblazer
           step: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
           fail: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer_for_fail ),
         )
-
 
         def self.OptionsForState(normalizers: Normalizers, **options)
           options = Railway::DSL.OptionsForState(options).

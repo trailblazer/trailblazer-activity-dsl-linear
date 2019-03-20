@@ -20,6 +20,7 @@ module Trailblazer
           id = "railway.magnetic_to.fail"
           task = Fail.method(:merge_magnetic_to)
 
+# TODO: use prepend_to_path
           sequence = Linear::DSL.insert_task(sequence,
             task: task,
             magnetic_to: :success, id: id,
