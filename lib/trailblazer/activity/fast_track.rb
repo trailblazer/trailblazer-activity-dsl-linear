@@ -7,7 +7,7 @@ module Trailblazer
     end
 
     # Implementation module that can be passed to `Activity[]`.
-    class FastTrack < Trailblazer::Activity
+    class FastTrack
       Linear = Activity::DSL::Linear
       Right  = Trailblazer::Activity::Right
 
