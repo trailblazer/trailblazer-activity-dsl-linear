@@ -1,7 +1,9 @@
 module Trailblazer
   class Activity
-    def self.FastTrack(options={})
-      FastTrack.new(FastTrack, options)
+    def self.FastTrack(options)
+      Class.new(FastTrack) do
+        initialize!(Railway::DSL::State.new(FastTrack::DSL.OptionsForState(options)))
+      end
     end
 
     # Implementation module that can be passed to `Activity[]`.
@@ -74,11 +76,11 @@ module Trailblazer
 
 
 
-        def initial_sequence(initial_sequence:, **)
+        def initial_sequence(initial_sequence:, fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **)
           sequence = initial_sequence
 
-          sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :fail_fast), magnetic_to: :fail_fast, id: "End.fail_fast")
-          sequence = Path::DSL.append_end(sequence, task: Activity::End.new(semantic: :pass_fast), magnetic_to: :pass_fast, id: "End.pass_fast")
+          sequence = Path::DSL.append_end(sequence, task: fail_fast_end, magnetic_to: :fail_fast, id: "End.fail_fast")
+          sequence = Path::DSL.append_end(sequence, task: pass_fast_end, magnetic_to: :pass_fast, id: "End.pass_fast")
         end
 
 

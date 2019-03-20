@@ -20,12 +20,43 @@ class FastTrackTest < Minitest::Spec
 
 #<End/:failure>
 }
-    end
+  end
 
-    it "allows overriding all 4 ends" do
-      raise
-    end
+  describe "{:end_task}, {:failure_end}, {:fail_fast_end}, {:pass_fast_end}" do
+    it "allows to define custom End instances" do
+      MyFailure  = Class.new(Activity::End)
+      MySuccess  = Class.new(Activity::End)
+      MyPassFast = Class.new(Activity::End)
+      MyFailFast = Class.new(Activity::End)
 
+      activity = Class.new(Activity::FastTrack(
+          end_task: MySuccess.new(semantic: :my_success),
+          failure_end: MyFailure.new(semantic: :my_failure),
+          fail_fast_end: MyFailFast.new(semantic: :fail_fast),
+          pass_fast_end: MyPassFast.new(semantic: :pass_fast),
+        )) do
+
+        step task: T.def_task(:a)
+      end
+
+      activity.to_h[:outputs].inspect.must_equal %{[#<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MySuccess semantic=:my_success>, semantic=:my_success>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyPassFast semantic=:pass_fast>, semantic=:pass_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailFast semantic=:fail_fast>, semantic=:fail_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailure semantic=:my_failure>, semantic=:my_failure>]}
+
+      assert_circuit activity.to_h, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<FastTrackTest::MyFailure/:my_failure>
+ {Trailblazer::Activity::Right} => #<FastTrackTest::MySuccess/:my_success>
+#<FastTrackTest::MySuccess/:my_success>
+
+#<FastTrackTest::MyPassFast/:pass_fast>
+
+#<FastTrackTest::MyFailFast/:fail_fast>
+
+#<FastTrackTest::MyFailure/:my_failure>
+}
+    end
+  end
 
   describe "Activity::FastTrack" do
 
@@ -174,6 +205,4 @@ class FastTrackTest < Minitest::Spec
     end
   end
 
-
-    # normalizer
 end
