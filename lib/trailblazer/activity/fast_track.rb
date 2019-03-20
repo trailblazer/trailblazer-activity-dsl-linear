@@ -23,11 +23,29 @@ module Trailblazer
         end
 
         def normalizer_for_fail
-          step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_fail)
+          sequence = step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_fail)
+
+          Path::DSL.prepend_to_path(
+            sequence,
+
+            {
+              "fast_track.fail_fast_option_for_fail"  => method(:fail_fast_option_for_fail),
+            },
+            Linear::Insert.method(:Prepend), "path.wirings"
+          )
         end
 
         def normalizer_for_pass
-          step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_pass)
+          sequence = step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_pass)
+
+          Path::DSL.prepend_to_path(
+            sequence,
+
+            {
+              "fast_track.pass_fast_option_for_pass"  => method(:pass_fast_option_for_pass),
+            },
+            Linear::Insert.method(:Prepend), "path.wirings"
+          )
         end
 
         def step_options(sequence)
@@ -49,8 +67,22 @@ module Trailblazer
           return Right, [ctx, flow_options]
         end
 
+        def pass_fast_option_for_pass((ctx, flow_options), *)
+          ctx = merge_connections_for(ctx, ctx, :pass_fast, :failure)
+          ctx = merge_connections_for(ctx, ctx, :pass_fast, :success)
+
+          return Right, [ctx, flow_options]
+        end
+
         def fail_fast_option((ctx, flow_options), *)
           ctx = merge_connections_for(ctx, ctx, :fail_fast, :failure)
+
+          return Right, [ctx, flow_options]
+        end
+
+        def fail_fast_option_for_fail((ctx, flow_options), *)
+          ctx = merge_connections_for(ctx, ctx, :fail_fast, :failure)
+          ctx = merge_connections_for(ctx, ctx, :fail_fast, :success)
 
           return Right, [ctx, flow_options]
         end
@@ -61,11 +93,9 @@ module Trailblazer
           ctx = merge_connections_for(ctx, ctx, :fast_track, :fail_fast, :fail_fast)
           ctx = merge_connections_for(ctx, ctx, :fast_track, :pass_fast, :pass_fast)
 
-          ctx = ctx.merge(
-            outputs: {
-              pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast),
-              fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast),
-            }.merge(ctx[:outputs])
+          ctx = merge_outputs_for(ctx,
+            pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast),
+            fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast),
           )
 
           return Right, [ctx, flow_options]
@@ -78,7 +108,11 @@ module Trailblazer
           ctx          = ctx.merge(connections: connections)
         end
 
-
+        def merge_outputs_for(ctx, outputs)
+          ctx = ctx.merge(
+            outputs: outputs.merge(ctx[:outputs])
+          )
+        end
 
         def initial_sequence(initial_sequence:, fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **)
           sequence = initial_sequence
@@ -110,7 +144,6 @@ module Trailblazer
           }
         end
       end # DSL
-
 
       class << self
         private def fail(*args, &block)

@@ -56,11 +56,11 @@ class Trailblazer::Activity
       return Track.new(track_color, adds)
     end
 
-    # Computes the :outputs options for {activity}
-    def Subprocess(activity)
+    # Computes the {:outputs} options for {activity}.
+    def Subprocess(activity) # TODO: test me.
       {
         task:    activity,
-        outputs: activity.outputs
+        outputs: Hash[activity.to_h[:outputs].collect { |output| [output.semantic, output] }]
       }
     end
 
