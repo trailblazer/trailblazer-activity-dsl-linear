@@ -5,6 +5,7 @@ module Trailblazer
     class Path# < Activity
       module DSL
         Linear = Activity::DSL::Linear # FIXME
+        Right  = Trailblazer::Activity::Right
 
         module_function
 
@@ -12,8 +13,6 @@ module Trailblazer
           prepend_step_options(Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"))
         end
 
-        # FIXME: where does Start come from?
-        Right = Trailblazer::Activity::Right
         def start_sequence(track_name:)
           start_default = Trailblazer::Activity::Start.new(semantic: :default)
           start_event   = Linear::Sequence.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
