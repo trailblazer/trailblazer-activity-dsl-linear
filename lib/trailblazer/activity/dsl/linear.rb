@@ -259,7 +259,7 @@ class Trailblazer::Activity
           strategies.collect do |search|
             output, target_seq_row = search.(sequence, seq_row) # invoke the node's "connection search" strategy.
 
-            target_seq_row = sequence[0] if target_seq_row.nil? # connect to Start.default if target unknown. # DISCUSS: make this configurable, maybe?
+            target_seq_row = sequence[-1] if target_seq_row.nil? # connect to an End if target unknown. # DISCUSS: make this configurable, maybe?
 
             [
               output,                                     # implementation

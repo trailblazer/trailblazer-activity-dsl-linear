@@ -25,11 +25,10 @@ module Trailblazer
         def prepend_to_path(sequence, steps, insertion_method=Linear::Insert.method(:Prepend), insert_id="End.success")
           new_rows = steps.collect do |id, task|
             Linear::Sequence.create_row(
-              task:        task,
-              magnetic_to: :success,
-              wirings:     [Linear::Search::Forward(unary_outputs[:success], :success)],
-              id: id,
-              #outputs: unary_outputs, connections: unary_connections,
+              task:         task,
+              magnetic_to:  :success,
+              wirings:      [Linear::Search::Forward(unary_outputs[:success], :success)],
+              id:           id,
             )
           end
 
@@ -85,7 +84,7 @@ module Trailblazer
         def normalize_magnetic_to((ctx, flow_options), *) # TODO: merge with Railway.merge_magnetic_to
           raise unless track_name = ctx[:track_name]# TODO: make track_name required kw.
 
-          ctx = ctx.merge(magnetic_to: track_name)
+          ctx = {magnetic_to: track_name}.merge(ctx)
 
           return Right, [ctx, flow_options]
         end

@@ -100,7 +100,7 @@ class ActivityTest < Minitest::Spec
 <*#<Method: #<Module:0x>.a>>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => #<Start/:default>
+ {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
     end
@@ -249,7 +249,7 @@ class ActivityTest < Minitest::Spec
       implementing = self.implementing
 
       activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a, Output(:success) => Track(:new)
+        step implementing.method(:a), id: :a, Output(:success) => Track(:new), Output(false, :failure) => Track(:success)
         step implementing.method(:b), magnetic_to: :new
       end
 
@@ -257,9 +257,10 @@ class ActivityTest < Minitest::Spec
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
 <*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+ {false} => #<End/:success>
+<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
     end
