@@ -12,6 +12,7 @@ module Trailblazer
 
               {
               "activity.normalize_step_interface"       => method(:normalize_step_interface),      # first
+              "activity.normalize_override"             => method(:normalize_override),
               "activity.normalize_for_macro"            => method(:merge_user_options),
               "activity.normalize_normalizer_options"   => method(:merge_normalizer_options),
               "activity.normalize_context"              => method(:normalize_context),
@@ -76,6 +77,15 @@ module Trailblazer
             id = ctx[:id] || ctx[:task]
 
             return Trailblazer::Activity::Right, [ctx.merge(id: id), flow_options]
+          end
+
+          # {:override} really only makes sense for {step Macro(), {override: true}} where the {user_options}
+          # dictate the overriding.
+          def normalize_override((ctx, flow_options), *)
+            user_options = ctx[:user_options]
+            user_options = user_options.merge(replace: ctx[:options][:id] || raise) if ctx[:user_options][:override]
+
+            return Trailblazer::Activity::Right, [ctx.merge(user_options: user_options), flow_options]
           end
 
 

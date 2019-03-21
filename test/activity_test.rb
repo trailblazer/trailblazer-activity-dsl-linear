@@ -46,6 +46,35 @@ class ActivityTest < Minitest::Spec
 }
     end
 
+    it "accepts {:override}" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Railway) do
+        step implementing.method(:a), id: :a
+        step implementing.method(:b), id: :b
+        step(
+          {id: :a, task: implementing.method(:c)}, # macro
+          override: true
+        )
+
+        pp @state
+      end
+
+      assert_process_for activity.to_h, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+    end
+
     it "accepts {Output() => End()}" do
       implementing = self.implementing
 
