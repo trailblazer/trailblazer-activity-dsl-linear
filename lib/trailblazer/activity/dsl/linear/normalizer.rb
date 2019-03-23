@@ -2,6 +2,8 @@ module Trailblazer
   class Activity
     module DSL
       module Linear
+        # Normalizers are linear activities that process and normalize the options from a DSL call. They're
+        # usually invoked from {Strategy#task_for}, which is called from {Path#step}, {Railway#pass}, etc.
         module Normalizer
           module_function
 

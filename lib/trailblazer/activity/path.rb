@@ -132,10 +132,7 @@ module Trailblazer
            }
         end
 
-        class State < Linear::State
-          def step(task, options={}, &block)
-            task_for(:step, task, options, &block)
-          end
+        class State < Linear::State # TODO: remove
         end # State
 
         # This is slow and should be done only once at compile-time,
@@ -163,7 +160,7 @@ module Trailblazer
       end # DSL
 
       # {Activity}
-      #   holds the process (why?) (for modelling/connecting!)
+      #   holds the {@schema}
       #   provides DSL step/merge!
       #   provides DSL inheritance
       #   provides run-time {call}
@@ -182,6 +179,19 @@ module Trailblazer
           inheriter.initialize!(@state.copy)
         end
 
+        # Called from {#step} and friends.
+        def task_for(type, task, options={}, &block)
+          options = options.merge(dsl_track: type)
+
+          # {#update_sequence} is the only way to mutate the state instance.
+          @state.update_sequence do |sequence:, normalizers:, normalizer_options:|
+            # Compute the sequence rows.
+            options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options)
+
+            sequence = Linear::DSL.apply_adds_from_dsl(sequence, options)
+          end
+        end
+
         # @public
         private def step(*args, &block)
           recompile_activity_for(:step, *args, &block)
@@ -190,7 +200,7 @@ module Trailblazer
         private def recompile_activity_for(type, *args, &block)
           args = forward_block(args, block)
 
-          seq = @state.send(type, *args) # E.g. {@state.step(..)}
+          seq  = task_for(type, *args)
 
           recompile_activity!(seq)
         end
