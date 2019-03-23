@@ -88,7 +88,6 @@ module Trailblazer
             return Trailblazer::Activity::Right, [ctx.merge(user_options: user_options), flow_options]
           end
 
-
           # make ctx[:options] the actual ctx
           def merge_user_options((ctx, flow_options), *)
             options = ctx[:options] # either a <#task> or {} from macro

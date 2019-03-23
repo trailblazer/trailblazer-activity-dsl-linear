@@ -5,16 +5,18 @@ module Trailblazer
     class Path# < Activity
       module DSL
         Linear = Activity::DSL::Linear # FIXME
-        Right  = Trailblazer::Activity::Right
+        Right  = Activity::Right
 
         module_function
 
         def normalizer
-          prepend_step_options(Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"))
+          prepend_step_options(
+            initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
+          )
         end
 
         def start_sequence(track_name:)
-          start_default = Trailblazer::Activity::Start.new(semantic: :default)
+          start_default = Activity::Start.new(semantic: :default)
           start_event   = Linear::Sequence.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
           sequence      = Linear::Sequence[start_event]
         end
@@ -152,7 +154,7 @@ module Trailblazer
 
             track_name:             track_name,
             end_id:                 end_id,
-            step_interface_builder: Trailblazer::Activity::TaskBuilder.method(:Binary), # DISCUSS: this is currently the only option we want to pass on in Path() ?
+            step_interface_builder: Activity::TaskBuilder.method(:Binary), # DISCUSS: this is currently the only option we want to pass on in Path() ?
             adds:                   [],
             **options
           }

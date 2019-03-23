@@ -56,8 +56,6 @@ class ActivityTest < Minitest::Spec
           {id: :a, task: implementing.method(:c)}, # macro
           override: true
         )
-
-        pp @state
       end
 
       assert_process_for activity.to_h, :success, :failure, %{
@@ -72,6 +70,35 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 
 #<End/:failure>
+}
+    end
+
+    it "allows setting a custom, new end" do
+      implementing = self.implementing
+
+      new_end = Activity::End(:new)
+
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:a), id: :a
+
+        step task: new_end, id: :new_end,
+          # by providing {:stop_event} and {:outputs} options, we can create an End.
+          stop_event: true,
+          outputs:    {success: Activity::Output.new(new_end, new_end.to_h[:semantic])}
+
+        step implementing.method(:b), id: :b, magnetic_to: nil
+      end
+
+      assert_process_for activity.to_h, :new, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => #<End/:new>
+#<End/:new>
+
+<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
 }
     end
 
