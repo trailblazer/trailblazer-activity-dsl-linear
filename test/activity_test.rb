@@ -123,6 +123,19 @@ class ActivityTest < Minitest::Spec
 }
     end
 
+    it "doesn't create the same End twice" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Railway) do
+        step implementing.method(:a), Output(:failure) => End(:new)
+        step implementing.method(:c)
+        step implementing.method(:b), Output(:failure) => End(:new)
+      end
+
+      assert_process_for activity.to_h, :success, :new, :failure, %{
+      }
+    end
+
     it "accepts {Output() => Id()}" do
       implementing = self.implementing
 
@@ -597,7 +610,7 @@ class ActivityTest < Minitest::Spec
         extend T.def_tasks(:a, :b, :c)
 
         step method(:a), id: :a, Output(:success) => Path(end_id: "End.path", end_task: End(:path)) do |path|
-          path.step method(:c), id: :c
+          step method(:c), id: :c
         end
         step method(:b), id: :b
       end
