@@ -609,8 +609,9 @@ class ActivityTest < Minitest::Spec
       activity = Class.new(Activity::Path) do
         extend T.def_tasks(:a, :b, :c)
 
-        step method(:a), id: :a, Output(:success) => Path(end_id: "End.path", end_task: End(:path)) do |path|
-          step method(:c), id: :c
+        out = self
+        step method(:a), id: :a, Output(:success) => Path(end_id: "End.path", end_task: End(:path)) do
+          step out.method(:c), id: :c
         end
         step method(:b), id: :b
       end
@@ -639,8 +640,9 @@ class ActivityTest < Minitest::Spec
       activity = Class.new(Activity::Path(shared_options)) do
         extend T.def_steps(:a, :b, :c)
 
-        step method(:a), id: :a, Output(:success) => Path(end_id: "End.path", end_task: End(:path)) do |path|
-          path.step method(:c), id: :c
+        path = self
+        step method(:a), id: :a, Output(:success) => Path(end_id: "End.path", end_task: End(:path)) do
+          step path.method(:c), id: :c
         end
         step method(:b), id: :b
       end
@@ -664,9 +666,7 @@ class ActivityTest < Minitest::Spec
   end
 
   it "provides {DSL} instance that doesn't compile the activity" do
-    state = Linear::State.new(Activity::Path::DSL.OptionsForState())
-
-    path = Activity::Path::DSL::Instance.new(state)
+    path = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
 
     implementing = self.implementing
     # The DSL::Instance instance is the only mutable object.

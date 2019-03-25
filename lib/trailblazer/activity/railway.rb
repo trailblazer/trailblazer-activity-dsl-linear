@@ -118,19 +118,15 @@ module Trailblazer
           sequence = Path::DSL.append_end(initial_sequence, task: failure_end, magnetic_to: :failure, id: "End.failure")
         end
 
-        class State < Linear::State
-          def step(task, options={}, &block)
-            task_for(:step, task, options, &block)
+        class State < Path::DSL::State
+          def fail(*args)
+            seq = Path::Strategy.task_for!(self, :fail, *args) # mutate @state
           end
 
-          def fail(task, options={}, &block)
-            task_for(:fail, task, options, &block)
+          def pass(*args)
+            seq = Path::Strategy.task_for!(self, :pass, *args) # mutate @state
           end
-
-          def pass(task, options={}, &block)
-            task_for(:pass, task, options, &block)
-          end
-        end # State
+        end # Instance
 
         Normalizers = Linear::State::Normalizer.new(
           step:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
@@ -165,7 +161,7 @@ module Trailblazer
 
       extend Path::Strategy
 
-      initialize!(DSL::State.new(DSL.OptionsForState()))
+      initialize!(Railway::DSL::State.new(DSL.OptionsForState()))
 
     end # Railway
 

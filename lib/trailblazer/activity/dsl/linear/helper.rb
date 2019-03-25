@@ -42,7 +42,10 @@ module Trailblazer
         # DISCUSS: here, we use the global normalizer and don't allow injection.
         state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(track_name: track_color, end_id: end_id, **options)) # TODO: test injecting {:normalizers}.
 
-        seq = block.call(state) # state changes.
+        # seq = block.call(state) # state changes.
+        state.instance_exec(&block)
+
+        seq = state.to_h[:sequence]
 
         seq = Linear.strip_start_and_ends(seq, end_id: nil) # don't cut off end.
 

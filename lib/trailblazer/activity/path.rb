@@ -132,9 +132,6 @@ module Trailblazer
            }
         end
 
-        class State < Linear::State # TODO: remove
-        end # State
-
         # This is slow and should be done only once at compile-time,
         # DISCUSS: maybe make this a function?
         # These are the normalizers for an {Activity}, to be injected into a State.
@@ -157,6 +154,15 @@ module Trailblazer
           }
         end
 
+        # Implements the actual API ({#step} and friends).
+        # This can be used later to create faster DSLs where the activity is compiled only once, a la
+        #   Path() do  ... end
+        class State < Linear::State
+          def step(*args)
+            seq = Strategy.task_for!(self, :step, *args) # mutate @state
+          end
+        end
+
       end # DSL
 
       # {Activity}
@@ -169,7 +175,7 @@ module Trailblazer
         def initialize!(state)
           @state    = state
 
-          recompile_activity!(state.to_h[:sequence]) # DISCUSS: move that to {State}?
+          recompile_activity!(@state.to_h[:sequence])
         end
 
         def inherited(inheriter)
@@ -180,11 +186,11 @@ module Trailblazer
         end
 
         # Called from {#step} and friends.
-        def task_for(type, task, options={}, &block)
+        def self.task_for!(state, type, task, options={}, &block)
           options = options.merge(dsl_track: type)
 
           # {#update_sequence} is the only way to mutate the state instance.
-          @state.update_sequence do |sequence:, normalizers:, normalizer_options:|
+          state.update_sequence do |sequence:, normalizers:, normalizer_options:|
             # Compute the sequence rows.
             options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options)
 
@@ -200,7 +206,7 @@ module Trailblazer
         private def recompile_activity_for(type, *args, &block)
           args = forward_block(args, block)
 
-          seq  = task_for(type, *args)
+          seq  = @state.send(type, *args)
 
           recompile_activity!(seq)
         end
@@ -242,11 +248,11 @@ module Trailblazer
 
         extend Forwardable
         def_delegators :@activity, :to_h, :call
-      end
+      end # Strategy
 
       extend Strategy
 
-      initialize!(DSL::State.new(DSL.OptionsForState()))
+      initialize!(Path::DSL::State.new(DSL.OptionsForState()))
     end # Path
 
     def self.Path(options)
