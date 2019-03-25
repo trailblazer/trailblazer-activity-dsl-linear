@@ -194,7 +194,7 @@ module Trailblazer
             # Compute the sequence rows.
             options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options)
 
-            sequence = Linear::DSL.apply_adds_from_dsl(sequence, options)
+            sequence = Activity::DSL::Linear::DSL.apply_adds_from_dsl(sequence, options)
           end
         end
 
