@@ -193,10 +193,11 @@ class PathTest < Minitest::Spec
     it "accepts {:end_task} and {:end_id}" do # TODO: don't use Railway here.
       path_end = Activity::End.new(semantic: :roundtrip)
 
+      implementing = self.implementing
       state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState())
-      state.step( task: implementing.method(:a), id: :a, Linear.Output(:failure) => Linear.Path(end_task: path_end, end_id: "End.roundtrip") do |path|
-        path.step task: implementing.method(:f), id: :f
-        path.step task: implementing.method(:g), id: :g
+      state.step( task: implementing.method(:a), id: :a, Linear.Output(:failure) => Linear.Path(end_task: path_end, end_id: "End.roundtrip") do
+        step task: implementing.method(:f), id: :f
+        step task: implementing.method(:g), id: :g
       end
       )
       state.step task: implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
@@ -248,8 +249,10 @@ class PathTest < Minitest::Spec
       shared_options = {step_interface_builder: Fixtures.method(:circuit_interface_builder)}
       state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(**shared_options))
 
-      state.step( implementing.method(:a), id: :a, Linear.Output(:success) => Linear.Path(end_task: path_end, end_id: "End.roundtrip", **shared_options) do |path|
-        path.step implementing.method(:f), id: :f
+      implementing = self.implementing
+
+      state.step( implementing.method(:a), id: :a, Linear.Output(:success) => Linear.Path(end_task: path_end, end_id: "End.roundtrip", **shared_options) do
+        step implementing.method(:f), id: :f
       end
       )
       seq = state.step implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
