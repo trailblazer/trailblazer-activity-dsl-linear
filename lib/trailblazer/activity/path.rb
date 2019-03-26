@@ -241,7 +241,7 @@ module Trailblazer
           old_seq = @state.instance_variable_get(:@sequence) # TODO: fixme
           new_seq = activity.instance_variable_get(:@state).instance_variable_get(:@sequence) # TODO: fix the interfaces
 
-          seq = Linear.Merge(old_seq, new_seq, end_id: "End.success")
+          seq = DSL::Linear.Merge(old_seq, new_seq, end_id: "End.success")
 
           @state.instance_variable_set(:@sequence, seq) # FIXME: hate this so much.
         end
