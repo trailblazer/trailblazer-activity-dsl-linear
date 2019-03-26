@@ -124,16 +124,45 @@ class ActivityTest < Minitest::Spec
     end
 
     it "doesn't create the same End twice" do
-      implementing = self.implementing
+      implementing = T.def_steps(:a, :c, :b)
 
       activity = Class.new(Activity::Railway) do
         step implementing.method(:a), Output(:failure) => End(:new)
         step implementing.method(:c)
-        step implementing.method(:b), Output(:failure) => End(:new)
+        step implementing.method(:b), Output(:success) => End(:new)
       end
 
       assert_process_for activity.to_h, :success, :new, :failure, %{
-      }
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Left} => #<End/:new>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
+<*#<Method: #<Module:0x>.c>>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:new>
+#<End/:success>
+
+#<End/:new>
+
+#<End/:failure>
+}
+
+      signal, (ctx, _) = activity.([{seq: [], a: false}])
+
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:new>}
+      ctx.inspect.must_equal     %{{:seq=>[:a], :a=>false}}
+
+      new_signal, (ctx, _) = activity.([{seq: [], b: true}])
+
+      new_signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:new>}
+      ctx.inspect.must_equal     %{{:seq=>[:a, :c, :b], :b=>true}}
+  # End.new is always the same instance
+      signal.must_equal new_signal
+
     end
 
     it "accepts {Output() => Id()}" do

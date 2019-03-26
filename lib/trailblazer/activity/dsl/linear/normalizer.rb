@@ -148,11 +148,14 @@ module Trailblazer
                 elsif cfg.is_a?(Activity::DSL::Linear::Id)
                   [output_to_id(ctx, output, cfg.value), []]
                 elsif cfg.is_a?(Activity::End)
+                  _adds = []
+
                   end_id     = Linear.end_id(cfg)
                   end_exists = Insert.find_index(ctx[:sequence], end_id)
-                  _adds      = end_exists ? nil : add_end(cfg, magnetic_to: end_id, id: end_id)
 
-                  [output_to_id(ctx, output, end_id), [_adds].compact]
+                  _adds      = [add_end(cfg, magnetic_to: end_id, id: end_id)] unless end_exists
+
+                  [output_to_id(ctx, output, end_id), _adds]
                 end
 
               connections = connections.merge(new_connections)
