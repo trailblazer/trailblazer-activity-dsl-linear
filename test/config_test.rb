@@ -1,8 +1,8 @@
 require "test_helper"
 
 class ConfigTest < Minitest::Spec
-  let(:activity_) do
-    Module.new { extend Activity::Path() }
+  let(:activity) do
+    Class.new(Activity::Path)
   end
 
   it "exposes reader and writer for 1 level" do
