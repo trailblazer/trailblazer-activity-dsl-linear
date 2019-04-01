@@ -5,7 +5,7 @@ require "trailblazer/activity/dsl/linear/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "trailblazer-activity-dsl-linear"
-  spec.version       = Trailblazer::Activity::DSL::Linear::VERSION
+  spec.version       = Trailblazer::Version::Activity::DSL::Linear::VERSION
   spec.authors       = ["Nick Sutterer"]
   spec.email         = ["apotonick@gmail.com"]
 
