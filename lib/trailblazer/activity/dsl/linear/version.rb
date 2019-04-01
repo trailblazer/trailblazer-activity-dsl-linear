@@ -1,8 +1,10 @@
 module Trailblazer
-  class Activity < Module
-    module DSL
-      module Linear
-        VERSION = "0.7.1"
+  module Version
+    module Activity
+      module DSL
+        module Linear
+          VERSION = "0.1.0"
+        end
       end
     end
   end

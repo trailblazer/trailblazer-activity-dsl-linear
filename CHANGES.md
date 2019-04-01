@@ -1,3 +1,3 @@
-# 0.7.2
+# 0.1.0
 
-* When recording DSL calls, use the `object_id` as key, so cloned methods are considered as different recordings.
+* This code is extracted, refactored and heavy-metaly simplified from the original `trailblazer-activity` gem.
