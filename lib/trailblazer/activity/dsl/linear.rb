@@ -269,6 +269,7 @@ class Trailblazer::Activity
 end
 
 require "trailblazer/activity/dsl/linear/normalizer"
+require "trailblazer/activity/dsl/linear/strategy"
 require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"

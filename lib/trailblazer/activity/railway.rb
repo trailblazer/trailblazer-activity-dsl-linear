@@ -3,12 +3,12 @@ module Trailblazer
   class Activity
     class Railway
       module DSL
-        Linear = Activity::DSL::Linear # FIXME
+        Linear = Activity::DSL::Linear
 
         module_function
 
         def normalizer
-          step_options(Trailblazer::Activity::Path::DSL.normalizer)
+          step_options(Activity::Path::DSL.normalizer)
         end
 
         # Change some parts of the "normal" {normalizer} pipeline.
@@ -111,8 +111,6 @@ module Trailblazer
           {failure: [Linear::Search.method(:Forward), :failure]}
         end
 
-        Right = Trailblazer::Activity::Right
-
         def initial_sequence(failure_end:, initial_sequence:, **path_options)
           # TODO: this could be an Activity itself but maybe a bit too much for now.
           sequence = Path::DSL.append_end(initial_sequence, task: failure_end, magnetic_to: :failure, id: "End.failure")
@@ -120,11 +118,11 @@ module Trailblazer
 
         class State < Path::DSL::State
           def fail(*args)
-            seq = Path::Strategy.task_for!(self, :fail, *args) # mutate @state
+            seq = Linear::Strategy.task_for!(self, :fail, *args) # mutate @state
           end
 
           def pass(*args)
-            seq = Path::Strategy.task_for!(self, :pass, *args) # mutate @state
+            seq = Linear::Strategy.task_for!(self, :pass, *args) # mutate @state
           end
         end # Instance
 
@@ -159,7 +157,7 @@ module Trailblazer
         end
       end
 
-      extend Path::Strategy
+      extend DSL::Linear::Strategy
 
       initialize!(Railway::DSL::State.new(DSL.OptionsForState()))
 

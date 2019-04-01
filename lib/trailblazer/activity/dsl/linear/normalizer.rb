@@ -9,7 +9,7 @@ module Trailblazer
 
           #   activity_normalizer.([{options:, user_options:, normalizer_options: }])
           def activity_normalizer(sequence)
-            seq = Trailblazer::Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
+            seq = Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
               sequence,
 
               {
