@@ -9,7 +9,6 @@ module Trailblazer
     # Implementation module that can be passed to `Activity[]`.
     class FastTrack
       Linear = Activity::DSL::Linear
-      Right  = Trailblazer::Activity::Right
 
       # Signals
       FailFast = Class.new(Signal)
