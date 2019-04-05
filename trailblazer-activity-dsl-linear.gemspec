@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Nick Sutterer"]
   spec.email         = ["apotonick@gmail.com"]
 
-  spec.summary       = %q{Simple DSL to compile Trailblazer activities.}
-  spec.description   = %q{Simple DSL to compile Trailblazer activities with arbitrary wirings.}
+  spec.summary       = %q(Simple DSL to compile Trailblazer activities.)
+  spec.description   = %q(Simple DSL to compile Trailblazer activities with arbitrary wirings.)
   spec.homepage      = "http://trailblazer.to"
   spec.licenses      = ["MIT"]
 

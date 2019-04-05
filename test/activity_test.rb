@@ -12,7 +12,7 @@ class ActivityTest < Minitest::Spec
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
         # step MyMacro()
-        step({id: :b, task: implementing.method(:b), before: :a})
+        step(id: :b, task: implementing.method(:b), before: :a)
       end
 
       assert_process_for activity.to_h, :success, %{
@@ -32,7 +32,7 @@ class ActivityTest < Minitest::Spec
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
         # step MyMacro()
-        step({id: :b, task: implementing.method(:b), before: :a, outputs: {success: Activity.Output("Yo", :success)}})
+        step(id: :b, task: implementing.method(:b), before: :a, outputs: {success: Activity.Output("Yo", :success)})
       end
 
       assert_process_for activity.to_h, :success, %{
@@ -107,7 +107,7 @@ class ActivityTest < Minitest::Spec
 
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
-        step({id: :b, task: implementing.method(:b), before: :a, Output(:success) => End(:new)})
+        step(id: :b, task: implementing.method(:b), before: :a, Output(:success) => End(:new))
       end
 
       assert_process_for activity.to_h, :success, :new, %{
@@ -158,8 +158,8 @@ class ActivityTest < Minitest::Spec
 
       new_signal, (ctx, _) = activity.([{seq: [], b: true}])
 
-      new_signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:new>}
-      ctx.inspect.must_equal     %{{:seq=>[:a, :c, :b], :b=>true}}
+      new_signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:new>}
+      ctx.inspect.must_equal %{{:seq=>[:a, :c, :b], :b=>true}}
   # End.new is always the same instance
       signal.must_equal new_signal
 
@@ -170,7 +170,7 @@ class ActivityTest < Minitest::Spec
 
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
-        step({id: :b, task: implementing.method(:b), Output(:success) => Id(:a)})
+        step(id: :b, task: implementing.method(:b), Output(:success) => Id(:a))
       end
 
       assert_process_for activity.to_h, :success, %{
@@ -189,7 +189,7 @@ class ActivityTest < Minitest::Spec
 
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
-        step({id: :b, task: implementing.method(:b), Output(:success) => Track(:unknown)})
+        step(id: :b, task: implementing.method(:b), Output(:success) => Track(:unknown))
       end
 
       assert_process_for activity.to_h, :success, %{
@@ -239,9 +239,9 @@ class ActivityTest < Minitest::Spec
 
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
-        step({id: :b, task: implementing.method(:b),
+        step(id: :b, task: implementing.method(:b),
           Output(Activity::Left, :success) => Track(:success),
-          Output("Signalovich", :new)      => Id(:a)})
+          Output("Signalovich", :new)      => Id(:a))
       end
 
       assert_process_for activity.to_h, :success, %{
@@ -261,7 +261,7 @@ class ActivityTest < Minitest::Spec
 
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
-        step({id: :b, task: implementing.method(:b), connections: {success: [Linear::Search.method(:ById), :a]}})
+        step(id: :b, task: implementing.method(:b), connections: {success: [Linear::Search.method(:ById), :a]})
       end
 
       assert_process_for activity.to_h, :success, %{
@@ -286,13 +286,12 @@ class ActivityTest < Minitest::Spec
         row = Linear::Sequence.create_row(task: circuit_interface_tasks.method(:c), id: :c, magnetic_to: :success,
             wirings: [Linear::Search::Forward(Activity.Output(Activity::Right, :success), :success)])
 
-        step({id: :b, task: implementing.method(:b), adds: [
+        step(id: :b, task: implementing.method(:b), adds: [
           {
             row:    row,
             insert: [Linear::Insert.method(:Prepend), :a]
           }
-        ]
-        })
+        ])
       end
 
       assert_process_for activity.to_h, :success, %{
@@ -574,10 +573,10 @@ class ActivityTest < Minitest::Spec
   end
 
   describe "#Subprocess" do
-    def scenario(*, &block) # TODO: move to {organic}.
+    def scenario(*) # TODO: move to {organic}.
       yield
     end
-    def test(*, &block)
+    def test(*)
       yield
     end
 
