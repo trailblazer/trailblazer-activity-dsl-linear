@@ -113,7 +113,7 @@ module Trailblazer
           )
         end
 
-        def initial_sequence(initial_sequence:, fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **)
+        def initial_sequence(initial_sequence:, fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **_o)
           sequence = initial_sequence
 
           sequence = Path::DSL.append_end(sequence, task: fail_fast_end, magnetic_to: :fail_fast, id: "End.fail_fast")
