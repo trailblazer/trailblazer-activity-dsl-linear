@@ -19,11 +19,12 @@ Gem::Specification.new do |spec|
   end
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "trailblazer-activity" # FIXME: we only need DSL objects.
+  spec.add_dependency "trailblazer-activity"
 
   spec.add_development_dependency "bundler", "~> 1.14"
   spec.add_development_dependency "minitest", "~> 5.0"
   spec.add_development_dependency "rake"
+  spec.add_development_dependency "trailblazer-developer"
 
   spec.required_ruby_version = '>= 2.1.0'
 end
