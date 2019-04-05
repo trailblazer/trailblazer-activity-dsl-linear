@@ -28,7 +28,7 @@ class DocsActivityTest < Minitest::Spec
           false
         end
 
-        def self.save(ctx, model:, params:, **)
+        def self.save(_ctx, model:, params:, **)
           model.update_attributes(params)
         end
 
@@ -46,9 +46,9 @@ class DocsActivityTest < Minitest::Spec
       #:overview end
 
       #:overview-call
-      ctx = { id: 1, params: { body: "Awesome!" } }
+      ctx = {id: 1, params: {body: "Awesome!"}}
 
-      event, (ctx, *) = Memo::Update.( [ctx, {}] )
+      event, (ctx, *) = Memo::Update.([ctx, {}])
       #:overview-call end
 =begin
       #:overview-result
@@ -74,7 +74,7 @@ class DocsActivityTest < Minitest::Spec
     class Create < Trailblazer::Activity::Railway
 
       #:circuit-interface-validate
-      def self.validate((ctx, flow_options), **circuit_options)
+      def self.validate((ctx, flow_options), **_circuit_options)
         #~method
         is_valid = ctx[:name].nil? ? false : true
 
