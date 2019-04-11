@@ -61,10 +61,8 @@ class DocsActivityTest < Minitest::Spec
       puts signal #=> #<Trailblazer::Activity::End semantic=:validation_error>
       #:overview-result end
 =end
-      ctx.inspect.must_equal %{{:id=>1, :params=>{:body=>\"Awesome!\"}, :model=>#<struct DocsActivityTest::Memo body=nil>, :errors=>\"body not long enough\"}}
+      ctx.inspect.must_equal '{:id=>1, :params=>{:body=>"Awesome!"}, :model=>#<struct DocsActivityTest::Memo body=nil>, :errors=>"body not long enough"}'
 
-      pp ctx
-      pp event
     end
   end
 
@@ -101,6 +99,6 @@ class DocsActivityTest < Minitest::Spec
     #:circuit-interface-call end
 
     signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal %{{:name=>\"Face to Face\", :validate_outcome=>true}}
+    ctx.inspect.must_equal '{:name=>"Face to Face", :validate_outcome=>true}'
   end
 end

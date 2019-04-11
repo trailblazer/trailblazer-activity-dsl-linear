@@ -1,3 +1,5 @@
+require "forwardable"
+
 module Trailblazer
   class Activity
     # {Strategy} that helps building simple linear activities.
