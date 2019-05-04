@@ -31,6 +31,7 @@ module Trailblazer
               {
               "activity.normalize_outputs_from_dsl"     => method(:normalize_outputs_from_dsl),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
+              "activity.input_output_dsl"               => method(:input_output_dsl), # FIXME: make this optional and allow to dynamically change normalizer steps
               },
 
               Linear::Insert.method(:Prepend), "path.wirings"
@@ -204,6 +205,18 @@ module Trailblazer
             new_ctx = new_ctx.merge(outputs: outputs).merge(dsl_options)
 
             return Trailblazer::Activity::Right, [new_ctx, flow_options]
+          end
+
+          def input_output_dsl((ctx, flow_options), *)
+            input, output = ctx[:input], ctx[:output]
+
+            return Trailblazer::Activity::Right, [ctx, flow_options] unless input || output
+
+            new_ctx = {}
+            new_ctx[:extensions] ||= [] # FIXME
+            new_ctx[:extensions] += [Linear.VariableMapping(input: input, output: output)]
+
+            return Trailblazer::Activity::Right, [ctx.merge(new_ctx), flow_options]
           end
 
           # TODO: make this extendable!
