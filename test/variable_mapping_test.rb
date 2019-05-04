@@ -7,14 +7,18 @@ class VariableMappingTest < Minitest::Spec
       ctx[:b] = b + 2 # :b never comes in due to {:input}
       ctx[:c] = 3     # don't show outside!
     end
+
+    def uuid(ctx, a:, my_b:, **)
+      ctx[:a] = a + 99 # not propagated outside
+      ctx[:b] = ctx[:a] + my_b # 99 + 9
+      ctx[:c] = 3     # don't show outside!
+    end
   end
 
   it "allows array and hash" do
-
     activity = Class.new(Trailblazer::Activity::Path) do
-      # a => a, ctx[:model].id => id
       step VariableMappingTest.method(:model), input: [:a], output: {:a => :model_a, :b => :model_b}
-      # step task: Uuid,      input: [:a, :model_a], output: { :a=>:uuid_a }
+      step VariableMappingTest.method(:uuid), input: {:a => :a, :b => :my_b}, output: [:b]
     end
 
     ctx = { a: 0, b: 9 }
@@ -23,21 +27,13 @@ class VariableMappingTest < Minitest::Spec
       bla: 1)
 
     # signal.must_equal activity.outputs[:success].signal
-    ctx.inspect.must_equal %{{:a=>0, :b=>9, :model_a=>1, :model_b=>3}}
+    ctx.inspect.must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3}}
   end
 
   it "allows procs, too" do
-    skip "move me to DSL"
-
-    _nested = nested
-
-    activity = Module.new do
-      extend Activity::Path()
-
-      # a => a, ctx[:model].id => id
-      task task: Model,     input: ->(ctx, a:, **) { { :a => a+1 } }, output: ->(ctx, a:, **) { { model_a: a } }
-      task task: _nested,    _nested.outputs[:success] => Track(:success)
-      task task: Uuid,      input: [:a, :model_a], output: { :a=>:uuid_a }
+    activity = Class.new(Trailblazer::Activity::Path) do
+      step VariableMappingTest.method(:model), input: ->(ctx, a:, **) { { :a => a+1 } }, output: ->(ctx, a:, **) { { model_a: a } }
+      # step VariableMappingTest.method(:uuid),  input: [:a, :model_a], output: { :a=>:uuid_a }
     end
 
     signal, (options, flow_options) = Activity::TaskWrap.invoke(activity,
@@ -48,16 +44,7 @@ class VariableMappingTest < Minitest::Spec
 
     )
 
-    signal.must_equal activity.outputs[:success].signal
-    options.must_equal({:a=>1, :model_a=>4, :c=>1, :uuid_a => 5 })
+    # signal.must_equal activity.outputs[:success].signal
+    options.must_equal({:a=>1, :model_a=>3})
   end
 end
-
-=begin
-
-VariableMapping::Extension(
-Trailblazer::Activity::TaskWrap::Input.new(input),
-            Trailblazer::Activity::TaskWrap::Output.new(output))
-)
-
-=end
