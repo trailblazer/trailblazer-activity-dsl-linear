@@ -11,6 +11,66 @@ class DocsActivityTest < Minitest::Spec
     end
   end
 
+  describe "step types" do
+    it "allows " do
+      user = Object.new.instance_exec { def can?(*); true; end; self }
+      module A
+        class AuthorizeForCreate
+          def self.call(ctx, current_user:, **)
+            current_user.can?(Memo, :create)
+          end
+        end
+
+        module Authorizer
+          module_function
+
+          def memo_create(ctx, current_user:, **)
+            current_user.can?(Memo, :create)
+          end
+        end
+
+        module Memo; end
+
+        #:task-style-1
+        class Memo::Create < Trailblazer::Activity::Railway
+          def self.authorize(ctx, current_user:, **)
+            current_user.can?(Memo, :create)
+          end
+
+          step method(:authorize)
+        end
+        #:task-style-1 end
+
+        module B
+        module Memo; end
+        #:task-style-2
+        class Memo::Create < Trailblazer::Activity::Railway
+          class << self
+            def authorize(ctx, current_user:, **)
+              current_user.can?(Memo, :create)
+            end
+            # more methods...
+          end
+
+          step method(:authorize)
+        end
+        #:task-style-2 end
+        end
+
+          #~mod
+          # step Authorizer.method(:memo_create)
+          #~mod end
+          # step AuthorizeForCreate
+      end
+
+      signal, (ctx, flow_options) = A::Memo::Create.([{current_user: user}, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+
+      signal, (ctx, flow_options) = A::B::Memo::Create.([{current_user: user}, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    end
+  end
+
   describe "#what" do
     it do
       #:overview
@@ -70,7 +130,6 @@ class DocsActivityTest < Minitest::Spec
   it do
     #:circuit-interface-create
     class Create < Trailblazer::Activity::Railway
-
       #:circuit-interface-validate
       def self.validate((ctx, flow_options), **_circuit_options)
         #~method
