@@ -15,12 +15,15 @@ class DocsActivityTest < Minitest::Spec
     it "allows " do
       user = Object.new.instance_exec { def can?(*); true; end; self }
       module A
+        #:task-style-class
         class AuthorizeForCreate
           def self.call(ctx, current_user:, **)
             current_user.can?(Memo, :create)
           end
         end
+        #:task-style-class end
 
+        #:task-style-module
         module Authorizer
           module_function
 
@@ -28,6 +31,7 @@ class DocsActivityTest < Minitest::Spec
             current_user.can?(Memo, :create)
           end
         end
+        #:task-style-module end
 
         module Memo; end
 
@@ -42,31 +46,66 @@ class DocsActivityTest < Minitest::Spec
         #:task-style-1 end
 
         module B
-        module Memo; end
-        #:task-style-2
-        class Memo::Create < Trailblazer::Activity::Railway
-          class << self
-            def authorize(ctx, current_user:, **)
-              current_user.can?(Memo, :create)
+          module Memo; end
+          #:task-style-2
+          class Memo::Create < Trailblazer::Activity::Railway
+            class << self
+              def authorize(ctx, current_user:, **)
+                current_user.can?(Memo, :create)
+              end
+              # more methods...
             end
-            # more methods...
+
+            step method(:authorize)
           end
-
-          step method(:authorize)
-        end
-        #:task-style-2 end
+          #:task-style-2 end
         end
 
-          #~mod
-          # step Authorizer.method(:memo_create)
-          #~mod end
-          # step AuthorizeForCreate
-      end
+        module C
+          module Memo; end
+          #:task-style-3
+          class Memo::Create < Trailblazer::Activity::Railway
+            #~mod
+            step Authorizer.method(:memo_create)
+            #~mod end
+            #~callable
+            step AuthorizeForCreate
+            #~callable end
+          end
+          #:task-style-3 end
+        end # C
+
+        module D
+          module Memo; end
+          #:task-implementation
+          class Memo::Create < Trailblazer::Activity::Railway
+            def self.authorize(ctx, **)
+              #~method
+              if current_user.can?(Memo, :create)
+                true
+              else
+                false
+              end
+              #~method end
+            end
+
+            step method(:authorize)
+            # ...
+          end
+          #:task-implementation end
+        end # D
+      end # A
 
       signal, (ctx, flow_options) = A::Memo::Create.([{current_user: user}, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
 
       signal, (ctx, flow_options) = A::B::Memo::Create.([{current_user: user}, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+
+      signal, (ctx, flow_options) = A::C::Memo::Create.([{current_user: user}, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+
+      signal, (ctx, flow_options) = A::D::Memo::Create.([{current_user: user}, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     end
   end
