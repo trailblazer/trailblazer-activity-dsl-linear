@@ -144,7 +144,6 @@ class DocsActivityTest < Minitest::Spec
                   return DatabaseError                    # third return value
                 end
               end
-
               #~method
               def self.handle_db_error(*)
                 true
@@ -153,7 +152,8 @@ class DocsActivityTest < Minitest::Spec
 
               step method(:create_model),
                 Output(DatabaseError, :handle_error) => Id(:handle_db_error)
-              fail method(:handle_db_error), id: :handle_db_error
+              step method(:handle_db_error),
+                id: :handle_db_error, magnetic_to: nil, Output(:success) => Track(:failure)
             end
             #:task-implementation-signal end
           end # D2
