@@ -76,23 +76,87 @@ class DocsActivityTest < Minitest::Spec
         end # C
 
         module D
-          module Memo; end
+          class Memo
+            def initialize(*)
+              def save
+                true
+              end
+            end
+          end
           #:task-implementation
           class Memo::Create < Trailblazer::Activity::Railway
-            def self.authorize(ctx, **)
+            def self.create_model(ctx, **)
+              attributes = ctx[:attrs]           # read from ctx
+
+              ctx[:model] = Memo.new(attributes) # write to ctx
+
               #~method
-              if current_user.can?(Memo, :create)
-                true
-              else
-                false
-              end
+              ctx[:model].save ? true : false    # return value matters
               #~method end
             end
 
-            step method(:authorize)
+            step method(:create_model)
             # ...
           end
           #:task-implementation end
+
+          module D1
+            class Memo < Memo; end
+
+            class Memo::Create < Trailblazer::Activity::Railway
+              #:task-implementation-kws
+              def self.create_model(ctx, attrs:, **) # kw args!
+                #~method
+                ctx[:model] = Memo.new(attrs)        # write to ctx
+
+                #~method end
+                ctx[:model].save ? true : false      # return value matters
+              end
+              #:task-implementation-kws end
+
+              step method(:create_model)
+              # ...
+            end
+          end
+
+          module D2
+            class Memo < Memo
+              class << self
+                def raise; @raise; end
+                def raise!; @raise=true; end
+              end
+              def save
+                raise if self.class.raise
+                true
+              end
+            end
+
+            #:task-implementation-signal
+            class Memo::Create < Trailblazer::Activity::Railway
+              DatabaseError = Class.new(Trailblazer::Activity::Signal) # subclass Signal
+
+              def self.create_model(ctx, attrs:, **)
+                ctx[:model] = Memo.new(attrs)
+
+                begin
+                  return ctx[:model].save ? true : false  # binary return values
+                rescue
+                  return DatabaseError                    # third return value
+                end
+              end
+
+              #~method
+              def self.handle_db_error(*)
+                true
+              end
+              #~method end
+
+              step method(:create_model),
+                Output(DatabaseError, :handle_error) => Id(:handle_db_error)
+              fail method(:handle_db_error), id: :handle_db_error
+            end
+            #:task-implementation-signal end
+          end # D2
         end # D
       end # A
 
@@ -107,6 +171,15 @@ class DocsActivityTest < Minitest::Spec
 
       signal, (ctx, flow_options) = A::D::Memo::Create.([{current_user: user}, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+
+      signal, (ctx, flow_options) = A::D::D1::Memo::Create.([{attrs: {body: "Wine"}}, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+
+      signal, (ctx, flow_options) = A::D::D2::Memo::Create.([{attrs: {body: "Wine"}}, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      A::D::D2::Memo.raise! # FIXME
+      signal, (ctx, flow_options) = A::D::D2::Memo::Create.([{attrs: {body: "Wine"}}, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     end
   end
 
