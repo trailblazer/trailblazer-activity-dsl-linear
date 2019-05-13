@@ -721,6 +721,28 @@ class ActivityTest < Minitest::Spec
 }
   end
 
+  it "allows {:instance} methods" do
+    implementing = self.implementing
+
+    nested_activity = Class.new(Activity::Path) do
+      step :c
+      step :d
+      include T.def_steps(:c, :d)
+    end
+
+    activity = Class.new(Activity::Path) do
+      step :a
+      step Subprocess(nested_activity)
+      step :b
+      include T.def_steps(:a, :b)
+    end
+
+    signal, (ctx, _) = activity.([{seq: []}])
+
+    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal     %{{:seq=>[:a, :c, :d, :b]}}
+  end
+
 
 
   # inheritance

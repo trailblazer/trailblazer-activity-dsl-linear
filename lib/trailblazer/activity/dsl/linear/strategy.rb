@@ -86,7 +86,15 @@ module Trailblazer
           end
 
           extend Forwardable
-          def_delegators :@activity, :to_h, :call
+          def_delegators :@activity, :to_h
+
+          # Injects {:exec_context} so that {:instance_method}s work.
+          def call(args, circuit_options={})
+            @activity.(
+              args,
+              circuit_options.merge(exec_context: new)
+            )
+          end
         end # Strategy
       end
     end

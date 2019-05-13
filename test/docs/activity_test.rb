@@ -61,6 +61,20 @@ class DocsActivityTest < Minitest::Spec
           #:task-style-2 end
         end
 
+        module BB
+          module Memo; end
+          #:task-style-instance-method
+          class Memo::Create < Trailblazer::Activity::Railway
+            def authorize(ctx, current_user:, **)
+              current_user.can?(Memo, :create)
+            end
+            # more methods...
+
+            step :authorize
+          end
+          #:task-style-instance-method end
+        end
+
         module C
           module Memo; end
           #:task-style-3
@@ -164,6 +178,9 @@ class DocsActivityTest < Minitest::Spec
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
 
       signal, (ctx, flow_options) = A::B::Memo::Create.([{current_user: user}, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+
+      signal, (ctx, flow_options) = A::BB::Memo::Create.([{current_user: user}, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
 
       signal, (ctx, flow_options) = A::C::Memo::Create.([{current_user: user}, {}])
