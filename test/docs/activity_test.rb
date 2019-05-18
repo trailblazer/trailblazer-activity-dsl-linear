@@ -65,12 +65,12 @@ class DocsActivityTest < Minitest::Spec
           module Memo; end
           #:task-style-instance-method
           class Memo::Create < Trailblazer::Activity::Railway
+            step :authorize
+            # ...
+
             def authorize(ctx, current_user:, **)
               current_user.can?(Memo, :create)
             end
-            # more methods...
-
-            step :authorize
           end
           #:task-style-instance-method end
         end
