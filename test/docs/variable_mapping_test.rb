@@ -81,16 +81,58 @@ ctx #=> {:params=>{:id=>1}, :current_user=>#<User ..>, :model=>#<Memo ..>}}
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
 
-      class Memo::Bla < Memo::Create
+      class Memo::Bla < Trailblazer::Activity::Path
         #:io-kws
         step :authorize,
           input:  ->(original_ctx, parameters:, **) do {params: parameters} end,
           output: ->(scoped_ctx, user:, **) do {current_user: user} end
         #:io-kws end
         step :create_model
+
+        def authorize(ctx, params:, **)
+          ctx[:user] = User.find(params[:id])
+          ctx[:user] ? ctx[:result] = "Found a user." : ctx[:result] = "User unknown."
+        end
+
+        def create_model(ctx, current_user:, **)
+          ctx[:model] = current_user
+        end
       end
 
       signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::Memo::Bla, [{parameters: {id: "1"}}.freeze, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
+
+      module C
+        module Memo; end
+        #:io-method
+        class Memo::Create < Trailblazer::Activity::Path
+          step :authorize,
+            input:  :authorize_input,
+            output: :authorize_output
+
+          def authorize_input(original_ctx, **)
+            {params: original_ctx[:parameters]}
+          end
+
+          def authorize_output(scoped_ctx, user:, **)
+            {current_user: scoped_ctx[:user]}
+          end
+          #:io-method end
+          step :create_model
+
+          def authorize(ctx, params:, **)
+            ctx[:user] = User.find(params[:id])
+            ctx[:user] ? ctx[:result] = "Found a user." : ctx[:result] = "User unknown."
+          end
+
+          def create_model(ctx, current_user:, **)
+            ctx[:model] = current_user
+          end
+        end
+      end
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(C::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
     end
