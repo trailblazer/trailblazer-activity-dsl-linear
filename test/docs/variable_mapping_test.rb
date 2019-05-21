@@ -4,7 +4,7 @@ class DocsIOTest < Minitest::Spec
   it "what" do
     user = Object.new.instance_exec { def can?(*); true; end; self }
     class User
-      def self.find(*); "bla"; end
+      def self.find(id); "User #{id.inspect}"; end
     end
 
     module A
@@ -38,7 +38,7 @@ class DocsIOTest < Minitest::Spec
 
       signal, (ctx, flow_options) = Activity::TaskWrap.invoke(A::Memo::Create, [{params: {id: 1}}, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal %{{:params=>{:id=>1}, :current_user=>\"bla\", :model=>\"bla\"}}
+      ctx.inspect.must_equal %{{:params=>{:id=>1}, :current_user=>\"User 1\", :model=>\"User 1\"}}
 =begin
 #:io-call
 ctx = {params: {id: 1}}
@@ -48,6 +48,40 @@ signal, (ctx, flow_options) = Activity::TaskWrap.invoke(A::Memo::Create, [ctx, {
 ctx #=> {:params=>{:id=>1}, :current_user=>#<User ..>, :model=>#<Memo ..>}}
 #:io-call end
 =end
+    end
+
+    module B
+      module Memo; end
+      #:io-proc
+      class Memo::Create < Trailblazer::Activity::Path
+        step :authorize,
+          input:  ->(original_ctx, **) do {params: original_ctx[:parameters]} end,
+          output: ->(scoped_ctx, **) do {current_user: scoped_ctx[:user]} end
+        step :create_model
+
+        #~io-steps
+        def authorize(ctx, params:, **)
+          ctx[:user] = User.find(params[:id])
+
+          if ctx[:user]
+            ctx[:result] = "Found a user."
+          else
+            ctx[:result] = "User unknown."
+          end
+        end
+
+        def create_model(ctx, current_user:, **)
+          #~mod2
+          ctx[:model] = current_user
+          #~mod2 end
+        end
+        #~io-steps end
+      end
+      #:io-proc end
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
     end
   end
 end
