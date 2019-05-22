@@ -26,6 +26,27 @@ class ActivityTest < Minitest::Spec
 }
     end
 
+    it "allows re-using the same method, with two different {:id}s" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Path) do
+        step implementing.method(:f)
+        step implementing.method(:f), id: :f2
+      end
+
+      process = activity.to_h
+
+      assert_process_for process, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
+<*#<Method: #<Module:0x>.f>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
+<*#<Method: #<Module:0x>.f>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+    end
+
     it "accepts {:outputs}" do
       implementing = self.implementing
 
