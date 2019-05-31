@@ -1,3 +1,7 @@
+# 0.1.3
+
+* Simplify `:override` handling by moving it to a later position.
+
 # 0.1.2
 
 * In `Strategy#to_h`, now provide a new member `:activity`, which is the actual `Activity` wrapped by the Path (or whatever) strategy.
