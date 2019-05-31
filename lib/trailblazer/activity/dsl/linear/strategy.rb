@@ -85,8 +85,9 @@ module Trailblazer
             @state.instance_variable_set(:@sequence, seq) # FIXME: hate this so much.
           end
 
-          extend Forwardable
-          def_delegators :@activity, :to_h
+          def to_h
+            @activity.to_h.to_h.merge(activity: @activity)
+          end
 
           # Injects {:exec_context} so that {:instance_method}s work.
           def call(args, circuit_options={})

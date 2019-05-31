@@ -776,6 +776,16 @@ class ActivityTest < Minitest::Spec
     ctx.inspect.must_equal     %{{:seq=>[:a, :c, :d, :b]}}
   end
 
+  it "provides {#to_h}" do
+    activity = Class.new(Activity::Path) do
+      step :a
+    end
+
+    actual_activity = activity.instance_variable_get(:@activity)
+    actual_activity.class.must_equal Trailblazer::Activity
+    activity.to_h[:activity].must_equal actual_activity
+  end
+
 
 
   # inheritance
