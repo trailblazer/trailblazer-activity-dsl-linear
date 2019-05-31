@@ -1,6 +1,10 @@
+# 0.1.2
+
+* In `Strategy#to_h`, now provide a new member `:activity`, which is the actual `Activity` wrapped by the Path (or whatever) strategy.
+
 # 0.1.1
 
-* Raise when a step has a duplicate, already existing {:id} but is *not* a {:replace}.
+* Raise when a step has a duplicate, already existing `:id` but is *not* a `:replace`.
 
 # 0.1.0
 
