@@ -46,6 +46,18 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
     end
+    it "raises re-using the same method" do
+      implementing = self.implementing
+
+      exception = assert_raises do
+        activity = Class.new(Activity::Path) do
+          step implementing.method(:f)
+          step implementing.method(:f)
+        end
+      end
+
+      exception.message.sub(/0x\w+/, "0x").must_equal %{ID #<Method: #<Module:0x>.f> is already taken. Please specify an `:id`.}
+    end
 
     it "accepts {:outputs}" do
       implementing = self.implementing

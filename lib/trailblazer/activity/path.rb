@@ -81,6 +81,16 @@ module Trailblazer
           }
         end
 
+        def raise_on_duplicate_id((ctx, flow_options), *)
+          id, sequence, insert = ctx[:id], ctx[:sequence], ctx[:sequence_insert][0] # DISCUSS: should we use Replace here or rather the option(s)?
+
+          if insert != Linear::Insert.method(:Replace)
+            raise "ID #{id} is already taken. Please specify an `:id`." if sequence.find { |row| row[3][:id] == id }
+          end
+
+          return Right, [ctx, flow_options]
+        end
+
         def normalize_magnetic_to((ctx, flow_options), *) # TODO: merge with Railway.merge_magnetic_to
           raise unless track_name = ctx[:track_name]# TODO: make track_name required kw.
 
@@ -97,6 +107,7 @@ module Trailblazer
             "path.outputs"          => method(:merge_path_outputs),
             "path.connections"      => method(:merge_path_connections),
             "path.sequence_insert"  => method(:normalize_sequence_insert),
+            "path.raise_on_duplicate_id"  => method(:raise_on_duplicate_id),
             "path.magnetic_to"      => method(:normalize_magnetic_to),
             "path.wirings"          => Linear::Normalizer.method(:compile_wirings),
           )
@@ -137,6 +148,8 @@ module Trailblazer
         Normalizers = Linear::State::Normalizer.new(
           step:  Linear::Normalizer.activity_normalizer( Path::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
         )
+
+        # pp Normalizers
 
         def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
           initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id) # DISCUSS: the standard initial_seq could be cached.
