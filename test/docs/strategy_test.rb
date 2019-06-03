@@ -9,6 +9,7 @@ class DocsStrategyTest < Minitest::Spec
 
   Memo = Struct.new(:text) do
     def self.create(options)
+      return options if options == false
       new(options)
     end
   end
@@ -79,5 +80,43 @@ class DocsStrategyTest < Minitest::Spec
     puts signal #=> #<Trailblazer::Activity::End semantic=:invalid>
     #:validate-call end
 =end
+  end
+
+  it do
+    module C
+      #:double-end
+      class Create < Trailblazer::Activity::Path
+        #~flow
+        step :validate, Output(Activity::Left, :failure) => End(:invalid)
+        step :create,   Output(Activity::Left, :failure) => End(:invalid)
+        #~flow end
+        #~mod
+        def validate(ctx, params:, **)
+          ctx[:input] = Form.validate(params) # true/false
+        end
+
+        def create(ctx, input:, create:, **)
+          create
+        end
+        #~mod end
+      end
+      #:double-end end
+    end
+
+    ctx = {params: {text: "Hydrate!"}, create: true}
+    signal, (ctx, flow_options) = C::Create.([ctx, {}])
+
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:params=>{:text=>\"Hydrate!\"}, :create=>true, :input=>{:text=>\"Hydrate!\"}}}
+
+    ctx = {params: nil}
+    signal, (ctx, flow_options) = C::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:invalid>}
+    ctx.inspect.must_equal %{{:params=>nil, :input=>nil}}
+
+    ctx = {params: {}, create: false}
+    signal, (ctx, flow_options) = C::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:invalid>}
+    ctx.inspect.must_equal %{{:params=>{}, :create=>false, :input=>{}}}
   end
 end
