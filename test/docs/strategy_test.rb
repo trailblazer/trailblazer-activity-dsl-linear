@@ -118,5 +118,7 @@ class DocsStrategyTest < Minitest::Spec
     signal, (ctx, flow_options) = C::Create.([ctx, {}])
     signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:invalid>}
     ctx.inspect.must_equal %{{:params=>{}, :create=>false, :input=>{}}}
+
+    # puts Trailblazer::Developer.render(C::Create)
   end
 end

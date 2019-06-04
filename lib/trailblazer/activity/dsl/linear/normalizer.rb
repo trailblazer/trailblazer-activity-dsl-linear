@@ -207,13 +207,13 @@ module Trailblazer
           end
 
           def input_output_dsl((ctx, flow_options), *)
-            input, output = ctx[:input], ctx[:output]
+            config = ctx.select { |k,v| [:input, :output].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
 
-            return Trailblazer::Activity::Right, [ctx, flow_options] unless input || output
+            return Trailblazer::Activity::Right, [ctx, flow_options] if config.size == 0 # no :input/:output passed.
 
             new_ctx = {}
             new_ctx[:extensions] ||= [] # FIXME
-            new_ctx[:extensions] += [Linear.VariableMapping(input: input, output: output)]
+            new_ctx[:extensions] += [Linear.VariableMapping(**config)]
 
             return Trailblazer::Activity::Right, [ctx.merge(new_ctx), flow_options]
           end

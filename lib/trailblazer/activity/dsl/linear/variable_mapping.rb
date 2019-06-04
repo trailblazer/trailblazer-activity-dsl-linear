@@ -4,7 +4,7 @@ module Trailblazer
       module Linear
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
-        def self.VariableMapping(input:, output:)
+        def self.VariableMapping(input:  VariableMapping.default_input, output: VariableMapping.default_output)
           input =
             VariableMapping::Input::Scoped.new(
               Trailblazer::Option::KW( VariableMapping::filter_for(input) )
@@ -21,8 +21,23 @@ module Trailblazer
         end
 
         module VariableMapping
+          module_function
+
           # @private
-          def self.filter_for(filter)
+          def default_output
+            ->(scoped, **) do
+              _wrapped, mutable = scoped.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
+              mutable
+            end
+          end
+
+          # @private
+          def default_input
+            ->(ctx, **) { ctx }
+          end
+
+          # @private
+          def filter_for(filter)
             if filter.is_a?(::Array) || filter.is_a?(::Hash)
               DSL.filter_from_dsl(filter)
             else

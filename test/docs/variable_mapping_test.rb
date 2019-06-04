@@ -135,6 +135,67 @@ ctx #=> {:params=>{:id=>1}, :current_user=>#<User ..>, :model=>#<Memo ..>}}
       signal, (ctx, flow_options) = Activity::TaskWrap.invoke(C::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
+
+      # no :output, default :output
+      module D
+        module Memo; end
+        #:no-output
+        class Memo::Create < Trailblazer::Activity::Path
+          step :authorize, input: :authorize_input
+
+          def authorize_input(original_ctx, **)
+            {params: original_ctx[:parameters]}
+          end
+
+          # def authorize_output(scoped_ctx, user:, **)
+          #   {current_user: scoped_ctx[:user]}
+          # end
+          #:no-output end
+          step :create_model
+
+          def authorize(ctx, params:, **)
+            ctx[:user] = User.find(params[:id])
+            ctx[:user] ? ctx[:result] = "Found a user." : ctx[:result] = "User unknown."
+          end
+
+          def create_model(ctx, user:, **)
+            ctx[:model] = user
+          end
+        end
+      end
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(D::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :user=>\"User \\\"1\\\"\", :result=>\"Found a user.\", :model=>\"User \\\"1\\\"\"}}
+
+
+      # no :input, default :input
+      module E
+        module Memo; end
+        #:no-input
+        class Memo::Create < Trailblazer::Activity::Path
+          step :authorize, output: :authorize_output
+
+          def authorize_output(scoped_ctx, user:, **)
+            {current_user: scoped_ctx[:user]}
+          end
+          #:no-input end
+          step :create_model
+
+          def authorize(ctx, parameters:, **)
+            ctx[:user] = User.find(parameters[:id])
+            ctx[:user] ? ctx[:result] = "Found a user." : ctx[:result] = "User unknown."
+          end
+
+          def create_model(ctx, current_user:, **)
+            ctx[:model] = current_user
+          end
+        end
+      end
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(E::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
     end
   end
 end
