@@ -1,3 +1,7 @@
+# 0.1.4
+
+* Provide default `:input` and `:output` if one of them is missing.
+
 # 0.1.3
 
 * Simplify `:override` handling by moving it to a later position.
