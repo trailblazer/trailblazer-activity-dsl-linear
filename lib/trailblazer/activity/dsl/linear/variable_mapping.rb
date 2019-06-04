@@ -5,19 +5,15 @@ module Trailblazer
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
         def self.VariableMapping(input:, output:)
-           input = #TaskWrap::Input.new(
-             VariableMapping::Input::Scoped.new(
-               Trailblazer::Option::KW( VariableMapping::filter_for(input) )
-               # ->(*args) { raise args.inspect }
-             )
-           #)
+          input =
+            VariableMapping::Input::Scoped.new(
+              Trailblazer::Option::KW( VariableMapping::filter_for(input) )
+            )
 
-          output = #TaskWrap::Output.new(
+          output =
             VariableMapping::Output::Unscoped.new(
               Trailblazer::Option::KW( VariableMapping::filter_for(output) )
-            # ),
-            # id: :dsl_input_output
-          )
+            )
 
           TaskWrap::Extension(
             merge: TaskWrap::VariableMapping.merge_for(input, output, id: input.object_id), # wraps filters: {Input(input), Output(output)}
