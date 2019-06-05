@@ -3,6 +3,7 @@ require "test_helper"
 class DocsStrategyTest < Minitest::Spec
   class Form
     def self.validate(input)
+      raise if input == :raise
       input
     end
   end
@@ -274,6 +275,7 @@ class DocsStrategyTest < Minitest::Spec
         step :validate
         fail :log_error
         pass :create
+        #~flow end
         #~mod
         def validate(ctx, params:, **)
           ctx[:input] = Form.validate(params) # true/false
@@ -282,7 +284,6 @@ class DocsStrategyTest < Minitest::Spec
         def create(ctx, create:, **)
           create
         end
-        #~flow end
 
         def log_error(ctx, logger:, params:, **)
           logger.error("wrong params: #{params.inspect}")
@@ -308,5 +309,136 @@ class DocsStrategyTest < Minitest::Spec
     signal, (ctx, flow_options) = G::Create.([ctx, {}])
     signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     ctx.inspect.sub(/0x\w+/, "0x").must_equal %{{:params=>{}, :logger=>#<DocsStrategyTest::Logger:0x>, :create=>false, :input=>{}}}
+  end
+
+  it do
+    module H
+
+      #:ft-passfast
+      class Create < Trailblazer::Activity::FastTrack
+        #~flow
+        step :validate, pass_fast: true
+        fail :log_error
+        step :create
+        #~flow end
+        #~mod
+        def validate(ctx, params:, **)
+          ctx[:input] = Form.validate(params) # true/false
+        end
+
+        def create(ctx, **)
+          ctx[:create] = true
+          create
+        end
+
+        def log_error(ctx, logger:, params:, **)
+          logger.error("wrong params: #{params.inspect}")
+          true
+        end
+        #~mod end
+      end
+      #:ft-passfast end
+    end
+
+    ctx = {params: {text: "Hydrate!"}}
+    signal, (ctx, flow_options) = H::Create.([ctx, {}])
+
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:pass_fast>}
+    ctx.inspect.must_equal %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}}}
+
+    ctx = {params: nil, logger: Logger.new}
+    signal, (ctx, flow_options) = H::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
+    ctx.inspect.sub(/0x\w+/, "0x").must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
+  end
+
+  it do
+    module I
+
+      #:ft-failfast
+      class Create < Trailblazer::Activity::FastTrack
+        #~flow
+        step :validate, fail_fast: true
+        fail :log_error
+        step :create
+        #~flow end
+        #~mod
+        def validate(ctx, params:, **)
+          ctx[:input] = Form.validate(params) # true/false
+        end
+
+        def create(ctx, **)
+          ctx[:create] = true
+        end
+
+        def log_error(ctx, logger:, params:, **)
+          logger.error("wrong params: #{params.inspect}")
+          true
+        end
+        #~mod end
+      end
+      #:ft-failfast end
+    end
+
+    ctx = {params: {text: "Hydrate!"}}
+    signal, (ctx, flow_options) = I::Create.([ctx, {}])
+
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}, :create=>true}}
+
+    ctx = {params: nil, logger: Logger.new}
+    signal, (ctx, flow_options) = I::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:fail_fast>}
+    ctx.inspect.sub(/0x\w+/, "0x").must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
+  end
+
+  it do
+    module J
+
+      #:ft-fasttrack
+      class Create < Trailblazer::Activity::FastTrack
+        #~flow
+        step :validate, fast_track: true
+        fail :log_error
+        step :create
+        #~flow end
+        #~mod
+        def validate(ctx, params:, **)
+          begin
+            ctx[:input] = Form.validate(params) # true/false
+          rescue
+            return Activity::FastTrack::FailFast # signal
+          end
+
+          ctx[:input] # true/false
+        end
+
+        def create(ctx, **)
+          ctx[:create] = true
+        end
+
+        def log_error(ctx, logger:, params:, **)
+          logger.error("wrong params: #{params.inspect}")
+          true
+        end
+        #~mod end
+      end
+      #:ft-fasttrack end
+    end
+
+    ctx = {params: {text: "Hydrate!"}}
+    signal, (ctx, flow_options) = J::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}, :create=>true}}
+
+    ctx = {params: nil, logger: Logger.new}
+    signal, (ctx, flow_options) = J::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
+    ctx.inspect.sub(/0x\w+/, "0x").must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
+
+    ctx = {params: :raise}
+    signal, (ctx, flow_options) = J::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:fail_fast>}
+    ctx.inspect.must_equal %{{:params=>:raise}}
   end
 end
