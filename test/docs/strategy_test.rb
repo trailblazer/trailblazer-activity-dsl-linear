@@ -401,8 +401,7 @@ class DocsStrategyTest < Minitest::Spec
         step :validate, fast_track: true
         fail :log_error
         step :create
-        #~flow end
-        #~mod
+
         def validate(ctx, params:, **)
           begin
             ctx[:input] = Form.validate(params) # true/false
@@ -412,7 +411,9 @@ class DocsStrategyTest < Minitest::Spec
 
           ctx[:input] # true/false
         end
+        #~flow end
 
+        #~mod
         def create(ctx, **)
           ctx[:create] = true
         end
