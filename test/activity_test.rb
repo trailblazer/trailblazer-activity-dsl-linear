@@ -106,6 +106,27 @@ class ActivityTest < Minitest::Spec
 }
     end
 
+    it ":override with inheritance" do
+      activity = Class.new(Activity::Railway) do
+        step :a#, id: :a
+      end
+
+      sub = Class.new(activity) do
+        step :a, override: true#, id: :a
+      end
+
+      assert_process_for sub.to_h, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+    end
+
     it "allows setting a custom, new end" do
       implementing = self.implementing
 

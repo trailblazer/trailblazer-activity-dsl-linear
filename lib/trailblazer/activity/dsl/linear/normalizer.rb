@@ -17,8 +17,8 @@ module Trailblazer
               "activity.normalize_for_macro"            => method(:merge_user_options),
               "activity.normalize_normalizer_options"   => method(:merge_normalizer_options),
               "activity.normalize_context"              => method(:normalize_context),
-              "activity.normalize_override"             => method(:normalize_override),
               "activity.normalize_id"                   => method(:normalize_id),
+              "activity.normalize_override"             => method(:normalize_override),
               "activity.wrap_task_with_step_interface"  => method(:wrap_task_with_step_interface), # last
               },
 
