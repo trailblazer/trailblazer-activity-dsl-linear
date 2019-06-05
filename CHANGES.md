@@ -1,3 +1,7 @@
+# 0.1.5
+
+* Fix `:override` in combo with a missing `:id` and inheritance by moving the overriding after id generation.
+
 # 0.1.4
 
 * Provide default `:input` and `:output` if one of them is missing.
