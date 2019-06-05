@@ -264,4 +264,49 @@ class DocsStrategyTest < Minitest::Spec
     signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     ctx.inspect.sub(/0x\w+/, "0x").must_equal %{{:params=>false, :logger=>#<DocsStrategyTest::Logger:0x>, :log_error=>false, :input=>false}}
   end
+
+  it do
+    module G
+
+      #:railway-pass
+      class Create < Trailblazer::Activity::Railway
+        #~flow
+        step :validate
+        fail :log_error
+        pass :create
+        #~mod
+        def validate(ctx, params:, **)
+          ctx[:input] = Form.validate(params) # true/false
+        end
+
+        def create(ctx, create:, **)
+          create
+        end
+        #~flow end
+
+        def log_error(ctx, logger:, params:, **)
+          logger.error("wrong params: #{params.inspect}")
+          true
+        end
+        #~mod end
+      end
+      #:railway-pass end
+    end
+
+    ctx = {params: {text: "Hydrate!"}, create: true}
+    signal, (ctx, flow_options) = G::Create.([ctx, {}])
+
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:params=>{:text=>\"Hydrate!\"}, :create=>true, :input=>{:text=>\"Hydrate!\"}}}
+
+    ctx = {params: nil, logger: Logger.new}
+    signal, (ctx, flow_options) = G::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
+    ctx.inspect.sub(/0x\w+/, "0x").must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
+
+    ctx = {params: {}, logger: Logger.new, create: false}
+    signal, (ctx, flow_options) = G::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.sub(/0x\w+/, "0x").must_equal %{{:params=>{}, :logger=>#<DocsStrategyTest::Logger:0x>, :create=>false, :input=>{}}}
+  end
 end
