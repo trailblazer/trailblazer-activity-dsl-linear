@@ -121,4 +121,96 @@ class DocsStrategyTest < Minitest::Spec
 
     # puts Trailblazer::Developer.render(C::Create)
   end
+
+  class Logger
+    def error(*); end
+  end
+
+  it do
+    module D
+
+      #:railway
+      class Create < Trailblazer::Activity::Railway
+        #~flow
+        step :validate
+        fail :log_error
+        step :create
+        #~flow end
+        #~mod
+        def validate(ctx, params:, **)
+          ctx[:input] = Form.validate(params) # true/false
+        end
+
+        def create(ctx, input:, create:, **)
+          create
+        end
+
+        def log_error(ctx, logger:, params:, **)
+          logger.error("wrong params: #{params.inspect}")
+        end
+        #~mod end
+      end
+      #:railway end
+    end
+
+    ctx = {params: {text: "Hydrate!"}, create: true}
+    signal, (ctx, flow_options) = D::Create.([ctx, {}])
+
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:params=>{:text=>\"Hydrate!\"}, :create=>true, :input=>{:text=>\"Hydrate!\"}}}
+
+    ctx = {params: nil, logger: Logger.new}
+    signal, (ctx, flow_options) = D::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
+    ctx.inspect.sub(/0x\w+/, "0x").must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
+
+    ctx = {params: {}, create: false}
+    signal, (ctx, flow_options) = D::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
+    ctx.inspect.must_equal %{{:params=>{}, :create=>false, :input=>{}}}
+  end
+
+  it do
+    module E
+
+      #:railway-wire
+      class Create < Trailblazer::Activity::Railway
+        #~flow
+        step :validate
+        fail :log_error
+        step :create, Output(:failure) => End(:db_error)
+        #~flow end
+        #~mod
+        def validate(ctx, params:, **)
+          ctx[:input] = Form.validate(params) # true/false
+        end
+
+        def create(ctx, input:, create:, **)
+          create
+        end
+
+        def log_error(ctx, logger:, params:, **)
+          logger.error("wrong params: #{params.inspect}")
+        end
+        #~mod end
+      end
+      #:railway-wire end
+    end
+
+    ctx = {params: {text: "Hydrate!"}, create: true}
+    signal, (ctx, flow_options) = E::Create.([ctx, {}])
+
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:params=>{:text=>\"Hydrate!\"}, :create=>true, :input=>{:text=>\"Hydrate!\"}}}
+
+    ctx = {params: nil, logger: Logger.new}
+    signal, (ctx, flow_options) = E::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
+    ctx.inspect.sub(/0x\w+/, "0x").must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
+
+    ctx = {params: {}, create: false}
+    signal, (ctx, flow_options) = E::Create.([ctx, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:db_error>}
+    ctx.inspect.must_equal %{{:params=>{}, :create=>false, :input=>{}}}
+  end
 end
