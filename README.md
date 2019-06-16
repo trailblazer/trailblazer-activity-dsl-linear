@@ -21,3 +21,9 @@ The different "step types" (think of `step`, `fail`, and `pass`) are again imple
 
 `:sequence_insert`
 `:connections` are callables to find the connecting tasks
+
+## License
+
+© Copyright 2018, Trailblazer GmbH
+
+Licensed under the LGPLv3 license. We also offer a [commercial-friendly license](http://trailblazer.to/pro).
