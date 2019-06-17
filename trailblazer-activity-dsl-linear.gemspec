@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.summary       = %q(Simple DSL to compile Trailblazer activities.)
   spec.description   = %q(Simple DSL to compile Trailblazer activities with arbitrary wirings.)
   spec.homepage      = "http://trailblazer.to"
-  spec.licenses      = ["LGPLv3"]
+  spec.licenses      = ["LGPL-3.0"]
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
     f.match(%r{^(test)/})
@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler", "~> 1.14"
   spec.add_development_dependency "minitest", "~> 5.0"
   spec.add_development_dependency "rake"
-  spec.add_development_dependency "trailblazer-developer"
+  spec.add_development_dependency "trailblazer-developer", ">= 0.0.3"
 
   spec.required_ruby_version = '>= 2.1.0'
 end
