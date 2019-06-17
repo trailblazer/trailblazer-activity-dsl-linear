@@ -70,10 +70,10 @@ class DocSeqOptionsTest < Minitest::Spec
     #:before end
 
     output =
-      #:delete-inspect
+      #:before-inspect
       Trailblazer::Developer.railway(Memo::Create::Authorized)
       #=> [>policy,>create_model,>validate,>save_the_world]
-      #:delete-inspect end
+      #:before-inspect end
 
     output.must_equal %{[>policy,>create_model,>validate,>save_the_world]}
   end
@@ -92,10 +92,10 @@ class DocSeqOptionsTest < Minitest::Spec
     #:after end
 
     output =
-      #:delete-inspect
+      #:after-inspect
       Trailblazer::Developer.railway(Memo::Create::Logging)
       #=> [>create_model,>validate,>logger,>save_the_world]
-      #:delete-inspect end
+      #:after-inspect end
 
     output.must_equal %{[>create_model,>validate,>logger,>save_the_world]}
   end
@@ -114,10 +114,10 @@ class DocSeqOptionsTest < Minitest::Spec
     #:replace end
 
     output =
-      #:delete-inspect
+      #:replace-inspect
       Trailblazer::Developer.railway(Memo::Update)
       #=> [>update_memo,>validate,>save_the_world]
-      #:delete-inspect end
+      #:replace-inspect end
 
     output.must_equal %{[>update_memo,>validate,>save_the_world]}
   end
