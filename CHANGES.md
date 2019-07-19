@@ -1,6 +1,6 @@
 # 0.1.6
 
-* Use `activity-0.1.6`.
+* Use `activity-0.8.3`.
 
 # 0.1.5
 
