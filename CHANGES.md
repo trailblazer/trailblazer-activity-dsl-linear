@@ -1,3 +1,7 @@
+# 0.1.6
+
+* Use `activity-0.1.6`.
+
 # 0.1.5
 
 * Fix `:override` in combo with a missing `:id` and inheritance by moving the overriding after id generation.
