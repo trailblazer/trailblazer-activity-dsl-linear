@@ -47,4 +47,31 @@ class SubprocessTest < Minitest::Spec
     end
   end
 
+  it do
+    module C
+      Memo = Class.new
+
+      class Memo::Validate < Trailblazer::Activity::Railway
+        step :check_params, Output(:failure) => End(:invalid_params)
+        step :check_attributes
+
+        include T.def_steps(:check_params, :check_attributes)
+      end
+
+      class Memo::Create < Trailblazer::Activity::Railway
+        step :create_model
+        step Subprocess(Memo::Validate), Output(:invalid_params) => Track(:failure)
+        step :save
+
+        include T.def_steps(:create_model, :save)
+      end
+
+      signal, (ctx, _) = Memo::Create.([{seq: []}, {}])
+      ctx.inspect.must_equal %{{:seq=>[:create_model, :check_params, :check_attributes, :save]}}
+
+      signal, (ctx, _) = Memo::Create.([{seq: [], check_params: false}, {}])
+      ctx.inspect.must_equal %{{:seq=>[:create_model, :check_params], :check_params=>false}}
+    end
+  end
+
 end
