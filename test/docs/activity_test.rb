@@ -289,4 +289,32 @@ class DocsActivityTest < Minitest::Spec
     signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     ctx.inspect.must_equal '{:name=>"Face to Face", :validate_outcome=>true}'
   end
+
+  it do
+    module B
+      #:circuit-interface-start
+      class Create < Trailblazer::Activity::Railway
+        #~meths
+        include T.def_steps(:create, :validate, :save)
+        #~meths end
+        step :create
+        step :validate
+        step :save
+      end
+      #:circuit-interface-start end
+
+      ctx             = {name: "Face to Face", seq: []}
+      flow_options    = {}
+      #:circuit-interface-start-call
+      circuit_options = {
+        start_task: Trailblazer::Activity::Introspect::Graph(Create).find { |node| node.id == :validate  }.task
+      }
+
+      signal, (ctx, flow_options) = Create.([ctx, flow_options], circuit_options)
+      #:circuit-interface-start-call end
+
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal '{:name=>"Face to Face", :seq=>[:validate, :save]}'
+    end
+  end
 end
