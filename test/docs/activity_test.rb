@@ -290,6 +290,7 @@ class DocsActivityTest < Minitest::Spec
     ctx.inspect.must_equal '{:name=>"Face to Face", :validate_outcome=>true}'
   end
 
+  # circuit interface: :start_task
   it do
     module B
       #:circuit-interface-start
@@ -315,6 +316,49 @@ class DocsActivityTest < Minitest::Spec
 
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       ctx.inspect.must_equal '{:name=>"Face to Face", :seq=>[:validate, :save]}'
+    end
+  end
+
+  # circuit interface: :exec_context
+  it do
+    module C
+      Memo = Struct.new(:name) do
+        def save
+          true
+        end
+      end
+
+      #:circuit-interface-exec
+      class Create < Trailblazer::Activity::Railway
+        step :create
+        step :save
+      end
+      #:circuit-interface-exec end
+
+      #:circuit-interface-implementation
+      class Create::Implementation
+        def create(ctx, params:, **)
+          ctx[:model] = Memo.new(params)
+        end
+
+        def save(ctx, model:, **)
+          ctx[:model].save
+        end
+      end
+      #:circuit-interface-implementation end
+
+      ctx             = {params: {name: "Face to Face"}}
+      flow_options    = {}
+      #:circuit-interface-exec-call
+      circuit_options = {
+        exec_context: Create::Implementation.new
+      }
+
+      signal, (ctx, flow_options) = Create.to_h[:circuit].([ctx, flow_options], circuit_options)
+      #:circuit-interface-exec-call end
+
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal %{{:params=>{:name=>\"Face to Face\"}, :model=>#<struct DocsActivityTest::C::Memo name={:name=>\"Face to Face\"}>}}
     end
   end
 end
