@@ -77,4 +77,58 @@ class DocsPathTest < Minitest::Spec
     signal, (ctx, flow_options) = B::Charge.([{seq: [], decide_type: false}, {}])
     ctx.inspect.must_equal %{{:seq=>[:validate, :decide_type, :authorize, :charge, :finalize], :decide_type=>false}}
   end
+
+  it "works in Railway" do
+    module C
+      class Charge < Trailblazer::Activity::Railway
+        MySignal = Class.new(Trailblazer::Activity::Signal)
+
+        include T.def_steps(:validate, :decide_type, :direct_debit, :finalize, :authorize, :charge)
+
+        step :validate
+        step :decide_type, Output(MySignal, :credit_card) => Path(connect_to: Id(:finalize)) do
+          step :authorize
+          step :charge
+        end
+        step :direct_debit
+        step :finalize
+      end
+    end
+
+    assert_process_for C::Charge, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*decide_type>
+<*decide_type>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*direct_debit>
+ {DocsPathTest::C::Charge::MySignal} => <*authorize>
+<*authorize>
+ {Trailblazer::Activity::Right} => <*charge>
+<*charge>
+ {Trailblazer::Activity::Right} => <*finalize>
+<*direct_debit>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*finalize>
+<*finalize>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+    ctx = {seq: []}
+
+    signal, (ctx, flow_options) = C::Charge.([ctx, {}])
+    ctx.inspect.must_equal %{{:seq=>[:validate, :decide_type, :direct_debit, :finalize]}}
+
+    signal, (ctx, flow_options) = C::Charge.([{seq: [], decide_type: false}, {}])
+    ctx.inspect.must_equal %{{:seq=>[:validate, :decide_type], :decide_type=>false}}
+
+    signal, (ctx, flow_options) = C::Charge.([{seq: [], decide_type: C::Charge::MySignal}, {}])
+    ctx.inspect.must_equal %{{:seq=>[:validate, :decide_type, :authorize, :charge, :finalize], :decide_type=>DocsPathTest::C::Charge::MySignal}}
+  end
 end
