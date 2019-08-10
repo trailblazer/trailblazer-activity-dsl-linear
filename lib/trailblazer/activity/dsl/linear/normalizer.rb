@@ -115,6 +115,7 @@ module Trailblazer
           end
 
           # Compile the actual {Seq::Row}'s {wiring}.
+          # This combines {:connections} and {:outputs}
           def compile_wirings((ctx, flow_options), *)
             connections = ctx[:connections] || raise # FIXME
             outputs = ctx[:outputs] || raise # FIXME

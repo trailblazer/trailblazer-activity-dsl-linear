@@ -38,7 +38,7 @@ module Trailblazer
         Id.new(id).freeze
       end
 
-      def Path(track_color: "track_#{rand}", end_id:, **options, &block)
+      def Path(track_color: "track_#{rand}", end_id:"path_end_#{rand}", connect_to:nil, **options, &block)
         # DISCUSS: here, we use the global normalizer and don't allow injection.
         state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(track_name: track_color, end_id: end_id, **options)) # TODO: test injecting {:normalizers}.
 
@@ -47,7 +47,25 @@ module Trailblazer
 
         seq = state.to_h[:sequence]
 
-        seq = Linear.strip_start_and_ends(seq, end_id: nil) # don't cut off end.
+        _end_id =
+          if connect_to
+            end_id
+          else
+            nil
+          end
+
+        seq = Linear.strip_start_and_ends(seq, end_id: _end_id) # don't cut off end unless {:connect_to} is set.
+
+        if connect_to
+          output, _ = seq[-1][2][0].(seq, seq[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
+
+          searches = [Linear::Search.ById(output, connect_to.value)]
+
+          row = seq[-1]
+          row = row[0..1] + [searches] + [row[3]] # FIXME: not mutating an array is so hard: we only want to replace the "searches" element, index 2
+
+          seq = seq[0..-2] + [row]
+        end
 
         # Add the path before End.success - not sure this is bullet-proof.
         adds = seq.collect do |row|
@@ -57,6 +75,7 @@ module Trailblazer
           }
         end
 
+        # Connect the Output() => Track(path_track)
         return Track.new(track_color, adds)
       end
 
