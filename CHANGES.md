@@ -1,3 +1,7 @@
+# 0.1.7
+
+* Add `:connect_to` option to `Path()` to allow re-joining a branched activity.
+
 # 0.1.6
 
 * Use `activity-0.8.3`.
