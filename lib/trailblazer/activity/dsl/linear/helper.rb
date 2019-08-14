@@ -54,12 +54,12 @@ module Trailblazer
             nil
           end
 
-        seq = Linear.strip_start_and_ends(seq, end_id: _end_id) # don't cut off end unless {:connect_to} is set.
+        seq = strip_start_and_ends(seq, end_id: _end_id) # don't cut off end unless {:connect_to} is set.
 
         if connect_to
           output, _ = seq[-1][2][0].(seq, seq[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
 
-          searches = [Linear::Search.ById(output, connect_to.value)]
+          searches = [Search.ById(output, connect_to.value)]
 
           row = seq[-1]
           row = row[0..1] + [searches] + [row[3]] # FIXME: not mutating an array is so hard: we only want to replace the "searches" element, index 2
@@ -71,7 +71,7 @@ module Trailblazer
         adds = seq.collect do |row|
           {
             row:    row,
-            insert: [Linear::Insert.method(:Prepend), "End.success"]
+            insert: [Insert.method(:Prepend), "End.success"]
           }
         end
 
