@@ -1,3 +1,7 @@
+# 0.1.8.
+
+* Fix `Linear` namespacing and `require`s.
+
 # 0.1.7
 
 * Add `:connect_to` option to `Path()` to allow re-joining a branched activity.
