@@ -1,6 +1,5 @@
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require "pp"
-require "trailblazer-activity"
 require "trailblazer/activity/dsl/linear"
 
 require "minitest/autorun"

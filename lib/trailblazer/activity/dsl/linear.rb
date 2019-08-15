@@ -1,3 +1,4 @@
+
 class Trailblazer::Activity
   module DSL
     # Implementing a specific DSL, simplified version of the {Magnetic DSL} from 2017.
@@ -153,6 +154,7 @@ class Trailblazer::Activity
   end
 end
 
+require "trailblazer-activity"
 require "trailblazer/activity/dsl/linear/normalizer"
 require "trailblazer/activity/dsl/linear/state"
 require "trailblazer/activity/dsl/linear/strategy"
