@@ -21,9 +21,11 @@ class DocsMacroTest < Minitest::Spec
       end
       #:macro end
 
+      #:macro-call
       class Create < Trailblazer::Activity::Railway
         step MyMacro::NormalizeParams(merge_hash: {role: "sailor"})
       end
+      #:macro-call end
     end
 
     signal, (ctx, _) = A::Create.([{params: {user: "Adam"}}, {}])
