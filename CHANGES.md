@@ -1,3 +1,7 @@
+# 0.1.9
+
+* Fix `:extensions` merging that would override `:input` and `:output` if the `:extensions` option was given via the DSL.
+
 # 0.1.8.
 
 * Fix `Linear` namespacing and `require`s.
