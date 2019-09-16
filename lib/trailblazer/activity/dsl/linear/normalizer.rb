@@ -213,7 +213,7 @@ module Trailblazer
             return Trailblazer::Activity::Right, [ctx, flow_options] if config.size == 0 # no :input/:output passed.
 
             new_ctx = {}
-            new_ctx[:extensions] ||= [] # FIXME
+            new_ctx[:extensions] = ctx[:extensions] || [] # merge DSL extensions with I/O.
             new_ctx[:extensions] += [Linear.VariableMapping(**config)]
 
             return Trailblazer::Activity::Right, [ctx.merge(new_ctx), flow_options]

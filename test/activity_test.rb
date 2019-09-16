@@ -367,19 +367,24 @@ class ActivityTest < Minitest::Spec
       return wrap_ctx, original_args # yay to mutable state. not.
     end
 
-    it "accepts {:extensions}" do
-      implementing = self.implementing
-
-      merge = [
-        [Trailblazer::Activity::TaskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
-      ]
-
-      activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a, extensions: [Trailblazer::Activity::TaskWrap::Extension(merge: merge)]
-        step implementing.method(:b), id: :b
+    describe "{:extensions}" do
+      let(:merge) do
+        merge = [
+          [Trailblazer::Activity::TaskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
+        ]
       end
 
-      assert_process_for activity.to_h, :success, %{
+      it "accepts {:extensions}" do
+        implementing = self.implementing
+
+        merge = self.merge
+
+        activity = Class.new(Activity::Path) do
+          step implementing.method(:a), id: :a, extensions: [Trailblazer::Activity::TaskWrap::Extension(merge: merge)]
+          step implementing.method(:b), id: :b
+        end
+
+        assert_process_for activity.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
 <*#<Method: #<Module:0x>.a>>
@@ -389,10 +394,29 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
 
-      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
+        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
 
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal %{{:seq=>[1, :a, :b]}}
+        signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+        ctx.inspect.must_equal %{{:seq=>[1, :a, :b]}}
+      end
+
+      it "accepts {:extensions} along with {:input}" do
+        implementing = self.implementing
+
+        merge = self.merge
+
+        activity = Class.new(Activity::Path) do
+          # :extensions doesn't overwrite :input and vice-versa!
+          step implementing.method(:a), id: :a, extensions: [Trailblazer::Activity::TaskWrap::Extension(merge: merge)], input: ->(ctx, *) { {seq: ctx[:seq] += [:input]} }
+          step implementing.method(:b), id: :b
+        end
+
+        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
+
+        signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+        ctx.inspect.must_equal %{{:seq=>[1, :input, :a, :b]}}
+      end
+
     end
   end
 
