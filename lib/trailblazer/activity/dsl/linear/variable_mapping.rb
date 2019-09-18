@@ -67,10 +67,10 @@ module Trailblazer
                 @filter = filter
               end
 
-              def call(original_ctx, **circuit_options)
+              def call((original_ctx, flow_options), **circuit_options)
                 Trailblazer::Context.for( # TODO: make this interchangeable so we can work on faster contexts?
                   @filter.(original_ctx, **circuit_options),
-                  [original_ctx, {}], circuit_options # these options for {Context.for} are currently unused.
+                  [original_ctx, flow_options], circuit_options # these options for {Context.for} are currently unused.
                 )
               end
             end
@@ -84,7 +84,7 @@ module Trailblazer
                 @filter = filter
               end
 
-              def call(original_ctx, new_ctx, **circuit_options)
+              def call(new_ctx, (original_ctx, flow_options), **circuit_options)
                 original_ctx.merge(
                   @filter.(new_ctx, **circuit_options)
                 )
