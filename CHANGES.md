@@ -1,3 +1,7 @@
+# 0.2.0
+
+* Update to `activity-0.9.0`.
+
 # 0.1.9
 
 * Fix `:extensions` merging that would override `:input` and `:output` if the `:extensions` option was given via the DSL.
