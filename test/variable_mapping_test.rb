@@ -47,4 +47,29 @@ class VariableMappingTest < Minitest::Spec
     # signal.must_equal activity.outputs[:success].signal
     options.must_equal({:a=>1, :model_a=>3})
   end
+
+  it "allows ctx aliasing with nesting and :input/:output" do
+    model = Class.new(Trailblazer::Activity::Path) do
+      step :model_add
+
+      def model_add(ctx, model_from_a:, **)
+        ctx[:model_add] = model_from_a.inspect
+      end
+    end
+
+    activity = Class.new(Trailblazer::Activity::Path) do
+      step VariableMappingTest.method(:model), input: [:a], output: {:a => :model_a, :b => :model_b}
+      step Subprocess(model)
+      step VariableMappingTest.method(:uuid), input: {:a => :a, :b => :my_b}, output: [:b]
+    end
+
+    ctx           = {a: 0, b: 9}
+    flow_options  = {context_alias: {model_a: :model_from_a}}
+
+    ctx = Trailblazer::Context::IndifferentAccess.new(ctx, {}, **flow_options)
+
+    signal, (ctx, flow_options) = Activity::TaskWrap.invoke(activity, [ctx, flow_options], {})
+
+    ctx.to_hash.inspect.must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3, :model_add=>\"1\", :model_from_a=>1}}
+  end
 end

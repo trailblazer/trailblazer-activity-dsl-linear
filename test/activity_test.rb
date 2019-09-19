@@ -411,7 +411,7 @@ class ActivityTest < Minitest::Spec
           step implementing.method(:b), id: :b
         end
 
-        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
+        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
 
         signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
         ctx.inspect.must_equal %{{:seq=>[1, :input, :a, :b]}}
