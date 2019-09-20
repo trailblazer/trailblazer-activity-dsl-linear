@@ -1,3 +1,7 @@
+# 0.2.1
+
+* Update to `activity-0.9.1` and `context-0.2.0`.
+
 # 0.2.0
 
 * Update to `activity-0.9.0`.
