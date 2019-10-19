@@ -267,5 +267,37 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
 
 #<End/:failure>
 }
+
+    module I
+      #:pay-track
+      class Execute < Trailblazer::Activity::Railway
+        #~flow
+        step :find_provider, Output(:failure) => Track(:paypal)
+        step :charge_creditcard
+        step :charge_paypal, magnetic_to: :paypal
+        #~flow end
+        #~mod
+        #~mod end
+      end
+      #:pay-track end
+    end
+
+    Trailblazer::Developer.render(I::Execute).must_equal %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+ {Trailblazer::Activity::Left} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_paypal>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_paypal>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
   end
 end
