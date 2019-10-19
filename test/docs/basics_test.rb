@@ -66,4 +66,93 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
       ctx[:memo].inspect.must_equal %{#<struct DocsBasicTest::A::Memo id=nil, text=\"Hydrate!\">}
     end
   end
+
+# Output()
+  it "Output()" do
+    module B
+      #:pay-implicit
+      class Execute < Trailblazer::Activity::Railway
+        #~flow
+        step :find_provider
+        step :charge_creditcard
+        #~flow end
+        #~mod
+        #~mod end
+      end
+      #:pay-implicit end
+    end
+
+    module A
+      #:pay-explicit
+      class Execute < Trailblazer::Activity::Railway
+        #~flow
+        step :find_provider,
+          Output(Trailblazer::Activity::Left, :failure) => Track(:failure),
+          Output(Trailblazer::Activity::Right, :success) => Track(:success)
+        step :charge_creditcard
+        #~flow end
+        #~mod
+
+        #~mod end
+      end
+      #:pay-explicit end
+
+      #:render
+      puts Trailblazer::Developer.render(Execute)
+      #:render end
+
+      #:pay-call
+      ctx = {id: 1, params: {text: "Hydrate!"}}
+
+      # signal, (ctx, flow_options) = Upsert.([ctx, {}])
+      #:pay-call end
+    end
+
+    module C
+      #:pay-nosignal
+      class Execute < Trailblazer::Activity::Railway
+        #~flow
+        step :find_provider, Output(:failure) => Track(:failure)
+        step :charge_creditcard
+        #~flow end
+        #~mod
+        #~mod end
+      end
+      #:pay-nosignal end
+    end
+
+    Trailblazer::Developer.render(A::Execute).must_equal Trailblazer::Developer.render(B::Execute)
+    Trailblazer::Developer.render(B::Execute).must_equal Trailblazer::Developer.render(C::Execute)
+
+    module D
+      #:pay-add
+      class Execute < Trailblazer::Activity::Railway
+        UsePaypal = Class.new
+
+        #~flow
+        step :find_provider, Output(UsePaypal, :paypal) => Track(:paypal)
+        step :charge_creditcard
+        #~flow end
+        #~mod
+        #~mod end
+      end
+      #:pay-add end
+    end
+
+    Trailblazer::Developer.render(D::Execute).must_equal %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+ {DocsBasicTest::D::Execute::UsePaypal} => #<End/:failure>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+  end
 end
