@@ -269,7 +269,7 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
 }
 
     module I
-      #:pay-track
+      #:pay-magneticto
       class Execute < Trailblazer::Activity::Railway
         #~flow
         step :find_provider, Output(:failure) => Track(:paypal)
@@ -279,7 +279,7 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
         #~mod
         #~mod end
       end
-      #:pay-track end
+      #:pay-magneticto end
     end
 
     Trailblazer::Developer.render(I::Execute).must_equal %{
