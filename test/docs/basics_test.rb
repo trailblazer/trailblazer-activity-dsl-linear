@@ -154,5 +154,61 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
 #<End/:failure>
 }
 
+    module E
+      #:pay-end
+      class Execute < Trailblazer::Activity::Railway
+        #~flow
+        step :find_provider
+        step :charge_creditcard, Output(:failure) => End(:declined)
+        #~flow end
+        #~mod
+        #~mod end
+      end
+      #:pay-end end
+    end
+
+    Trailblazer::Developer.render(E::Execute).must_equal %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+ {Trailblazer::Activity::Left} => #<End/:declined>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:declined>
+
+#<End/:failure>
+}
+
+    module F
+      #:pay-endex
+      class Execute < Trailblazer::Activity::Railway
+        #~flow
+        step :find_provider
+        step :charge_creditcard, Output(:failure) => End(:success)
+        #~flow end
+        #~mod
+        #~mod end
+      end
+      #:pay-endex end
+    end
+
+    Trailblazer::Developer.render(F::Execute).must_equal %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+ {Trailblazer::Activity::Left} => #<End/:success>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
   end
 end
