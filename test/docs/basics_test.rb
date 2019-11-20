@@ -127,7 +127,7 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
     module D
       #:pay-add
       class Execute < Trailblazer::Activity::Railway
-        UsePaypal = Class.new
+        UsePaypal = Class.new(Trailblazer::Activity::Signal)
 
         #~flow
         step :find_provider, Output(UsePaypal, :paypal) => Track(:paypal)
