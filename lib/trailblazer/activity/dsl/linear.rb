@@ -1,3 +1,4 @@
+require "trailblazer-activity"
 
 class Trailblazer::Activity
   module DSL
@@ -154,7 +155,6 @@ class Trailblazer::Activity
   end
 end
 
-require "trailblazer-activity"
 require "trailblazer/activity/dsl/linear/normalizer"
 require "trailblazer/activity/dsl/linear/state"
 require "trailblazer/activity/dsl/linear/strategy"
