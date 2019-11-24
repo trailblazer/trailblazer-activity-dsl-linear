@@ -1,3 +1,7 @@
+# 0.2.2
+
+* Fix requiring `trailblazer/activity.rb`.
+
 # 0.2.1
 
 * Update to `activity-0.9.1` and `context-0.2.0`.
