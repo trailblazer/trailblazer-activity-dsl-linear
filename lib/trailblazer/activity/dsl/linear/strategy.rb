@@ -96,6 +96,10 @@ module Trailblazer
               circuit_options.merge(exec_context: new)
             )
           end
+
+          def invoke(*args)
+            TaskWrap.invoke(self, *args)
+          end
         end # Strategy
       end
     end

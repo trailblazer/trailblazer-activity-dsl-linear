@@ -21,6 +21,11 @@ class TaskWrapTest < Minitest::Spec
 
     ctx.inspect.must_equal %{{:seq=>[1, :a, 2, :b, :c]}}
 
+# {Activity.invoke} is an alias for {TaskWrap.invoke}
+    signal, (ctx, flow_options) = activity.invoke([{seq: []}], **{})
+
+    ctx.inspect.must_equal %{{:seq=>[1, :a, 2, :b, :c]}}
+
 # it works nested as well
 
     c = implementing.method(:c)
