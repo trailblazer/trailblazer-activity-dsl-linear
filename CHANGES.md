@@ -1,3 +1,7 @@
+# 0.2.3
+
+* Add `Strategy::invoke` which is a short-cut to `TaskWrap.invoke`. It's available as class method in all three strategies.
+
 # 0.2.2
 
 * Fix requiring `trailblazer/activity.rb`.
