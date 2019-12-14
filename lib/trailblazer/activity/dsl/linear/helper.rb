@@ -80,11 +80,35 @@ module Trailblazer
       end
 
       # Computes the {:outputs} options for {activity}.
-      def Subprocess(activity)
+      def Subprocess(activity, path=[], patch=nil)
+        activity = Patch.(activity, path, patch) if path.any?
+
         {
           task:    activity,
           outputs: Hash[activity.to_h[:outputs].collect { |output| [output.semantic, output] }]
         }
+      end
+
+      module Patch
+        module_function
+
+        def call(activity, path, customization)
+          task_id, *path = path
+
+          new_activity = Class.new(activity)
+
+          if task_id
+            puts "@@@@@>> #{task_id.inspect}"
+            segment_activity = Introspect::Graph(activity).find(task_id).task
+            patched_segment_activity = call(segment_activity, path, customization)
+            # activity =
+            new_activity.class_exec { step Subprocess(patched_segment_activity), replace: task_id, id: task_id }
+          else
+            new_activity.class_exec(&customization)
+          end
+
+          new_activity
+        end
       end
 
       def normalize(options, local_keys) # TODO: test me.
