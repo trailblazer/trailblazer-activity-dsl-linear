@@ -4,9 +4,9 @@ require "trailblazer/activity/dsl/linear"
 
 require "minitest/autorun"
 
+require "trailblazer/developer"
 require "trailblazer/developer/render/circuit"
 require "trailblazer/developer/render/linear"
-
 
 require "trailblazer/activity/testing"
 T = Trailblazer::Activity::Testing

@@ -107,7 +107,9 @@ module Trailblazer
               customization # apply the *actual* patch from the Subprocess() call.
             end
 
-          Class.new(activity).class_exec(&patch) # evaluate the patch in the new activity class.
+          patched_activity = Class.new(activity)
+          patched_activity.class_exec(&patch)
+          patched_activity
         end
       end
 

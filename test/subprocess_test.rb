@@ -5,18 +5,24 @@ class SubprocessTest < Minitest::Spec
     implementing = self.implementing
 
     advance = Class.new(Activity::Path) do
-      step implementing.method(:g), id: :g
-      step implementing.method(:f), id: :f
+      step :g
+      step :f
+
+      include T.def_steps(:g, :f)
     end
 
     controller = Class.new(Activity::Path) do
       step Subprocess(advance), id: :advance
-      step implementing.method(:d), id: :d
+      step :d
+
+      include T.def_steps(:d)
     end
 
     my_controller = Class.new(Activity::Path) do
-      step implementing.method(:c), id: :c
+      step :c
       step Subprocess(controller), id: :controller
+
+      include T.def_steps(:c)
     end
 
     our_controller = Class.new(Activity::Path) do
@@ -32,10 +38,10 @@ class SubprocessTest < Minitest::Spec
 
      assert_process_for advance, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.g>>
-<*#<Method: #<Module:0x>.g>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
-<*#<Method: #<Module:0x>.f>>
+ {Trailblazer::Activity::Right} => <*g>
+<*g>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -44,16 +50,16 @@ class SubprocessTest < Minitest::Spec
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Class:0x>
 #<Class:0x>
- {#<Trailblazer::Activity::End semantic=:success>} => <*#<Method: #<Module:0x>.d>>
-<*#<Method: #<Module:0x>.d>>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*d>
+<*d>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
 
     assert_process_for my_controller, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
-<*#<Method: #<Module:0x>.c>>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
  {Trailblazer::Activity::Right} => #<Class:0x>
 #<Class:0x>
  {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
@@ -64,20 +70,21 @@ class SubprocessTest < Minitest::Spec
 
     assert_process_for process, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.g>>
-<*#<Method: #<Module:0x>.g>>
+ {Trailblazer::Activity::Right} => <*g>
+<*g>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
 <*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
-<*#<Method: #<Module:0x>.f>>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
 
-    signal, (ctx, _) = my_controller.([{seq: []}])
-    ctx.inspect.must_equal %{{:seq=>[:c, :g, :f, :d]}}
+    # signal, (ctx, _) = my_controller.([{seq: []}])
+    # ctx.inspect.must_equal %{{:seq=>[:c, :g, :f, :d]}}
 
-    signal, (ctx, _) = our_controller.([{seq: []}])
+    # signal, (ctx, _) = our_controller.([{seq: []}])
+    signal, (ctx, _) = Trailblazer::Developer.wtf?(our_controller, [{seq: []}])
     ctx.inspect.must_equal %{{:seq=>[:c, :g, :a, :f, :d]}}
   end
 
