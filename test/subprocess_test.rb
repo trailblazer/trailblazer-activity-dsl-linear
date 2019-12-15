@@ -30,7 +30,35 @@ class SubprocessTest < Minitest::Spec
      c = find(mc, :controller)
      a = find( c, :advance)
 
+     assert_process_for advance, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.g>>
+<*#<Method: #<Module:0x>.g>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
+<*#<Method: #<Module:0x>.f>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
 
+    assert_process_for controller, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*#<Method: #<Module:0x>.d>>
+<*#<Method: #<Module:0x>.d>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+
+    assert_process_for my_controller, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
+<*#<Method: #<Module:0x>.c>>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+#<End/:success>
+}
 
     process = a.to_h
 
@@ -45,10 +73,15 @@ class SubprocessTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
+
+    signal, (ctx, _) = my_controller.([{seq: []}])
+    ctx.inspect.must_equal %{{:seq=>[:c, :g, :f, :d]}}
+
+    signal, (ctx, _) = our_controller.([{seq: []}])
+    ctx.inspect.must_equal %{{:seq=>[:c, :g, :a, :f, :d]}}
   end
 
   def find(activity, id)
-    puts "@@@@@< #{id.inspect}"
     Trailblazer::Activity::Introspect::Graph(activity).find(id).task
   end
 end

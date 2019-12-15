@@ -95,19 +95,19 @@ module Trailblazer
         def call(activity, path, customization)
           task_id, *path = path
 
-          new_activity = Class.new(activity)
 
-          if task_id
-            puts "@@@@@>> #{task_id.inspect}"
-            segment_activity = Introspect::Graph(activity).find(task_id).task
-            patched_segment_activity = call(segment_activity, path, customization)
-            # activity =
-            new_activity.class_exec { step Subprocess(patched_segment_activity), replace: task_id, id: task_id }
-          else
-            new_activity.class_exec(&customization)
-          end
+          patch =
+            if task_id
+              segment_activity = Introspect::Graph(activity).find(task_id).task
+              patched_segment_activity = call(segment_activity, path, customization)
 
-          new_activity
+              # Replace the patched subprocess.
+              -> { step Subprocess(patched_segment_activity), replace: task_id, id: task_id }
+            else
+              customization # apply the *actual* patch from the Subprocess() call.
+            end
+
+          Class.new(activity).class_exec(&patch) # evaluate the patch in the new activity class.
         end
       end
 
