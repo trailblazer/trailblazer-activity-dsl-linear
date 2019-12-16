@@ -1,3 +1,7 @@
+# 0.2.4
+
+* Add a minimal API for patching nested activities. This allows customizing deeply-nested activities without changing the original.
+
 # 0.2.3
 
 * Add `Strategy::invoke` which is a short-cut to `TaskWrap.invoke`. It's available as class method in all three strategies.
