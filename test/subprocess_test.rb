@@ -26,7 +26,7 @@ class SubprocessTest < Minitest::Spec
     end
 
     our_controller = Class.new(Activity::Path) do
-      step Subprocess(my_controller, [:controller, :advance], -> { step implementing.method(:a), before: :f }), id: :my_controller
+      step Subprocess(my_controller, patch: {[:controller, :advance] => -> { step implementing.method(:a), before: :f }}), id: :my_controller
     end
 
 

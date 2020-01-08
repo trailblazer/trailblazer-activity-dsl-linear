@@ -80,8 +80,10 @@ module Trailblazer
       end
 
       # Computes the {:outputs} options for {activity}.
-      def Subprocess(activity, path=[], patch=nil)
-        activity = Patch.(activity, path, patch) if path.any?
+      def Subprocess(activity, patch: {})
+        patch.each do |path, patch|
+          activity = Patch.(activity, path, patch) # TODO: test if multiple patches works!
+        end
 
         {
           task:    activity,

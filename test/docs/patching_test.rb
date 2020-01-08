@@ -3,14 +3,17 @@ require "test_helper"
 class DocsPatchingTest < Minitest::Spec
   it do
     module Memo
+      #:delete_assets
       class DeleteAssets < Trailblazer::Activity::Railway
-        step :remove_images
-        step :remove_uploads
+        step :rm_images
+        step :rm_uploads
         #~meths
-        include T.def_steps(:remove_images, :remove_uploads)
+        include T.def_steps(:rm_images, :rm_uploads)
         #~meths end
       end
+      #:delete_assets end
 
+      #:delete
       class Delete < Trailblazer::Activity::Railway
         step :delete_model
         step Subprocess(DeleteAssets), id: :delete_assets
@@ -18,9 +21,12 @@ class DocsPatchingTest < Minitest::Spec
         include T.def_steps(:delete_model)
         #~meths end
       end
+      #:delete end
 
+      #:destroy
       class Destroy < Trailblazer::Activity::Railway
         def self.tidy_storage(ctx, **)
+          # delete files from your amazing cloud
           true
         end
         #~meths
@@ -30,13 +36,16 @@ class DocsPatchingTest < Minitest::Spec
         step :policy
         step :find_model
         step Subprocess(Delete,
-          [:delete_assets], -> { step Destroy.method(:tidy_storage), before: :remove_uploads }
+          patch: {
+            [:delete_assets] => -> { step Destroy.method(:tidy_storage), before: :rm_uploads }
+          }
         )
       end
+      #:destroy end
     end
 
     signal, (ctx, _) = Trailblazer::Developer.wtf?(Memo::Destroy, [{seq: []}])
 
-    ctx.inspect.must_equal %{{:seq=>[:policy, :find_model, :delete_model, :remove_images, :remove_uploads]}}
+    ctx.inspect.must_equal %{{:seq=>[:policy, :find_model, :delete_model, :rm_images, :rm_uploads]}}
   end
 end
