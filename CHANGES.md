@@ -1,3 +1,8 @@
+# 0.2.5
+
+* Patching now requires the [`:patch` option for `Subprocess`](http://2019.trailblazer.to/2.1/docs/activity.html#activity-dsl-options-patching
+).
+
 # 0.2.4
 
 * Add a minimal API for patching nested activities. This allows customizing deeply-nested activities without changing the original.
