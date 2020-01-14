@@ -77,7 +77,7 @@ module Trailblazer
           end
 
           def normalize_id((ctx, flow_options), **)
-            id = ctx[:id] || ctx[:task]
+            id = ctx[:id] || ( ctx[:task].is_a?(Method) ? ctx[:task].name : ctx[:task] )
 
             return Trailblazer::Activity::Right, [ctx.merge(id: id), flow_options]
           end
