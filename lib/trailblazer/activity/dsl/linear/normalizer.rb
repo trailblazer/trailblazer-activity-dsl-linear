@@ -53,7 +53,13 @@ module Trailblazer
           # Specific to the "step DSL": if the first argument is a callable, wrap it in a {step_interface_builder}
           # since its interface expects the step interface, but the circuit will call it with circuit interface.
           def normalize_step_interface((ctx, flow_options), *)
-            options = ctx[:options] # either a <#task> or {} from macro
+            options = case (step_args = ctx[:options]) # either a <#task> or {} from macro
+                      when Hash
+                        # extract task for interfaces like `step task: :instance_method_name`
+                        step_args[:task].is_a?(Symbol) ? step_args[:task] : step_args
+                      else
+                        step_args
+                      end
 
             unless options.is_a?(::Hash)
               # task = wrap_with_step_interface(task: options, step_interface_builder: ctx[:user_options][:step_interface_builder]) # TODO: make this optional with appropriate wiring.
