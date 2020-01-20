@@ -1,29 +1,93 @@
-# Trailblazer-Activity-DSL-Linear
+# Activity-DSL-Linear
 
-_The popular Railway/Fasttrack DSL for building activities._
+The `activity-dsl-linear` gem brings:
+- [Path](https://2019.trailblazer.to/2.1/docs/activity.html#activity-strategy-path)
+- [Railway](https://2019.trailblazer.to/2.1/docs/activity.html#activity-strategy-railway)
+- [Fasttrack](https://2019.trailblazer.to/2.1/docs/activity.html#activity-strategy-fasttrack)
+  
+DSLs strategies for buildig activities. It is build around [`activity`](https://github.com/trailblazer/trailblazer-activity) gem.
 
+Please find the [full documentation on the Trailblazer website](https://2019.trailblazer.to/2.1/docs/activity.html#activity-strategy). [Note that the docs are WIP.]
 
-# Overview
+## Example
 
-This gem allows creating activities by leveraging a handy DSL. Built-in are the strategies `Path`, the popular `Railway` and `FastTrack`. The latter is used for `Trailblazer::Operation`.
+The `activity-dsl-linear` gem provides three default patterns to model processes: `Path`, `Railway` and `FastTrack`. Here's an example of what a railway activity could look like, along with some more complex connections (you can read more about Railway strategy in the [docs](https://2019.trailblazer.to/2.1/docs/activity.html#activity-strategy-railway)).
 
-Note that you don't need to use the DSL. You can simply create a InIm structure yourself, or use our online editor.
+```ruby
+require "trailblazer-activity"
+require "trailblazer-activity-dsl-linear"
 
-Full documentation can be found here: trailblazer.to/2.1/#dsl-linear
+class Memo::Update < Trailblazer::Activity::Railway
+  # here goes your business logic
+  #
+  def find_model(ctx, id:, **)
+    ctx[:model] = Memo.find_by(id: id)
+  end
 
-## Normalizer
+  def validate(ctx, params:, **)
+    return true if params[:body].is_a?(String) && params[:body].size > 10
+    ctx[:errors] = "body not long enough"
+    false
+  end
 
-Normalizers are itself linear activities (or "pipelines") that compute all options necessary for `DSL.insert_task`.
-For example, `FailFast.normalizer` will process your options such as `fast_track: true` and add necessary connections and outputs.
+  def save(ctx, model:, params:, **)
+    model.update_attributes(params)
+  end
 
-The different "step types" (think of `step`, `fail`, and `pass`) are again implemented as different normalizers that "inherit" generic steps.
+  def log_error(ctx, params:, **)
+    ctx[:log] = "Some idiot wrote #{params.inspect}"
+  end
 
+  # here comes the DSL describing the layout of the activity
+  #
+  step :find_model
+  step :validate, Output(:failure) => End(:validation_error)
+  step :save
+  fail :log_error
+end
+```
 
-`:sequence_insert`
-`:connections` are callables to find the connecting tasks
+Visually, this would translate to the following circuit.
+
+<img src="http://trailblazer.to/images/2.1/activity-readme-example.png">
+
+You can run the activity by invoking its `call` method.
+
+```ruby
+ctx = { id: 1, params: { body: "Awesome!" } }
+
+signal, (ctx, *) = Update.( [ctx, {}] )
+
+pp ctx #=>
+{:id=>1,
+ :params=>{:body=>"Awesome!"},
+ :model=>#<Memo body=nil>,
+ :errors=>"body not long enough"}
+
+pp signal #=> #<struct Trailblazer::Activity::End semantic=:validation_error>
+```
+
+With Activity, modeling business processes turns out to be ridiculously simple: You define what should happen and when, and Trailblazer makes sure _that_ it happens.
+
+## Features
+
+* Activities can model any process with arbitrary flow and connections.
+* Nesting and compositions are allowed and encouraged (via Trailblazer's [`dsl-linear`](https://github.com/trailblazer/trailblazer-activity-dsl-linear) gem).
+* Different step interfaces, manual processing of DSL options, etc is all possible.
+* Steps can be any kind of callable objects.
+* Tracing! (via Trailblazer's [`developer`](https://github.com/trailblazer/trailblazer-developer) gem)
+
+## Operation
+
+Trailblazer's [`Operation`](https://2019.trailblazer.to/2.1/docs/operation.html#operation-overview) internally uses an activity to model the processes.
+
+## Workflow
+Activities can be formed into bigger compounds and using workflow, you can build long-running processes such as a moderated blog post or a parcel delivery. Also, you don't have to use the DSL but can use the [`editor`](https://2019.trailblazer.to/2.1/docs/pro.html#pro-editor)instead(cool for more complex, long-running flows). Here comes a sample screenshot.
+
+<img src="http://2019.trailblazer.to/2.1/dist/img/flow.png">
 
 ## License
 
 © Copyright 2018, Trailblazer GmbH
 
-Licensed under the LGPLv3 license. We also offer a [commercial-friendly license](http://trailblazer.to/pro).
+Licensed under the LGPLv3 license. We also offer a commercial-friendly [license](https://2019.trailblazer.to/2.1/docs/pro.html#pro-license).
