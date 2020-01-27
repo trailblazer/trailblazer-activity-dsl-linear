@@ -56,7 +56,7 @@ class ActivityTest < Minitest::Spec
         end
       end
 
-      exception.message.sub(/0x\w+/, "0x").must_equal %{ID #<Method: #<Module:0x>.f> is already taken. Please specify an `:id`.}
+      exception.message.sub(/0x\w+/, "0x").must_equal %{ID f is already taken. Please specify an `:id`.}
     end
 
     it "accepts {:outputs}" do
@@ -614,7 +614,7 @@ class ActivityTest < Minitest::Spec
       step implementing.method(:b)
     end
 
-    activity.to_h[:nodes].collect(&:id).must_equal ["Start.default", :a, implementing.method(:b), "End.success"]
+    activity.to_h[:nodes].collect(&:id).must_equal ["Start.default", :a, :b, "End.success"]
   end
 
   describe "#merge!" do
