@@ -7,6 +7,9 @@ module Trailblazer
         # instance variables.
         #
         # @private
+        #
+        # DISCUSS: why do we have this structure? It doesn't cover "immutable copying", that has to be done by its clients.
+        #          also, copy with to_h
         class State
             # remembers how to call normalizers (e.g. track_color), TaskBuilder
             # remembers sequence
