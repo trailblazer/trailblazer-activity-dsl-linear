@@ -1,3 +1,7 @@
+# 0.2.6
+
+* Added `@fields` to `Linear::State` to save arbitrary data on the activity/strategy level.
+
 # 0.2.5
 
 * Patching now requires the [`:patch` option for `Subprocess`](http://2019.trailblazer.to/2.1/docs/activity.html#activity-dsl-options-patching

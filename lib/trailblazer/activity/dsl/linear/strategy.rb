@@ -29,7 +29,7 @@ module Trailblazer
             options = options.merge(dsl_track: type)
 
             # {#update_sequence} is the only way to mutate the state instance.
-            state.update_sequence do |sequence:, normalizers:, normalizer_options:|
+            state.update_sequence do |sequence:, normalizers:, normalizer_options:, fields:|
               # Compute the sequence rows.
               options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options.merge(sequence: sequence))
 

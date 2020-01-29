@@ -3,26 +3,33 @@ module Trailblazer
     module DSL
       module Linear
         # A {State} instance is kept per DSL client, which usually is a subclass of {Path}, {Railway}, etc.
+        # State doesn't have any immutable features - all write operations to it must guarantee they only replace
+        # instance variables.
         class State
             # remembers how to call normalizers (e.g. track_color), TaskBuilder
             # remembers sequence
-          def initialize(normalizers:, initial_sequence:, **normalizer_options)
+          def initialize(normalizers:, initial_sequence:, fields: {}.freeze, **normalizer_options)
             @normalizer         = normalizers # compiled normalizers.
             @sequence           = initial_sequence
             @normalizer_options = normalizer_options
+            @fields             = fields
           end
 
           # Called to "inherit" a state.
           def copy
-            self.class.new(normalizers: @normalizer, initial_sequence: @sequence, **@normalizer_options)
+            self.class.new(normalizers: @normalizer, initial_sequence: @sequence, fields: @fields, **@normalizer_options)
           end
 
           def to_h
-            {sequence: @sequence, normalizers: @normalizer, normalizer_options: @normalizer_options} # FIXME.
+            {sequence: @sequence, normalizers: @normalizer, normalizer_options: @normalizer_options, fields: @fields} # FIXME.
           end
 
           def update_sequence(&block)
             @sequence = yield(to_h)
+          end
+
+          def update_options(fields)
+            @fields = fields
           end
 
           # Compiles and maintains all final normalizers for a specific DSL.
