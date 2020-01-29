@@ -5,6 +5,8 @@ module Trailblazer
         # A {State} instance is kept per DSL client, which usually is a subclass of {Path}, {Railway}, etc.
         # State doesn't have any immutable features - all write operations to it must guarantee they only replace
         # instance variables.
+        #
+        # @private
         class State
             # remembers how to call normalizers (e.g. track_color), TaskBuilder
             # remembers sequence
