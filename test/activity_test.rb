@@ -465,7 +465,11 @@ class ActivityTest < Minitest::Spec
       end
     end
 
-    exc.inspect.must_equal %{#<Trailblazer::Activity::DSL::Linear::Sequence::IndexError: :e>}
+    exc.step_id.must_equal :e
+    exc.message.must_equal %{:e is not a valid step ID. Did you mean any of these ?
+"Start.default"
+"End.success"
+"End.failure"}
   end
 
   it "allows empty inheritance" do

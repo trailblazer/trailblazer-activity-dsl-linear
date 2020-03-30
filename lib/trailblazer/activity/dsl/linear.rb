@@ -37,7 +37,17 @@ class Trailblazer::Activity
           sequence
         end
 
-        class IndexError < IndexError; end
+        class IndexError < IndexError
+          attr_reader :step_id
+
+          def initialize(sequence, step_id)
+            @step_id  = step_id
+            valid_ids = sequence.collect{ |row| row[3][:id].inspect }
+
+            message = %{#{@step_id.inspect} is not a valid step ID. Did you mean any of these ?\n#{valid_ids.join("\n")}}
+            super(message)
+          end
+        end
       end
 
       # Sequence
@@ -111,7 +121,7 @@ class Trailblazer::Activity
         end
 
         def find(sequence, insert_id)
-          index = find_index(sequence, insert_id) or raise Sequence::IndexError.new(insert_id.inspect)
+          index = find_index(sequence, insert_id) or raise Sequence::IndexError.new(sequence, insert_id)
 
           return index, sequence.clone # Ruby doesn't have an easy way to avoid mutating arrays :(
         end
