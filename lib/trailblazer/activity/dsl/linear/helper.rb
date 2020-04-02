@@ -81,9 +81,7 @@ module Trailblazer
 
       # Computes the {:outputs} options for {activity}.
       def Subprocess(activity, patch: {})
-        patch.each do |path, patch|
-          activity = Patch.(activity, path, patch) # TODO: test if multiple patches works!
-        end
+        activity = Patch.customize(activity, options: patch)
 
         {
           task:    activity,
@@ -94,9 +92,20 @@ module Trailblazer
       module Patch
         module_function
 
+        def customize(activity, options:)
+          options = options.is_a?(Proc) ?
+            { [] => options } : # hash-wrapping with empty path, for patching given activity itself
+            options
+
+          options.each do |path, patch|
+            activity = call(activity, path, patch) # TODO: test if multiple patches works!
+          end
+
+          activity
+        end
+
         def call(activity, path, customization)
           task_id, *path = path
-
 
           patch =
             if task_id
