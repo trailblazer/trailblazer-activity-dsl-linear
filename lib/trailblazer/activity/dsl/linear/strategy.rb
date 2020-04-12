@@ -58,23 +58,32 @@ module Trailblazer
 
           private def forward_block(args, block)
             options = args[1]
-            if options.is_a?(Hash) # FIXME: doesn't account {task: <>} and repeats logic from Normalizer.
-              output, proxy = (options.find { |k,v| v.is_a?(BlockProxy) } or return args)
+
+            return args unless options.is_a?(Hash)
+
+              # FIXME: doesn't account {task: <>} and repeats logic from Normalizer.
+
+            # DISCUSS: THIS SHOULD BE DONE IN DSL.Path() which is stateful! the block forwarding should be the only thing happening here!
+            evaluated_options =
+            options.find_all { |k,v| v.is_a?(BlockProxy) }.collect do |output, proxy|
               shared_options = {step_interface_builder: @state.instance_variable_get(:@normalizer_options)[:step_interface_builder]} # FIXME: how do we know what to pass on and what not?
-              return args[0], options.merge(output => Linear.Path(**shared_options, **proxy.options, &block))
+
+              [output, Linear.Path(**shared_options, **proxy.options, &(proxy.block || block))] # FIXME: the || sucks.
             end
 
-            args
+            evaluated_options = Hash[evaluated_options]
+
+            return args[0], options.merge(evaluated_options)
           end
 
           extend Forwardable
           def_delegators Linear, :Output, :End, :Track, :Id, :Subprocess
 
-          def Path(options) # we can't access {block} here, syntactically.
-            BlockProxy.new(options)
+          def Path(options, &block) # syntactically, we can't access the {do ... end} block here.
+            BlockProxy.new(options, block)
           end
 
-          BlockProxy = Struct.new(:options)
+          BlockProxy = Struct.new(:options, :block)
 
           private def merge!(activity)
             old_seq = @state.instance_variable_get(:@sequence) # TODO: fixme

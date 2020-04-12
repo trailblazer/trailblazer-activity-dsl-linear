@@ -149,4 +149,47 @@ class DocsPathTest < Minitest::Spec
     signal, (ctx, flow_options) = C::Charge.([{seq: [], model: nil}, {}])
     ctx.inspect.gsub(/0x\w+/, "").must_equal %{{:seq=>[:validate], :model=>nil}}
   end
+
+  it "allows multiple Path()s per step" do
+    module D
+      class Charge < Trailblazer::Activity::Railway
+        include T.def_steps(:validate, :decide_type, :direct_debit, :finalize, :authorize, :charge)
+
+        failure_path = ->(*) { step :go }
+        success_path = ->(*) { step :surf }
+
+        step :validate
+        step :decide_type,
+          Output(:failure) => Path(connect_to: Id(:finalize), &failure_path),
+          Output(:success) => Path(connect_to: Id(:finalize), &success_path)
+        step :direct_debit
+        step :finalize
+      end
+      #:path-railway end
+    end
+
+    assert_process_for D::Charge, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*decide_type>
+<*decide_type>
+ {Trailblazer::Activity::Left} => <*go>
+ {Trailblazer::Activity::Right} => <*surf>
+<*go>
+ {Trailblazer::Activity::Right} => <*finalize>
+<*surf>
+ {Trailblazer::Activity::Right} => <*finalize>
+<*direct_debit>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*finalize>
+<*finalize>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
 end

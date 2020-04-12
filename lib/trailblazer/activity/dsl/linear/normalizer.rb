@@ -157,6 +157,8 @@ module Trailblazer
                   _adds      = [add_end(cfg, magnetic_to: end_id, id: end_id)] unless end_exists
 
                   [output_to_id(ctx, output, end_id), _adds]
+                else
+                  raise cfg.inspect
                 end
 
               connections = connections.merge(new_connections)
