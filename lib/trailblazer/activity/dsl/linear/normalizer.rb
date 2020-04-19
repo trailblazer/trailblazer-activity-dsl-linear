@@ -20,6 +20,7 @@ module Trailblazer
               "activity.normalize_id"                   => method(:normalize_id),
               "activity.normalize_override"             => method(:normalize_override),
               "activity.wrap_task_with_step_interface"  => method(:wrap_task_with_step_interface), # last
+              "activity.inherit_option"               => method(:inherit_option),
               },
 
               Linear::Insert.method(:Append), "Start.default"
@@ -122,7 +123,7 @@ module Trailblazer
 
             ctx[:wirings] =
               connections.collect do |semantic, (search_strategy_builder, *search_args)|
-                output = outputs[semantic] || raise("No `#{semantic}` output found for #{outputs.inspect}")
+                output = outputs[semantic] || raise("No `#{semantic}` output found for #{ctx[:id].inspect} and outputs #{outputs.inspect}")
 
                 search_strategy_builder.( # return proc to be called when compiling Seq, e.g. {ById(output, :id)}
                   output,
@@ -221,9 +222,27 @@ module Trailblazer
             return Trailblazer::Activity::Right, [ctx.merge(new_ctx), flow_options]
           end
 
+          # Currently, the {:inherit} option copies over {:connections} from the original step
+          # and merges them into the
+          def inherit_option((ctx, flow_options), *)
+            return Trailblazer::Activity::Right, [ctx, flow_options] unless ctx[:inherit]
+
+outputs = ctx[:outputs]
+sequence = ctx[:sequence]
+id = ctx[:id]
+
+            index = Linear::Insert.find_index(sequence, id)
+            row   = sequence[index] # from this row we're inheriting options.
+
+            ctx = ctx.merge(connections: row[3][:connections]) # "inherit"
+
+            return Trailblazer::Activity::Right, [ctx, flow_options]
+          end
+
           # TODO: make this extendable!
           def cleanup_options((ctx, flow_options), *)
-            new_ctx = ctx.reject { |k, v| [:connections, :outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence].include?(k) }
+            # new_ctx = ctx.reject { |k, v| [:connections, :outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence].include?(k) }
+            new_ctx = ctx.reject { |k, v| [:outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence].include?(k) }
 
             return Trailblazer::Activity::Right, [new_ctx, flow_options]
           end

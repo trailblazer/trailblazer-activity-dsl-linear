@@ -610,6 +610,62 @@ class ActivityTest < Minitest::Spec
     ctx.inspect.must_equal %{{:seq=>[:a, :b, :f]}}
   end
 
+  it "allows {:inherit} to copy over additional user settings like {Output => Track}" do
+      nested = Class.new(Activity::Path) do
+      end
+
+      sub_nested = Class.new(Activity::Path) do
+      end
+
+      class NestedWithThreeTermini < Activity::Railway
+        step :x, Output(:success) => End(:legit)
+      end
+
+      activity = Class.new(Activity::Railway) do
+        step Subprocess(nested), id: :c,
+          Output(:failure) => Id(:b) # this must be inherited to {sub}!
+
+        step Subprocess(NestedWithThreeTermini), id: :d,
+          Output(:legit) => Id(:b) # this must be inherited to {sub}!
+
+        step :a, Output(:failure) => Track(:success)
+        step :b, Output("Bla", :bla) => Track(:failure)
+      end
+
+      sub = Class.new(activity) do
+        # TODO: what if we want to inherit outputs AND provide wirings?
+        step Subprocess(sub_nested), inherit: true, id: :c, replace: :c, Output(:yo, :bla)=>Track(:success) # DISCUSS: inherit is a replace, isn't it?
+        step :a, inherit: true, id: :a, replace: :a
+        # step :b, inherit: true, id: :b, replace: :b
+      end
+
+      # the nested's output must be the signal from the sub_nested's terminus
+      Trailblazer::Activity::Introspect::Graph(sub).find(:c).outputs[1].to_h[:signal].must_equal sub_nested.to_h[:outputs][0].to_h[:signal]
+
+      assert_process_for sub.to_h, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {Trailblazer::Activity::Left} => <*b>
+ {#<Trailblazer::Activity::End semantic=:success>} => ActivityTest::NestedWithThreeTermini
+ {yo} => ActivityTest::NestedWithThreeTermini
+ActivityTest::NestedWithThreeTermini
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*a>
+ {#<Trailblazer::Activity::End semantic=:legit>} => <*b>
+<*a>
+ {Trailblazer::Activity::Left} => <*b>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Bla} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
+
   it "assigns default {:id}" do
     implementing = self.implementing
 
