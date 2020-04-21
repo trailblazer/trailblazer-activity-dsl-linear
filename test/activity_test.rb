@@ -612,6 +612,9 @@ class ActivityTest < Minitest::Spec
 
   it "allows {:inherit} to copy over additional user settings like {Output => Track}" do
       nested = Class.new(Activity::Path) do
+        step :c_c
+
+        include T.def_steps(:c_c)
       end
 
       sub_nested = Class.new(Activity::Path) do
@@ -619,6 +622,12 @@ class ActivityTest < Minitest::Spec
 
       class NestedWithThreeTermini < Activity::Railway
         step :x, Output(:success) => End(:legit)
+        include T.def_steps(:x)
+
+        class Sub < Activity::Railway
+          step :z, Output(:success) => End(:legit)
+          include T.def_steps(:z)
+        end
       end
 
       activity = Class.new(Activity::Railway) do
@@ -630,6 +639,8 @@ class ActivityTest < Minitest::Spec
 
         step :a, Output(:failure) => Track(:success)
         step :b, Output("Bla", :bla) => Track(:failure)
+
+        include T.def_steps(:b)
       end
 
       sub = Class.new(activity) do
@@ -664,6 +675,22 @@ ActivityTest::NestedWithThreeTermini
 
 #<End/:failure>
 }
+
+
+    # we want to replace {NestedWithTreeTermini} (step :d) but inherit the {End.legit => :b} wiring.
+    sub = Class.new(activity) do
+      step Subprocess(NestedWithThreeTermini::Sub), inherit: true, id: :d, replace: :d
+    end
+
+    ctx = {seq: []}
+    signal, (ctx, _) = Trailblazer::Developer.wtf?(sub, [ctx])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx[:seq].inspect.must_equal %{[:c_c, :z, :b]}
+
+    ctx = {seq: [], z: false}
+    signal, (ctx, _) = Trailblazer::Developer.wtf?(sub, [ctx])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
+    ctx[:seq].inspect.must_equal %{[:c_c, :z]}
   end
 
   it "assigns default {:id}" do
