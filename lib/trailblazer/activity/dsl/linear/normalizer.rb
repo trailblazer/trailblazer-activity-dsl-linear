@@ -227,9 +227,8 @@ module Trailblazer
           def inherit_option((ctx, flow_options), *)
             return Trailblazer::Activity::Right, [ctx, flow_options] unless ctx[:inherit]
 
-outputs = ctx[:outputs]
-sequence = ctx[:sequence]
-id = ctx[:id]
+            sequence = ctx[:sequence]
+            id = ctx[:id]
 
             index = Linear::Insert.find_index(sequence, id)
             row   = sequence[index] # from this row we're inheriting options.
