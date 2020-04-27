@@ -93,13 +93,13 @@ class SubprocessTest < Minitest::Spec
     module D
       Memo = Class.new
 
-      #:end-nested
+      #:end-pass-fast-nested
       class Memo::JustPassFast < Trailblazer::Activity::FastTrack
         step :just_pass_fast, pass_fast: true, fast_track: true
         include T.def_steps(:just_pass_fast)
         #~methods end
       end
-      #:end-nested end
+      #:end-pass-fast-nested end
 
       #:end
       class Memo::Create < Trailblazer::Activity::FastTrack
