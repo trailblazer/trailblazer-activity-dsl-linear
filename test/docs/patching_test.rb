@@ -48,4 +48,30 @@ class DocsPatchingTest < Minitest::Spec
 
     ctx.inspect.must_equal %{{:seq=>[:policy, :find_model, :delete_model, :rm_images, :rm_uploads]}}
   end
+
+  it do
+    module Asset
+      class Delete < Trailblazer::Activity::Railway
+        step :delete_model
+        include T.def_steps(:delete_model)
+      end
+
+      class Destroy < Trailblazer::Activity::Railway
+        def self.tidy_storage(ctx, **)
+          ctx[:seq] << :tidy_storage
+        end
+
+        #:patch_self
+        step Subprocess(
+          Delete,
+          patch: -> { step Destroy.method(:tidy_storage), before: :delete_model }
+        ), id: :delete
+        #:patch_self end
+      end
+    end
+
+    signal, (ctx, _) = Trailblazer::Developer.wtf?(Asset::Destroy, [{seq: []}])
+
+    ctx.inspect.must_equal %{{:seq=>[:tidy_storage, :delete_model]}}
+  end
 end
