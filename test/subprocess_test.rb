@@ -117,3 +117,24 @@ class SubprocessTest < Minitest::Spec
     Trailblazer::Activity::Introspect::Graph(activity).find(id).task
   end
 end
+
+class WithCustomSignalReturnedInSubprocess < Minitest::Spec
+  it "wires additional custom output, no default" do
+    Memo = Class.new
+    InvalidParams = Class.new(Trailblazer::Activity::Signal)
+    class Memo::Validate < Trailblazer::Activity::Railway
+      step :validate, Output(InvalidParams, :invalid_params) => End(:invalid_params)
+      include T.def_steps(:validate)
+    end
+    class Memo::Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Subprocess(Memo::Validate),
+        Output(:invalid_params) => Track(:invalid_params)
+      step :handle_invalid_params, magnetic_to: :invalid_params
+      step :save
+      include T.def_steps(:create_model, :handle_invalid_params, :save)
+    end
+    signal, (ctx, _) = Memo::Create.(seq: [], validate: InvalidParams)
+    ctx[:seq].must_equal([:create_model, :validate, :handle_invalid_params, :save])
+  end
+end
