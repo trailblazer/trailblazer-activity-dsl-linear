@@ -223,7 +223,7 @@ module Trailblazer
           end
 
           # Currently, the {:inherit} option copies over {:connections} from the original step
-          # and merges them into the
+          # and merges them with the (prolly) connections passed from the user.
           def inherit_option((ctx, flow_options), *)
             return Trailblazer::Activity::Right, [ctx, flow_options] unless ctx[:inherit]
 
