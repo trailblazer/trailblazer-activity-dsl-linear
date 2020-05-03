@@ -825,6 +825,28 @@ class ActivityTest < Minitest::Spec
     ctx.inspect.must_equal     %{{:seq=>[:a, :c, :d, :b]}}
   end
 
+  it "allows {:instance} methods with macro style" do
+    implementing = self.implementing
+
+    nested_activity = Class.new(Activity::Path) do
+      step task: :c
+      step task: :d
+      include T.def_steps(:c, :d)
+    end
+
+    activity = Class.new(Activity::Path) do
+      step task: :a
+      step Subprocess(nested_activity)
+      step task: :b
+      include T.def_steps(:a, :b)
+    end
+
+    signal, (ctx, _) = activity.([{seq: []}])
+
+    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal     %{{:seq=>[:a, :c, :d, :b]}}
+  end
+
   it "provides {#to_h}" do
     activity = Class.new(Activity::Path) do
       step :a
