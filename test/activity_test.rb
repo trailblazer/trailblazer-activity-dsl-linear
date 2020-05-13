@@ -482,6 +482,27 @@ class ActivityTest < Minitest::Spec
 }
   end
 
+  it "inheritance copies {config}" do
+    taskWrap = Trailblazer::Activity::TaskWrap
+
+    merge = [
+      [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
+    ]
+
+    ext = taskWrap::Extension(merge: merge)
+
+    activity = Class.new(Activity::Path) do
+      step :a, extensions: [ext]
+    end
+
+    sub = Class.new(activity)
+
+  # {Schema.config} is *copied* to the subclass and not identical
+    assert activity.to_h[:config] != sub.to_h[:config]
+  # Likewise, important fields like {wrap_static} are copied.
+    assert activity.to_h[:config][:wrap_static] != sub.to_h[:config][:wrap_static]
+  end
+
   it "allows inheritance / INSERTION options" do
     implementing = self.implementing
 
@@ -610,7 +631,7 @@ class ActivityTest < Minitest::Spec
     ctx.inspect.must_equal %{{:seq=>[:a, :b, :f]}}
   end
 
-  it "allows {:inherit} to copy over additional user settings like {Output => Track}" do
+  it "{:inherit} copies over additional user settings like {Output => Track}" do
       nested = Class.new(Activity::Path) do
         step :c_c
 
