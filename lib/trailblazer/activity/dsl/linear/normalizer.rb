@@ -233,7 +233,9 @@ module Trailblazer
             index = Linear::Insert.find_index(sequence, id)
             row   = sequence[index] # from this row we're inheriting options.
 
-            ctx = ctx.merge(connections: row[3][:connections], extensions: row[3][:extensions]) # "inherit"
+            extensions = (row[3][:extensions]||[]) + (ctx[:extensions]||[]) # FIXME: DEFAULTING, FOR FUCK'S SAKE
+
+            ctx = ctx.merge(connections: row[3][:connections], extensions: extensions) # "inherit"
 
             return Trailblazer::Activity::Right, [ctx, flow_options]
           end

@@ -732,21 +732,24 @@ ActivityTest::NestedWithThreeTermini
 
     activity = Class.new(Activity::Path) do
       step :a, extensions: [ext]
+      step :b # no {:extensions}
 
-      include T.def_steps(:a)
+      include T.def_steps(:a, :b)
     end
 
     sub = Class.new(activity) do
       step :a, inherit: true, id: :a, replace: :a # this should also "inherit" the taskWrap configs for this task.
+
+      step :b, inherit: true, id: :b, replace: :b, extensions: [ext] # we want to "override" the original {:extensions}
     end
 
     signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
     signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal %{{:seq=>[1, :a]}}
+    ctx.inspect.must_equal %{{:seq=>[1, :a, :b]}}
 
     signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(sub, [{seq: []}])
     signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal %{{:seq=>[1, :a]}}
+    ctx.inspect.must_equal %{{:seq=>[1, :a, 1, :b]}}
   end
 
   it "assigns default {:id}" do
