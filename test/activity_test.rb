@@ -493,6 +493,7 @@ class ActivityTest < Minitest::Spec
 
     activity = Class.new(Activity::Path) do
       step :a, extensions: [ext]
+      include T.def_steps(:a)
     end
 
     sub = Class.new(activity)
@@ -501,6 +502,14 @@ class ActivityTest < Minitest::Spec
     assert activity.to_h[:config] != sub.to_h[:config]
   # Likewise, important fields like {wrap_static} are copied.
     assert activity.to_h[:config][:wrap_static] != sub.to_h[:config][:wrap_static]
+
+    signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[1, :a]}}
+
+    signal, (ctx, _) = Activity::TaskWrap.invoke(sub, [{seq: []}, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[1, :a]}}
   end
 
   it "allows inheritance / INSERTION options" do
@@ -712,6 +721,32 @@ ActivityTest::NestedWithThreeTermini
     signal, (ctx, _) = Trailblazer::Developer.wtf?(sub, [ctx])
     signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     ctx[:seq].inspect.must_equal %{[:c_c, :z]}
+  end
+
+  it "{:inherit} also adds the {:extensions} from the inherited row" do
+    merge = [
+      [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
+    ]
+
+    ext = taskWrap::Extension(merge: merge)
+
+    activity = Class.new(Activity::Path) do
+      step :a, extensions: [ext]
+
+      include T.def_steps(:a)
+    end
+
+    sub = Class.new(activity) do
+      step :a, inherit: true, id: :a, replace: :a # this should also "inherit" the taskWrap configs for this task.
+    end
+
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[1, :a]}}
+
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(sub, [{seq: []}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[1, :a]}}
   end
 
   it "assigns default {:id}" do
