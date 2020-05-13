@@ -482,9 +482,9 @@ class ActivityTest < Minitest::Spec
 }
   end
 
-  it "inheritance copies {config}" do
-    taskWrap = Trailblazer::Activity::TaskWrap
+  let(:taskWrap) { Trailblazer::Activity::TaskWrap }
 
+  it "inheritance copies {config}" do
     merge = [
       [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
     ]
