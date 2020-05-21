@@ -177,6 +177,7 @@ module Trailblazer
 
       end # DSL
 
+      include DSL::Linear::Helper
       extend DSL::Linear::Strategy
 
       initialize!(Path::DSL::State.new(DSL.OptionsForState()))

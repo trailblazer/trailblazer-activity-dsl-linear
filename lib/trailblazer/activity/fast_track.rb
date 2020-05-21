@@ -154,6 +154,7 @@ module Trailblazer
         end
       end
 
+      include Activity::DSL::Linear::Helper
       extend Activity::DSL::Linear::Strategy
 
       initialize!(Railway::DSL::State.new(DSL.OptionsForState()))

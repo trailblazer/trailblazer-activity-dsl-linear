@@ -1,5 +1,3 @@
-require "forwardable"
-
 module Trailblazer
   class Activity
     module DSL
@@ -75,9 +73,6 @@ module Trailblazer
 
             return args[0], options.merge(evaluated_options)
           end
-
-          extend Forwardable
-          def_delegators Linear, :Output, :End, :Track, :Id, :Subprocess
 
           def Path(options, &block) # syntactically, we can't access the {do ... end} block here.
             BlockProxy.new(options, block)
