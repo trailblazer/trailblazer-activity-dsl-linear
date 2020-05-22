@@ -1,3 +1,11 @@
+# 0.2.7
+
+* `Did you mean ?` suggestions on Linear::Sequence::IndexError.
+* Introduce `Linear::Helper` module for strategy extensions in third-party gems.
+* Convenient way to patch Subprocess itself using `patch` option.
+* Allow multiple `Path()` macro per step.
+* Small fix for defining instance methods as steps using circuit interface.
+
 # 0.2.6
 
 * Added `@fields` to `Linear::State` to save arbitrary data on the activity/strategy level.
