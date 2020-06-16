@@ -134,7 +134,7 @@ module Trailblazer
 
 
         def self.OptionsForState(normalizers: Normalizers, failure_end: Activity::End.new(semantic: :failure), **options)
-          options = Path::DSL.OptionsForState(options).
+          options = Path::DSL.OptionsForState(**options).
             merge(normalizers: normalizers, failure_end: failure_end)
 
           initial_sequence = Railway::DSL.initial_sequence(failure_end: failure_end, **options)
@@ -160,7 +160,7 @@ module Trailblazer
       include DSL::Linear::Helper
       extend DSL::Linear::Strategy
 
-      initialize!(Railway::DSL::State.new(DSL.OptionsForState()))
+      initialize!(Railway::DSL::State.new(**DSL.OptionsForState()))
 
     end # Railway
 

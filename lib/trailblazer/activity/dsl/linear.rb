@@ -155,7 +155,7 @@ class Trailblazer::Activity
         # This is usually called from DSL methods such as {step}.
         def apply_adds_from_dsl(sequence, sequence_insert:, adds:, **options)
           # This is the ADDS for the actual task.
-          task_add = {row: Sequence.create_row(options), insert: sequence_insert} # Linear::Insert.method(:Prepend), end_id
+          task_add = {row: Sequence.create_row(**options), insert: sequence_insert} # Linear::Insert.method(:Prepend), end_id
 
           Sequence.apply_adds(sequence, [task_add] + adds)
         end
