@@ -45,7 +45,7 @@ module Trailblazer
 
             def Path(track_color: "track_#{rand}", end_id:"path_end_#{rand}", connect_to:nil, **options, &block)
               # DISCUSS: here, we use the global normalizer and don't allow injection.
-              state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(track_name: track_color, end_id: end_id, **options)) # TODO: test injecting {:normalizers}.
+              state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState(track_name: track_color, end_id: end_id, **options)) # TODO: test injecting {:normalizers}.
 
               # seq = block.call(state) # state changes.
               state.instance_exec(&block)
