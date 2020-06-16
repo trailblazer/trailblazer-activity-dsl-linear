@@ -166,7 +166,7 @@ module Trailblazer
 
     def self.Railway(options)
       Class.new(Railway) do
-        initialize!(Railway::DSL::State.new(Railway::DSL.OptionsForState(options)))
+        initialize!(Railway::DSL::State.new(**Railway::DSL.OptionsForState(**options)))
       end
     end
   end

@@ -776,7 +776,7 @@ class ActivityTest < Minitest::Spec
   end
 
   it "provides {DSL} instance that doesn't compile the activity" do
-    path = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    path = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
 
     implementing = self.implementing
     # The DSL::Instance instance is the only mutable object.

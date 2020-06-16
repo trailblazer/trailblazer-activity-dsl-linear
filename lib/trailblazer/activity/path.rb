@@ -185,7 +185,7 @@ module Trailblazer
 
     def self.Path(options)
       Class.new(Path) do
-        initialize!(Path::DSL::State.new(Path::DSL.OptionsForState(options)))
+        initialize!(Path::DSL::State.new(**Path::DSL.OptionsForState(**options)))
       end
     end
   end

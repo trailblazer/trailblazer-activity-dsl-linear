@@ -38,7 +38,7 @@ class PathTest < Minitest::Spec
   end
 
   it "provides defaults" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState)
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState)
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g
 
@@ -54,7 +54,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:track_name}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(track_name: :green))
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState(track_name: :green))
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g
 
@@ -72,7 +72,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:end_task}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner"))
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner"))
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g
 
@@ -90,7 +90,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {Output() => Id()}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g, Linear.Output(:success) => Linear.Id(:f)
     seq = state.step task: implementing.method(:a), id: :a
@@ -109,7 +109,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:adds}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f, adds: [
       {
         row:    [:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}],
@@ -129,7 +129,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:before}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:a), id: :a, before: :f
 
@@ -145,7 +145,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:after}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:b), id: :b
     seq = state.step task: implementing.method(:a), id: :a, after: :f
@@ -164,7 +164,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:replace}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:a), id: :a, replace: :f
 
@@ -178,7 +178,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:delete}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:a), id: :a, delete: :f
 
@@ -194,7 +194,7 @@ class PathTest < Minitest::Spec
       path_end = Activity::End.new(semantic: :roundtrip)
 
       implementing = self.implementing
-      state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState())
+      state = Activity::Railway::DSL::State.new(**Activity::Railway::DSL.OptionsForState())
       state.step(task: implementing.method(:a), id: :a, Linear.Output(:failure) => Linear.Path(end_task: path_end, end_id: "End.roundtrip") do
         step task: implementing.method(:f), id: :f
         step task: implementing.method(:g), id: :g
@@ -247,7 +247,7 @@ class PathTest < Minitest::Spec
       path_end = Activity::End.new(semantic: :roundtrip)
 
       shared_options = {step_interface_builder: Fixtures.method(:circuit_interface_builder)}
-      state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(**shared_options))
+      state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState(**shared_options))
 
       implementing = self.implementing
 
