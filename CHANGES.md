@@ -1,3 +1,8 @@
+# 0.2.8
+
+* Add `Track(:color, wrap_around: true)` option and `Search::WrapAround` so you can find a certain track color (or the beginning of a Path) even when the path was positioned before the actual step in the `Sequence`.
+* Add `:inherit` option so steps can override steps, but inherit the original `:extensions` and `:connections` (which are the `Outputs`). This is great to customize "template" activities.
+
 # 0.2.7
 
 * `Did you mean ?` suggestions on Linear::Sequence::IndexError.

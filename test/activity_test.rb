@@ -450,9 +450,11 @@ class ActivityTest < Minitest::Spec
       fail task: implementing.method(:b), id: :b
     end
 
-    activity.to_h[:nodes][1][:data].inspect.must_equal %{{:id=>:f, :dsl_track=>:step}}
-    activity.to_h[:nodes][2][:data].inspect.must_equal %{{:id=>:c, :dsl_track=>:pass}}
-    activity.to_h[:nodes][3][:data].inspect.must_equal %{{:id=>:b, :dsl_track=>:fail}}
+
+
+    activity.to_h[:nodes][1][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
+    activity.to_h[:nodes][2][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
+    activity.to_h[:nodes][3][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
   end
 
 # Sequence insert
@@ -480,6 +482,36 @@ class ActivityTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
+  end
+
+  let(:taskWrap) { Trailblazer::Activity::TaskWrap }
+
+  it "inheritance copies {config}" do
+    merge = [
+      [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
+    ]
+
+    ext = taskWrap::Extension(merge: merge)
+
+    activity = Class.new(Activity::Path) do
+      step :a, extensions: [ext]
+      include T.def_steps(:a)
+    end
+
+    sub = Class.new(activity)
+
+  # {Schema.config} is *copied* to the subclass and not identical
+    assert activity.to_h[:config] != sub.to_h[:config]
+  # Likewise, important fields like {wrap_static} are copied.
+    assert activity.to_h[:config][:wrap_static] != sub.to_h[:config][:wrap_static]
+
+    signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[1, :a]}}
+
+    signal, (ctx, _) = Activity::TaskWrap.invoke(sub, [{seq: []}, {}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[1, :a]}}
   end
 
   it "allows inheritance / INSERTION options" do
@@ -608,6 +640,118 @@ class ActivityTest < Minitest::Spec
 
     signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     ctx.inspect.must_equal %{{:seq=>[:a, :b, :f]}}
+  end
+
+  it "{:inherit} copies over additional user settings like {Output => Track}" do
+      nested = Class.new(Activity::Path) do
+        step :c_c
+
+        include T.def_steps(:c_c)
+      end
+
+      sub_nested = Class.new(Activity::Path) do
+      end
+
+      class NestedWithThreeTermini < Activity::Railway
+        step :x, Output(:success) => End(:legit)
+        include T.def_steps(:x)
+
+        class Sub < Activity::Railway
+          step :z, Output(:success) => End(:legit)
+          include T.def_steps(:z)
+        end
+      end
+
+      activity = Class.new(Activity::Railway) do
+        step Subprocess(nested), id: :c,
+          Output(:failure) => Id(:b) # this must be inherited to {sub}!
+
+        step Subprocess(NestedWithThreeTermini), id: :d,
+          Output(:legit) => Id(:b) # this must be inherited to {sub}!
+
+        step :a, Output(:failure) => Track(:success)
+        step :b, Output("Bla", :bla) => Track(:failure)
+
+        include T.def_steps(:b)
+      end
+
+      sub = Class.new(activity) do
+        # TODO: what if we want to inherit outputs AND provide wirings?
+        step Subprocess(sub_nested), inherit: true, id: :c, replace: :c, Output(:yo, :bla)=>Track(:success) # DISCUSS: inherit is a replace, isn't it?
+        step :a, inherit: true, id: :a, replace: :a
+        # step :b, inherit: true, id: :b, replace: :b
+      end
+
+      # the nested's output must be the signal from the sub_nested's terminus
+      Trailblazer::Activity::Introspect::Graph(sub).find(:c).outputs[1].to_h[:signal].must_equal sub_nested.to_h[:outputs][0].to_h[:signal]
+
+      assert_process_for sub.to_h, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {Trailblazer::Activity::Left} => <*b>
+ {#<Trailblazer::Activity::End semantic=:success>} => ActivityTest::NestedWithThreeTermini
+ {yo} => ActivityTest::NestedWithThreeTermini
+ActivityTest::NestedWithThreeTermini
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*a>
+ {#<Trailblazer::Activity::End semantic=:legit>} => <*b>
+<*a>
+ {Trailblazer::Activity::Left} => <*b>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Bla} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
+
+
+    # we want to replace {NestedWithTreeTermini} (step :d) but inherit the {End.legit => :b} wiring.
+    sub = Class.new(activity) do
+      step Subprocess(NestedWithThreeTermini::Sub), inherit: true, id: :d, replace: :d
+    end
+
+    ctx = {seq: []}
+    signal, (ctx, _) = Trailblazer::Developer.wtf?(sub, [ctx])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx[:seq].inspect.must_equal %{[:c_c, :z, :b]}
+
+    ctx = {seq: [], z: false}
+    signal, (ctx, _) = Trailblazer::Developer.wtf?(sub, [ctx])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
+    ctx[:seq].inspect.must_equal %{[:c_c, :z]}
+  end
+
+  it "{:inherit} also adds the {:extensions} from the inherited row" do
+    merge = [
+      [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
+    ]
+
+    ext = taskWrap::Extension(merge: merge)
+
+    activity = Class.new(Activity::Path) do
+      step :a, extensions: [ext]
+      step :b # no {:extensions}
+
+      include T.def_steps(:a, :b)
+    end
+
+    sub = Class.new(activity) do
+      step :a, inherit: true, id: :a, replace: :a # this should also "inherit" the taskWrap configs for this task.
+
+      step :b, inherit: true, id: :b, replace: :b, extensions: [ext] # we want to "override" the original {:extensions}
+    end
+
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[1, :a, :b]}}
+
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(sub, [{seq: []}])
+    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal %{{:seq=>[1, :a, 1, :b]}}
   end
 
   it "assigns default {:id}" do
@@ -857,6 +1001,65 @@ class ActivityTest < Minitest::Spec
     activity.to_h[:activity].must_equal actual_activity
   end
 
+  it "{:wrap_around}" do
+    implementing = self.implementing
+
+    activity = Class.new(Activity::Railway) do
+      step :c, Output(:success) => Path(end_id: "End.cc", end_task: End(:with_cc), track_color: :green) do
+      end
+
+    # we want to connect an Output to the {green} path.
+    # The problem is, the path is positioned in the sequence.
+      step :d, Output(:failure) => Track(:green, wrap_around: true)
+
+      include T.def_steps(:c, :d)
+    end
+
+    assert_process_for activity, :with_cc, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:with_cc>
+#<End/:with_cc>
+
+<*d>
+ {Trailblazer::Activity::Left} => #<End/:with_cc>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+  # WrapAround does wrap around, but considers track colors before it wraps.
+    activity = Class.new(Activity::Railway) do
+      step :c, Output(:success) => Path(end_id: "End.cc", end_task: End(:with_cc), track_color: :green) do
+      end
+
+      step :d, Output(:failure) => Track(:green, wrap_around: true)
+
+      step :e, magnetic_to: :green # please connect {d} to {e}!
+    end
+
+    assert_process_for activity, :with_cc, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:with_cc>
+#<End/:with_cc>
+
+<*d>
+ {Trailblazer::Activity::Left} => <*e>
+ {Trailblazer::Activity::Right} => #<End/:success>
+<*e>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
 
 
   # inheritance

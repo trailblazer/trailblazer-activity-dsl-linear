@@ -90,6 +90,8 @@ module Trailblazer
           )
         end
 
+        # Add {:failure} output to {:outputs}.
+        # TODO: assert that failure_outputs doesn't override existing {:outputs}
         def normalize_path_outputs((ctx, flow_options), *)
           outputs = failure_outputs.merge(ctx[:outputs])
           ctx     = ctx.merge(outputs: outputs)
@@ -131,7 +133,6 @@ module Trailblazer
           fail:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_fail ),
           pass:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_pass ),
         )
-
 
         def self.OptionsForState(normalizers: Normalizers, failure_end: Activity::End.new(semantic: :failure), **options)
           options = Path::DSL.OptionsForState(options).
