@@ -450,9 +450,11 @@ class ActivityTest < Minitest::Spec
       fail task: implementing.method(:b), id: :b
     end
 
-    activity.to_h[:nodes][1][:data].inspect.must_equal %{{:id=>:f, :dsl_track=>:step}}
-    activity.to_h[:nodes][2][:data].inspect.must_equal %{{:id=>:c, :dsl_track=>:pass}}
-    activity.to_h[:nodes][3][:data].inspect.must_equal %{{:id=>:b, :dsl_track=>:fail}}
+
+
+    activity.to_h[:nodes][1][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
+    activity.to_h[:nodes][2][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
+    activity.to_h[:nodes][3][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
   end
 
 # Sequence insert
