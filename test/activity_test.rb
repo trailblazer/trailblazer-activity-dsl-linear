@@ -977,7 +977,7 @@ ActivityTest::NestedWithThreeTermini
     activity.to_h[:activity].must_equal actual_activity
   end
 
-  it ":wrap_around" do
+  it "{:wrap_around}" do
     implementing = self.implementing
 
     activity = Class.new(Activity::Railway) do
@@ -1001,6 +1001,35 @@ ActivityTest::NestedWithThreeTermini
 
 <*d>
  {Trailblazer::Activity::Left} => #<End/:with_cc>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+  # WrapAround does wrap around, but considers track colors before it wraps.
+    activity = Class.new(Activity::Railway) do
+      step :c, Output(:success) => Path(end_id: "End.cc", end_task: End(:with_cc), track_color: :green) do
+      end
+
+      step :d, Output(:failure) => Track(:green, wrap_around: true)
+
+      step :e, magnetic_to: :green # please connect {d} to {e}!
+    end
+
+    assert_process_for activity, :with_cc, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:with_cc>
+#<End/:with_cc>
+
+<*d>
+ {Trailblazer::Activity::Left} => <*e>
+ {Trailblazer::Activity::Right} => #<End/:success>
+<*e>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
