@@ -4,7 +4,7 @@ module Trailblazer
       # @api private
       OutputSemantic = Struct.new(:value)
       Id             = Struct.new(:value)
-      Track          = Struct.new(:color, :adds)
+      Track          = Struct.new(:color, :adds, :options)
       Extension      = Struct.new(:callable) do
         def call(*args, &block)
           callable.(*args, &block)
@@ -30,8 +30,8 @@ module Trailblazer
         "End.#{_end.to_h[:semantic]}" # TODO: use everywhere
       end
 
-      def Track(color)
-        Track.new(color, []).freeze
+      def Track(color, wrap_around: false)
+        Track.new(color, [], wrap_around: wrap_around).freeze
       end
 
       def Id(id)
@@ -76,7 +76,7 @@ module Trailblazer
         end
 
         # Connect the Output() => Track(path_track)
-        return Track.new(track_color, adds)
+        return Track.new(track_color, adds, {}) # TODO: use Helper::Track.
       end
 
       # Computes the {:outputs} options for {activity}.

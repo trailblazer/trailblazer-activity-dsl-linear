@@ -58,7 +58,21 @@ class Trailblazer::Activity
         # Note that we only go forward, no back-references are done here.
         def Forward(output, target_color)
           ->(sequence, me) do
-            target_seq_row = sequence[sequence.index(me)+1..-1].find { |seq_row| seq_row[0] == target_color }
+            target_seq_row = find_in_range(sequence[sequence.index(me)+1..-1], target_color)
+
+            return output, target_seq_row
+          end
+        end
+
+        # Tries to find a track colored step by doing a Forward-search, first, then wraps around going
+        # through all steps from sequence start to self.
+        def WrapAround(output, target_color)
+          ->(sequence, me) do
+            my_index      = sequence.index(me)
+            # First, try all elements after me, then go through the elements preceding myself.
+            wrapped_range = sequence[my_index+1..-1] + sequence[0..my_index-1]
+
+            target_seq_row = find_in_range(wrapped_range, target_color)
 
             return output, target_seq_row
           end
@@ -78,6 +92,11 @@ class Trailblazer::Activity
 
             return output, target_seq_row
           end
+        end
+
+        # @private
+        def find_in_range(range, target_color)
+          target_seq_row = range.find { |seq_row| seq_row[0] == target_color }
         end
       end # Search
 

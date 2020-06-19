@@ -1,3 +1,7 @@
+# 0.2.8
+
+* Add `Track(:color, wrap_around: true)` option and `Search::WrapAround` so you can find a certain track color (or the beginning of a Path) even when the path was positioned before the actual step in the `Sequence`.
+
 # 0.2.6
 
 * Added `@fields` to `Linear::State` to save arbitrary data on the activity/strategy level.
