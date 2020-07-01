@@ -205,7 +205,7 @@ class PathTest < Minitest::Spec
       seq = state.fail task: implementing.method(:d), id: :d#, Linear.Output(:success) => Linear.End(:new)
 
 
-      process = assert_process seq, :roundtrip, :success, :new, :failure, %{
+      process = assert_process seq, :success, :new, :roundtrip, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
 #<Method: #<Module:0x>.a>
@@ -215,8 +215,6 @@ class PathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
 #<Method: #<Module:0x>.g>
  {Trailblazer::Activity::Right} => #<End/:roundtrip>
-#<End/:roundtrip>
-
 #<Method: #<Module:0x>.b>
  {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.d>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
@@ -229,6 +227,8 @@ class PathTest < Minitest::Spec
 #<End/:success>
 
 #<End/:new>
+
+#<End/:roundtrip>
 
 #<End/:failure>
 }
@@ -258,18 +258,18 @@ class PathTest < Minitest::Spec
       seq = state.step implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
 
 
-      process = assert_process seq, :roundtrip, :success, %{
+      process = assert_process seq, :success, :roundtrip, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
 #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
  {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.f>>
 #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.f>>
  {Trailblazer::Activity::Right} => #<End/:roundtrip>
-#<End/:roundtrip>
-
 #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.b>>
  {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
 #<End/:success>
+
+#<End/:roundtrip>
 }
 
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: false}])

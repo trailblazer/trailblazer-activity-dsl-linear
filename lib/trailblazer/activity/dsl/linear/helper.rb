@@ -72,11 +72,17 @@ module Trailblazer
                 seq = seq[0..-2] + [row]
               end
 
-              # Add the path before End.success - not sure this is bullet-proof.
+              # Add the path elements before {End.success}.
+              # Termini (or :stop_event) are to be placed after {End.success}.
               adds = seq.collect do |row|
+                options = row[3]
+
+                # the terminus of the path goes _after_ {End.success} into the "end group".
+                insert_method = options[:stop_event] ? Insert.method(:Append) : Insert.method(:Prepend)
+
                 {
                   row:    row,
-                  insert: [Insert.method(:Prepend), "End.success"]
+                  insert: [insert_method, "End.success"]
                 }
               end
 

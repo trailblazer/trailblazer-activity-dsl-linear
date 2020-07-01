@@ -18,7 +18,7 @@ class DocsPathTest < Minitest::Spec
       #:path end
     end
 
-    assert_process_for A::Charge, :with_cc, :success, %{
+    assert_process_for A::Charge, :success, :with_cc, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
@@ -30,11 +30,11 @@ class DocsPathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => <*charge>
 <*charge>
  {Trailblazer::Activity::Right} => #<End/:with_cc>
-#<End/:with_cc>
-
 <*direct_debit>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:with_cc>
 }
 
     module B

@@ -872,18 +872,18 @@ ActivityTest::NestedWithThreeTermini
 
       process = activity.to_h
 
-    assert_process_for process, :path, :success, %{
+    assert_process_for process, :success, :path, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Class:0x>.a>>
 <*#<Method: #<Class:0x>.a>>
  {Trailblazer::Activity::Right} => <*#<Method: #<Class:0x>.c>>
 <*#<Method: #<Class:0x>.c>>
  {Trailblazer::Activity::Right} => #<End/:path>
-#<End/:path>
-
 <*#<Method: #<Class:0x>.b>>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:path>
 }
     end
 
@@ -903,18 +903,18 @@ ActivityTest::NestedWithThreeTermini
 
       process = activity.to_h
 
-      assert_process_for process, :path, :success, %{
+      assert_process_for process, :success, :path, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.a>>
 #<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.a>>
  {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.c>>
 #<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.c>>
  {Trailblazer::Activity::Right} => #<End/:path>
-#<End/:path>
-
 #<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.b>>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:path>
 }
     end
   end
@@ -1001,12 +1001,74 @@ ActivityTest::NestedWithThreeTermini
     activity.to_h[:activity].must_equal actual_activity
   end
 
+  it "{Path()} without block just adds one {End.green} terminus" do
+    activity = Class.new(Activity::Railway) do
+      step :a, Output(:success) => Track(:green)
+      step :c, Output(:success) => Path(end_id: "End.cc", end_task: End(:with_cc), track_color: :green) do
+      end
+
+      # step :d, Output(:failure) => Track(:green, wrap_around: true)
+
+      include T.def_steps(:c, :d)
+    end
+
+    assert_process_for activity, :success, :with_cc, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:with_cc>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:with_cc>
+#<End/:success>
+
+#<End/:with_cc>
+
+#<End/:failure>
+}
+
+  end
+  it "{Path()} allows connecting an earlier step {:a} to the beginning of the path." do
+    activity = Class.new(Activity::Railway) do
+      step :a, Output(:failure) => Track(:green) # look for the first {magnetic_to: :green} occurrence.
+      step :c, Output(:success) => Path(end_id: "End.cc", end_task: End(:with_cc), track_color: :green) do
+        step :d
+      end
+
+      include T.def_steps(:c, :d)
+    end
+
+    assert_process_for activity, :success, :with_cc, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Left} => <*d>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
+ {Trailblazer::Activity::Right} => #<End/:with_cc>
+#<End/:success>
+
+#<End/:with_cc>
+
+#<End/:failure>
+}
+
+  end
+
+
   it "{:wrap_around}" do
     implementing = self.implementing
 
     activity = Class.new(Activity::Railway) do
       step :c, Output(:success) => Path(end_id: "End.cc", end_task: End(:with_cc), track_color: :green) do
       end
+
+      # success:c, success=>green
+      # green:End.green
 
     # we want to connect an Output to the {green} path.
     # The problem is, the path is positioned in the sequence.
@@ -1015,18 +1077,18 @@ ActivityTest::NestedWithThreeTermini
       include T.def_steps(:c, :d)
     end
 
-    assert_process_for activity, :with_cc, :success, :failure, %{
+    assert_process_for activity, :success, :with_cc, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*c>
 <*c>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:with_cc>
-#<End/:with_cc>
-
 <*d>
  {Trailblazer::Activity::Left} => #<End/:with_cc>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:with_cc>
 
 #<End/:failure>
 }
@@ -1036,19 +1098,17 @@ ActivityTest::NestedWithThreeTermini
       step :c, Output(:success) => Path(end_id: "End.cc", end_task: End(:with_cc), track_color: :green) do
       end
 
-      step :d, Output(:failure) => Track(:green, wrap_around: true)
+      step :d, Output(:failure) => Track(:green, wrap_around: true) # the option doesn't kick in.
 
-      step :e, magnetic_to: :green # please connect {d} to {e}!
+      step :e, magnetic_to: :green # please connect {d} to {e}! and {c} to {e}
     end
 
-    assert_process_for activity, :with_cc, :success, :failure, %{
+    assert_process_for activity, :success, :with_cc, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*c>
 <*c>
  {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => #<End/:with_cc>
-#<End/:with_cc>
-
+ {Trailblazer::Activity::Right} => <*e>
 <*d>
  {Trailblazer::Activity::Left} => <*e>
  {Trailblazer::Activity::Right} => #<End/:success>
@@ -1056,6 +1116,8 @@ ActivityTest::NestedWithThreeTermini
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:with_cc>
 
 #<End/:failure>
 }

@@ -2,6 +2,8 @@
 
 * Add `Track(:color, wrap_around: true)` option and `Search::WrapAround` so you can find a certain track color (or the beginning of a Path) even when the path was positioned before the actual step in the `Sequence`.
 * Add `:inherit` option so `step` can override an existing step while inheriting the original `:extensions` and `:connections` (which are the `Outputs`). This is great to customize "template" activities.
+* The `Path()` helper, when used with `:end_task` will now automatically _append_ the end task (or terminus) to `End.success`.
+  It used to be placed straight after the last path's element, which made it hard to later insert more steps into that very path.
 
 # 0.2.7
 
