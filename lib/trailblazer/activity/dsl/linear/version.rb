@@ -3,7 +3,7 @@ module Trailblazer
     module Activity
       module DSL
         module Linear
-          VERSION = "0.2.8"
+          VERSION = "0.2.9"
         end
       end
     end
