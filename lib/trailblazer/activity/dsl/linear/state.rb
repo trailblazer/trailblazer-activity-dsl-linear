@@ -58,7 +58,7 @@ module Trailblazer
             # by the DSL user. This is usually when you call Operation::step.
             def call(name, *args)
               normalizer = @normalizers.fetch(name)
-              signal, (options, _) = normalizer.(*args)
+              _signal, (options, _) = normalizer.(*args)
               options
             end
           end

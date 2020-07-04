@@ -885,7 +885,7 @@ ActivityTest::NestedWithThreeTermini
 
     it "allows customized options" do
       shared_options = {step_interface_builder: Fixtures.method(:circuit_interface_builder)}
-      # state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(**shared_options))
+      # state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState(**shared_options))
 
       activity = Class.new(Activity::Path(shared_options)) do
         extend T.def_steps(:a, :b, :c)
@@ -916,7 +916,7 @@ ActivityTest::NestedWithThreeTermini
   end
 
   it "provides {DSL} instance that doesn't compile the activity" do
-    path = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    path = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
 
     implementing = self.implementing
     # The DSL::Instance instance is the only mutable object.

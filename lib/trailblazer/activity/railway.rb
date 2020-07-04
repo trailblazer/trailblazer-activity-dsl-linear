@@ -109,22 +109,23 @@ module Trailblazer
         def failure_outputs
           {failure: Activity::Output(Activity::Left, :failure)}
         end
+
         def failure_connections
           {failure: [Linear::Search.method(:Forward), :failure]}
         end
 
-        def initial_sequence(failure_end:, initial_sequence:, **path_options)
+        def initial_sequence(failure_end:, initial_sequence:, **)
           # TODO: this could be an Activity itself but maybe a bit too much for now.
-          sequence = Path::DSL.append_end(initial_sequence, task: failure_end, magnetic_to: :failure, id: "End.failure")
+          Path::DSL.append_end(initial_sequence, task: failure_end, magnetic_to: :failure, id: "End.failure")
         end
 
         class State < Path::DSL::State
           def fail(*args)
-            seq = Linear::Strategy.task_for!(self, :fail, *args) # mutate @state
+            Linear::Strategy.task_for!(self, :fail, *args) # mutate @state
           end
 
           def pass(*args)
-            seq = Linear::Strategy.task_for!(self, :pass, *args) # mutate @state
+            Linear::Strategy.task_for!(self, :pass, *args) # mutate @state
           end
         end # Instance
 
@@ -135,8 +136,8 @@ module Trailblazer
         )
 
         def self.OptionsForState(normalizers: Normalizers, failure_end: Activity::End.new(semantic: :failure), **options)
-          options = Path::DSL.OptionsForState(options).
-            merge(normalizers: normalizers, failure_end: failure_end)
+          options = Path::DSL.OptionsForState(options)
+              .merge(normalizers: normalizers, failure_end: failure_end)
 
           initial_sequence = Railway::DSL.initial_sequence(failure_end: failure_end, **options)
 
@@ -161,13 +162,13 @@ module Trailblazer
       include DSL::Linear::Helper
       extend DSL::Linear::Strategy
 
-      initialize!(Railway::DSL::State.new(DSL.OptionsForState()))
+      initialize!(Railway::DSL::State.new(**DSL.OptionsForState()))
 
     end # Railway
 
     def self.Railway(options)
       Class.new(Railway) do
-        initialize!(Railway::DSL::State.new(Railway::DSL.OptionsForState(options)))
+        initialize!(Railway::DSL::State.new(**Railway::DSL.OptionsForState(**options)))
       end
     end
   end
