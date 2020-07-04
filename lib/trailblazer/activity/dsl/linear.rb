@@ -58,7 +58,21 @@ class Trailblazer::Activity
         # Note that we only go forward, no back-references are done here.
         def Forward(output, target_color)
           ->(sequence, me) do
-            target_seq_row = sequence[sequence.index(me)+1..-1].find { |seq_row| seq_row[0] == target_color }
+            target_seq_row = find_in_range(sequence[sequence.index(me)+1..-1], target_color)
+
+            return output, target_seq_row
+          end
+        end
+
+        # Tries to find a track colored step by doing a Forward-search, first, then wraps around going
+        # through all steps from sequence start to self.
+        def WrapAround(output, target_color)
+          ->(sequence, me) do
+            my_index      = sequence.index(me)
+            # First, try all elements after me, then go through the elements preceding myself.
+            wrapped_range = sequence[my_index+1..-1] + sequence[0..my_index-1]
+
+            target_seq_row = find_in_range(wrapped_range, target_color)
 
             return output, target_seq_row
           end
@@ -78,6 +92,11 @@ class Trailblazer::Activity
 
             return output, target_seq_row
           end
+        end
+
+        # @private
+        def find_in_range(range, target_color)
+          range.find { |seq_row| seq_row[0] == target_color }
         end
       end # Search
 
@@ -104,7 +123,7 @@ class Trailblazer::Activity
         def Replace(sequence, new_rows, insert_id)
           index, sequence = find(sequence, insert_id)
 
-          sequence[index], _ = *new_rows # TODO: replace and insert remaining, if any.
+          sequence[index], = *new_rows # TODO: replace and insert remaining, if any.
           sequence
         end
 
@@ -130,7 +149,7 @@ class Trailblazer::Activity
       def Merge(old_seq, new_seq, end_id: "End.success") # DISCUSS: also Insert
         new_seq = strip_start_and_ends(new_seq, end_id: end_id)
 
-        seq = Insert.Prepend(old_seq, new_seq, end_id)
+      Insert.Prepend(old_seq, new_seq, end_id)
       end
       def strip_start_and_ends(seq, end_id:) # TODO: introduce Merge namespace?
         cut_off_index = end_id.nil? ? seq.size : Insert.find_index(seq, end_id) # find the "first" end.
@@ -148,7 +167,7 @@ class Trailblazer::Activity
           new_row = Sequence.create_row(**options)
 
           # {sequence_insert} is usually a function such as {Linear::Insert::Append} and its arguments.
-          seq = Sequence.insert_row(sequence, row: new_row, insert: sequence_insert)
+          Sequence.insert_row(sequence, row: new_row, insert: sequence_insert)
         end
 
         # Add one or several rows to the {sequence}.

@@ -109,8 +109,8 @@ class SubprocessTest < Minitest::Spec
     # ctx.inspect.must_equal %{{:seq=>[:c, :g, :f, :d]}}
 
     # signal, (ctx, _) = our_controller.([{seq: []}])
-    signal, (ctx, _) = Trailblazer::Developer.wtf?(our_controller, [{seq: []}])
-    ctx.inspect.must_equal %{{:seq=>[:c, :g, :a, :f, :d]}}
+    signal, (ctx,) = Trailblazer::Developer.wtf?(our_controller, [{seq: []}])
+    _(ctx.inspect).must_equal %{{:seq=>[:c, :g, :a, :f, :d]}}
   end
 
   def find(activity, id)
@@ -134,7 +134,7 @@ class WithCustomSignalReturnedInSubprocess < Minitest::Spec
       step :save
       include T.def_steps(:create_model, :handle_invalid_params, :save)
     end
-    signal, (ctx, _) = Memo::Create.(seq: [], validate: InvalidParams)
-    ctx[:seq].must_equal([:create_model, :validate, :handle_invalid_params, :save])
+    signal, (ctx,) = Memo::Create.(seq: [], validate: InvalidParams)
+    _(ctx[:seq]).must_equal([:create_model, :validate, :handle_invalid_params, :save])
   end
 end

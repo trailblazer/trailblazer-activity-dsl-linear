@@ -31,7 +31,7 @@ class GraphTest < Minitest::Spec
     #:task end
 
     #:outgoings
-    left, right = node.outgoings # returns array
+    left, = node.outgoings # returns array
     #:outgoings end
 
     #:left-task
@@ -44,18 +44,18 @@ class GraphTest < Minitest::Spec
     #:left end
 
     #:outputs
-    outputs = node.outputs
-    left = outputs[0] #=> output object
+    # outputs = node.outputs
+    # left = outputs[0] #=> output object
     #:outputs end
 
-    node.id.must_equal :validate
-    node.task.inspect.must_equal %{#<Trailblazer::Activity::TaskBuilder::Task user_proc=validate>}
+    _(node.id).must_equal :validate
+    _(node.task.inspect).must_equal %{#<Trailblazer::Activity::TaskBuilder::Task user_proc=validate>}
 
     #:find-block
-    node = graph.find { |node| node.task.class == Trailblazer::Activity::TaskBuilder }
+    # node = graph.find { |node| node.task.class == Trailblazer::Activity::TaskBuilder }
     #:find-block end
 
-    pp graph.stop_events
+    # pp graph.stop_events
   end
 
 end

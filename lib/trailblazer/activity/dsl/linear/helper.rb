@@ -6,7 +6,7 @@ module Trailblazer
           # @api private
           OutputSemantic = Struct.new(:value)
           Id             = Struct.new(:value)
-          Track          = Struct.new(:color, :adds)
+          Track          = Struct.new(:color, :adds, :options)
           Extension      = Struct.new(:callable) do
             def call(*args, &block)
               callable.(*args, &block)
@@ -35,8 +35,8 @@ module Trailblazer
               "End.#{_end.to_h[:semantic]}" # TODO: use everywhere
             end
 
-            def Track(color)
-              Track.new(color, []).freeze
+            def Track(color, wrap_around: false)
+              Track.new(color, [], wrap_around: wrap_around).freeze
             end
 
             def Id(id)
@@ -62,7 +62,7 @@ module Trailblazer
               seq = strip_start_and_ends(seq, end_id: _end_id) # don't cut off end unless {:connect_to} is set.
 
               if connect_to
-                output, _ = seq[-1][2][0].(seq, seq[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
+                output, = seq[-1][2][0].(seq, seq[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
 
                 searches = [Search.ById(output, connect_to.value)]
 
@@ -72,16 +72,22 @@ module Trailblazer
                 seq = seq[0..-2] + [row]
               end
 
-              # Add the path before End.success - not sure this is bullet-proof.
+              # Add the path elements before {End.success}.
+              # Termini (or :stop_event) are to be placed after {End.success}.
               adds = seq.collect do |row|
+                options = row[3]
+
+                # the terminus of the path goes _after_ {End.success} into the "end group".
+                insert_method = options[:stop_event] ? Insert.method(:Append) : Insert.method(:Prepend)
+
                 {
                   row:    row,
-                  insert: [Insert.method(:Prepend), "End.success"]
+                  insert: [insert_method, "End.success"]
                 }
               end
 
               # Connect the Output() => Track(path_track)
-              return Track.new(track_color, adds)
+              return Track.new(track_color, adds, {})
             end
 
             # Computes the {:outputs} options for {activity}.

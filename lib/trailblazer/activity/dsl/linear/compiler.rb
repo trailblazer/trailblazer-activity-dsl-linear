@@ -19,7 +19,7 @@ module Trailblazer
           def call(sequence, find_stops: method(:find_stop_task_ids), find_start: method(:find_start_task_ids))
             _implementations, intermediate_wiring =
               sequence.inject([[], []]) do |(implementations, intermediates), seq_row|
-                magnetic_to, task, connections, data = seq_row
+                _, task, connections, data = seq_row
                 id = data[:id]
 
                 # execute all {Search}s for one sequence row.

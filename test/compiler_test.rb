@@ -111,7 +111,7 @@ class CompilerTest < Minitest::Spec
 
     cct = Trailblazer::Developer::Render::Circuit.(schema)
 
-    cct.must_equal %{
+    _(cct).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
 #<Method: #<Module:0x>.a>

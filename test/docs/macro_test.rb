@@ -28,8 +28,8 @@ class DocsMacroTest < Minitest::Spec
       #:macro-call end
     end
 
-    signal, (ctx, _) = A::Create.([{params: {user: "Adam"}}, {}])
+    signal, (ctx,) = A::Create.([{params: {user: "Adam"}}, {}])
 
-    ctx.inspect.must_equal %{{:params=>{:user=>\"Adam\"}, :myparams=>{:user=>\"Adam\", :role=>\"sailor\"}}}
+    _(ctx.inspect).must_equal %{{:params=>{:user=>\"Adam\"}, :myparams=>{:user=>\"Adam\", :role=>\"sailor\"}}}
   end
 end

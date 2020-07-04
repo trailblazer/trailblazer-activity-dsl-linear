@@ -23,7 +23,7 @@ module Trailblazer
           end
 
           # Called from {#step} and friends.
-          def self.task_for!(state, type, task, options={}, &block)
+          def self.task_for!(state, type, task, options={})
             options = options.merge(dsl_track: type)
 
             # {#update_sequence} is the only way to mutate the state instance.
@@ -94,10 +94,10 @@ module Trailblazer
           end
 
           # Injects {:exec_context} so that {:instance_method}s work.
-          def call(args, circuit_options={})
+          def call(args, **circuit_options)
             @activity.(
               args,
-              circuit_options.merge(exec_context: new)
+              **circuit_options.merge(exec_context: new)
             )
           end
 
