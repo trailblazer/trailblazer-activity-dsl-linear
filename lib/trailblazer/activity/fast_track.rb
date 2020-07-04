@@ -120,8 +120,6 @@ module Trailblazer
           sequence = Path::DSL.append_end(sequence, task: pass_fast_end, magnetic_to: :pass_fast, id: "End.pass_fast")
         end
 
-
-
         # This is slow and should be done only once at compile-time,
         # DISCUSS: maybe make this a function?
         # These are the normalizers for an {Activity}, to be injected into a State.

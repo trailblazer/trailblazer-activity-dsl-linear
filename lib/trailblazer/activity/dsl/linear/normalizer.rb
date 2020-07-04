@@ -177,13 +177,13 @@ module Trailblazer
             return Trailblazer::Activity::Right, [new_ctx, flow_options]
           end
 
-          def output_to_track(ctx, output, track)
+          def output_to_track(_ctx, output, track)
             search_strategy = track.options[:wrap_around] ? :WrapAround : :Forward
 
             {output.value => [Linear::Search.method(search_strategy), track.color]}
           end
 
-          def output_to_id(ctx, output, target)
+          def output_to_id(_ctx, output, target)
             {output.value => [Linear::Search.method(:ById), target]}
           end
 

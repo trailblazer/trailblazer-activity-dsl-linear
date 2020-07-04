@@ -7,12 +7,12 @@ module Trailblazer
         def self.VariableMapping(input:  VariableMapping.default_input, output: VariableMapping.default_output)
           input =
             VariableMapping::Input::Scoped.new(
-              Trailblazer::Option::KW( VariableMapping::filter_for(input) )
+              Trailblazer::Option::KW(VariableMapping.filter_for(input))
             )
 
           output =
             VariableMapping::Output::Unscoped.new(
-              Trailblazer::Option::KW( VariableMapping::filter_for(output) )
+              Trailblazer::Option::KW(VariableMapping.filter_for(output))
             )
 
           TaskWrap::Extension(
@@ -60,7 +60,6 @@ module Trailblazer
             end
           end
 
-
           module Input
             class Scoped
               def initialize(filter)
@@ -85,7 +84,7 @@ module Trailblazer
                 @filter = filter
               end
 
-              def call(new_ctx, (original_ctx, flow_options), **circuit_options)
+              def call(new_ctx, (original_ctx, _flow_options), **circuit_options)
                 original_ctx.merge(
                   @filter.(new_ctx, **circuit_options)
                 )

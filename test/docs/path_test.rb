@@ -76,10 +76,10 @@ class DocsPathTest < Minitest::Spec
     ctx = {seq: []}
 
     signal, (ctx, flow_options) = B::Charge.([ctx, {}])
-    ctx.inspect.must_equal %{{:seq=>[:validate, :decide_type, :direct_debit, :finalize]}}
+    _(ctx.inspect).must_equal %{{:seq=>[:validate, :decide_type, :direct_debit, :finalize]}}
 
     signal, (ctx, flow_options) = B::Charge.([{seq: [], decide_type: false}, {}])
-    ctx.inspect.must_equal %{{:seq=>[:validate, :decide_type, :authorize, :charge, :finalize], :decide_type=>false}}
+    _(ctx.inspect).must_equal %{{:seq=>[:validate, :decide_type, :authorize, :charge, :finalize], :decide_type=>false}}
   end
 
   it "works in Railway" do
@@ -141,13 +141,13 @@ class DocsPathTest < Minitest::Spec
 }
 
     signal, (ctx, flow_options) = C::Charge.([{seq: [], model: C::DebitCard.new}, {}])
-    ctx.inspect.gsub(/0x\w+/, "").must_equal %{{:seq=>[:validate, :direct_debit, :finalize], :model=>#<DocsPathTest::C::DebitCard:>}}
+    _(ctx.inspect.gsub(/0x\w+/, "")).must_equal %{{:seq=>[:validate, :direct_debit, :finalize], :model=>#<DocsPathTest::C::DebitCard:>}}
 
     signal, (ctx, flow_options) = C::Charge.([{seq: [], model: C::CreditCard.new}, {}])
-    ctx.inspect.gsub(/0x\w+/, "").must_equal %{{:seq=>[:validate, :authorize, :charge, :finalize], :model=>#<DocsPathTest::C::CreditCard:>}}
+    _(ctx.inspect.gsub(/0x\w+/, "")).must_equal %{{:seq=>[:validate, :authorize, :charge, :finalize], :model=>#<DocsPathTest::C::CreditCard:>}}
 
     signal, (ctx, flow_options) = C::Charge.([{seq: [], model: nil}, {}])
-    ctx.inspect.gsub(/0x\w+/, "").must_equal %{{:seq=>[:validate], :model=>nil}}
+    _(ctx.inspect.gsub(/0x\w+/, "")).must_equal %{{:seq=>[:validate], :model=>nil}}
   end
 
   it "allows multiple Path()s per step" do

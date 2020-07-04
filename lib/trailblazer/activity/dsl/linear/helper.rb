@@ -62,7 +62,7 @@ module Trailblazer
               seq = strip_start_and_ends(seq, end_id: _end_id) # don't cut off end unless {:connect_to} is set.
 
               if connect_to
-                output, _ = seq[-1][2][0].(seq, seq[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
+                output, = seq[-1][2][0].(seq, seq[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
 
                 searches = [Search.ById(output, connect_to.value)]
 

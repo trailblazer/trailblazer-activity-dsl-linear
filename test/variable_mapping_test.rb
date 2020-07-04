@@ -21,31 +21,33 @@ class VariableMappingTest < Minitest::Spec
       step VariableMappingTest.method(:uuid), input: {:a => :a, :b => :my_b}, output: [:b]
     end
 
-    ctx = { a: 0, b: 9 }
+    ctx = {a: 0, b: 9}
 
-    signal, (ctx, flow_options) = Activity::TaskWrap.invoke(activity, [ctx, {}],
-      bla: 1)
+    _, (ctx,) = Activity::TaskWrap.invoke(
+      activity, [ctx, {}],
+      bla: 1
+    )
 
     # signal.must_equal activity.outputs[:success].signal
-    ctx.inspect.must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3}}
+    _(ctx.inspect).must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3}}
   end
 
   it "allows procs, too" do
     activity = Class.new(Trailblazer::Activity::Path) do
-      step VariableMappingTest.method(:model), input: ->(ctx, a:, **) { { :a => a+1 } }, output: ->(ctx, a:, **) { { model_a: a } }
+      step VariableMappingTest.method(:model), input: ->(_ctx, a:, **) { {:a => a + 1} }, output: ->(_ctx, a:, **) { {model_a: a} }
       # step VariableMappingTest.method(:uuid),  input: [:a, :model_a], output: { :a=>:uuid_a }
     end
 
-    signal, (options, flow_options) = Activity::TaskWrap.invoke(activity,
+    _, (options,) = Activity::TaskWrap.invoke(
+      activity,
       [
-        options = { :a => 1 },
-        {},
-      ],
-
+          {:a => 1},
+          {}
+      ]
     )
 
     # signal.must_equal activity.outputs[:success].signal
-    options.must_equal({:a=>1, :model_a=>3})
+    _(options).must_equal({:a => 1, :model_a => 3})
   end
 
   it "allows ctx aliasing with nesting and :input/:output" do
@@ -68,8 +70,8 @@ class VariableMappingTest < Minitest::Spec
 
     ctx = Trailblazer::Context::IndifferentAccess.new(ctx, {}, **flow_options)
 
-    signal, (ctx, flow_options) = Activity::TaskWrap.invoke(activity, [ctx, flow_options], {})
+    _, (ctx,) = Activity::TaskWrap.invoke(activity, [ctx, flow_options], {})
 
-    ctx.to_hash.inspect.must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3, :model_add=>\"1\", :model_from_a=>1}}
+    _(ctx.to_hash.inspect).must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3, :model_add=>\"1\", :model_from_a=>1}}
   end
 end

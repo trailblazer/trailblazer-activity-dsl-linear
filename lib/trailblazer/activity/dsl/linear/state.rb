@@ -29,7 +29,7 @@ module Trailblazer
             {sequence: @sequence, normalizers: @normalizer, normalizer_options: @normalizer_options, fields: @fields} # FIXME.
           end
 
-          def update_sequence(&block)
+          def update_sequence()
             @sequence = yield(to_h)
           end
 
@@ -58,7 +58,7 @@ module Trailblazer
             # by the DSL user. This is usually when you call Operation::step.
             def call(name, *args)
               normalizer = @normalizers.fetch(name)
-              signal, (options, _) = normalizer.(*args)
+              _, (options,) = normalizer.(*args)
               options
             end
           end

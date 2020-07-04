@@ -1,4 +1,3 @@
-$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require "pp"
 require "trailblazer/activity/dsl/linear"
 
@@ -13,7 +12,8 @@ T = Trailblazer::Activity::Testing
 
 Minitest::Spec.class_eval do
   def compile_process(sequence)
-    process = Linear::Compiler.(sequence)
+    # process
+    Linear::Compiler.(sequence)
   end
 
   Linear = Trailblazer::Activity::DSL::Linear
@@ -41,12 +41,12 @@ Minitest::Spec.class_eval do
 
     # taskWrap tester :)
   def add_1(wrap_ctx, original_args)
-    ctx, _ = original_args[0]
+    ctx, = original_args[0]
     ctx[:seq] << 1
     return wrap_ctx, original_args # yay to mutable state. not.
   end
   def add_2(wrap_ctx, original_args)
-    ctx, _ = original_args[0]
+    ctx, = original_args[0]
     ctx[:seq] << 2
     return wrap_ctx, original_args # yay to mutable state. not.
   end

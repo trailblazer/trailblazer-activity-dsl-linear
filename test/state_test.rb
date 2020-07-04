@@ -7,12 +7,12 @@ class StateTest < Minitest::Spec
   # initial is initial
     state = Trailblazer::Activity::DSL::Linear::State.new(normalizers: {}, initial_sequence: [], fields: initial_fields, **{})
 
-    state.to_h[:fields].must_equal initial_fields
+    _(state.to_h[:fields]).must_equal initial_fields
 
   # write
     state.update_options(a: "yo")
 
-    initial_fields.inspect.must_equal %{{}}
-    state.to_h[:fields].inspect.must_equal %{{:a=>\"yo\"}}
+    _(initial_fields.inspect).must_equal %{{}}
+    _(state.to_h[:fields].inspect).must_equal %{{:a=>\"yo\"}}
   end
 end
