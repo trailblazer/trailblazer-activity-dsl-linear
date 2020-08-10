@@ -54,22 +54,26 @@ module Trailblazer
           # Specific to the "step DSL": if the first argument is a callable, wrap it in a {step_interface_builder}
           # since its interface expects the step interface, but the circuit will call it with circuit interface.
           def normalize_step_interface((ctx, flow_options), *)
-            options = case (step_args = ctx[:options]) # either a <#task> or {} from macro
+            options = case ctx[:options]
                       when Hash
-                        # extract task for interfaces like `step task: :instance_method_name`
-                        step_args[:task].is_a?(Symbol) ? step_args[:task] : step_args
+                        # Circuit Interface
+                        task = ctx[:options].fetch(:task)
+
+                        if task.is_a?(Symbol)
+                          # step task: :find
+                          { options: { task: Trailblazer::Option( task ) } }
+                        else
+                          # step task: Callable, ... (Subprocess, Proc, macros etc)
+                          { task: task }
+                        end
                       else
-                        step_args
+                        # Step Interface
+                        # step :find, ...
+                        # step Callable, ... (Method, Proc etc)
+                        { options: { task: ctx[:options], wrap_task: true } }
                       end
 
-            unless options.is_a?(::Hash)
-              # task = wrap_with_step_interface(task: options, step_interface_builder: ctx[:user_options][:step_interface_builder]) # TODO: make this optional with appropriate wiring.
-              task = options
-
-              ctx = ctx.merge(options: {task: task, wrap_task: true})
-            end
-
-            return Trailblazer::Activity::Right, [ctx, flow_options]
+            return Trailblazer::Activity::Right, [ctx.merge(options), flow_options]
           end
 
           def wrap_task_with_step_interface((ctx, flow_options), **)

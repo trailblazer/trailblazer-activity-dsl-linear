@@ -969,20 +969,20 @@ ActivityTest::NestedWithThreeTermini
     ctx.inspect.must_equal     %{{:seq=>[:a, :c, :d, :b]}}
   end
 
-  it "allows {:instance} methods with macro style" do
+  it "allows {:instance} methods with circuit interface" do
     implementing = self.implementing
 
     nested_activity = Class.new(Activity::Path) do
       step task: :c
       step task: :d
-      include T.def_steps(:c, :d)
+      include T.def_tasks(:c, :d)
     end
 
     activity = Class.new(Activity::Path) do
       step task: :a
       step Subprocess(nested_activity)
       step task: :b
-      include T.def_steps(:a, :b)
+      include T.def_tasks(:a, :b)
     end
 
     signal, (ctx, _) = activity.([{seq: []}])
