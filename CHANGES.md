@@ -1,3 +1,7 @@
+# 0.3.0
+
+* Fix circuit interface callable to make `step task: :instance_method` use circuit signature.
+
 # 0.2.9
 
 * The `Path()` helper, when used with `:end_task` will now automatically _append_ the end task (or terminus) to `End.success`.
