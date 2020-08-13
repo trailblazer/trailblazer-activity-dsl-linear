@@ -57,23 +57,24 @@ module Trailblazer
             options = case ctx[:options]
                       when Hash
                         # Circuit Interface
-                        task = ctx[:options].fetch(:task)
+                        task  = ctx[:options].fetch(:task)
+                        id    = ctx[:options][:id]
 
                         if task.is_a?(Symbol)
-                          # step task: :find
-                          { options: { task: Trailblazer::Option( task ) } }
+                          # step task: :find, id: :load
+                          { **ctx[:options], id: (id || task), task: Trailblazer::Option( task ) }
                         else
                           # step task: Callable, ... (Subprocess, Proc, macros etc)
-                          { task: task }
+                          ctx[:options] # NOOP
                         end
                       else
                         # Step Interface
                         # step :find, ...
                         # step Callable, ... (Method, Proc etc)
-                        { options: { task: ctx[:options], wrap_task: true } }
+                        { task: ctx[:options], wrap_task: true }
                       end
 
-            return Trailblazer::Activity::Right, [ctx.merge(options), flow_options]
+            return Trailblazer::Activity::Right, [ctx.merge(options: options), flow_options]
           end
 
           def wrap_task_with_step_interface((ctx, flow_options), **)
