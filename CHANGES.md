@@ -1,3 +1,7 @@
+# 0.3.1
+
+* Fixes in circuit interface normalization when given task is a {Symbol}, consider additional {task} options (like {id}) and assign {task} symbol as an {id}.
+
 # 0.3.0
 
 * Fix circuit interface callable to make `step task: :instance_method` use circuit signature.
