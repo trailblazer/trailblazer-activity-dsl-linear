@@ -68,10 +68,10 @@ module Trailblazer
               end
 
               def call((original_ctx, flow_options), **circuit_options)
-                Trailblazer::Context.for_circuit(
+                Trailblazer::Context(
                   @filter.(original_ctx, **circuit_options),
                   {},
-                  [original_ctx, flow_options], circuit_options # these options for {Context.for} are currently unused.
+                  flow_options[:context_options]
                 )
               end
             end

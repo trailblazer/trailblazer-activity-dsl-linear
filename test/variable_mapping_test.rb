@@ -64,9 +64,9 @@ class VariableMappingTest < Minitest::Spec
     end
 
     ctx           = {a: 0, b: 9}
-    flow_options  = {context_alias: {model_a: :model_from_a}}
+    flow_options  = { context_options: { container_class: Trailblazer::Context::Container::WithAliases, aliases: { model_a: :model_from_a } } }
 
-    ctx = Trailblazer::Context::IndifferentAccess.new(ctx, {}, **flow_options)
+    ctx = Trailblazer::Context(ctx, {}, flow_options[:context_options])
 
     signal, (ctx, flow_options) = Activity::TaskWrap.invoke(activity, [ctx, flow_options], {})
 
