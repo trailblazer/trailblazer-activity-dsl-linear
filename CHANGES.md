@@ -1,3 +1,7 @@
+# 0.3.2
+
+* Updrading `trailblazer-activity` version to utilise new `trailblazer-context` :drum:
+
 # 0.3.1
 
 * Fixes in circuit interface normalization when given task is a {Symbol}, consider additional {task} options (like {id}) and assign {task} symbol as an {id}.
