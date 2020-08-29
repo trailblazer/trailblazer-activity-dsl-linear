@@ -68,16 +68,16 @@ class RailwayTest < Minitest::Spec
       ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c, :d]}}
 
   # left track
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false}])
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: Activity::Left}])
 
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :a, :b], :f=>false}}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :a, :b], :f=>Trailblazer::Activity::Left}}
 
   # left track
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], g: false}])
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], g: Activity::Left}])
 
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :b], :g=>false}}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :b], :g=>Trailblazer::Activity::Left}}
     end
 
     it "allows {Output() => Track/Id}" do
@@ -127,22 +127,22 @@ class RailwayTest < Minitest::Spec
       ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c, :d]}}
 
   # left track, {a} goes back to success
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false, a: true}])
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: Activity::Left, a: Activity::Right}])
 
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :a, :g, :c, :d], :f=>false, :a=>true}}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :a, :g, :c, :d], :f=>Trailblazer::Activity::Left, :a=>Trailblazer::Activity::Right}}
 
   # left track, {a} stays on failure
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false, a: false}])
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: Activity::Left, a: Activity::Left}])
 
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :a, :b], :f=>false, :a=>false}}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :a, :b], :f=>Trailblazer::Activity::Left, :a=>Trailblazer::Activity::Left}}
 
   # {d} goes to {b}
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], d: false}])
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], d: Activity::Left}])
 
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c, :d, :b], :d=>false}}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c, :d, :b], :d=>Trailblazer::Activity::Left}}
     end
 
     it "provides {pass}" do
@@ -180,10 +180,10 @@ class RailwayTest < Minitest::Spec
       ctx.inspect.must_equal     %{{:seq=>[:f, :c]}}
 
   # pass returns false
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: false}])
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: Activity::Left}])
 
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :c], :c=>false}}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :c], :c=>Trailblazer::Activity::Left}}
     end
 
     it "provides {pass}, II" do
@@ -225,10 +225,10 @@ class RailwayTest < Minitest::Spec
       ctx.inspect.must_equal     %{{:seq=>[:f, :c, :g]}}
 
   # pass returns false
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: false}])
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: Activity::Left}])
 
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :c, :g], :c=>false}}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :c, :g], :c=>Trailblazer::Activity::Left}}
     end
 
     it "provides {pass} and allows {Output()}" do
@@ -271,10 +271,10 @@ class RailwayTest < Minitest::Spec
       ctx.inspect.must_equal     %{{:seq=>[:f, :c, :g, :b]}}
 
   # pass returns false
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: false}])
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: Activity::Left}])
 
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :c, :b], :c=>false}}
+      ctx.inspect.must_equal     %{{:seq=>[:f, :c, :b], :c=>Trailblazer::Activity::Left}}
     end
   end
 
