@@ -233,10 +233,10 @@ class PathTest < Minitest::Spec
 #<End/:failure>
 }
 
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: false}])
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: Activity::Left}])
 
       signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:roundtrip>}
-      ctx.inspect.must_equal     %{{:seq=>[:a, :f, :g], :a=>false}}
+      ctx.inspect.must_equal     %{{:seq=>[:a, :f, :g], :a=>Trailblazer::Activity::Left}}
     end
 
     it "allows using a different task builder, etc" do
