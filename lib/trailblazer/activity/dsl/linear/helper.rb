@@ -43,33 +43,19 @@ module Trailblazer
               Id.new(id).freeze
             end
 
-            def Path(track_color: "track_#{rand}", end_id:"path_end_#{rand}", connect_to:nil, **options, &block)
-              # DISCUSS: here, we use the global normalizer and don't allow injection.
-              state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(track_name: track_color, end_id: end_id, **options)) # TODO: test injecting {:normalizers}.
+            def Path(track_color: "track_#{rand}", end_id: nil, connect_to: nil, **options, &block)
+              # end_id is not getting defaulted in kwarg to identify whether stripping the {End} is necessary.
+              _end_id = end_id || "path_end_#{rand}"
 
-              # seq = block.call(state) # state changes.
-              state.instance_exec(&block)
+              path      = Activity::Path(track_name: track_color, end_id: _end_id, **options)
+              activity  = Class.new(path) { self.instance_exec(&block) }
 
-              seq = state.to_h[:sequence]
-
-              _end_id =
-                if connect_to
-                  end_id
-                else
-                  nil
-                end
-
-              seq = strip_start_and_ends(seq, end_id: _end_id) # don't cut off end unless {:connect_to} is set.
+              # Get activity's sequence and strip it's {start}
+              seq = activity.instance_variable_get(:@state).to_h[:sequence] # TODO: fix @state interface
+              seq = seq[1..(end_id.nil? ? -2 : -1)] # cut off End if {:end_id} is not set.
 
               if connect_to
-                output, _ = seq[-1][2][0].(seq, seq[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
-
-                searches = [Search.ById(output, connect_to.value)]
-
-                row = seq[-1]
-                row = row[0..1] + [searches] + [row[3]] # FIXME: not mutating an array is so hard: we only want to replace the "searches" element, index 2
-
-                seq = seq[0..-2] + [row]
+                seq = Sequence.connect(seq, connect_to: connect_to)
               end
 
               # Add the path elements before {End.success}.
