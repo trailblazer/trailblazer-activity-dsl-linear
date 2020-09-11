@@ -43,16 +43,13 @@ module Trailblazer
               Id.new(id).freeze
             end
 
-            def Path(track_color: "track_#{rand}", end_id: nil, connect_to: nil, **options, &block)
-              # end_id is not getting defaulted in kwarg to identify whether stripping the {End} is necessary.
-              _end_id = end_id || "path_end_#{rand}"
-
-              path      = Activity::Path(track_name: track_color, end_id: _end_id, **options)
+            def Path(track_color: "track_#{rand}", connect_to: nil, **options, &block)
+              path      = Activity::Path(track_name: track_color, **options)
               activity  = Class.new(path) { self.instance_exec(&block) }
 
-              # Get activity's sequence and strip it's {start}
               seq = activity.instance_variable_get(:@state).to_h[:sequence] # TODO: fix @state interface
-              seq = seq[1..(end_id.nil? ? -2 : -1)] # cut off End if {:end_id} is not set.
+              # Strip default ends `Start.default` and `End.success` (if present).
+              seq = seq[1..-1].reject{ |row| row[3][:stop_event] && row[3][:id] == 'End.success' }
 
               if connect_to
                 seq = Sequence.connect(seq, connect_to: connect_to)

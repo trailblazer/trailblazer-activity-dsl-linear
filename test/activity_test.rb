@@ -1081,9 +1081,9 @@ ActivityTest::NestedWithThreeTermini
 
   it "{Path()} allows connecting a later step {:f} to the end of the path." do
     activity = Class.new(Activity::Railway) do
-      step :a, Output(:failure) => Track(:green) # look for the first {magnetic_to: :green} occurrence.
+      step :a, Output(:failure) => Track(:green)
       step :c, Output(:success) => Path(track_color: :green) do
-        step :d
+        step :d  # look for the next {magnetic_to: :green} occurrence.
       end
       step :e
       step :f, magnetic_to: :green
@@ -1149,53 +1149,55 @@ ActivityTest::NestedWithThreeTermini
     ctx.inspect.must_equal     %{{:seq=>[:c, :d, :f]}}
   end
 
-  it "{Path()} allows stopping it's circuit at any point using {End()}" do
+  it "{Path()} allows emitting signal via {End()}" do
     activity = Class.new(Activity::Railway) do
-      step :c, Output(:success) => Path(end_id: 'End.success', end_task: End(:success)) do
-        step :e, Output(:success) => End(:success)
-        step :d
+      step :c, Output(:success) => Path() do
+        step :e
+        step :d, Output(:success) => End(:without_cc)
       end
       step :f
 
       include T.def_steps(:c, :e, :d, :f)
     end
 
-    assert_process_for activity, :success, :success, :failure, %{
+    assert_process_for activity, :success, :without_cc, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*c>
 <*c>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => <*e>
 <*e>
- {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::Right} => <*d>
 <*d>
- {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::Right} => #<End/:without_cc>
 <*f>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:without_cc>
 
 #<End/:failure>
 }
 
     signal, (ctx, _) = activity.([{seq: []}])
 
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal     %{{:seq=>[:c, :e]}}
+    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:without_cc>}
+    ctx.inspect.must_equal     %{{:seq=>[:c, :e, :d]}}
   end
 
   it "{Path()} allows nesting via {Subprocess()}" do
     nested = Class.new(Activity::Railway) do
       step :a
-      step :b
+      step :b, Output(:success) => End(:charge)
 
       include T.def_steps(:a, :b)
     end
 
     activity = Class.new(Activity::Railway) do
-      step :c, Output(:success) => Path(end_id: 'End.with_cc', end_task: End(:with_cc)) do
+      step :c, Output(:success) => Path() do
         step :e
-        step Subprocess(nested), Output(:success) => End(:with_cc)
+        step Subprocess(nested), Output(:charge) => End(:with_cc)
         step :d
       end
       step :f
@@ -1212,9 +1214,10 @@ ActivityTest::NestedWithThreeTermini
 <*e>
  {Trailblazer::Activity::Right} => #<Class:0x>
 #<Class:0x>
- {#<Trailblazer::Activity::End semantic=:success>} => #<End/:with_cc>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*d>
+ {#<Trailblazer::Activity::End semantic=:charge>} => #<End/:with_cc>
 <*d>
- {Trailblazer::Activity::Right} => #<End/:with_cc>
+ {Trailblazer::Activity::Right} => #<End/:failure>
 <*f>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
