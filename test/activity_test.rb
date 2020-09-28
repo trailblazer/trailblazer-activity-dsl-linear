@@ -458,20 +458,18 @@ class ActivityTest < Minitest::Spec
   end
 
 # Sequence insert
-  it "throws an IndexError exception when {:after} references non-existant" do
-    implementing = self.implementing
-
+  it "throws {Sequence::IndexError} exception when {:after} references non-existant {:id}" do
     exc = assert_raises Activity::DSL::Linear::Sequence::IndexError do
-      activity = Class.new(Activity::Railway) do
-        step task: implementing.method(:f), after: :e
+      class Song < Activity::Railway
+        step :f, after: :e
+        include T.def_steps(:f)
       end
     end
 
     _(exc.step_id).must_equal :e
-    _(exc.message).must_equal %{:e is not a valid step ID. Did you mean any of these ?
-"Start.default"
-"End.success"
-"End.failure"}
+    _(exc.message).must_equal %{#{Song}:
+\e[31m:e is not a valid step ID. Did you mean any of these ?\e[0m
+\e[32m"Start.default"\n"End.success"\n"End.failure"\e[0m}
   end
 
   it "allows empty inheritance" do
