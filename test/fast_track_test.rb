@@ -160,9 +160,12 @@ class FastTrackTest < Minitest::Spec
 <*#<Method: #<Module:0x>.a>>
  {Trailblazer::Activity::Left} => #<End/:fail_fast>
  {Trailblazer::Activity::Right} => #<End/:fail_fast>
+ {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
 <*#<Method: #<Module:0x>.g>>
  {Trailblazer::Activity::Left} => #<End/:fail_fast>
  {Trailblazer::Activity::Right} => #<End/:pass_fast>
+ {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
+ {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
 <*#<Method: #<Module:0x>.b>>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
@@ -203,6 +206,61 @@ class FastTrackTest < Minitest::Spec
       ctx.inspect.must_equal     %{{:seq=>[:f, :g], :g=>false}}
     end
 
+    it "{:pass_fast} and {:fail_fast} DSL options also registers their own ends" do
+      implementing = T.def_tasks(:a, :b, :c, :d, :e, :f)
+
+      sub_nested = Class.new(Activity::FastTrack) do
+        step task: implementing.method(:a), id: :a, Output(:failure) => End(:fail_fast)
+        step task: implementing.method(:b), id: :b
+      end
+
+      nested = Class.new(Activity::FastTrack) do
+        step Subprocess(sub_nested), fail_fast: true
+        step task: implementing.method(:c), id: :c, Output(:success) => End(:pass_fast)
+        step task: implementing.method(:d), id: :d
+      end
+
+      activity = Class.new(Activity::FastTrack) do
+        step Subprocess(nested), fail_fast: true, pass_fast: true
+        fail implementing.method(:e), id: :e
+        step implementing.method(:f), id: :f
+      end
+
+      process = activity.to_h
+
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
+
+  # nested --> :pass_fast
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
+      ctx.inspect.must_equal     %{{:seq=>[:a, :b, :c]}}
+
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: Activity::Left }])
+
+  # a --> :fail_fast
+      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
+      ctx.inspect.must_equal     %{{:seq=>[:a], :a=>Trailblazer::Activity::Left}}
+    end
+
+    it "fails when parent activity has not registered for any fast tracks but nested activity emits it" do
+      implementing = T.def_tasks(:a, :b, :c, :d)
+
+      nested = Class.new(Activity::FastTrack) do
+        step task: implementing.method(:a), id: :a, Output(:failure) => End(:fail_fast)
+        step task: implementing.method(:b), id: :b
+      end
+
+      activity = Class.new(Activity::FastTrack) do
+        step Subprocess(nested)
+        step task: implementing.method(:c), id: :c, Output(:success) => End(:pass_fast)
+      end
+
+      exception = assert_raises Trailblazer::Activity::Circuit::IllegalSignalError do
+        activity.([{seq: [], a: Activity::Left }])
+      end
+
+      _(exception.message).must_include "Unrecognized Signal `#<Trailblazer::Activity::End semantic=:fail_fast>` returned from #{nested}"
+    end
+
     it "{#pass} with {:pass_fast}" do
       implementing = T.def_steps(:f, :a, :g, :c, :b, :d)
 
@@ -221,9 +279,11 @@ class FastTrackTest < Minitest::Spec
 <*#<Method: #<Module:0x>.f>>
  {Trailblazer::Activity::Left} => #<End/:pass_fast>
  {Trailblazer::Activity::Right} => #<End/:pass_fast>
+ {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
 <*#<Method: #<Module:0x>.a>>
  {Trailblazer::Activity::Left} => #<End/:fail_fast>
  {Trailblazer::Activity::Right} => #<End/:fail_fast>
+ {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
 <*#<Method: #<Module:0x>.d>>
  {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.g>>
  {Trailblazer::Activity::Right} => #<End/:success>

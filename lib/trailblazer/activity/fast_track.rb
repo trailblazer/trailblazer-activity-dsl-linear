@@ -63,6 +63,11 @@ module Trailblazer
         def pass_fast_option((ctx, flow_options), *)
           ctx = merge_connections_for(ctx, ctx, :pass_fast, :success)
 
+          ctx = merge_connections_for(ctx, ctx, :pass_fast, :pass_fast, :pass_fast)
+          ctx = merge_outputs_for(ctx,
+            pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast),
+          )
+
           return Right, [ctx, flow_options]
         end
 
@@ -75,6 +80,11 @@ module Trailblazer
 
         def fail_fast_option((ctx, flow_options), *)
           ctx = merge_connections_for(ctx, ctx, :fail_fast, :failure)
+
+          ctx = merge_connections_for(ctx, ctx, :fail_fast, :fail_fast, :fail_fast)
+          ctx = merge_outputs_for(ctx,
+            fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast),
+          )
 
           return Right, [ctx, flow_options]
         end
