@@ -1,3 +1,7 @@
+# 0.3.3
+
+* Fix for registering `PassFast` & `FailFast` ends in `FastTrack` to fix circuit interface callables which emits those signals.
+
 # 0.3.2
 
 * Updrading `trailblazer-activity` version to utilise new `trailblazer-context` :drum:
