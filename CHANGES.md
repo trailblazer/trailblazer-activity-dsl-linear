@@ -1,3 +1,9 @@
+# 0.3.4
+
+* Allow DSL helpers such as `End()` in `Path()`.
+* Introduce `Path(..., before: )` option to insert all path member steps before a certain element.
+* Allow `Path(..., connect_to: Track(..))`.
+
 # 0.3.3
 
 * Fix for registering `PassFast` & `FailFast` ends in `FastTrack` to fix circuit interface callables which emits those signals.
