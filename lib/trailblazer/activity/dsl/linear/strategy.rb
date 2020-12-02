@@ -74,7 +74,7 @@ module Trailblazer
             return args[0], options.merge(evaluated_options)
           end
 
-          def Path(options, &block) # syntactically, we can't access the {do ... end} block here.
+          def Path(**options, &block) # syntactically, we can't access the {do ... end} block here.
             BlockProxy.new(options, block)
           end
 

@@ -1079,6 +1079,226 @@ ActivityTest::NestedWithThreeTermini
 
   end
 
+  it "{Path()} allows connecting a later step {:f} to the end of the path." do
+    activity = Class.new(Activity::Railway) do
+      step :a, Output(:failure) => Track(:green)
+      step :c, Output(:success) => Path(track_color: :green) do
+        step :d  # look for the next {magnetic_to: :green} occurrence.
+      end
+      step :e
+      step :f, magnetic_to: :green
+
+      include T.def_steps(:c, :d, :e, :f)
+    end
+
+    assert_process_for activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Left} => <*d>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
+ {Trailblazer::Activity::Right} => <*f>
+<*e>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+<*f>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
+
+  it "{Path()} allows connecting to the outer step using {Output() => Id()}" do
+    activity = Class.new(Activity::Railway) do
+      step :c, Output(:success) => Path() do
+        step :d, Output(:success) => Id(:f)
+        step :e
+      end
+      step :f
+
+      include T.def_steps(:c, :d, :e, :f)
+    end
+
+    assert_process_for activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
+ {Trailblazer::Activity::Right} => <*f>
+<*e>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+<*f>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+    signal, (ctx, _) = activity.([{seq: []}])
+
+    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal     %{{:seq=>[:c, :d, :f]}}
+  end
+
+  it "{Path()} allows emitting signal via {End()}" do
+    activity = Class.new(Activity::Railway) do
+      step :c, Output(:success) => Path() do
+        step :e
+        step :d, Output(:success) => End(:without_cc)
+      end
+      step :f
+
+      include T.def_steps(:c, :e, :d, :f)
+    end
+
+    assert_process_for activity, :success, :without_cc, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*e>
+<*e>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
+ {Trailblazer::Activity::Right} => #<End/:without_cc>
+<*f>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:without_cc>
+
+#<End/:failure>
+}
+
+    signal, (ctx, _) = activity.([{seq: []}])
+
+    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:without_cc>}
+    ctx.inspect.must_equal     %{{:seq=>[:c, :e, :d]}}
+  end
+
+  it "{Path()} allows nesting via {Subprocess()}" do
+    nested = Class.new(Activity::Railway) do
+      step :a
+      step :b, Output(:success) => End(:charge)
+
+      include T.def_steps(:a, :b)
+    end
+
+    activity = Class.new(Activity::Railway) do
+      step :c, Output(:success) => Path() do
+        step :e
+        step Subprocess(nested), Output(:charge) => End(:with_cc)
+        step :d
+      end
+      step :f
+
+      include T.def_steps(:c, :e, :d, :f)
+    end
+
+    assert_process_for activity, :success, :with_cc, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*e>
+<*e>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*d>
+ {#<Trailblazer::Activity::End semantic=:charge>} => #<End/:with_cc>
+<*d>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+<*f>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:with_cc>
+
+#<End/:failure>
+}
+
+    signal, (ctx, _) = activity.([{seq: []}])
+
+    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:with_cc>}
+    ctx.inspect.must_equal     %{{:seq=>[:c, :e, :a, :b]}}
+  end
+
+  it "{Output()} takes precedence over {end_id} when specified within the {Path()} block" do
+    activity = Class.new(Activity::Railway) do
+      step :c, Output(:success) => Path(end_id: "End.cc", end_task: End(:with_cc)) do
+        step :e, Output(:success) => Id(:f) # `End(:with_cc)` will get removed in favor of `Id(:f) connection`
+      end
+      step :f
+
+      include T.def_steps(:c, :e, :f)
+    end
+
+    assert_process_for activity, :success, :with_cc, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*e>
+<*e>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:with_cc>
+
+#<End/:failure>
+}
+
+    signal, (ctx, _) = activity.([{seq: []}])
+
+    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal     %{{:seq=>[:c, :e, :f]}}
+  end
+
+  it "{connect_to} behaves same as {Output() => Id()} connection when passed to the {Path()}" do
+    activity = Class.new(Activity::Railway) do
+      step :c, Output(:success) => Path(connect_to: Id(:f)) do
+        step :e
+      end
+      step :f
+
+      include T.def_steps(:c, :e, :f)
+    end
+
+    assert_process_for activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*e>
+<*e>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+    signal, (ctx, _) = activity.([{seq: []}])
+
+    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    ctx.inspect.must_equal     %{{:seq=>[:c, :e, :f]}}
+  end
 
   it "{:wrap_around}" do
     implementing = self.implementing

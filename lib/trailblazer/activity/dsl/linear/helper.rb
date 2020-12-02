@@ -43,33 +43,16 @@ module Trailblazer
               Id.new(id).freeze
             end
 
-            def Path(track_color: "track_#{rand}", end_id:"path_end_#{rand}", connect_to:nil, **options, &block)
-              # DISCUSS: here, we use the global normalizer and don't allow injection.
-              state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(track_name: track_color, end_id: end_id, **options)) # TODO: test injecting {:normalizers}.
+            def Path(track_color: "track_#{rand}", connect_to: nil, **options, &block)
+              path      = Activity::Path(track_name: track_color, **options)
+              activity  = Class.new(path) { self.instance_exec(&block) }
 
-              # seq = block.call(state) # state changes.
-              state.instance_exec(&block)
-
-              seq = state.to_h[:sequence]
-
-              _end_id =
-                if connect_to
-                  end_id
-                else
-                  nil
-                end
-
-              seq = strip_start_and_ends(seq, end_id: _end_id) # don't cut off end unless {:connect_to} is set.
+              seq = activity.instance_variable_get(:@state).to_h[:sequence] # TODO: fix @state interface
+              # Strip default ends `Start.default` and `End.success` (if present).
+              seq = seq[1..-1].reject{ |row| row[3][:stop_event] && row[3][:id] == 'End.success' }
 
               if connect_to
-                output, _ = seq[-1][2][0].(seq, seq[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
-
-                searches = [Search.ById(output, connect_to.value)]
-
-                row = seq[-1]
-                row = row[0..1] + [searches] + [row[3]] # FIXME: not mutating an array is so hard: we only want to replace the "searches" element, index 2
-
-                seq = seq[0..-2] + [row]
+                seq = Sequence.connect(seq, connect_to: connect_to)
               end
 
               # Add the path elements before {End.success}.
