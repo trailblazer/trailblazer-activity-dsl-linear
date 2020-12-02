@@ -37,21 +37,6 @@ class Trailblazer::Activity
           sequence
         end
 
-        # Connect last row of the {sequence} to the given step via it's {Id}
-        # Useful when steps needs to be inserted in between {Start} and {connect Id()}.
-        def self.connect(sequence, connect_to:)
-          output, _ = sequence[-1][2][0].(sequence, sequence[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
-
-          searches = [Search.ById(output, connect_to.value)]
-
-          row = sequence[-1]
-          row = row[0..1] + [searches] + [row[3]] # FIXME: not mutating an array is so hard: we only want to replace the "searches" element, index 2
-
-          sequence = sequence[0..-2] + [row]
-
-          sequence
-        end
-
         class IndexError < IndexError
           attr_reader :step_id
 

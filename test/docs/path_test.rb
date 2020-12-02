@@ -192,4 +192,107 @@ class DocsPathTest < Minitest::Spec
 #<End/:failure>
 }
   end
+
+  it "Path() => Track(:success) will connect the path's end to a track" do
+    module E
+      class Charge < Trailblazer::Activity::Railway
+        include T.def_steps(:validate, :decide_type, :direct_debit, :finalize, :authorize, :charge)
+
+        step :validate
+        step :decide_type,
+          Output(:failure) => Path(connect_to: Track(:success)) do
+            step :go
+          end
+        step :direct_debit
+        step :finalize
+      end
+
+    # Insert step just after the path joins.
+      class Overcharge < Charge
+        step :overcharge, before: :direct_debit # we want {go --> overcharge --> direct_debit}
+      end
+    end
+
+    assert_process_for E::Charge, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*decide_type>
+<*decide_type>
+ {Trailblazer::Activity::Left} => <*go>
+ {Trailblazer::Activity::Right} => <*direct_debit>
+<*go>
+ {Trailblazer::Activity::Right} => <*direct_debit>
+<*direct_debit>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*finalize>
+<*finalize>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+    assert_process_for E::Overcharge, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*decide_type>
+<*decide_type>
+ {Trailblazer::Activity::Left} => <*go>
+ {Trailblazer::Activity::Right} => <*overcharge>
+<*go>
+ {Trailblazer::Activity::Right} => <*overcharge>
+<*overcharge>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*direct_debit>
+<*direct_debit>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*finalize>
+<*finalize>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
+
+  it "{Path() ..., before: :element} will add all path steps {before}" do
+    module F
+      class Charge < Trailblazer::Activity::Railway
+        step :b
+        step :f
+        step :a, before: :b, # note the {:before}
+          Output(:failure) => Path(connect_to: Track(:success), before: :b) do
+            step :c
+            step :d # {d} must go into {f}
+          end
+      end
+    end
+
+    assert_process_for F::Charge, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Left} => <*c>
+ {Trailblazer::Activity::Right} => <*b>
+<*c>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
 end
