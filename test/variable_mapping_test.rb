@@ -27,7 +27,7 @@ class VariableMappingTest < Minitest::Spec
       bla: 1)
 
     # signal.must_equal activity.outputs[:success].signal
-    ctx.inspect.must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3}}
+    _(ctx.inspect).must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3}}
   end
 
   it "allows procs, too" do
@@ -45,7 +45,7 @@ class VariableMappingTest < Minitest::Spec
     )
 
     # signal.must_equal activity.outputs[:success].signal
-    options.must_equal({:a=>1, :model_a=>3})
+    _(options).must_equal({:a=>1, :model_a=>3})
   end
 
   it "allows ctx aliasing with nesting and :input/:output" do
@@ -70,6 +70,6 @@ class VariableMappingTest < Minitest::Spec
 
     signal, (ctx, flow_options) = Activity::TaskWrap.invoke(activity, [ctx, flow_options], {})
 
-    ctx.to_hash.inspect.must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3, :model_add=>\"1\", :model_from_a=>1}}
+    _(ctx.to_hash.inspect).must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3, :model_add=>\"1\", :model_from_a=>1}}
   end
 end

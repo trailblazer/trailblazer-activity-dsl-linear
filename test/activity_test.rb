@@ -56,7 +56,7 @@ class ActivityTest < Minitest::Spec
         end
       end
 
-      exception.message.sub(/0x\w+/, "0x").must_equal %{ID #<Method: #<Module:0x>.f> is already taken. Please specify an `:id`.}
+      _(exception.message.sub(/0x\w+/, "0x")).must_equal %{ID #<Method: #<Module:0x>.f> is already taken. Please specify an `:id`.}
     end
 
     it "accepts {:outputs}" do
@@ -207,15 +207,15 @@ class ActivityTest < Minitest::Spec
 
       signal, (ctx, _) = activity.([{seq: [], a: false}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:new>}
-      ctx.inspect.must_equal     %{{:seq=>[:a], :a=>false}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:new>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:a], :a=>false}}
 
       new_signal, (ctx, _) = activity.([{seq: [], b: true}])
 
-      new_signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:new>}
-      ctx.inspect.must_equal %{{:seq=>[:a, :c, :b], :b=>true}}
+      _(new_signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:new>}
+      _(ctx.inspect).must_equal %{{:seq=>[:a, :c, :b], :b=>true}}
   # End.new is always the same instance
-      signal.must_equal new_signal
+      _(signal).must_equal new_signal
 
     end
 
@@ -396,8 +396,8 @@ class ActivityTest < Minitest::Spec
 
         signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
 
-        signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-        ctx.inspect.must_equal %{{:seq=>[1, :a, :b]}}
+        _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+        _(ctx.inspect).must_equal %{{:seq=>[1, :a, :b]}}
       end
 
       it "accepts {:extensions} along with {:input}" do
@@ -413,8 +413,8 @@ class ActivityTest < Minitest::Spec
 
         signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
 
-        signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-        ctx.inspect.must_equal %{{:seq=>[1, :input, :a, :b]}}
+        _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+        _(ctx.inspect).must_equal %{{:seq=>[1, :input, :a, :b]}}
       end
 
     end
@@ -452,9 +452,9 @@ class ActivityTest < Minitest::Spec
 
 
 
-    activity.to_h[:nodes][1][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
-    activity.to_h[:nodes][2][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
-    activity.to_h[:nodes][3][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
+    _(activity.to_h[:nodes][1][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
+    _(activity.to_h[:nodes][2][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
+    _(activity.to_h[:nodes][3][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
   end
 
 # Sequence insert
@@ -467,8 +467,8 @@ class ActivityTest < Minitest::Spec
       end
     end
 
-    exc.step_id.must_equal :e
-    exc.message.must_equal %{:e is not a valid step ID. Did you mean any of these ?
+    _(exc.step_id).must_equal :e
+    _(exc.message).must_equal %{:e is not a valid step ID. Did you mean any of these ?
 "Start.default"
 "End.success"
 "End.failure"}
@@ -501,17 +501,17 @@ class ActivityTest < Minitest::Spec
     sub = Class.new(activity)
 
   # {Schema.config} is *copied* to the subclass and not identical
-    assert activity.to_h[:config] != sub.to_h[:config]
+    refute_equal activity.to_h[:config], sub.to_h[:config]
   # Likewise, important fields like {wrap_static} are copied.
-    assert activity.to_h[:config][:wrap_static] != sub.to_h[:config][:wrap_static]
+    refute_equal activity.to_h[:config][:wrap_static], sub.to_h[:config][:wrap_static]
 
     signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal %{{:seq=>[1, :a]}}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal %{{:seq=>[1, :a]}}
 
     signal, (ctx, _) = Activity::TaskWrap.invoke(sub, [{seq: []}, {}])
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal %{{:seq=>[1, :a]}}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal %{{:seq=>[1, :a]}}
   end
 
   it "allows inheritance / INSERTION options" do
@@ -633,13 +633,13 @@ class ActivityTest < Minitest::Spec
 
     signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
 
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal %{{:seq=>[:a, :b]}}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal %{{:seq=>[:a, :b]}}
 
     signal, (ctx, _) = Activity::TaskWrap.invoke(sub_activity, [{seq: []}, {}])
 
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal %{{:seq=>[:a, :b, :f]}}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal %{{:seq=>[:a, :b, :f]}}
   end
 
   it "{:inherit} copies over additional user settings like {Output => Track}" do
@@ -683,7 +683,7 @@ class ActivityTest < Minitest::Spec
       end
 
       # the nested's output must be the signal from the sub_nested's terminus
-      Trailblazer::Activity::Introspect::Graph(sub).find(:c).outputs[1].to_h[:signal].must_equal sub_nested.to_h[:outputs][0].to_h[:signal]
+      _(Trailblazer::Activity::Introspect::Graph(sub).find(:c).outputs[1].to_h[:signal]).must_equal sub_nested.to_h[:outputs][0].to_h[:signal]
 
       assert_process_for sub.to_h, :success, :failure, %{
 #<Start/:default>
@@ -716,13 +716,13 @@ ActivityTest::NestedWithThreeTermini
 
     ctx = {seq: []}
     signal, (ctx, _) = Trailblazer::Developer.wtf?(sub, [ctx])
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx[:seq].inspect.must_equal %{[:c_c, :z, :b]}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx[:seq].inspect).must_equal %{[:c_c, :z, :b]}
 
     ctx = {seq: [], z: false}
     signal, (ctx, _) = Trailblazer::Developer.wtf?(sub, [ctx])
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
-    ctx[:seq].inspect.must_equal %{[:c_c, :z]}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
+    _(ctx[:seq].inspect).must_equal %{[:c_c, :z]}
   end
 
   it "{:inherit} also adds the {:extensions} from the inherited row" do
@@ -746,12 +746,12 @@ ActivityTest::NestedWithThreeTermini
     end
 
     signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal %{{:seq=>[1, :a, :b]}}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal %{{:seq=>[1, :a, :b]}}
 
     signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(sub, [{seq: []}])
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal %{{:seq=>[1, :a, 1, :b]}}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal %{{:seq=>[1, :a, 1, :b]}}
   end
 
   it "assigns default {:id}" do
@@ -762,7 +762,7 @@ ActivityTest::NestedWithThreeTermini
       step implementing.method(:b)
     end
 
-    activity.to_h[:nodes].collect(&:id).must_equal ["Start.default", :a, implementing.method(:b), "End.success"]
+    _(activity.to_h[:nodes].collect(&:id)).must_equal ["Start.default", :a, implementing.method(:b), "End.success"]
   end
 
   describe "#merge!" do
@@ -824,14 +824,14 @@ ActivityTest::NestedWithThreeTermini
   # a --> Nested(b) --> c
         signal, (ctx, _) = activity.([{seq: []}])
 
-        signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-        ctx.inspect.must_equal     %{{:seq=>[:a, :b, :c]}}
+        _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+        _(ctx.inspect).must_equal     %{{:seq=>[:a, :b, :c]}}
 
   # a --> Nested(b) --> :failure
         signal, (ctx, _) = activity.([{seq: [], b: false}])
 
-        signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-        ctx.inspect.must_equal     %{{:seq=>[:a, :b], :b=>false}}
+        _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+        _(ctx.inspect).must_equal     %{{:seq=>[:a, :b], :b=>false}}
       end
 
       scenario "manual wiring with Subprocess()" do
@@ -844,15 +844,15 @@ ActivityTest::NestedWithThreeTermini
         test "Nested's :success End is mapped to outer :failure" do
           signal, (ctx, _) = activity.([{seq: []}])
 
-          signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-          ctx.inspect.must_equal     %{{:seq=>[:a, :b]}}
+          _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+          _(ctx.inspect).must_equal     %{{:seq=>[:a, :b]}}
         end
 
         test "Nested's :failure goes to outer :failure per default" do
           signal, (ctx, _) = activity.([{seq: [], b: false}])
 
-          signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-          ctx.inspect.must_equal     %{{:seq=>[:a, :b], :b=>false}}
+          _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+          _(ctx.inspect).must_equal     %{{:seq=>[:a, :b], :b=>false}}
         end
       end
     end
@@ -965,8 +965,8 @@ ActivityTest::NestedWithThreeTermini
 
     signal, (ctx, _) = activity.([{seq: []}])
 
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal     %{{:seq=>[:a, :c, :d, :b]}}
+    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal     %{{:seq=>[:a, :c, :d, :b]}}
   end
 
   it "allows instance methods with circuit interface" do
@@ -987,8 +987,8 @@ ActivityTest::NestedWithThreeTermini
 
     signal, (ctx, _) = activity.([{seq: []}])
 
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal     %{{:seq=>[:a, :c, :d, :b]}}
+    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal     %{{:seq=>[:a, :c, :d, :b]}}
   end
 
   it "assigns {:task} as step's {:id} unless specified" do
@@ -1007,8 +1007,8 @@ ActivityTest::NestedWithThreeTermini
     _(Trailblazer::Developer.railway(activity)).must_equal %{[>a,>b,>f,>d]}
 
     signal, (ctx, _) = activity.([{seq: []}])
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal     %{{:seq=>[:a, :b, :f, :d]}}
+    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal     %{{:seq=>[:a, :b, :f, :d]}}
   end
 
   it "provides {#to_h}" do
@@ -1017,8 +1017,8 @@ ActivityTest::NestedWithThreeTermini
     end
 
     actual_activity = activity.instance_variable_get(:@activity)
-    actual_activity.class.must_equal Trailblazer::Activity
-    activity.to_h[:activity].must_equal actual_activity
+    _(actual_activity.class).must_equal Trailblazer::Activity
+    _(activity.to_h[:activity]).must_equal actual_activity
   end
 
   it "{Path()} without block just adds one {End.green} terminus" do
@@ -1145,8 +1145,8 @@ ActivityTest::NestedWithThreeTermini
 
     signal, (ctx, _) = activity.([{seq: []}])
 
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal     %{{:seq=>[:c, :d, :f]}}
+    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal     %{{:seq=>[:c, :d, :f]}}
   end
 
   it "{Path()} allows emitting signal via {End()}" do
@@ -1182,8 +1182,8 @@ ActivityTest::NestedWithThreeTermini
 
     signal, (ctx, _) = activity.([{seq: []}])
 
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:without_cc>}
-    ctx.inspect.must_equal     %{{:seq=>[:c, :e, :d]}}
+    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:without_cc>}
+    _(ctx.inspect).must_equal     %{{:seq=>[:c, :e, :d]}}
   end
 
   it "{Path()} allows nesting via {Subprocess()}" do
@@ -1230,8 +1230,8 @@ ActivityTest::NestedWithThreeTermini
 
     signal, (ctx, _) = activity.([{seq: []}])
 
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:with_cc>}
-    ctx.inspect.must_equal     %{{:seq=>[:c, :e, :a, :b]}}
+    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:with_cc>}
+    _(ctx.inspect).must_equal     %{{:seq=>[:c, :e, :a, :b]}}
   end
 
   it "{Output()} takes precedence over {end_id} when specified within the {Path()} block" do
@@ -1264,8 +1264,8 @@ ActivityTest::NestedWithThreeTermini
 
     signal, (ctx, _) = activity.([{seq: []}])
 
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal     %{{:seq=>[:c, :e, :f]}}
+    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal     %{{:seq=>[:c, :e, :f]}}
   end
 
   it "{connect_to} behaves same as {Output() => Id()} connection when passed to the {Path()}" do
@@ -1296,8 +1296,8 @@ ActivityTest::NestedWithThreeTermini
 
     signal, (ctx, _) = activity.([{seq: []}])
 
-    signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal     %{{:seq=>[:c, :e, :f]}}
+    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal     %{{:seq=>[:c, :e, :f]}}
   end
 
   it "{:wrap_around}" do

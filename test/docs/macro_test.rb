@@ -30,7 +30,7 @@ class DocsMacroTest < Minitest::Spec
 
     signal, (ctx, _) = A::Create.([{params: {user: "Adam"}}, {}])
 
-    ctx.inspect.must_equal %{{:params=>{:user=>\"Adam\"}, :myparams=>{:user=>\"Adam\", :role=>\"sailor\"}}}
+    _(ctx.inspect).must_equal %{{:params=>{:user=>\"Adam\"}, :myparams=>{:user=>\"Adam\", :role=>\"sailor\"}}}
   end
 
   it "what" do
@@ -72,12 +72,12 @@ class DocsMacroTest < Minitest::Spec
     end
 
     signal, (ctx, _) = B::Create.([{params: {id: 1}}, {}])
-    ctx.inspect.must_equal %{{:params=>{:id=>1}, :model=>#<struct DocsMacroTest::B::User id=1>}}
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal %{{:params=>{:id=>1}, :model=>#<struct DocsMacroTest::B::User id=1>}}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
 
     signal, (ctx, _) = Trailblazer::Developer.wtf?(B::Create, [{params: {}}])
-    ctx.inspect.must_equal %{{:params=>{}, :model=>nil}}
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:not_found>}
+    _(ctx.inspect).must_equal %{{:params=>{}, :model=>nil}}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:not_found>}
 
 =begin
 #:output-result

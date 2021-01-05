@@ -46,7 +46,7 @@ class DocsPatchingTest < Minitest::Spec
 
     signal, (ctx, _) = Trailblazer::Developer.wtf?(Memo::Destroy, [{seq: []}])
 
-    ctx.inspect.must_equal %{{:seq=>[:policy, :find_model, :delete_model, :rm_images, :rm_uploads]}}
+    _(ctx.inspect).must_equal %{{:seq=>[:policy, :find_model, :delete_model, :rm_images, :rm_uploads]}}
   end
 
   it do
@@ -72,6 +72,6 @@ class DocsPatchingTest < Minitest::Spec
 
     signal, (ctx, _) = Trailblazer::Developer.wtf?(Asset::Destroy, [{seq: []}])
 
-    ctx.inspect.must_equal %{{:seq=>[:tidy_storage, :delete_model]}}
+    _(ctx.inspect).must_equal %{{:seq=>[:tidy_storage, :delete_model]}}
   end
 end

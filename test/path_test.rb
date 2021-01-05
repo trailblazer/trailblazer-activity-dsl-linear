@@ -22,15 +22,15 @@ class PathTest < Minitest::Spec
     # Call without taskWrap!
     signal, (ctx, _) = activity.({seq: []}, {})
 
-    signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    ctx.inspect.must_equal %{{:seq=>[:a, :b]}}
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx.inspect).must_equal %{{:seq=>[:a, :b]}}
   end
 
 
   it "#initial_sequence" do
     seq = Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
 
-    Cct(compile_process(seq)).must_equal %{
+    _(Cct(compile_process(seq))).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
@@ -58,7 +58,7 @@ class PathTest < Minitest::Spec
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g
 
-    seq[1][0].must_equal :green
+    _(seq[1][0]).must_equal :green
 
     assert_process seq, :success, %{
 #<Start/:default>
@@ -76,7 +76,7 @@ class PathTest < Minitest::Spec
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g
 
-    seq.last[3][:id].must_equal "End.winner"
+    _(seq.last[3][:id]).must_equal "End.winner"
 
     assert_process seq, :winning, %{
 #<Start/:default>
@@ -235,8 +235,8 @@ class PathTest < Minitest::Spec
 
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: Activity::Left}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:roundtrip>}
-      ctx.inspect.must_equal     %{{:seq=>[:a, :f, :g], :a=>Trailblazer::Activity::Left}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:roundtrip>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:a, :f, :g], :a=>Trailblazer::Activity::Left}}
     end
 
     it "allows using a different task builder, etc" do
@@ -274,8 +274,8 @@ class PathTest < Minitest::Spec
 
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: false}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:roundtrip>}
-      ctx.inspect.must_equal     %{{:seq=>[:a, :f], :a=>false}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:roundtrip>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:a, :f], :a=>false}}
     end
   end
 

@@ -35,20 +35,12 @@ class DocsIOTest < Minitest::Spec
         #~io-steps end
       end
       #:io-ary-hash end
-
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(A::Memo::Create, [{params: {id: 1}}, {}])
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal %{{:params=>{:id=>1}, :current_user=>\"User 1\", :model=>\"User 1\"}}
-=begin
-#:io-call
-ctx = {params: {id: 1}}
-
-signal, (ctx, flow_options) = Activity::TaskWrap.invoke(A::Memo::Create, [ctx, {}])
-
-ctx #=> {:params=>{:id=>1}, :current_user=>#<User ..>, :model=>#<Memo ..>}}
-#:io-call end
-=end
     end
+    #:io-call
+    signal, (ctx, flow_options) = Activity::TaskWrap.invoke(A::Memo::Create, [{params: {id: 1}}, {}])
+    #:io-call end
+    assert_equal %{#<Trailblazer::Activity::End semantic=:success>}, signal.inspect
+    assert_equal %{{:params=>{:id=>1}, :current_user=>\"User 1\", :model=>\"User 1\"}}, ctx.inspect
 
     module B
       module Memo; end
@@ -77,10 +69,6 @@ ctx #=> {:params=>{:id=>1}, :current_user=>#<User ..>, :model=>#<Memo ..>}}
       end
       #:io-proc end
 
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
-
       class Memo::Bla < Trailblazer::Activity::Path
         #:io-kws
         step :authorize,
@@ -98,10 +86,6 @@ ctx #=> {:params=>{:id=>1}, :current_user=>#<User ..>, :model=>#<Memo ..>}}
           ctx[:model] = current_user
         end
       end
-
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::Memo::Bla, [{parameters: {id: "1"}}.freeze, {}])
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
 
       module C
         module Memo; end
@@ -132,10 +116,6 @@ ctx #=> {:params=>{:id=>1}, :current_user=>#<User ..>, :model=>#<Memo ..>}}
         end
       end
 
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(C::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
-
       # no :output, default :output
       module D
         module Memo; end
@@ -164,10 +144,6 @@ ctx #=> {:params=>{:id=>1}, :current_user=>#<User ..>, :model=>#<Memo ..>}}
         end
       end
 
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(D::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :user=>\"User \\\"1\\\"\", :result=>\"Found a user.\", :model=>\"User \\\"1\\\"\"}}
-
 
       # no :input, default :input
       module E
@@ -192,10 +168,25 @@ ctx #=> {:params=>{:id=>1}, :current_user=>#<User ..>, :model=>#<Memo ..>}}
           end
         end
       end
-
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(E::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
     end
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::Memo::Bla, [{parameters: {id: "1"}}.freeze, {}])
+      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::C::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::D::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :user=>\"User \\\"1\\\"\", :result=>\"Found a user.\", :model=>\"User \\\"1\\\"\"}}
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::E::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
   end
 end
