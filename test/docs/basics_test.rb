@@ -39,7 +39,6 @@ class DocsBasicTest < Minitest::Spec
       end
       #:upsert end
 
-
     end
     #:render
     Trailblazer::Developer.render(A::Upsert)
@@ -50,7 +49,6 @@ class DocsBasicTest < Minitest::Spec
 
     signal, (ctx, flow_options) = A::Upsert.([ctx, {}])
     #:upsert-call end
-
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx[:memo].inspect).must_equal %{#<struct DocsBasicTest::A::Memo id=1, text=\"Hydrate!\">}

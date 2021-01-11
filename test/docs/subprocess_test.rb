@@ -26,7 +26,6 @@ class SubprocessTest < Minitest::Spec
       end
       #:container end
 
-
     end
 
     _signal, (ctx, _) = A::Memo::Create.([{seq: []}, {}])
@@ -49,7 +48,6 @@ class SubprocessTest < Minitest::Spec
         #~methods end
       end
       #:reconnect end
-
 
     end
     signal, (ctx, _) = B::Memo::Create.([{seq: []}, {}])
@@ -84,7 +82,6 @@ class SubprocessTest < Minitest::Spec
       end
       #:end end
 
-
     end
 
     _signal, (ctx, _) = C::Memo::Create.([{seq: []}, {}])
@@ -116,7 +113,6 @@ class SubprocessTest < Minitest::Spec
         #~methods end
       end
       #:end end
-
 
     end
     # here we can see that failure, success, fail_fast and pass_fast has been wired

@@ -391,7 +391,6 @@ class RailwayTest < Minitest::Spec
 }
   end
 
-
   describe "#pass" do
     it "accepts Railway as a builder" do
       skip

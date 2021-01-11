@@ -294,8 +294,6 @@ class DocsActivityTest < Minitest::Spec
       end
       #:circuit-interface-start end
 
-
-
     end
     ctx             = {name: "Face to Face", seq: []}
     flow_options    = {}

@@ -450,8 +450,6 @@ class ActivityTest < Minitest::Spec
       fail task: implementing.method(:b), id: :b
     end
 
-
-
     _(activity.to_h[:nodes][1][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
     _(activity.to_h[:nodes][2][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
     _(activity.to_h[:nodes][3][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
@@ -630,7 +628,6 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
 
-
     signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
@@ -707,7 +704,6 @@ ActivityTest::NestedWithThreeTermini
 
 #<End/:failure>
 }
-
 
     # we want to replace {NestedWithTreeTermini} (step :d) but inherit the {End.legit => :b} wiring.
     sub = Class.new(activity) do
@@ -1362,7 +1358,6 @@ ActivityTest::NestedWithThreeTermini
 #<End/:failure>
 }
   end
-
 
   # inheritance
   # macaroni
