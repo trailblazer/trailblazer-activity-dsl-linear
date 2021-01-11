@@ -9,7 +9,7 @@ class FastTrackTest < Minitest::Spec
         )
       )
 
-      Cct(compile_process(seq)).must_equal %{
+      _(Cct(compile_process(seq))).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
@@ -39,7 +39,7 @@ class FastTrackTest < Minitest::Spec
         step task: T.def_task(:a)
       end
 
-      activity.to_h[:outputs].inspect.must_equal %{[#<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MySuccess semantic=:my_success>, semantic=:my_success>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyPassFast semantic=:pass_fast>, semantic=:pass_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailFast semantic=:fail_fast>, semantic=:fail_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailure semantic=:my_failure>, semantic=:my_failure>]}
+      _(activity.to_h[:outputs].inspect).must_equal %{[#<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MySuccess semantic=:my_success>, semantic=:my_success>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyPassFast semantic=:pass_fast>, semantic=:pass_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailFast semantic=:fail_fast>, semantic=:fail_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailure semantic=:my_failure>, semantic=:my_failure>]}
 
       assert_circuit activity.to_h, %{
 #<Start/:default>
@@ -109,32 +109,32 @@ class FastTrackTest < Minitest::Spec
   # right track
       signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c, :d]}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:f, :g, :c, :d]}}
 
   # left track
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :a, :b], :f=>false}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:f, :a, :b], :f=>false}}
 
   # left track
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], g: false}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :b], :g=>false}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:f, :g, :b], :g=>false}}
 
   # c --> pass_fast
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: Trailblazer::Activity::FastTrack::PassFast}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c], :c=>Trailblazer::Activity::FastTrack::PassFast}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:f, :g, :c], :c=>Trailblazer::Activity::FastTrack::PassFast}}
 
   # c --> fail_fast
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: Trailblazer::Activity::FastTrack::FailFast}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :g, :c], :c=>Trailblazer::Activity::FastTrack::FailFast}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:f, :g, :c], :c=>Trailblazer::Activity::FastTrack::FailFast}}
 
     end
 
@@ -184,26 +184,26 @@ class FastTrackTest < Minitest::Spec
   # g --> :pass_fast
       signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :g]}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:f, :g]}}
 
   # a --> :fail_fast
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :a], :f=>false}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:f, :a], :f=>false}}
 
   # a --> :fail_fast
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false, a: false}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :a], :f=>false, :a=>false}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:f, :a], :f=>false, :a=>false}}
 
   # g --> :fail_fast
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], g: false}])
 
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
-      ctx.inspect.must_equal     %{{:seq=>[:f, :g], :g=>false}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:f, :g], :g=>false}}
     end
 
     it "{:pass_fast} and {:fail_fast} DSL options also registers their own ends" do
@@ -231,14 +231,14 @@ class FastTrackTest < Minitest::Spec
       signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
 
   # nested --> :pass_fast
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
-      ctx.inspect.must_equal     %{{:seq=>[:a, :b, :c]}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:a, :b, :c]}}
 
       signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: Activity::Left }])
 
   # a --> :fail_fast
-      signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
-      ctx.inspect.must_equal     %{{:seq=>[:a], :a=>Trailblazer::Activity::Left}}
+      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
+      _(ctx.inspect).must_equal     %{{:seq=>[:a], :a=>Trailblazer::Activity::Left}}
     end
 
     it "fails when parent activity has not registered for any fast tracks but nested activity emits it" do
@@ -302,14 +302,14 @@ class FastTrackTest < Minitest::Spec
   # f --> Right --> :pass_fast
         signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
 
-        signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
-        ctx.inspect.must_equal     %{{:seq=>[:f]}}
+        _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
+        _(ctx.inspect).must_equal     %{{:seq=>[:f]}}
 
   # f --> Left --> :pass_fast
         signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false}])
 
-        signal.inspect.must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
-        ctx.inspect.must_equal     %{{:seq=>[:f], :f=>false}}
+        _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
+        _(ctx.inspect).must_equal     %{{:seq=>[:f], :f=>false}}
 
 
     end

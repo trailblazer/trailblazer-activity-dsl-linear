@@ -39,32 +39,28 @@ class DocsBasicTest < Minitest::Spec
       end
       #:upsert end
 
-      #:render
-      puts Trailblazer::Developer.render(Upsert)
-      #:render end
 
-      #:upsert-call
-      ctx = {id: 1, params: {text: "Hydrate!"}}
-
-      signal, (ctx, flow_options) = Upsert.([ctx, {}])
-      #:upsert-call end
-=begin
-#:upsert-result
-puts signal #=> #<Trailblazer::Activity::End semantic=:success>
-puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
-#:upsert-result end
-=end
-
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx[:memo].inspect.must_equal %{#<struct DocsBasicTest::A::Memo id=1, text=\"Hydrate!\">}
-
-      ctx = {id: 0, params: {text: "Hydrate!"}}
-
-      signal, (ctx, flow_options) = Upsert.([ctx, {}])
-
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      ctx[:memo].inspect.must_equal %{#<struct DocsBasicTest::A::Memo id=nil, text=\"Hydrate!\">}
     end
+    #:render
+    Trailblazer::Developer.render(A::Upsert)
+    #:render end
+
+    #:upsert-call
+    ctx = {id: 1, params: {text: "Hydrate!"}}
+
+    signal, (ctx, flow_options) = A::Upsert.([ctx, {}])
+    #:upsert-call end
+
+
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx[:memo].inspect).must_equal %{#<struct DocsBasicTest::A::Memo id=1, text=\"Hydrate!\">}
+
+    ctx = {id: 0, params: {text: "Hydrate!"}}
+
+    signal, (ctx, flow_options) = A::Upsert.([ctx, {}])
+
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    _(ctx[:memo].inspect).must_equal %{#<struct DocsBasicTest::A::Memo id=nil, text=\"Hydrate!\">}
   end
 
 # Output()
@@ -96,16 +92,6 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
         #~mod end
       end
       #:pay-explicit end
-
-      #:render
-      puts Trailblazer::Developer.render(Execute)
-      #:render end
-
-      #:pay-call
-      ctx = {id: 1, params: {text: "Hydrate!"}}
-
-      # signal, (ctx, flow_options) = Upsert.([ctx, {}])
-      #:pay-call end
     end
 
     module C
@@ -121,8 +107,8 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
       #:pay-nosignal end
     end
 
-    Trailblazer::Developer.render(A::Execute).must_equal Trailblazer::Developer.render(B::Execute)
-    Trailblazer::Developer.render(B::Execute).must_equal Trailblazer::Developer.render(C::Execute)
+    _(Trailblazer::Developer.render(A::Execute)).must_equal Trailblazer::Developer.render(B::Execute)
+    _(Trailblazer::Developer.render(B::Execute)).must_equal Trailblazer::Developer.render(C::Execute)
 
     module D
       #:pay-add
@@ -139,7 +125,7 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
       #:pay-add end
     end
 
-    Trailblazer::Developer.render(D::Execute).must_equal %{
+    _(Trailblazer::Developer.render(D::Execute)).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
 #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
@@ -167,7 +153,7 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
       #:pay-end end
     end
 
-    Trailblazer::Developer.render(E::Execute).must_equal %{
+    _(Trailblazer::Developer.render(E::Execute)).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
 #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
@@ -196,7 +182,7 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
       #:pay-endex end
     end
 
-    Trailblazer::Developer.render(F::Execute).must_equal %{
+    _(Trailblazer::Developer.render(F::Execute)).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
 #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
@@ -223,7 +209,7 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
       #:pay-id end
     end
 
-    Trailblazer::Developer.render(G::Execute).must_equal %{
+    _(Trailblazer::Developer.render(G::Execute)).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
 #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
@@ -251,7 +237,7 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
       #:pay-track end
     end
 
-    Trailblazer::Developer.render(H::Execute).must_equal %{
+    _(Trailblazer::Developer.render(H::Execute)).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
 #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
@@ -282,7 +268,7 @@ puts ctx    #=> {memo: #<Memo id=1, text="Hydrate!">, id: 1, ...}
       #:pay-magneticto end
     end
 
-    Trailblazer::Developer.render(I::Execute).must_equal %{
+    _(Trailblazer::Developer.render(I::Execute)).must_equal %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
 #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>

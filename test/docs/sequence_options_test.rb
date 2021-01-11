@@ -34,7 +34,7 @@ class DocSeqOptionsTest < Minitest::Spec
       #=> [>create_model,>validate,>save_the_world]
       #:id-inspect end
 
-    output.must_equal %{[>create_model,>validate,>save_the_world]}
+    _(output).must_equal %{[>create_model,>validate,>save_the_world]}
   end
 
   it ":delete removes step" do
@@ -52,7 +52,7 @@ class DocSeqOptionsTest < Minitest::Spec
       #=> [>create_model,>save_the_world]
       #:delete-inspect end
 
-    output.must_equal %{[>create_model,>save_the_world]}
+    _(output).must_equal %{[>create_model,>save_the_world]}
   end
 
 
@@ -75,7 +75,7 @@ class DocSeqOptionsTest < Minitest::Spec
       #=> [>policy,>create_model,>validate,>save_the_world]
       #:before-inspect end
 
-    output.must_equal %{[>policy,>create_model,>validate,>save_the_world]}
+    _(output).must_equal %{[>policy,>create_model,>validate,>save_the_world]}
   end
 
   it ":after" do
@@ -97,7 +97,7 @@ class DocSeqOptionsTest < Minitest::Spec
       #=> [>create_model,>validate,>logger,>save_the_world]
       #:after-inspect end
 
-    output.must_equal %{[>create_model,>validate,>logger,>save_the_world]}
+    _(output).must_equal %{[>create_model,>validate,>logger,>save_the_world]}
   end
 
   it ":replace" do
@@ -119,6 +119,6 @@ class DocSeqOptionsTest < Minitest::Spec
       #=> [>update_memo,>validate,>save_the_world]
       #:replace-inspect end
 
-    output.must_equal %{[>update_memo,>validate,>save_the_world]}
+    _(output).must_equal %{[>update_memo,>validate,>save_the_world]}
   end
 end

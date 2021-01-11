@@ -26,12 +26,14 @@ class SubprocessTest < Minitest::Spec
       end
       #:container end
 
-      signal, (ctx, _) = Memo::Create.([{seq: []}, {}])
-      ctx.inspect.must_equal %{{:seq=>[:create_model, :check_params, :check_attributes, :save]}}
 
-      signal, (ctx, _) = Memo::Create.([{seq: [], check_params: false}, {}])
-      ctx.inspect.must_equal %{{:seq=>[:create_model, :check_params], :check_params=>false}}
     end
+
+    _signal, (ctx, _) = A::Memo::Create.([{seq: []}, {}])
+    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params, :check_attributes, :save]}}
+
+    _signal, (ctx, _) = A::Memo::Create.([{seq: [], check_params: false}, {}])
+    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params], :check_params=>false}}
 
     module B
       Memo = Class.new
@@ -48,12 +50,13 @@ class SubprocessTest < Minitest::Spec
       end
       #:reconnect end
 
-      signal, (ctx, _) = Memo::Create.([{seq: []}, {}])
-      ctx.inspect.must_equal %{{:seq=>[:create_model, :check_params, :check_attributes, :save]}}
 
-      signal, (ctx, _) = Memo::Create.([{seq: [], check_params: false}, {}])
-      ctx.inspect.must_equal %{{:seq=>[:create_model, :check_params, :save], :check_params=>false}}
     end
+    signal, (ctx, _) = B::Memo::Create.([{seq: []}, {}])
+    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params, :check_attributes, :save]}}
+
+    signal, (ctx, _) = B::Memo::Create.([{seq: [], check_params: false}, {}])
+    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params, :save], :check_params=>false}}
   end
 
   it do
@@ -81,12 +84,14 @@ class SubprocessTest < Minitest::Spec
       end
       #:end end
 
-      signal, (ctx, _) = Memo::Create.([{seq: []}, {}])
-      ctx.inspect.must_equal %{{:seq=>[:create_model, :check_params, :check_attributes, :save]}}
 
-      signal, (ctx, _) = Memo::Create.([{seq: [], check_params: false}, {}])
-      ctx.inspect.must_equal %{{:seq=>[:create_model, :check_params], :check_params=>false}}
     end
+
+    _signal, (ctx, _) = C::Memo::Create.([{seq: []}, {}])
+    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params, :check_attributes, :save]}}
+
+    _signal, (ctx, _) = C::Memo::Create.([{seq: [], check_params: false}, {}])
+    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params], :check_params=>false}}
   end
 
   it "subprocess automatically wires all termini of a nested activity" do
@@ -112,8 +117,10 @@ class SubprocessTest < Minitest::Spec
       end
       #:end end
 
-      # here we can see that failure, success, fail_fast and pass_fast has been wired
-      expected_wiring = "
+
+    end
+    # here we can see that failure, success, fail_fast and pass_fast has been wired
+    expected_wiring = "
         SubprocessTest::D::Memo::JustPassFast
           {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
           {#<Trailblazer::Activity::End semantic=:success>} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>
@@ -121,8 +128,7 @@ class SubprocessTest < Minitest::Spec
           {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
       ".gsub(/\s+/, "")
 
-      Trailblazer::Developer::Render::Circuit.(Memo::Create).gsub(/\s+/, "")
-        .must_include(expected_wiring)
-    end
+    _(Trailblazer::Developer::Render::Circuit.(D::Memo::Create).gsub(/\s+/, ""))
+      .must_include(expected_wiring)
   end
 end
