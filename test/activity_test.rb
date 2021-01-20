@@ -50,7 +50,7 @@ class ActivityTest < Minitest::Spec
       implementing = self.implementing
 
       exception = assert_raises do
-        activity = Class.new(Activity::Path) do
+        _activity = Class.new(Activity::Path) do
           step implementing.method(:f)
           step implementing.method(:f)
         end
@@ -369,7 +369,7 @@ class ActivityTest < Minitest::Spec
 
     describe "{:extensions}" do
       let(:merge) do
-        merge = [
+        _merge = [
           [Trailblazer::Activity::TaskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
         ]
       end
@@ -460,7 +460,7 @@ class ActivityTest < Minitest::Spec
     implementing = self.implementing
 
     exc = assert_raises Activity::DSL::Linear::Sequence::IndexError do
-      activity = Class.new(Activity::Railway) do
+      _activity = Class.new(Activity::Railway) do
         step task: implementing.method(:f), after: :e
       end
     end
@@ -944,8 +944,6 @@ ActivityTest::NestedWithThreeTermini
   end
 
   it "allows {:instance} methods" do
-    implementing = self.implementing
-
     nested_activity = Class.new(Activity::Path) do
       step :c
       step :d
@@ -966,8 +964,6 @@ ActivityTest::NestedWithThreeTermini
   end
 
   it "allows instance methods with circuit interface" do
-    implementing = self.implementing
-
     nested_activity = Class.new(Activity::Path) do
       step task: :c
       step task: :d
@@ -1297,8 +1293,6 @@ ActivityTest::NestedWithThreeTermini
   end
 
   it "{:wrap_around}" do
-    implementing = self.implementing
-
     activity = Class.new(Activity::Railway) do
       step :c, Output(:success) => Path(end_id: "End.cc", end_task: End(:with_cc), track_color: :green) do
       end

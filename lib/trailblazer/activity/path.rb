@@ -17,7 +17,7 @@ module Trailblazer
         def start_sequence(track_name:)
           start_default = Activity::Start.new(semantic: :default)
           start_event   = Linear::Sequence.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
-          sequence      = Linear::Sequence[start_event]
+          _sequence      = Linear::Sequence[start_event]
         end
 
         # DISCUSS: still not sure this should sit here.
@@ -171,7 +171,7 @@ module Trailblazer
         #   Path() do  ... end
         class State < Linear::State
           def step(*args)
-            seq = Linear::Strategy.task_for!(self, :step, *args) # mutate @state
+            _seq = Linear::Strategy.task_for!(self, :step, *args) # mutate @state
           end
         end
 
