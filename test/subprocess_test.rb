@@ -137,4 +137,21 @@ class WithCustomSignalReturnedInSubprocess < Minitest::Spec
     signal, (ctx, _) = Memo::Create.(seq: [], validate: InvalidParams)
     _(ctx[:seq]).must_equal([:create_model, :validate, :handle_invalid_params, :save])
   end
+
+  it "keeps custom outputs of nested patched subprocess" do
+    class Op1 < Trailblazer::Activity::Railway
+      step :foo, Output(:failure) => End(:not_found), id: :foo
+      def foo(ctx, **); false end
+    end
+    class Op2 < Trailblazer::Activity::Railway
+      step Subprocess(Op1), Output(:not_found) => End(:not_found), id: :op1
+    end
+    class Op3 < Trailblazer::Activity::Railway
+      # removing the :patch option makes the test pass
+      step Subprocess(Op2, patch: { [:op1] => ->{} }), Output(:not_found) => End(:not_found)
+    end
+
+    signal, (ctx, _) = Op3.(seq: [])
+    signal.to_h[:semantic].must_equal :not_found
+  end
 end
