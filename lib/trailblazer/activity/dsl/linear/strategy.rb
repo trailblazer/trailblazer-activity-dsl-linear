@@ -46,6 +46,10 @@ module Trailblazer
             seq  = @state.send(type, *args)
 
             recompile_activity!(seq)
+          rescue Sequence::IndexError
+            # re-raise this exception with activity class prepended
+            # to the message this time.
+            raise $!, "#{self}:#{$!.message}"
           end
 
           private def recompile_activity!(seq)
