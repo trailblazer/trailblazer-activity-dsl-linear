@@ -113,6 +113,33 @@ class SubprocessTest < Minitest::Spec
     _(ctx.inspect).must_equal %{{:seq=>[:c, :g, :a, :f, :d]}}
   end
 
+  it "retains wirings in patched activity" do
+    advance = Class.new(Activity::Railway) do
+      step :g, Output(:failure) => End(:g_failure)
+      step :f
+
+      include T.def_steps(:g, :f)
+    end
+
+    controller = Class.new(Activity::Railway) do
+      step Subprocess(advance), Output(:g_failure) => End(:g_failure), id: :advance
+      step :d
+
+      include T.def_steps(:d)
+    end
+
+    my_controller = Class.new(Activity::Railway) do
+      step :c
+      step Subprocess(controller, patch: { [:advance] => -> {} }), Output(:g_failure) => End(:g_failure)
+
+      include T.def_steps(:c)
+    end
+
+    signal, (ctx, _) = Trailblazer::Developer.wtf?(my_controller, [{seq: [], g: false }])
+    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:g_failure>}
+    _(ctx.inspect).must_equal %{{:seq=>[:c, :g], :g=>false}}
+  end
+
   def find(activity, id)
     Trailblazer::Activity::Introspect::Graph(activity).find(id).task
   end

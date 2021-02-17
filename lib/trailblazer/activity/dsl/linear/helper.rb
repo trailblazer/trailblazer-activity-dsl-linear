@@ -127,7 +127,7 @@ module Trailblazer
                     patched_segment_activity = call(segment_activity, path, customization)
 
                     # Replace the patched subprocess.
-                    -> { step Subprocess(patched_segment_activity), replace: task_id, id: task_id }
+                    -> { step Subprocess(patched_segment_activity), inherit: true, replace: task_id, id: task_id }
                   else
                     customization # apply the *actual* patch from the Subprocess() call.
                   end
