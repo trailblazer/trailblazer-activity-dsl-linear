@@ -28,7 +28,7 @@ class DocsBasicTest < Minitest::Spec
         end
 
         def update(ctx, params:, **) # B
-          ctx[:memo].update(params)
+          ctx[:memo].update(**params)
           true # can be omitted
         end
 

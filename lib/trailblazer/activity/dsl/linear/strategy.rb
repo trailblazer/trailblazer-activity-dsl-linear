@@ -31,7 +31,7 @@ module Trailblazer
               # Compute the sequence rows.
               options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options.merge(sequence: sequence))
 
-              sequence = Activity::DSL::Linear::DSL.apply_adds_from_dsl(sequence, options)
+              sequence = Activity::DSL::Linear::DSL.apply_adds_from_dsl(sequence, **options)
             end
           end
 
@@ -98,10 +98,10 @@ module Trailblazer
           end
 
           # Injects {:exec_context} so that {:instance_method}s work.
-          def call(args, circuit_options={})
+          def call(args, **circuit_options)
             @activity.(
               args,
-              circuit_options.merge(exec_context: new)
+              **circuit_options.merge(exec_context: new)
             )
           end
 

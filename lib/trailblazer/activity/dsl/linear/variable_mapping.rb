@@ -7,12 +7,12 @@ module Trailblazer
         def self.VariableMapping(input:  VariableMapping.default_input, output: VariableMapping.default_output)
           input =
             VariableMapping::Input::Scoped.new(
-              Trailblazer::Option::KW( VariableMapping::filter_for(input) )
+              Trailblazer::Option(VariableMapping::filter_for(input))
             )
 
           output =
             VariableMapping::Output::Unscoped.new(
-              Trailblazer::Option::KW( VariableMapping::filter_for(output) )
+              Trailblazer::Option(VariableMapping::filter_for(output))
             )
 
           TaskWrap::Extension(
@@ -51,7 +51,7 @@ module Trailblazer
             def self.filter_from_dsl(map)
               hsh = DSL.hash_for(map)
 
-              ->(incoming_ctx, kwargs) { Hash[hsh.collect { |from_name, to_name| [to_name, incoming_ctx[from_name]] }] }
+              ->(incoming_ctx, **kwargs) { Hash[hsh.collect { |from_name, to_name| [to_name, incoming_ctx[from_name]] }] }
             end
 
             def self.hash_for(ary)
@@ -69,7 +69,7 @@ module Trailblazer
 
               def call((original_ctx, flow_options), **circuit_options)
                 Trailblazer::Context(
-                  @filter.(original_ctx, **circuit_options),
+                  @filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options),
                   {},
                   flow_options[:context_options]
                 )
@@ -87,7 +87,7 @@ module Trailblazer
 
               def call(new_ctx, (original_ctx, flow_options), **circuit_options)
                 original_ctx.merge(
-                  @filter.(new_ctx, **circuit_options)
+                  @filter.(new_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
                 )
               end
             end

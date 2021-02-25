@@ -30,7 +30,7 @@ module Trailblazer
           end
 
           def update_sequence(&block)
-            @sequence = yield(to_h)
+            @sequence = yield(**to_h)
           end
 
           def update_options(fields)
