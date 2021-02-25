@@ -121,7 +121,7 @@ module Trailblazer
         end
 
         def append_end(sequence, **options)
-          sequence = Linear::DSL.insert_task(sequence, **append_end_options(options))
+          sequence = Linear::DSL.insert_task(sequence, **append_end_options(**options))
         end
 
         def append_end_options(task:, magnetic_to:, id:, append_to: "End.success")
@@ -180,12 +180,12 @@ module Trailblazer
       include DSL::Linear::Helper
       extend DSL::Linear::Strategy
 
-      initialize!(Path::DSL::State.new(DSL.OptionsForState()))
+      initialize!(Path::DSL::State.new(**DSL.OptionsForState()))
     end # Path
 
     def self.Path(options)
       Class.new(Path) do
-        initialize!(Path::DSL::State.new(Path::DSL.OptionsForState(options)))
+        initialize!(Path::DSL::State.new(**Path::DSL.OptionsForState(**options)))
       end
     end
   end

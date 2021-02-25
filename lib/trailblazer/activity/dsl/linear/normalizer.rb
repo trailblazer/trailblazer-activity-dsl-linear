@@ -62,7 +62,7 @@ module Trailblazer
 
                         if task.is_a?(Symbol)
                           # step task: :find, id: :load
-                          { **ctx[:options], id: (id || task), task: Trailblazer::Option( task ) }
+                          { **ctx[:options], id: (id || task), task: Trailblazer::Option(task) }
                         else
                           # step task: Callable, ... (Subprocess, Proc, macros etc)
                           ctx[:options] # NOOP
@@ -196,7 +196,7 @@ module Trailblazer
           def add_end(end_event, magnetic_to:, id:)
 
             options = Path::DSL.append_end_options(task: end_event, magnetic_to: magnetic_to, id: id)
-            row     = Linear::Sequence.create_row(options)
+            row     = Linear::Sequence.create_row(**options)
 
             {
               row:    row,

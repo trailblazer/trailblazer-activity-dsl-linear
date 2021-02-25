@@ -134,7 +134,7 @@ class WithCustomSignalReturnedInSubprocess < Minitest::Spec
       step :save
       include T.def_steps(:create_model, :handle_invalid_params, :save)
     end
-    signal, (ctx, _) = Memo::Create.(seq: [], validate: InvalidParams)
+    signal, (ctx, _) = Memo::Create.([{seq: [], validate: InvalidParams}])
     ctx[:seq].must_equal([:create_model, :validate, :handle_invalid_params, :save])
   end
 end
