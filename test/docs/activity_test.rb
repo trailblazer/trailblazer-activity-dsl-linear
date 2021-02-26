@@ -280,7 +280,7 @@ class DocsActivityTest < Minitest::Spec
     ctx          = {name: "Face to Face"}
     flow_options = {}
 
-    signal, (ctx, flow_options) = Create.([ctx, flow_options], {})
+    signal, (ctx, flow_options) = Create.([ctx, flow_options])
 
     signal #=> #<Trailblazer::Activity::End semantic=:success>
     ctx    #=> {:name=>\"Face to Face\", :validate_outcome=>true}
@@ -311,7 +311,7 @@ class DocsActivityTest < Minitest::Spec
         start_task: Trailblazer::Activity::Introspect::Graph(Create).find { |node| node.id == :validate  }.task
       }
 
-      signal, (ctx, flow_options) = Create.([ctx, flow_options], circuit_options)
+      signal, (ctx, flow_options) = Create.([ctx, flow_options], **circuit_options)
       #:circuit-interface-start-call end
 
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
@@ -354,7 +354,7 @@ class DocsActivityTest < Minitest::Spec
         exec_context: Create::Implementation.new
       }
 
-      signal, (ctx, flow_options) = Create.to_h[:circuit].([ctx, flow_options], circuit_options)
+      signal, (ctx, flow_options) = Create.to_h[:circuit].([ctx, flow_options], **circuit_options)
       #:circuit-interface-exec-call end
 
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}

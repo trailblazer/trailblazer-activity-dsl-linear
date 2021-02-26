@@ -281,7 +281,7 @@ class RailwayTest < Minitest::Spec
 # {State} tests.
 
   it "provides defaults" do
-    state = Activity::Railway::DSL::State.new(Activity::Railway::DSL.OptionsForState)
+    state = Activity::Railway::DSL::State.new(**Activity::Railway::DSL.OptionsForState)
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.fail task: implementing.method(:a), id: :a
     seq = state.step task: implementing.method(:g), id: :g
