@@ -56,7 +56,7 @@ class ActivityTest < Minitest::Spec
         end
       end
 
-      _(exception.message.sub(/0x\w+/, "0x")).must_equal %{ID #<Method: #<Module:0x>.f> is already taken. Please specify an `:id`.}
+      exception.message.must_equal %{ID #{implementing.method(:f).inspect} is already taken. Please specify an `:id`.}
     end
 
     it "accepts {:outputs}" do
@@ -450,11 +450,28 @@ class ActivityTest < Minitest::Spec
       fail task: implementing.method(:b), id: :b
     end
 
+    renderer = ->(connections) { connections.collect { |semantic, (search_strategy, color)| [semantic, [T.render_task(search_strategy), color]] } }
 
+    data1 = activity.to_h[:nodes][1][:data]
+    data2 = activity.to_h[:nodes][2][:data]
+    data3 = activity.to_h[:nodes][3][:data]
 
-    _(activity.to_h[:nodes][1][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
-    _(activity.to_h[:nodes][2][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
-    _(activity.to_h[:nodes][3][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
+    data1.keys.must_equal [:connections, :id, :dsl_track]
+    data2.keys.must_equal [:connections, :id, :dsl_track]
+    data3.keys.must_equal [:connections, :id, :dsl_track]
+
+    [data1[:id], data1[:dsl_track]].must_equal [:f, :step]
+    renderer.(data1[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :success]]]}
+
+    [data2[:id], data2[:dsl_track]].must_equal [:c, :pass]
+    renderer.(data2[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :success]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :success]]]}
+
+    [data3[:id], data3[:dsl_track]].must_equal [:b, :fail]
+    renderer.(data3[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :failure]]]}
+
+    # activity.to_h[:nodes][1][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
+    # activity.to_h[:nodes][2][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
+    # activity.to_h[:nodes][3][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
   end
 
 # Sequence insert
@@ -918,7 +935,7 @@ ActivityTest::NestedWithThreeTermini
   end
 
   it "provides {DSL} instance that doesn't compile the activity" do
-    path = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    path = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
 
     implementing = self.implementing
     # The DSL::Instance instance is the only mutable object.

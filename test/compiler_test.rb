@@ -109,7 +109,7 @@ class CompilerTest < Minitest::Spec
 
     schema = Lin::Compiler.(seq)
 
-    cct = Trailblazer::Developer::Render::Circuit.(schema)
+    cct = Cct(schema)
 
     _(cct).must_equal %{
 #<Start/:default>
