@@ -224,7 +224,7 @@ module Trailblazer
           end
 
           def input_output_dsl((ctx, flow_options), *)
-            config = ctx.select { |k,v| [:input, :output].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
+            config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
 
             return Trailblazer::Activity::Right, [ctx, flow_options] if config.size == 0 # no :input/:output passed.
 
