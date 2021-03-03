@@ -270,11 +270,7 @@ class DocsActivityTest < Minitest::Spec
     ctx          = {name: "Face to Face"}
     flow_options = {}
 
-<<<<<<< HEAD
     signal, (ctx, _flow_options) = Create.([ctx, flow_options], {})
-=======
-    signal, (ctx, flow_options) = Create.([ctx, flow_options])
->>>>>>> fix most tests for Ruby 3.
 
     signal #=> #<Trailblazer::Activity::End semantic=:success>
     ctx    #=> {:name=>\"Face to Face\", :validate_outcome=>true}
@@ -298,8 +294,7 @@ class DocsActivityTest < Minitest::Spec
       end
       #:circuit-interface-start end
 
-      signal, (ctx, flow_options) = Create.([ctx, flow_options], **circuit_options)
-      #:circuit-interface-start-call end
+
 
     end
     ctx             = {name: "Face to Face", seq: []}
@@ -351,8 +346,8 @@ class DocsActivityTest < Minitest::Spec
       exec_context: C::Create::Implementation.new
     }
 
-      signal, (ctx, flow_options) = Create.to_h[:circuit].([ctx, flow_options], **circuit_options)
-      #:circuit-interface-exec-call end
+    signal, (ctx, flow_options) = C::Create.to_h[:circuit].([ctx, flow_options], **circuit_options)
+    #:circuit-interface-exec-call end
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:params=>{:name=>\"Face to Face\"}, :model=>#<struct DocsActivityTest::C::Memo name={:name=>\"Face to Face\"}>}}
