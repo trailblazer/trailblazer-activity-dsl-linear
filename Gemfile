@@ -7,7 +7,7 @@ gem "minitest-line"
 
 gem "rubocop", require: false
 
-# gem "trailblazer-context", path: "../trailblazer-context"
+gem "trailblazer-context", path: "../trailblazer-context"
 # gem "trailblazer-developer", path: "../trailblazer-developer"
-# gem "trailblazer-activity", path: "../trailblazer-activity"
+gem "trailblazer-activity", path: "../trailblazer-activity"
 # gem "trailblazer-activity", path: "../circuit"
