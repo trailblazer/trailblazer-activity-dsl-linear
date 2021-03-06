@@ -91,4 +91,39 @@ signal #=> #<Trailblazer::Activity::End semantic=:not_found>
 #:output-result end
 =end
   end
+
+  module C
+    #:logger
+    class Logger < Trailblazer::Activity::Railway
+      step :log
+
+      def log(ctx, logged:, **)
+        ctx[:log] = logged.inspect
+      end
+    end
+    #:logger end
+
+    #:sub-macro
+    module Macro
+      def self.Logger(logged_name: )
+        {
+          id: "logger",
+          input:  {logged_name => :logged},
+          output: [:log],
+          **Trailblazer::Activity::Railway.Subprocess(Logger), # nest
+        }
+      end
+    end
+    #:sub-macro end
+
+    #:sub-op
+    class Create < Trailblazer::Activity::Railway
+      step Macro::Logger(logged_name: :model) # we want to log {ctx[:model]}
+    end
+    #:sub-op end
+  end
+  it "what" do
+    signal, (ctx, _) = Trailblazer::Developer.wtf?(C::Create, [{model: Module}])
+    _(ctx.inspect).must_equal %{{:model=>Module, :log=>\"Module\"}}
+  end
 end
