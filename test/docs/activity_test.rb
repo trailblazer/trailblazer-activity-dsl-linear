@@ -134,13 +134,9 @@ class DocsActivityTest < Minitest::Spec
           end
 
           module D2
-            class Memo < Memo
-              class << self
-                def raise; @raise; end
-                def raise!; @raise=true; end
-              end
+            class Memo < Struct.new(:body)
               def save
-                raise if self.class.raise
+                raise if body[:not_valid]
                 true
               end
             end
@@ -194,8 +190,8 @@ class DocsActivityTest < Minitest::Spec
 
       signal, (ctx, flow_options) = A::D::D2::Memo::Create.([{attrs: {body: "Wine"}}, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      A::D::D2::Memo.raise! # FIXME
-      signal, (ctx, flow_options) = A::D::D2::Memo::Create.([{attrs: {body: "Wine"}}, {}])
+
+      signal, (ctx, flow_options) = A::D::D2::Memo::Create.([{attrs: {not_valid: true}}, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     end
   end
