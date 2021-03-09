@@ -1,8 +1,0 @@
-language: ruby
-rvm:
-  #- ruby-head
-  - 2.6.6
-  - 2.5.1
-  - 2.4.4
-
-cache: bundler

@@ -134,13 +134,9 @@ class DocsActivityTest < Minitest::Spec
           end
 
           module D2
-            class Memo < Memo
-              class << self
-                def raise; @raise; end
-                def raise!; @raise=true; end
-              end
+            class Memo < Struct.new(:body)
               def save
-                raise if self.class.raise
+                raise if body[:not_valid]
                 true
               end
             end
@@ -194,8 +190,8 @@ class DocsActivityTest < Minitest::Spec
 
       signal, (ctx, flow_options) = A::D::D2::Memo::Create.([{attrs: {body: "Wine"}}, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-      A::D::D2::Memo.raise! # FIXME
-      signal, (ctx, flow_options) = A::D::D2::Memo::Create.([{attrs: {body: "Wine"}}, {}])
+
+      signal, (ctx, flow_options) = A::D::D2::Memo::Create.([{attrs: {not_valid: true}}, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     end
   end
@@ -270,7 +266,7 @@ class DocsActivityTest < Minitest::Spec
     ctx          = {name: "Face to Face"}
     flow_options = {}
 
-    signal, (ctx, _flow_options) = Create.([ctx, flow_options], {})
+    signal, (ctx, _flow_options) = Create.([ctx, flow_options])
 
     signal #=> #<Trailblazer::Activity::End semantic=:success>
     ctx    #=> {:name=>\"Face to Face\", :validate_outcome=>true}
@@ -304,7 +300,7 @@ class DocsActivityTest < Minitest::Spec
       start_task: Trailblazer::Activity::Introspect::Graph(B::Create).find { |node| node.id == :validate  }.task
     }
 
-    signal, (ctx, flow_options) = B::Create.([ctx, flow_options], circuit_options)
+    signal, (ctx, flow_options) = B::Create.([ctx, flow_options], **circuit_options)
     #:circuit-interface-start-call end
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal '{:name=>"Face to Face", :seq=>[:validate, :save]}'
