@@ -81,12 +81,27 @@ module Trailblazer
           }
         end
 
-        def raise_on_duplicate_id((ctx, flow_options), *)
-          id, sequence, insert = ctx[:id], ctx[:sequence], ctx[:sequence_insert][0] # DISCUSS: should we use Replace here or rather the option(s)?
+        def normalize_duplications((ctx, flow_options), *)
+          return Right, [ctx, flow_options] if ctx[:replace]
 
-          if insert != Linear::Insert.method(:Replace)
-            raise "ID #{id} is already taken. Please specify an `:id`." if sequence.find { |row| row[3][:id] == id }
-          end
+          signal, (ctx, flow_options) = raise_on_duplicate_id([ctx, flow_options])
+          signal, (ctx, flow_options) = clone_duplicate_activity([ctx, flow_options])
+
+          return signal, [ctx, flow_options]
+        end
+
+        def raise_on_duplicate_id((ctx, flow_options), *)
+          id, sequence = ctx[:id], ctx[:sequence]
+          raise "ID #{id} is already taken. Please specify an `:id`." if sequence.find { |row| row[3][:id] == id }
+
+          return Right, [ctx, flow_options]
+        end
+
+        def clone_duplicate_activity((ctx, flow_options), *)
+          return Right, [ctx, flow_options] unless ctx[:task].is_a?(Class)
+
+          task, sequence = ctx[:task], ctx[:sequence]
+          ctx = ctx.merge(task: task.clone) if sequence.find { |row| row[1] == task }
 
           return Right, [ctx, flow_options]
         end
@@ -104,12 +119,12 @@ module Trailblazer
           prepend_to_path(
             sequence,
 
-            "path.outputs"          => method(:merge_path_outputs),
-            "path.connections"      => method(:merge_path_connections),
-            "path.sequence_insert"  => method(:normalize_sequence_insert),
-            "path.raise_on_duplicate_id"  => method(:raise_on_duplicate_id),
-            "path.magnetic_to"      => method(:normalize_magnetic_to),
-            "path.wirings"          => Linear::Normalizer.method(:compile_wirings),
+            "path.outputs"                => method(:merge_path_outputs),
+            "path.connections"            => method(:merge_path_connections),
+            "path.sequence_insert"        => method(:normalize_sequence_insert),
+            "path.normalize_duplications" => method(:normalize_duplications),
+            "path.magnetic_to"            => method(:normalize_magnetic_to),
+            "path.wirings"                => Linear::Normalizer.method(:compile_wirings),
           )
         end
 
