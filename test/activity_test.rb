@@ -718,7 +718,7 @@ class ActivityTest < Minitest::Spec
 
       activity = Class.new(Activity::Railway) do
         step Subprocess(nested), id: :c,
-          Output(:failure) => Id(:b) # this must be inherited to {sub}!
+          Output(:failure) => Id(:b) # this must not be inherited to {sub}!
 
         step Subprocess(NestedWithThreeTermini), id: :d,
           Output(:legit) => Id(:b) # this must be inherited to {sub}!
@@ -731,6 +731,7 @@ class ActivityTest < Minitest::Spec
 
       sub = Class.new(activity) do
         # TODO: what if we want to inherit outputs AND provide wirings?
+        # {sub_nested} doesn't inherit failure wirings as it's a simple {Path}.
         step Subprocess(sub_nested), inherit: true, id: :c, replace: :c, Output(:yo, :bla)=>Track(:success) # DISCUSS: inherit is a replace, isn't it?
         step :a, inherit: true, id: :a, replace: :a
         # step :b, inherit: true, id: :b, replace: :b
@@ -743,7 +744,7 @@ class ActivityTest < Minitest::Spec
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Class:0x>
 #<Class:0x>
- {Trailblazer::Activity::Left} => <*b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {#<Trailblazer::Activity::End semantic=:success>} => ActivityTest::NestedWithThreeTermini
  {yo} => ActivityTest::NestedWithThreeTermini
 ActivityTest::NestedWithThreeTermini
@@ -806,6 +807,52 @@ ActivityTest::NestedWithThreeTermini
     signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(sub, [{seq: []}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:seq=>[1, :a, 1, :b]}}
+  end
+
+  it "{:inherit} copies settings for known {End}s only" do
+    template = Class.new(Activity::Path) do
+      step :x, Output(:success) => End(:not_found)
+      step :y, Output(:success) => End(:invalid_data)
+    end
+
+    activity = Class.new(Activity::Path) do
+      step :z, Output(:success) => End(:not_found)
+    end
+
+    sub = Class.new(Activity::Path) do
+      step Subprocess(template), id: :a,
+        Output(:not_found)    => Id(:b),
+        Output(:invalid_data) => Id(:b)
+
+      step :b
+    end
+
+    assert_process_for sub.to_h, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*b>
+ {#<Trailblazer::Activity::End semantic=:not_found>} => <*b>
+ {#<Trailblazer::Activity::End semantic=:invalid_data>} => <*b>
+<*b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+
+    sub_inherit = Class.new(sub) do
+      step Subprocess(activity), id: :a, replace: :a, inherit: true
+    end
+
+    assert_process_for sub_inherit.to_h, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*b>
+ {#<Trailblazer::Activity::End semantic=:not_found>} => <*b>
+<*b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
   end
 
   it "assigns default {:id}" do
