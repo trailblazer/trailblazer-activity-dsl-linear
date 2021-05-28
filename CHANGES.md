@@ -1,3 +1,11 @@
+# 0.4.0
+
+* Support for Ruby 3.0.
+
+# 0.3.5
+
+* Retain custom wirings within subprocess while patching.
+
 # 0.3.4
 
 * Allow DSL helpers such as `End()` in `Path()`.

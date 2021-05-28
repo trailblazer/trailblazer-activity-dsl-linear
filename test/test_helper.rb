@@ -69,5 +69,9 @@ module Fixtures
 
       return Activity::Right, [ctx, flow_options]
     end
+
+    def inspect
+      %{#<Fixtures::CircuitInterface:0x @step=#{Trailblazer::Activity::Testing.render_task(@step)}>}
+    end
   end
 end

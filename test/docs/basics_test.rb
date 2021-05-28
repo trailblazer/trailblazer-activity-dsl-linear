@@ -28,7 +28,7 @@ class DocsBasicTest < Minitest::Spec
         end
 
         def update(ctx, params:, **) # B
-          ctx[:memo].update(params)
+          ctx[:memo].update(**params)
           true # can be omitted
         end
 
@@ -56,6 +56,10 @@ class DocsBasicTest < Minitest::Spec
     ctx = {id: 0, params: {text: "Hydrate!"}}
 
     signal, (ctx, flow_options) = A::Upsert.([ctx, {}])
+
+    #:upsert-result
+    # FIXME
+    #:upsert-result end
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx[:memo].inspect).must_equal %{#<struct DocsBasicTest::A::Memo id=nil, text=\"Hydrate!\">}

@@ -68,7 +68,7 @@ class VariableMappingTest < Minitest::Spec
 
     ctx = Trailblazer::Context(ctx, {}, flow_options[:context_options])
 
-    signal, (ctx, flow_options) = Activity::TaskWrap.invoke(activity, [ctx, flow_options], {})
+    signal, (ctx, flow_options) = Activity::TaskWrap.invoke(activity, [ctx, flow_options], **{})
 
     _(ctx.to_hash.inspect).must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3, :model_add=>\"1\", :model_from_a=>1}}
   end

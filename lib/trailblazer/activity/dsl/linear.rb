@@ -44,7 +44,10 @@ class Trailblazer::Activity
             @step_id  = step_id
             valid_ids = sequence.collect{ |row| row[3][:id].inspect }
 
-            message = %{#{@step_id.inspect} is not a valid step ID. Did you mean any of these ?\n#{valid_ids.join("\n")}}
+            message = "\n" \
+              "\e[31m#{@step_id.inspect} is not a valid step ID. Did you mean any of these ?\e[0m\n" \
+              "\e[32m#{valid_ids.join("\n")}\e[0m"
+
             super(message)
           end
         end

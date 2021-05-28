@@ -5,7 +5,8 @@ gemspec
 
 gem "minitest-line"
 
-# gem "trailblazer-context", path: "../trailblazer-context"
+gem "rubocop", require: false
+
 # gem "trailblazer-developer", path: "../trailblazer-developer"
 # gem "trailblazer-activity", path: "../trailblazer-activity"
 # gem "trailblazer-activity", path: "../circuit"

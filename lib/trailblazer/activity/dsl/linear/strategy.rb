@@ -46,6 +46,10 @@ module Trailblazer
             seq  = @state.send(type, *args)
 
             recompile_activity!(seq)
+          rescue Sequence::IndexError
+            # re-raise this exception with activity class prepended
+            # to the message this time.
+            raise $!, "#{self}:#{$!.message}"
           end
 
           private def recompile_activity!(seq)
@@ -94,10 +98,10 @@ module Trailblazer
           end
 
           # Injects {:exec_context} so that {:instance_method}s work.
-          def call(args, circuit_options={})
+          def call(args, **circuit_options)
             @activity.(
               args,
-              circuit_options.merge(exec_context: new)
+              **circuit_options.merge(exec_context: new)
             )
           end
 

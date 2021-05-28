@@ -20,11 +20,12 @@ class PathTest < Minitest::Spec
 }
 
     # Call without taskWrap!
-    signal, (ctx,) = activity.({seq: []}, {})
+    signal, (ctx, _) = activity.([{seq: []}, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:seq=>[:a, :b]}}
   end
+
 
   it "#initial_sequence" do
     seq = Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
@@ -37,7 +38,7 @@ class PathTest < Minitest::Spec
   end
 
   it "provides defaults" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState)
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState)
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g
 
@@ -53,7 +54,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:track_name}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(track_name: :green))
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState(track_name: :green))
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g
 
@@ -71,7 +72,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:end_task}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner"))
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner"))
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g
 
@@ -89,7 +90,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {Output() => Id()}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:g), id: :g, Linear.Output(:success) => Linear.Id(:f)
     seq = state.step task: implementing.method(:a), id: :a
@@ -128,8 +129,8 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:before}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
-    state.step task: implementing.method(:f), id: :f
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
+    seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:a), id: :a, before: :f
 
     assert_process seq, :success, %{
@@ -144,9 +145,9 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:after}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
-    state.step task: implementing.method(:f), id: :f
-    state.step task: implementing.method(:b), id: :b
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
+    seq = state.step task: implementing.method(:f), id: :f
+    seq = state.step task: implementing.method(:b), id: :b
     seq = state.step task: implementing.method(:a), id: :a, after: :f
 
     assert_process seq, :success, %{
@@ -163,8 +164,8 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:replace}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
-    state.step task: implementing.method(:f), id: :f
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
+    seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:a), id: :a, replace: :f
 
     assert_process seq, :success, %{
@@ -177,8 +178,8 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:delete}" do
-    state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState())
-    state.step task: implementing.method(:f), id: :f
+    state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState())
+    seq = state.step task: implementing.method(:f), id: :f
     seq = state.step task: implementing.method(:a), id: :a, delete: :f
 
     assert_process seq, :success, %{
@@ -239,7 +240,7 @@ class PathTest < Minitest::Spec
     end
 
     it "allows using a different task builder, etc" do
-      _implementing = Module.new do
+      implementing = Module.new do
         extend Activity::Testing.def_steps(:a, :f, :b) # circuit interface.
       end
 
@@ -271,7 +272,7 @@ class PathTest < Minitest::Spec
 #<End/:roundtrip>
 }
 
-      signal, (ctx,) = process.to_h[:circuit].([{seq: [], a: false}])
+      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: false}])
 
       _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:roundtrip>}
       _(ctx.inspect).must_equal     %{{:seq=>[:a, :f], :a=>false}}

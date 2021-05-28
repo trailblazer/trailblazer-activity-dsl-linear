@@ -50,13 +50,13 @@ class ActivityTest < Minitest::Spec
       implementing = self.implementing
 
       exception = assert_raises do
-        _activity = Class.new(Activity::Path) do
+        activity = Class.new(Activity::Path) do
           step implementing.method(:f)
           step implementing.method(:f)
         end
       end
 
-      _(exception.message.sub(/0x\w+/, "0x")).must_equal %{ID #<Method: #<Module:0x>.f> is already taken. Please specify an `:id`.}
+      exception.message.must_equal %{ID #{implementing.method(:f).inspect} is already taken. Please specify an `:id`.}
     end
 
     it "accepts {:outputs}" do
@@ -369,7 +369,7 @@ class ActivityTest < Minitest::Spec
 
     describe "{:extensions}" do
       let(:merge) do
-        _merge = [
+        merge = [
           [Trailblazer::Activity::TaskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
         ]
       end
@@ -450,26 +450,43 @@ class ActivityTest < Minitest::Spec
       fail task: implementing.method(:b), id: :b
     end
 
-    _(activity.to_h[:nodes][1][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
-    _(activity.to_h[:nodes][2][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
-    _(activity.to_h[:nodes][3][:data].inspect).must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
+    renderer = ->(connections) { connections.collect { |semantic, (search_strategy, color)| [semantic, [T.render_task(search_strategy), color]] } }
+
+    data1 = activity.to_h[:nodes][1][:data]
+    data2 = activity.to_h[:nodes][2][:data]
+    data3 = activity.to_h[:nodes][3][:data]
+
+    data1.keys.must_equal [:connections, :id, :dsl_track]
+    data2.keys.must_equal [:connections, :id, :dsl_track]
+    data3.keys.must_equal [:connections, :id, :dsl_track]
+
+    [data1[:id], data1[:dsl_track]].must_equal [:f, :step]
+    renderer.(data1[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :success]]]}
+
+    [data2[:id], data2[:dsl_track]].must_equal [:c, :pass]
+    renderer.(data2[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :success]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :success]]]}
+
+    [data3[:id], data3[:dsl_track]].must_equal [:b, :fail]
+    renderer.(data3[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :failure]]]}
+
+    # activity.to_h[:nodes][1][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
+    # activity.to_h[:nodes][2][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
+    # activity.to_h[:nodes][3][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
   end
 
 # Sequence insert
-  it "throws an IndexError exception when {:after} references non-existant" do
-    implementing = self.implementing
-
+  it "throws {Sequence::IndexError} exception when {:after} references non-existant {:id}" do
     exc = assert_raises Activity::DSL::Linear::Sequence::IndexError do
-      _activity = Class.new(Activity::Railway) do
-        step task: implementing.method(:f), after: :e
+      class Song < Activity::Railway
+        step :f, after: :e
+        include T.def_steps(:f)
       end
     end
 
     _(exc.step_id).must_equal :e
-    _(exc.message).must_equal %{:e is not a valid step ID. Did you mean any of these ?
-"Start.default"
-"End.success"
-"End.failure"}
+    _(exc.message).must_equal %{#{Song}:
+\e[31m:e is not a valid step ID. Did you mean any of these ?\e[0m
+\e[32m"Start.default"\n"End.success"\n"End.failure"\e[0m}
   end
 
   it "allows empty inheritance" do
@@ -628,6 +645,7 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
 
+
     signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
@@ -704,6 +722,7 @@ ActivityTest::NestedWithThreeTermini
 
 #<End/:failure>
 }
+
 
     # we want to replace {NestedWithTreeTermini} (step :d) but inherit the {End.legit => :b} wiring.
     sub = Class.new(activity) do
@@ -885,7 +904,7 @@ ActivityTest::NestedWithThreeTermini
 
     it "allows customized options" do
       shared_options = {step_interface_builder: Fixtures.method(:circuit_interface_builder)}
-      # state = Activity::Path::DSL::State.new(**Activity::Path::DSL.OptionsForState(**shared_options))
+      # state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(**shared_options))
 
       activity = Class.new(Activity::Path(shared_options)) do
         extend T.def_steps(:a, :b, :c)
@@ -944,6 +963,8 @@ ActivityTest::NestedWithThreeTermini
   end
 
   it "allows {:instance} methods" do
+    implementing = self.implementing
+
     nested_activity = Class.new(Activity::Path) do
       step :c
       step :d
@@ -964,6 +985,8 @@ ActivityTest::NestedWithThreeTermini
   end
 
   it "allows instance methods with circuit interface" do
+    implementing = self.implementing
+
     nested_activity = Class.new(Activity::Path) do
       step task: :c
       step task: :d
@@ -1293,6 +1316,8 @@ ActivityTest::NestedWithThreeTermini
   end
 
   it "{:wrap_around}" do
+    implementing = self.implementing
+
     activity = Class.new(Activity::Railway) do
       step :c, Output(:success) => Path(end_id: "End.cc", end_task: End(:with_cc), track_color: :green) do
       end
@@ -1352,6 +1377,7 @@ ActivityTest::NestedWithThreeTermini
 #<End/:failure>
 }
   end
+
 
   # inheritance
   # macaroni

@@ -167,7 +167,43 @@ class DocsIOTest < Minitest::Spec
           end
         end
       end
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(E::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
+
+    # {:output} with {inner_ctx, outer_ctx, **} using {:output_with_outer_ctx}
+      module F
+        class Memo < Trailblazer::Activity::Path
+          #:io-output-positionals
+          step :authorize,
+            output_with_outer_ctx: true, # tell TRB you want {outer_ctx} in the {:output} filter.
+            output: ->(inner_ctx, outer_ctx, user:, **) do
+              {
+                current_user: user,
+                params:       outer_ctx[:params].merge(errors: false)
+              }
+            end
+          #:io-output-positionals end
+          step :create_model
+
+          def authorize(ctx, params:, **)
+            ctx[:user] = User.find(params[:id])
+            ctx[:user] ? ctx[:result] = "Found a user." : ctx[:result] = "User unknown."
+          end
+
+          def create_model(ctx, current_user:, **)
+            ctx[:model] = current_user
+          end
+        end
+
+      end
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(F::Memo, [{params: {id: "1"}}.freeze, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal %{{:params=>{:id=>\"1\", :errors=>false}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
     end
+
       signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::Memo::Bla, [{parameters: {id: "1"}}.freeze, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
