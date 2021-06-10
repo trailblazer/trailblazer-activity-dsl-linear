@@ -311,7 +311,6 @@ class FastTrackTest < Minitest::Spec
         _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
         _(ctx.inspect).must_equal     %{{:seq=>[:f], :f=>false}}
 
-
     end
   end
 end

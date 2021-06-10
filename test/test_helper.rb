@@ -13,7 +13,7 @@ T = Trailblazer::Activity::Testing
 
 Minitest::Spec.class_eval do
   def compile_process(sequence)
-    process = Linear::Compiler.(sequence)
+    _process = Linear::Compiler.(sequence)
   end
 
   Linear = Trailblazer::Activity::DSL::Linear

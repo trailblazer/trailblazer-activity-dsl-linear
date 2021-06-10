@@ -64,13 +64,13 @@ class DocsStrategyTest < Minitest::Spec
     end
 
     ctx = {params: {text: "Hydrate!"}}
-    signal, (ctx, flow_options) = B::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = B::Create.([ctx, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}}}
 
     ctx = {params: nil}
-    signal, (ctx, flow_options) = B::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = B::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:invalid>}
     _(ctx.inspect).must_equal %{{:params=>nil, :input=>nil}}
 =begin
@@ -105,18 +105,18 @@ class DocsStrategyTest < Minitest::Spec
     end
 
     ctx = {params: {text: "Hydrate!"}, create: true}
-    signal, (ctx, flow_options) = C::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = C::Create.([ctx, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :create=>true, :input=>{:text=>\"Hydrate!\"}}}
 
     ctx = {params: nil}
-    signal, (ctx, flow_options) = C::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = C::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:invalid>}
     _(ctx.inspect).must_equal %{{:params=>nil, :input=>nil}}
 
     ctx = {params: {}, create: false}
-    signal, (ctx, flow_options) = C::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = C::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:invalid>}
     _(ctx.inspect).must_equal %{{:params=>{}, :create=>false, :input=>{}}}
 
@@ -155,18 +155,18 @@ class DocsStrategyTest < Minitest::Spec
     end
 
     ctx = {params: {text: "Hydrate!"}, create: true}
-    signal, (ctx, flow_options) = D::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = D::Create.([ctx, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :create=>true, :input=>{:text=>\"Hydrate!\"}}}
 
     ctx = {params: nil, logger: Logger.new}
-    signal, (ctx, flow_options) = D::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = D::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     _(ctx.inspect.sub(/0x\w+/, "0x")).must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
 
     ctx = {params: {}, create: false}
-    signal, (ctx, flow_options) = D::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = D::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     _(ctx.inspect).must_equal %{{:params=>{}, :create=>false, :input=>{}}}
   end
@@ -205,12 +205,12 @@ class DocsStrategyTest < Minitest::Spec
     _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :create=>true, :input=>{:text=>\"Hydrate!\"}}}
 
     ctx = {params: nil, logger: Logger.new}
-    signal, (ctx, flow_options) = E::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = E::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     _(ctx.inspect.sub(/0x\w+/, "0x")).must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
 
     ctx = {params: {}, create: false}
-    signal, (ctx, flow_options) = E::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = E::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:db_error>}
     _(ctx.inspect).must_equal %{{:params=>{}, :create=>false, :input=>{}}}
   end
@@ -229,7 +229,7 @@ class DocsStrategyTest < Minitest::Spec
           ctx[:input] = Form.validate(params) # true/false
         end
 
-        def create(ctx, input:, **)
+        def create(ctx, **)
           ctx[:create] = true
           true
         end
@@ -239,7 +239,7 @@ class DocsStrategyTest < Minitest::Spec
         end
         #~flow end
 
-        def log_error(ctx, logger:, params:, **)
+        def log_error(_ctx, logger:, params:, **)
           logger.error("wrong params: #{params.inspect}")
 
           fixable?(params) ? true : false # or Activity::Right : Activity::Left
@@ -250,18 +250,18 @@ class DocsStrategyTest < Minitest::Spec
     end
 
     ctx = {params: {text: "Hydrate!"}, create: true}
-    signal, (ctx, flow_options) = F::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = F::Create.([ctx, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :create=>true, :input=>{:text=>\"Hydrate!\"}}}
 
     ctx = {params: nil, logger: Logger.new, log_error: true}
-    signal, (ctx, flow_options) = F::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = F::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect.sub(/0x\w+/, "0x")).must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :log_error=>true, :input=>nil, :create=>true}}
 
     ctx = {params: false, logger: Logger.new, log_error: false}
-    signal, (ctx, flow_options) = F::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = F::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     _(ctx.inspect.sub(/0x\w+/, "0x")).must_equal %{{:params=>false, :logger=>#<DocsStrategyTest::Logger:0x>, :log_error=>false, :input=>false}}
   end
@@ -281,11 +281,11 @@ class DocsStrategyTest < Minitest::Spec
           ctx[:input] = Form.validate(params) # true/false
         end
 
-        def create(ctx, create:, **)
+        def create(_ctx, create:, **)
           create
         end
 
-        def log_error(ctx, logger:, params:, **)
+        def log_error(_ctx, logger:, params:, **)
           logger.error("wrong params: #{params.inspect}")
           true
         end
@@ -295,18 +295,18 @@ class DocsStrategyTest < Minitest::Spec
     end
 
     ctx = {params: {text: "Hydrate!"}, create: true}
-    signal, (ctx, flow_options) = G::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = G::Create.([ctx, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :create=>true, :input=>{:text=>\"Hydrate!\"}}}
 
     ctx = {params: nil, logger: Logger.new}
-    signal, (ctx, flow_options) = G::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = G::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     _(ctx.inspect.sub(/0x\w+/, "0x")).must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
 
     ctx = {params: {}, logger: Logger.new, create: false}
-    signal, (ctx, flow_options) = G::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = G::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect.sub(/0x\w+/, "0x")).must_equal %{{:params=>{}, :logger=>#<DocsStrategyTest::Logger:0x>, :create=>false, :input=>{}}}
   end
@@ -331,7 +331,7 @@ class DocsStrategyTest < Minitest::Spec
           create
         end
 
-        def log_error(ctx, logger:, params:, **)
+        def log_error(_ctx, logger:, params:, **)
           logger.error("wrong params: #{params.inspect}")
           true
         end
@@ -341,13 +341,13 @@ class DocsStrategyTest < Minitest::Spec
     end
 
     ctx = {params: {text: "Hydrate!"}}
-    signal, (ctx, flow_options) = H::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = H::Create.([ctx, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:pass_fast>}
     _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}}}
 
     ctx = {params: nil, logger: Logger.new}
-    signal, (ctx, flow_options) = H::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = H::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
     _(ctx.inspect.sub(/0x\w+/, "0x")).must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
   end
@@ -371,7 +371,7 @@ class DocsStrategyTest < Minitest::Spec
           ctx[:create] = true
         end
 
-        def log_error(ctx, logger:, params:, **)
+        def log_error(_ctx, logger:, params:, **)
           logger.error("wrong params: #{params.inspect}")
           true
         end
@@ -381,7 +381,7 @@ class DocsStrategyTest < Minitest::Spec
     end
 
     ctx = {params: {text: "Hydrate!"}}
-    signal, (ctx, flow_options) = I::Create.([ctx, {}])
+    signal, (ctx, _flow_options) = I::Create.([ctx, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}, :create=>true}}

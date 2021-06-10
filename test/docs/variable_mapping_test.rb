@@ -144,7 +144,6 @@ class DocsIOTest < Minitest::Spec
         end
       end
 
-
       # no :input, default :input
       module E
         module Memo; end
