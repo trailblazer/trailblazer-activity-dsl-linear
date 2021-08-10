@@ -74,7 +74,6 @@ module Trailblazer
             end
           end
 
-
           module Input
             class Scoped
               def initialize(filter)

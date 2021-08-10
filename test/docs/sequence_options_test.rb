@@ -55,7 +55,6 @@ class DocSeqOptionsTest < Minitest::Spec
     _(output).must_equal %{[>create_model,>save_the_world]}
   end
 
-
   it ":before" do
     Memo = Id::Memo
 

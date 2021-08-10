@@ -1,3 +1,7 @@
+# 0.4.1
+
+* Updrading `trailblazer-activity` to use shiny `trailblazer-option`.
+
 # 0.4.0
 
 * Support for Ruby 3.0.
