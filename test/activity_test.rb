@@ -46,6 +46,32 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
     end
+
+    it "allows re-using the same activity, with two different {:id}s" do
+      nested = Class.new(Activity::Path) do
+        step :c_c
+
+        include T.def_steps(:c_c)
+      end
+
+      activity = Class.new(Activity::Path) do
+        step Subprocess(nested)
+        step Subprocess(nested), id: :nesting_again
+      end
+
+      process = activity.to_h
+
+      assert_process_for process, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+#<End/:success>
+}
+    end
+
     it "raises re-using the same method" do
       implementing = self.implementing
 
@@ -57,6 +83,19 @@ class ActivityTest < Minitest::Spec
       end
 
       exception.message.must_equal %{ID #{implementing.method(:f).inspect} is already taken. Please specify an `:id`.}
+    end
+
+    it "raises re-using the same circuit task" do
+      exception = assert_raises do
+        Class.new(Activity::Path) do
+          extend T.def_tasks(:f)
+
+          step task: :f
+          step task: :f
+        end
+      end
+
+      exception.message.must_equal %{ID f is already taken. Please specify an `:id`.}
     end
 
     it "accepts {:outputs}" do
