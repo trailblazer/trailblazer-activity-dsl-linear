@@ -1,3 +1,8 @@
+# 0.4.2
+
+* Don't allow duplicate activities in Sequence (#47) :ghost:
+* {:inherit} will only inherit the wirings supported in child activity (#48)
+
 # 0.4.1
 
 * Updrading `trailblazer-activity` to use shiny `trailblazer-option`.
