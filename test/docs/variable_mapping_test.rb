@@ -224,4 +224,74 @@ class DocsIOTest < Minitest::Spec
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
   end
+
+    # step Subprocess(Auth::Activity::CreateKey),
+  #   input: ->(ctx, user:, **) {
+  #   {key_model_class: VerifyAccountKey, user: user}.
+  #   merge(ctx.to_h.slice(:secure_random))
+  #   },
+  describe ":inject" do
+    it "what" do
+      module G
+        class Log < Trailblazer::Activity::Railway
+          step :write
+
+          def write(ctx, time: Time.now, **)
+            ctx[:log] = "Called #{time}!"
+          end
+
+          # to test if the explicit {:input} filter works.
+          def persist(ctx, db:, **)
+            db << "persist"
+          end
+        end
+
+        class Create < Trailblazer::Activity::Railway
+          step :model
+          # step Subprocess(Log), inject: :time # TODO
+
+          step Subprocess(Log),
+            inject: [:time],
+            input: ->(ctx, **) { {db: ["database"]} }#, # TODO: test if we can access :time here
+          # step Subprocess(Log), inject: :time, input: ->(ctx, **) do
+          #   if ctx.keys?(:time)
+          #     {time:  ctx[:time]}  # this we want to avoid.
+          #   else
+          #     {}
+          #   end
+          # end
+
+          step :save
+
+          # test-only
+          def catch_args(ctx, catch_args: [], **)
+            ctx[:catch_args] << ctx.keys
+          end
+
+          def model(ctx, **); catch_args(ctx); end
+          def save(ctx, **);   catch_args(ctx); end
+        end
+
+      end # G
+
+    # {:time} is defaulted
+      _, (ctx, _) = Activity::TaskWrap.invoke(G::Create, [{catch_args: []}, {}])
+      assert_equal '{:catch_args=>[[:catch_args], [:catch_args, :log]], :log=>"Called ', ctx.inspect[0..65]
+
+    # {:time} is injected
+
+      # wrap_runtime = {G::Log => Activity::TaskWrap::Pipeline::Merge.new(ext)}
+      wrap_runtime = {
+        # G::Log => ext
+      }
+
+      _, (ctx, _) = Activity::TaskWrap.invoke(G::Create, [{catch_args: [], time: "yesterday"}, {}], **{})
+      assert_equal '{:catch_args=>[[:catch_args, :time], [:catch_args, :time, :log]], :time=>"yesterday", :log=>"Called yesterday!"}', ctx.inspect#[0..65]
+
+
+      # _, (ctx, _) = Trailblazer::Developer.wtf?(Create, [{catch_args: []}])
+    end
+
+
+  end
 end
