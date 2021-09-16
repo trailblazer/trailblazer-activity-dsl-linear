@@ -279,19 +279,8 @@ class DocsIOTest < Minitest::Spec
       assert_equal '{:catch_args=>[[:catch_args], [:catch_args, :log]], :log=>"Called ', ctx.inspect[0..65]
 
     # {:time} is injected
-
-      # wrap_runtime = {G::Log => Activity::TaskWrap::Pipeline::Merge.new(ext)}
-      wrap_runtime = {
-        # G::Log => ext
-      }
-
       _, (ctx, _) = Activity::TaskWrap.invoke(G::Create, [{catch_args: [], time: "yesterday"}, {}], **{})
       assert_equal '{:catch_args=>[[:catch_args, :time], [:catch_args, :time, :log]], :time=>"yesterday", :log=>"Called yesterday!"}', ctx.inspect#[0..65]
-
-
-      # _, (ctx, _) = Trailblazer::Developer.wtf?(Create, [{catch_args: []}])
     end
-
-
   end
 end
