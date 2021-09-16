@@ -263,7 +263,7 @@ module Trailblazer
             # FIXME: prototyping
             input_filter_ext = ctx[:extensions].find { |ext| ext.inspect =~ /task_wrap.input/ } or raise # FIXME: no way
             input_filter_id = input_filter_ext.inspect.match(/@id=(\d+)/)[1].to_i # FIXME: no way
-puts "@@@@@ #{input_filter_id.inspect}"
+
       inject_filter = ->(wrap_ctx, original_args) do
           (ctx, flow_options), circuit_options = original_args
 

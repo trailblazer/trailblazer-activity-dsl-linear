@@ -26,6 +26,8 @@ module Trailblazer
           module_function
 
           # @private
+          # The default {:output} filter only returns the "mutable" part of the inner ctx.
+          # This means only variables added using {inner_ctx[..]=} are merged on the outside.
           def default_output
             ->(scoped, **) do
               _wrapped, mutable = scoped.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
@@ -82,8 +84,8 @@ module Trailblazer
 
               def call((original_ctx, flow_options), **circuit_options)
                 Trailblazer::Context(
-                  @filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options),
-                  {},
+                  @filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options), # these are the non-mutable variables
+                  {}, # mutable variables
                   flow_options[:context_options]
                 )
               end
@@ -98,6 +100,7 @@ module Trailblazer
                 @filter = filter
               end
 
+              # The returned hash from {@filter} is merged with the original ctx.
               def call(new_ctx, (original_ctx, flow_options), **circuit_options)
                 original_ctx.merge(
                   call_filter(new_ctx, [original_ctx, flow_options], **circuit_options)
