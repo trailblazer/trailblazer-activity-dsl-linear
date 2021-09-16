@@ -264,19 +264,29 @@ module Trailblazer
             input_filter_ext = ctx[:extensions].find { |ext| ext.inspect =~ /task_wrap.input/ } or raise # FIXME: no way
             input_filter_id = input_filter_ext.inspect.match(/@id=(\d+)/)[1].to_i # FIXME: no way
 
-      inject_filter = ->(wrap_ctx, original_args) do
-          (ctx, flow_options), circuit_options = original_args
+        inject_filter = ->(wrap_ctx, original_args) do
+          (ctx, flow_options), circuit_options = original_args # {ctx} is the effective inner ctx.
+
 
           original_ctx = wrap_ctx[input_filter_id] # here is the original outside ctx from {Op.()}
 
-          injected_variables.each do |var|
-            if original_ctx.key?(var)
-              ctx[var] = original_ctx[var] # we do actually *write* to the input-filter ctx.
-            end
-          end
+          injections =
+            # Hash[
+              injected_variables.collect do |var|
+                original_ctx.key?(var) ? [var, original_ctx[var]] : nil
+              end.compact.to_h # FIXME: are we <2.6 safe here?
+            # ]
+          inner_ctx_variables, _ = ctx.decompose
 
-          return wrap_ctx, original_args
-      end
+          # produce a new ctx with the filtered variables from {:input} and the injections.
+          new_ctx = Trailblazer::Context(
+            inner_ctx_variables.merge(injections),
+            {}, # mutable variables
+            flow_options[:context_options]
+          )
+
+          return wrap_ctx, [[new_ctx, flow_options], circuit_options] # we discard the filter {ctx} here.
+        end
 
       ext = Trailblazer::Activity::TaskWrap::Extension(
           merge: [                             # DISCUSS: after/input ?
