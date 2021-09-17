@@ -234,7 +234,9 @@ class DocsIOTest < Minitest::Spec
     it "what" do
       module G
         class Log < Trailblazer::Activity::Railway
+          step :catch_args # this allows to see whether {:time} is passed in or not.
           step :write
+          step :persist
 
           def write(ctx, time: Time.now, **)
             ctx[:log] = "Called #{time}!"
@@ -244,6 +246,8 @@ class DocsIOTest < Minitest::Spec
           def persist(ctx, db:, **)
             db << "persist"
           end
+
+          def catch_args(ctx, **); Create.catch_args(ctx); end
         end
 
         class Create < Trailblazer::Activity::Railway
@@ -252,7 +256,7 @@ class DocsIOTest < Minitest::Spec
 
           step Subprocess(Log),
             inject: [:time],
-            input: ->(ctx, **) { {db: ["database"]} }#, # TODO: test if we can access :time here
+            input: ->(ctx, database:, **) { {db: database, catch_args: ctx[:catch_args]} }#, # TODO: test if we can access :time here
           # step Subprocess(Log), inject: :time, input: ->(ctx, **) do
           #   if ctx.keys?(:time)
           #     {time:  ctx[:time]}  # this we want to avoid.
@@ -264,23 +268,67 @@ class DocsIOTest < Minitest::Spec
           step :save
 
           # test-only
-          def catch_args(ctx, catch_args: [], **)
+          def self.catch_args(ctx, catch_args: [], **)
             ctx[:catch_args] << ctx.keys
           end
 
-          def model(ctx, **); catch_args(ctx); end
-          def save(ctx, **);   catch_args(ctx); end
+          def model(ctx, **); self.class.catch_args(ctx); end
+          def save(ctx, **);  self.class.catch_args(ctx); end
         end
 
       end # G
 
     # {:time} is defaulted
-      _, (ctx, _) = Activity::TaskWrap.invoke(G::Create, [{catch_args: []}, {}])
-      assert_equal '{:catch_args=>[[:catch_args], [:catch_args, :log]], :log=>"Called ', ctx.inspect[0..65]
+      _, (ctx, _) = Activity::TaskWrap.invoke(G::Create, [{catch_args: [], database: []}, {}])
+      assert_equal '{:catch_args=>[[:catch_args, :database], [:db, :catch_args], [:catch_args, :database, :log]], :database=>["persist"], :log=>"Called ', ctx.inspect[0..131]
+                                                              #   {:time} is not visible in {Log}
 
     # {:time} is injected
-      _, (ctx, _) = Activity::TaskWrap.invoke(G::Create, [{catch_args: [], time: "yesterday"}, {}], **{})
-      assert_equal '{:catch_args=>[[:catch_args, :time], [:catch_args, :time, :log]], :time=>"yesterday", :log=>"Called yesterday!"}', ctx.inspect#[0..65]
+      _, (ctx, _) = Activity::TaskWrap.invoke(G::Create, [{catch_args: [], database: [], time: "yesterday"}, {}], **{})
+      assert_equal '{:catch_args=>[[:catch_args, :database, :time], [:db, :catch_args, :time], [:catch_args, :database, :time, :log]], :database=>["persist"], :time=>"yesterday", :log=>"Called yesterday!"}', ctx.inspect#[0..65]
+    end # it
+
+
+    it "still allows aliasing" do
+      module H
+        class Inner < Trailblazer::Activity::Railway
+          step :contract
+          step :contract_default
+
+          # we use {:contract} alias here
+          def contract(ctx, contract:, **); ctx[:inner_contract] = contract; end
+          def contract_default(ctx, **); ctx[:inner_contract_default] = ctx["contract.default"]; end
+        end
+
+        class Outer < Trailblazer::Activity::Railway
+          step Subprocess(Inner),
+            input: ->(ctx,  contract:, **) { {"contract.default" => contract} },
+            inject: [:model] # not used.
+        end
+      end
+
+      flow_options = {
+        context_options: {
+          aliases: {'contract.default': :contract},
+          container_class: Trailblazer::Context::Container::WithAliases,
+        }
+      }
+
+      _, (ctx, _) = Activity::TaskWrap.invoke(H::Outer, [Trailblazer::Context({"contract.default" => Module}, {}, flow_options[:context_options]), flow_options])
+      assert_equal %{#<Trailblazer::Context::Container::WithAliases wrapped_options={\"contract.default\"=>Module} mutable_options={:inner_contract=>Module, :inner_contract_default=>Module} aliases={:\"contract.default\"=>:contract}>}, ctx.inspect
     end
+
+
+
+    # TODO: test if injections are discarded afterwards
+    # TODO: test aliasing
+    # TODO: can we use Context() from VariableMapping?
+    # TODO: :inject, only.
+
+    # input:, inject:
+    #   input.()
+    #     inject.() # take all variables from input's ctx + injected
+    #     inject-out.() (just return input's ctx variables WITHOUT injected PLUS mutable?)
+    #   output.()
   end
 end
