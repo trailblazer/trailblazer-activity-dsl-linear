@@ -4,11 +4,51 @@ module Trailblazer
       module Linear
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
-        def self.VariableMapping(input: VariableMapping.default_input, output: VariableMapping.default_output, output_with_outer_ctx: false)
-          input =
-            VariableMapping::Input::Scoped.new(
-              Trailblazer::Option(VariableMapping::filter_for(input))
-            )
+        def self.VariableMapping(input: nil, output: VariableMapping.default_output, output_with_outer_ctx: false, inject: nil)
+          input_steps = [
+            ["input.init_hash", VariableMapping.method(:initial_input_hash)],
+          ]
+
+          if !inject && !input
+            input_steps << ["input.default_input", VariableMapping.method(:default_input_ctx)]
+          end
+
+          if input # :input or :input/:inject
+            input_steps << ["input.add_variables", VariableMapping.method(:add_variables)]
+
+            input_filter = Trailblazer::Option(VariableMapping::filter_for(input))
+          end
+
+          if inject# && input.nil?
+            input_steps << ["input.add_injections", VariableMapping.method(:add_injections)]
+          end
+          # ->(incoming_ctx, **kwargs)
+
+          input_steps << ["input.scope", VariableMapping.method(:scope)]
+
+
+          pipe = Activity::TaskWrap::Pipeline.new(input_steps)
+
+
+          # input =
+          #   VariableMapping::Input::Scoped.new(
+          #     Trailblazer::Option(VariableMapping::filter_for(input)) # DISCUSS: here is where we have to build a sub-pipeline for input,inject,input_map
+          #   )
+
+          # gets wrapped by {VariableMapping::Input} and called there.
+          # API: @filter.([ctx, original_flow_options], **original_circuit_options)
+          # input = Trailblazer::Option(->(original_ctx, **) {  })
+          input = ->((ctx, flow_options), **circuit_options) do
+            wrap_ctx, _ = pipe.({inject: inject, input_filter: input_filter}, [[ctx, flow_options], circuit_options])
+
+            wrap_ctx[:input_ctx]
+          end
+
+          # 1. {} empty input hash
+          # 1. input # dynamic => hash
+          # 2. input_map       => hash
+          # 3. inject          => hash
+          # 4. Input::Scoped()
 
           unscope_class = output_with_outer_ctx ? VariableMapping::Output::Unscoped::WithOuterContext : VariableMapping::Output::Unscoped
 
@@ -25,6 +65,62 @@ module Trailblazer
         module VariableMapping
           module_function
 
+# FIXME: EXPERIMENTAL
+          def initial_input_hash(wrap_ctx, original_args)
+            wrap_ctx = wrap_ctx.merge(input_hash: {})
+
+            return wrap_ctx, original_args
+          end
+
+          def default_input_ctx(wrap_ctx, original_args)
+            ((original_ctx, _), _) = original_args
+
+            wrap_ctx[:input_hash] = wrap_ctx[:input_hash].merge(original_ctx) # FIXME: untested, and repetitive
+
+            return wrap_ctx, original_args
+          end
+
+          def add_injections(wrap_ctx, original_args)
+            injected_variables     = wrap_ctx[:inject]
+            ((original_ctx, _), _) = original_args
+
+            injections =
+              injected_variables.collect do |var|
+                original_ctx.key?(var) ? [var, original_ctx[var]] : nil
+              end.compact.to_h # FIXME: are we <2.6 safe here?
+
+            wrap_ctx[:input_hash] = wrap_ctx[:input_hash].merge(injections)
+
+            return wrap_ctx, original_args
+          end
+
+          def add_variables(wrap_ctx, original_args)
+            filter = wrap_ctx[:input_filter]
+            ((original_ctx, _), circuit_options) = original_args
+
+            # this is the actual logic. fuck this
+            variables = filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options)
+
+            wrap_ctx[:input_hash] = wrap_ctx[:input_hash].merge(variables)
+
+            return wrap_ctx, original_args
+          end
+
+          def scope(wrap_ctx, original_args)
+            ((_, flow_options), _) = original_args
+
+            # this is the actual context passed into the step.
+            wrap_ctx[:input_ctx] = Trailblazer::Context(
+              wrap_ctx[:input_hash],
+              {}, # mutable variables
+              flow_options[:context_options]
+            )
+
+            return wrap_ctx, original_args
+          end
+# FIXME: /EXPERIMENTAL
+
+
           # @private
           # The default {:output} filter only returns the "mutable" part of the inner ctx.
           # This means only variables added using {inner_ctx[..]=} are merged on the outside.
@@ -36,7 +132,7 @@ module Trailblazer
           end
 
           # @private
-          def default_input
+          def default_input # FIXME: remove
             ->(ctx, **) { ctx }
           end
 

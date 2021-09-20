@@ -33,7 +33,7 @@ module Trailblazer
               "activity.normalize_outputs_from_dsl"     => method(:normalize_outputs_from_dsl),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
               "activity.input_output_dsl"               => method(:input_output_dsl), # FIXME: make this optional and allow to dynamically change normalizer steps
-              "activity.inject_option"                  => method(:inject_option), # FIXME: this needs to be *after* {:input_output_dsl}
+              # "activity.inject_option"                  => method(:inject_option), # FIXME: this needs to be *after* {:input_output_dsl}
               },
 
               Linear::Insert.method(:Prepend), "path.wirings"
@@ -225,9 +225,9 @@ module Trailblazer
           end
 
           def input_output_dsl((ctx, flow_options), *)
-            config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
+            config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx, :inject].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
 
-            return Trailblazer::Activity::Right, [ctx, flow_options] if config.size == 0 # no :input/:output passed.
+            return Trailblazer::Activity::Right, [ctx, flow_options] if config.size == 0 # no :input/:output/:inject passed.
 
             new_ctx = {}
             new_ctx[:extensions] = ctx[:extensions] || [] # merge DSL extensions with I/O.

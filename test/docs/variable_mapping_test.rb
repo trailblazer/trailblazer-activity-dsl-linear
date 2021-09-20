@@ -230,6 +230,13 @@ class DocsIOTest < Minitest::Spec
   #   {key_model_class: VerifyAccountKey, user: user}.
   #   merge(ctx.to_h.slice(:secure_random))
   #   },
+
+  module Test
+    def self.catch_args(ctx, catch_args: [], **)
+      ctx[:catch_args] << ctx.keys
+    end
+  end
+
   describe ":inject" do
     it "what" do
       module G
@@ -247,7 +254,7 @@ class DocsIOTest < Minitest::Spec
             db << "persist"
           end
 
-          def catch_args(ctx, **); Create.catch_args(ctx); end
+          def catch_args(ctx, **); Test.catch_args(ctx); end
         end
 
         class Create < Trailblazer::Activity::Railway
@@ -267,13 +274,8 @@ class DocsIOTest < Minitest::Spec
 
           step :save
 
-          # test-only
-          def self.catch_args(ctx, catch_args: [], **)
-            ctx[:catch_args] << ctx.keys
-          end
-
-          def model(ctx, **); self.class.catch_args(ctx); end
-          def save(ctx, **);  self.class.catch_args(ctx); end
+          def model(ctx, **); Test.catch_args(ctx); end
+          def save(ctx, **);  Test.catch_args(ctx); end
         end
 
       end # G
@@ -318,12 +320,44 @@ class DocsIOTest < Minitest::Spec
       assert_equal %{#<Trailblazer::Context::Container::WithAliases wrapped_options={\"contract.default\"=>Module} mutable_options={:inner_contract=>Module, :inner_contract_default=>Module} aliases={:\"contract.default\"=>:contract}>}, ctx.inspect
     end
 
+    it "allows {:inject} without {:input}" do
+      module I
+        class Log < Trailblazer::Activity::Railway
+          step :catch_args # this allows to see whether {:time} is passed in or not.
+          step :write
+
+          def write(ctx, time: Time.now, **)
+            ctx[:log] = "Called #{time}!"
+          end
+
+          def catch_args(ctx, **); Test.catch_args(ctx); end
+        end
+
+        class Create < Trailblazer::Activity::Railway
+          step :model
+          step Subprocess(Log), inject: [:time, :catch_args]
+          step :save
+
+          def save(ctx, **);  Test.catch_args(ctx); end
+          def model(ctx, **); Test.catch_args(ctx); end
+        end
+      end # I
+
+    # inject {:time}
+      _, (ctx, _) = Activity::TaskWrap.invoke(I::Create, [{catch_args: [], database: [], time: "yesterday"}, {}])
+      assert_equal %{{:catch_args=>[[:catch_args, :database, :time], [:time, :catch_args], [:catch_args, :database, :time, :log]], :database=>[], :time=>\"yesterday\", :log=>\"Called yesterday!\"}}, ctx.inspect
+
+    # default {:time}
+      _, (ctx, _) = Activity::TaskWrap.invoke(I::Create, [{catch_args: [], database: []}, {}])
+      assert_equal '{:catch_args=>[[:catch_args, :database], [:catch_args], [:catch_args, :database, :log]], :database=>[], :log=>"Called 20', ctx.inspect[0..119]
+    end
+
 
 
     # TODO: test if injections are discarded afterwards
-    # TODO: test aliasing
     # TODO: can we use Context() from VariableMapping?
     # TODO: :inject, only.
+    # TODO: inject: {"action.class" => Song}
 
     # input:, inject:
     #   input.()
@@ -332,3 +366,16 @@ class DocsIOTest < Minitest::Spec
     #   output.()
   end
 end
+
+=begin
+Model(id_field: :key_id)
+
+def "dynamic_model"(id_field: :key_id)
+
+end
+
+
+step dynamic_model, inject: [:id_field]
+step dynamic_model, inject: [:id_field], input: ->(*) { {id_field: 111} } (override the global "injected" one? does that even work?) (or "remap" like {id_field: :another_field})
+
+=end
