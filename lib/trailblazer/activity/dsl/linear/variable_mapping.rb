@@ -66,20 +66,23 @@ module Trailblazer
           module_function
 
 # FIXME: EXPERIMENTAL
+# DISCUSS: improvable sections such as merge vs hash[]=
           def initial_input_hash(wrap_ctx, original_args)
             wrap_ctx = wrap_ctx.merge(input_hash: {})
 
             return wrap_ctx, original_args
           end
 
+          # Merge all original ctx variables into the new input_ctx.
+          # This happens when no {:input} is provided.
           def default_input_ctx(wrap_ctx, original_args)
             ((original_ctx, _), _) = original_args
 
-            wrap_ctx[:input_hash] = wrap_ctx[:input_hash].merge(original_ctx) # FIXME: untested, and repetitive
-
-            return wrap_ctx, original_args
+            MergeVariables(original_ctx, wrap_ctx, original_args)
           end
 
+          # Add injected variables if they're present on
+          # the original, incoming ctx.
           def add_injections(wrap_ctx, original_args)
             injected_variables     = wrap_ctx[:inject]
             ((original_ctx, _), _) = original_args
@@ -89,9 +92,7 @@ module Trailblazer
                 original_ctx.key?(var) ? [var, original_ctx[var]] : nil
               end.compact.to_h # FIXME: are we <2.6 safe here?
 
-            wrap_ctx[:input_hash] = wrap_ctx[:input_hash].merge(injections)
-
-            return wrap_ctx, original_args
+            MergeVariables(injections, wrap_ctx, original_args)
           end
 
           def add_variables(wrap_ctx, original_args)
@@ -101,11 +102,12 @@ module Trailblazer
             # this is the actual logic. fuck this
             variables = filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options)
 
-            wrap_ctx[:input_hash] = wrap_ctx[:input_hash].merge(variables)
-
-            return wrap_ctx, original_args
+            MergeVariables(variables, wrap_ctx, original_args)
           end
 
+          # Finally, create a new input ctx from all the
+          # collected input variables.
+          # This goes into the step/nested OP.
           def scope(wrap_ctx, original_args)
             ((_, flow_options), _) = original_args
 
@@ -115,6 +117,14 @@ module Trailblazer
               {}, # mutable variables
               flow_options[:context_options]
             )
+
+            return wrap_ctx, original_args
+          end
+
+          # Last call in every step. Currently replaces {:input_ctx} by *merging* variables.
+          # DISCUSS: improve here?
+          def MergeVariables(variables, wrap_ctx, original_args)
+            wrap_ctx[:input_hash] = wrap_ctx[:input_hash].merge(variables)
 
             return wrap_ctx, original_args
           end
