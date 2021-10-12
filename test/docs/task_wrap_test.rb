@@ -42,13 +42,13 @@ class DocsTaskWrapTest < Minitest::Spec
     wrap_runtime = Hash.new(wrap) # wrap_runtime[...] will always return the same wrap
     #:run-merge end
 
-    signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(Create, [{seq: [], log: []}], wrap_runtime: wrap_runtime)
+    signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(Create, [{seq: [], log: []}, {}], wrap_runtime: wrap_runtime)
     ctx.inspect.must_equal %{{:seq=>[:model, :save], :log=>[\"Before DocsTaskWrapTest::Create\", \"Before #<Trailblazer::Activity::Start semantic=:default>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=model>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>\", \"Before #<Trailblazer::Activity::End semantic=:success>\"]}}
 =begin
     #:run-invoke
     signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(
       Create,
-      [{log: []}],
+      [{log: []}, {}],
       wrap_runtime: wrap_runtime
     )
     #:run-invoke end
