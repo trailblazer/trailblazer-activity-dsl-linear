@@ -21,6 +21,21 @@ module Trailblazer
 
           if inject# && input.nil?
             input_steps << ["input.add_injections", VariableMapping.method(:add_injections)]
+
+
+# FIXME: DSL
+
+            injections = inject.collect do |name|
+              if name.is_a?(Symbol)
+                [name, Trailblazer::Option(->(*) { [false, name] })] # we don't want defaulting, this return value signalizes "please pass-through, only".
+              else # we automatically assume this is a hash of callables
+                name.collect do |_name, filter|
+                  [_name, Trailblazer::Option(->(ctx, **kws) { [true, _name, filter.(ctx, **kws)] })] # filter will compute the default value
+                end.flatten
+              end
+            end.to_h
+
+
           end
           # ->(incoming_ctx, **kwargs)
 
@@ -39,7 +54,7 @@ module Trailblazer
           # API: @filter.([ctx, original_flow_options], **original_circuit_options)
           # input = Trailblazer::Option(->(original_ctx, **) {  })
           input = ->((ctx, flow_options), **circuit_options) do
-            wrap_ctx, _ = pipe.({inject: inject, input_filter: input_filter}, [[ctx, flow_options], circuit_options])
+            wrap_ctx, _ = pipe.({injections: injections, input_filter: input_filter}, [[ctx, flow_options], circuit_options])
 
             wrap_ctx[:input_ctx]
           end
@@ -86,11 +101,11 @@ module Trailblazer
           # Add injected variables if they're present on
           # the original, incoming ctx.
           def add_injections(wrap_ctx, original_args)
-            inject2filter     = wrap_ctx[:inject]
+            name2filter     = wrap_ctx[:injections]
             ((original_ctx, _), circuit_options) = original_args
 
             injections =
-              inject2filter.collect do |name, filter|
+              name2filter.collect do |name, filter|
                 # DISCUSS: should we remove {is_defaulted} and infer type from {filter} or the return value?
                 is_defaulted, new_name, default_value = filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options) # FIXME: interface?           # {filter} exposes {Option} interface
 
