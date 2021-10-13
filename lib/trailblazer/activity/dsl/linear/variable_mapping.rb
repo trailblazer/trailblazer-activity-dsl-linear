@@ -27,15 +27,13 @@ module Trailblazer
 
             injections = inject.collect do |name|
               if name.is_a?(Symbol)
-                [name, Trailblazer::Option(->(*) { [false, name] })] # we don't want defaulting, this return value signalizes "please pass-through, only".
+                [[name, Trailblazer::Option(->(*) { [false, name] })]] # we don't want defaulting, this return value signalizes "please pass-through, only".
               else # we automatically assume this is a hash of callables
                 name.collect do |_name, filter|
                   [_name, Trailblazer::Option(->(ctx, **kws) { [true, _name, filter.(ctx, **kws)] })] # filter will compute the default value
-                end.flatten
+                end
               end
-            end.to_h
-
-
+            end.flatten(1).to_h
           end
           # ->(incoming_ctx, **kwargs)
 

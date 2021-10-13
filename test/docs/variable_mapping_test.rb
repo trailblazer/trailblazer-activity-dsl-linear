@@ -390,6 +390,40 @@ class DocsIOTest < Minitest::Spec
     # default {:time} from {:inject}
       _, (ctx, _) = Activity::TaskWrap.invoke(J::Create, [{database: [], catch_args: []}, {}])
       assert_equal '{:database=>[], :catch_args=>[[:database, :catch_args], [:database, :catch_args, :log]], :log=>"Called tomorrow!"}', ctx.inspect
+
+
+      module K
+        class Log < Trailblazer::Activity::Railway
+          step :write
+
+          def write(ctx, time: Time.now, date:, **) # DISCUSS: this defaulting is *never* applied.
+            ctx[:log] = "Called #{time}@#{date}!"
+          end
+        end
+
+        class Create < Trailblazer::Activity::Railway
+          step :model
+          # step Subprocess(Log), inject: [:time, :catch_args]
+          step Subprocess(Log), inject: [
+            {
+              time: ->(*) { "tomorrow" },
+              date: ->(ctx, ago:, **) { "#{ago} years ago" }
+            }
+          ]
+          step :save
+
+          def save(ctx, **);  Test.catch_args(ctx); end
+          def model(ctx, **); Test.catch_args(ctx); end
+        end
+      end # K
+
+      # inject {:time}
+      _, (ctx, _) = Activity::TaskWrap.invoke(K::Create, [{database: [], catch_args: [], time: "yesterday", ago: 700}, {}])
+      assert_equal %{{:database=>[], :catch_args=>[[:database, :catch_args, :time, :ago], [:database, :catch_args, :time, :ago, :log]], :time=>\"yesterday\", :ago=>700, :log=>\"Called yesterday@700 years ago!\"}}, ctx.inspect
+
+    # default {:time} from {:inject}
+      _, (ctx, _) = Activity::TaskWrap.invoke(K::Create, [{database: [], catch_args: [], ago: 700}, {}])
+      assert_equal '{:database=>[], :catch_args=>[[:database, :catch_args, :ago], [:database, :catch_args, :ago, :log]], :ago=>700, :log=>"Called tomorrow@700 years ago!"}', ctx.inspect
     end
 
 =begin
