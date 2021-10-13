@@ -242,7 +242,7 @@ class DocsIOTest < Minitest::Spec
   # injections: [:time, :date]    # pass-through (and rename) if there
   # injections_with_default: []   # pass-through (and rename) if there, otherwise default
   describe ":inject" do
-    it "what" do
+    it "{inject: [:time]}" do
       module G
         class Log < Trailblazer::Activity::Railway
           step :catch_args # this allows to see whether {:time} is passed in or not.
@@ -266,7 +266,7 @@ class DocsIOTest < Minitest::Spec
           # step Subprocess(Log), inject: :time # TODO
 
           step Subprocess(Log),
-            inject: {:time => Trailblazer::Option(->(*) { [false, :time] })},
+            inject: [:time],
             input: ->(ctx, database:, **) { {db: database, catch_args: ctx[:catch_args]} }#, # TODO: test if we can access :time here
           # step Subprocess(Log), inject: :time, input: ->(ctx, **) do
           #   if ctx.keys?(:time)
@@ -309,7 +309,7 @@ class DocsIOTest < Minitest::Spec
         class Outer < Trailblazer::Activity::Railway
           step Subprocess(Inner),
             input: ->(ctx,  contract:, **) { {"contract.default" => contract} },
-            inject: {:model => Trailblazer::Option(->(*) { [false, :model] })} # not used.
+            inject: [:model] # not used.
         end
       end
 
@@ -339,8 +339,7 @@ class DocsIOTest < Minitest::Spec
 
         class Create < Trailblazer::Activity::Railway
           step :model
-          # step Subprocess(Log), inject: [:time, :catch_args]
-          step Subprocess(Log), inject: {:time => Trailblazer::Option(->(ctx, **) { [false, :time] }), :catch_args => Trailblazer::Option(->(ctx, **) { [false, :catch_args] })}
+          step Subprocess(Log), inject: [:time, :catch_args]
           step :save
 
           def save(ctx, **);  Test.catch_args(ctx); end
@@ -360,7 +359,7 @@ class DocsIOTest < Minitest::Spec
     it "Inject replacement" do
       skip
       step Model(action: :new) # def Model(action: :new)  / inject: [:action]
-      step Model(action: :new), inject: {action: :new} # def Model(action: :new)  / inject: [:action]
+      step Model(action: :new), injections: {action: :new} # def Model(action: :new)  / inject: [:action]
     end
 
     it "allows {:inject} with defaults" do
@@ -376,7 +375,7 @@ class DocsIOTest < Minitest::Spec
         class Create < Trailblazer::Activity::Railway
           step :model
           # step Subprocess(Log), inject: [:time, :catch_args]
-          step Subprocess(Log), inject: {:time => Trailblazer::Option(->(ctx, **) { [true, :time, "tomorrow"] })}
+          step Subprocess(Log), inject: [{:time => ->(*) { "tomorrow" }}] # FIXME.
           step :save
 
           def save(ctx, **);  Test.catch_args(ctx); end
