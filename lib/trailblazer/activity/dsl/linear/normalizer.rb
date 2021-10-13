@@ -33,7 +33,6 @@ module Trailblazer
               "activity.normalize_outputs_from_dsl"     => method(:normalize_outputs_from_dsl),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
               "activity.input_output_dsl"               => method(:input_output_dsl), # FIXME: make this optional and allow to dynamically change normalizer steps
-              # "activity.inject_option"                  => method(:inject_option), # FIXME: this needs to be *after* {:input_output_dsl}
               },
 
               Linear::Insert.method(:Prepend), "path.wirings"
@@ -254,58 +253,6 @@ module Trailblazer
 
             return Trailblazer::Activity::Right, [ctx, flow_options]
           end
-
-          def inject_option((ctx, flow_options), *)
-            injected_variables = ctx[:inject]
-
-            return Trailblazer::Activity::Right, [ctx, flow_options] if injected_variables.nil? # no {:inject} passed.
-
-            # FIXME: prototyping
-            input_filter_ext = ctx[:extensions].find { |ext| ext.inspect =~ /task_wrap.input/ } or raise # FIXME: no way
-            input_filter_id = input_filter_ext.inspect.match(/@id=(\d+)/)[1].to_i # FIXME: no way
-
-        inject_filter = ->(wrap_ctx, original_args) do
-          (ctx, flow_options), circuit_options = original_args # {ctx} is the effective inner ctx.
-
-
-          original_ctx = wrap_ctx[input_filter_id] # here is the original outside ctx from {Op.()}
-
-          injections =
-            # Hash[
-              injected_variables.collect do |var|
-                original_ctx.key?(var) ? [var, original_ctx[var]] : nil
-              end.compact.to_h # FIXME: are we <2.6 safe here?
-            # ]
-          inner_ctx_variables, _ = ctx.decompose
-
-          # produce a new ctx with the filtered variables from {:input} and the injections.
-          new_ctx = Trailblazer::Context(
-            inner_ctx_variables.merge(injections),
-            {}, # mutable variables
-            flow_options[:context_options]
-          )
-
-          return wrap_ctx, [[new_ctx, flow_options], circuit_options] # we discard the filter {ctx} here.
-        end
-
-      ext = Trailblazer::Activity::TaskWrap::Extension(
-          merge: [                             # DISCUSS: after/input ?
-            [TaskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["dsl.inject", inject_filter]],
-          ]
-        )
-
-
-
-            new_ctx = {}
-            new_ctx[:extensions] = ctx[:extensions] || [] # merge DSL extensions with I/O.
-            new_ctx[:extensions] += [ext]
-
-            return Trailblazer::Activity::Right, [ctx.merge(new_ctx), flow_options]
-          end
-
-
-
-
 
           # return connections from {parent} step which are supported by current step
           private def get_inheritable_connections(ctx, parent_connections)

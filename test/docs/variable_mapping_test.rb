@@ -237,6 +237,10 @@ class DocsIOTest < Minitest::Spec
     end
   end
 
+  # inject: [:time, {:date => Inject.Rename(:today)}, {:time => ->(*) { 1 }}, , {:date => [Inject.Rename(:today), ->(*) { 1 }]}]
+  # becomes
+  # injections: [:time, :date]    # pass-through (and rename) if there
+  # injections_with_default: []   # pass-through (and rename) if there, otherwise default
   describe ":inject" do
     it "what" do
       module G
@@ -262,7 +266,7 @@ class DocsIOTest < Minitest::Spec
           # step Subprocess(Log), inject: :time # TODO
 
           step Subprocess(Log),
-            inject: [:time],
+            inject: {:time => Trailblazer::Option(->(*) { [false, :time] })},
             input: ->(ctx, database:, **) { {db: database, catch_args: ctx[:catch_args]} }#, # TODO: test if we can access :time here
           # step Subprocess(Log), inject: :time, input: ->(ctx, **) do
           #   if ctx.keys?(:time)
@@ -305,7 +309,7 @@ class DocsIOTest < Minitest::Spec
         class Outer < Trailblazer::Activity::Railway
           step Subprocess(Inner),
             input: ->(ctx,  contract:, **) { {"contract.default" => contract} },
-            inject: [:model] # not used.
+            inject: {:model => Trailblazer::Option(->(*) { [false, :model] })} # not used.
         end
       end
 
@@ -335,7 +339,8 @@ class DocsIOTest < Minitest::Spec
 
         class Create < Trailblazer::Activity::Railway
           step :model
-          step Subprocess(Log), inject: [:time, :catch_args]
+          # step Subprocess(Log), inject: [:time, :catch_args]
+          step Subprocess(Log), inject: {:time => Trailblazer::Option(->(ctx, **) { [false, :time] }), :catch_args => Trailblazer::Option(->(ctx, **) { [false, :catch_args] })}
           step :save
 
           def save(ctx, **);  Test.catch_args(ctx); end
@@ -351,6 +356,51 @@ class DocsIOTest < Minitest::Spec
       _, (ctx, _) = Activity::TaskWrap.invoke(I::Create, [{catch_args: [], database: []}, {}])
       assert_equal '{:catch_args=>[[:catch_args, :database], [:catch_args], [:catch_args, :database, :log]], :database=>[], :log=>"Called 20', ctx.inspect[0..119]
     end
+
+    it "Inject replacement" do
+      skip
+      step Model(action: :new) # def Model(action: :new)  / inject: [:action]
+      step Model(action: :new), inject: {action: :new} # def Model(action: :new)  / inject: [:action]
+    end
+
+    it "allows {:inject} with defaults" do
+      module J
+        class Log < Trailblazer::Activity::Railway
+          step :write
+
+          def write(ctx, time: Time.now, **) # DISCUSS: this defaulting is *never* applied.
+            ctx[:log] = "Called #{time}!"
+          end
+        end
+
+        class Create < Trailblazer::Activity::Railway
+          step :model
+          # step Subprocess(Log), inject: [:time, :catch_args]
+          step Subprocess(Log), inject: {:time => Trailblazer::Option(->(ctx, **) { [true, :time, "tomorrow"] })}
+          step :save
+
+          def save(ctx, **);  Test.catch_args(ctx); end
+          def model(ctx, **); Test.catch_args(ctx); end
+        end
+      end # J
+
+      # inject {:time}
+      _, (ctx, _) = Activity::TaskWrap.invoke(J::Create, [{database: [], catch_args: [], time: "yesterday"}, {}])
+      assert_equal %{{:database=>[], :catch_args=>[[:database, :catch_args, :time], [:database, :catch_args, :time, :log]], :time=>\"yesterday\", :log=>\"Called yesterday!\"}}, ctx.inspect
+
+    # default {:time} from {:inject}
+      _, (ctx, _) = Activity::TaskWrap.invoke(J::Create, [{database: [], catch_args: []}, {}])
+      assert_equal '{:database=>[], :catch_args=>[[:database, :catch_args], [:database, :catch_args, :log]], :log=>"Called tomorrow!"}', ctx.inspect
+    end
+
+=begin
+    inject: [:action] # simply pass variable :action in (exclusive) {action: ctx[:action]} (IF IT'S PRESENT IN ctx)
+  DISCUSS: from here onwards, this is what {:input} kind of does???  this  is defaulting and would happen in any case
+    inject: [:action => Static(:new)]     # {action: new}
+    inject: [:action => Value(->(*) {})]  # {action: <dynamic value>}
+    inject: {:action => [Value(), Rename(:inner_action)]}
+    inject: {:action => [:inner_action, Value()]}
+=end
 
 
 
@@ -377,5 +427,23 @@ end
 
 step dynamic_model, inject: [:id_field]
 step dynamic_model, inject: [:id_field], input: ->(*) { {id_field: 111} } (override the global "injected" one? does that even work?) (or "remap" like {id_field: :another_field})
+
+
+
+step Model(..), inject: ->(*) {
+  {
+    action: :new,
+    "model.class" => Song,
+  }
+}
+
+step Model(..), input: ->(ctx, params:, **) {
+  {
+    action: params[:model_action],
+    "model.class" => Song,
+  }
+}
+
+
 
 =end
