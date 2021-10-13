@@ -81,20 +81,29 @@ module Trailblazer
             MergeVariables(original_ctx, wrap_ctx, original_args)
           end
 
+# TODO: test {nil} default
+# FIXME: what if you don't want inject but always the value from the config?
           # Add injected variables if they're present on
           # the original, incoming ctx.
           def add_injections(wrap_ctx, original_args)
-            injected_variables     = wrap_ctx[:inject]
-            ((original_ctx, _), _) = original_args
+            inject2filter     = wrap_ctx[:inject]
+            ((original_ctx, _), circuit_options) = original_args
 
             injections =
-              injected_variables.collect do |var|
-                original_ctx.key?(var) ? [var, original_ctx[var]] : nil
+              inject2filter.collect do |name, filter|
+                # DISCUSS: should we remove {is_defaulted} and infer type from {filter} or the return value?
+                is_defaulted, new_name, default_value = filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options) # FIXME: interface?           # {filter} exposes {Option} interface
+
+                original_ctx.key?(name) ?
+                  [new_name, original_ctx[name]] : (
+                    is_defaulted ? [new_name, default_value] : nil
+                  )
               end.compact.to_h # FIXME: are we <2.6 safe here?
 
             MergeVariables(injections, wrap_ctx, original_args)
           end
 
+          # Implements {:input}.
           def add_variables(wrap_ctx, original_args)
             filter = wrap_ctx[:input_filter]
             ((original_ctx, _), circuit_options) = original_args
@@ -121,7 +130,7 @@ module Trailblazer
             return wrap_ctx, original_args
           end
 
-          # Last call in every step. Currently replaces {:input_ctx} by *merging* variables.
+          # Last call in every step. Currently replaces {:input_ctx} by adding variables using {#merge}.
           # DISCUSS: improve here?
           def MergeVariables(variables, wrap_ctx, original_args)
             wrap_ctx[:input_hash] = wrap_ctx[:input_hash].merge(variables)
