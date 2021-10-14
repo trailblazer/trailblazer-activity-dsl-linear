@@ -295,7 +295,7 @@ class DocsIOTest < Minitest::Spec
     end # it
 
 
-    it "still allows aliasing" do
+    it "still allows aliasing within the inject wrap" do
       module H
         class Inner < Trailblazer::Activity::Railway
           step :contract
@@ -392,6 +392,7 @@ class DocsIOTest < Minitest::Spec
       assert_equal '{:database=>[], :catch_args=>[[:database, :catch_args], [:database, :catch_args, :log]], :log=>"Called tomorrow!"}', ctx.inspect
 
 
+  # test arguments/kw args passed to filter.
       module K
         class Log < Trailblazer::Activity::Railway
           step :write
@@ -424,6 +425,36 @@ class DocsIOTest < Minitest::Spec
     # default {:time} from {:inject}
       _, (ctx, _) = Activity::TaskWrap.invoke(K::Create, [{database: [], catch_args: [], ago: 700}, {}])
       assert_equal '{:database=>[], :catch_args=>[[:database, :catch_args, :ago], [:database, :catch_args, :ago, :log]], :ago=>700, :log=>"Called tomorrow@700 years ago!"}', ctx.inspect
+    end
+
+    it "allows inject: [:action, {volume: ->(*) {}}]" do
+      module L
+        class Log < Trailblazer::Activity::Railway
+          step :write
+
+          def write(ctx, time: Time.now, action: :new, volume: 9, **)
+            ctx[:log] = "Called #{time}@#{action}@#{volume}!"
+          end
+        end
+
+        class Create < Trailblazer::Activity::Railway
+          step :model
+          step Subprocess(Log), inject: [
+            :action, :volume, # just pass-through
+            {
+              time: ->(ctx, **) { "tomorrow" },
+            }
+          ]
+          step :save
+
+          def save(ctx, **);  Test.catch_args(ctx); end
+          def model(ctx, **); Test.catch_args(ctx); end
+        end
+      end # L
+
+      # inject {:volume}
+      _, (ctx, _) = Activity::TaskWrap.invoke(L::Create, [{database: [], catch_args: [], volume: 99}, {}])
+      assert_equal %{{:database=>[], :catch_args=>[[:database, :catch_args, :volume], [:database, :catch_args, :volume, :log]], :volume=>99, :log=>"Called tomorrow@new@99!"}}, ctx.inspect
     end
 
 =begin
