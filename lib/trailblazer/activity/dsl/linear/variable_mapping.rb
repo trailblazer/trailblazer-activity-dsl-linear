@@ -20,11 +20,8 @@ module Trailblazer
           end
 
           if inject# && input.nil?
-            input_steps << ["input.add_injections", VariableMapping.method(:add_injections)]
-
-
+            input_steps << ["input.add_injections", VariableMapping.method(:add_injections)] # we now allow one filter per injected variable.
 # FIXME: DSL
-
             injections = inject.collect do |name|
               if name.is_a?(Symbol)
                 [[name, Trailblazer::Option(->(*) { [false, name] })]] # we don't want defaulting, this return value signalizes "please pass-through, only".
