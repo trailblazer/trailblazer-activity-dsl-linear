@@ -324,6 +324,7 @@ class DocsIOTest < Minitest::Spec
       assert_equal %{#<Trailblazer::Context::Container::WithAliases wrapped_options={\"contract.default\"=>Module} mutable_options={:inner_contract=>Module, :inner_contract_default=>Module} aliases={:\"contract.default\"=>:contract}>}, ctx.inspect
     end
 
+  # inject without input (1)
     it "allows {:inject} without {:input}" do
       module I
         class Log < Trailblazer::Activity::Railway
@@ -337,9 +338,11 @@ class DocsIOTest < Minitest::Spec
           def catch_args(ctx, **); Test.catch_args(ctx); end
         end
 
+      # we only inject [:pass, :through] variables. This means, nothing special happens,
+      # we simply pass the original ctx.
         class Create < Trailblazer::Activity::Railway
           step :model
-          step Subprocess(Log), inject: [:time, :catch_args]
+          step Subprocess(Log), inject: [:time]
           step :save
 
           def save(ctx, **);  Test.catch_args(ctx); end
@@ -349,11 +352,46 @@ class DocsIOTest < Minitest::Spec
 
     # inject {:time}
       _, (ctx, _) = Activity::TaskWrap.invoke(I::Create, [{catch_args: [], database: [], time: "yesterday"}, {}])
-      assert_equal %{{:catch_args=>[[:catch_args, :database, :time], [:time, :catch_args], [:catch_args, :database, :time, :log]], :database=>[], :time=>\"yesterday\", :log=>\"Called yesterday!\"}}, ctx.inspect
+      assert_equal %{{:catch_args=>[[:catch_args, :database, :time], [:catch_args, :database, :time], [:catch_args, :database, :time, :log]], :database=>[], :time=>\"yesterday\", :log=>\"Called yesterday!\"}}, ctx.inspect
 
     # default {:time}
       _, (ctx, _) = Activity::TaskWrap.invoke(I::Create, [{catch_args: [], database: []}, {}])
-      assert_equal '{:catch_args=>[[:catch_args, :database], [:catch_args], [:catch_args, :database, :log]], :database=>[], :log=>"Called 20', ctx.inspect[0..119]
+      assert_equal '{:catch_args=>[[:catch_args, :database], [:catch_args, :database], [:catch_args, :database, :log]], :database=>[], :log=>"Called 20', ctx.inspect[0..130]
+    end
+
+  # inject without input (2)
+    it "{inject: [{variable: default}]} (without pass-through variables) will pass all original variables plus the defaulting" do
+      module X
+        class Log < Trailblazer::Activity::Railway
+          step :catch_args # this allows to see whether {:time} is passed in or not.
+          step :write
+
+          def write(ctx, time: Time.now, **)
+            ctx[:log] = "Called #{time}!"
+          end
+
+          def catch_args(ctx, **); Test.catch_args(ctx); end
+        end
+
+      # we only use `inject: [{variable: default}]`. No {:input}.
+      # this means the "almost original" ctx plus defaulting is passed into {Log}.
+        class Create < Trailblazer::Activity::Railway
+          step :model
+          step Subprocess(Log), inject: [{time: ->(*) { 1 }}] # NO {:input}.
+          step :save
+
+          def save(ctx, **);  Test.catch_args(ctx); end
+          def model(ctx, **); Test.catch_args(ctx); end
+        end
+      end # X
+
+    # inject {:time}
+      _, (ctx, _) = Activity::TaskWrap.invoke(X::Create, [{catch_args: [], database: [], time: "yesterday"}, {}])
+      assert_equal %{{:catch_args=>[[:catch_args, :database, :time], [:catch_args, :database, :time], [:catch_args, :database, :time, :log]], :database=>[], :time=>\"yesterday\", :log=>\"Called yesterday!\"}}, ctx.inspect
+
+    # default {:time}
+      _, (ctx, _) = Activity::TaskWrap.invoke(X::Create, [{catch_args: [], database: []}, {}])        # {:time} is "gone", not here anymore!
+      assert_equal '{:catch_args=>[[:catch_args, :database], [:catch_args, :database, :time], [:catch_args, :database, :log]], :database=>[], :log=>"Called 1!"}', ctx.inspect
     end
 
     it "Inject replacement" do
