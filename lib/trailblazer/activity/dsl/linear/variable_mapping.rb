@@ -4,12 +4,18 @@ module Trailblazer
       module Linear
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
-        def self.VariableMapping(input: nil, output: VariableMapping.default_output, output_with_outer_ctx: false, inject: nil)
+        def self.VariableMapping(input: nil, output: VariableMapping.default_output, output_with_outer_ctx: false, inject: [])
+          # FIXME: this could (should?) be in Normalizer?
+          inject_passthrough  = inject.find_all { |name| name.is_a?(Symbol) }
+          inject_with_default = inject.find { |name| name.is_a?(Hash) } # FIXME: we only support one default hash in the DSL so far.
+
           input_steps = [
             ["input.init_hash", VariableMapping.method(:initial_input_hash)],
           ]
 
-          if !inject && !input
+          # With only injections defined, we do not filter out anything, we use the original ctx
+          # and _add_ defaulting for injected variables.
+          if !input # only injections defined
             input_steps << ["input.default_input", VariableMapping.method(:default_input_ctx)]
           end
 
@@ -19,8 +25,11 @@ module Trailblazer
             input_filter = Trailblazer::Option(VariableMapping::filter_for(input))
           end
 
-          if inject# && input.nil?
+          if inject_passthrough || inject_with_default
             input_steps << ["input.add_injections", VariableMapping.method(:add_injections)] # we now allow one filter per injected variable.
+          end
+
+          if inject_passthrough || inject_with_default # FIXME.
 # FIXME: DSL
             injections = inject.collect do |name|
               if name.is_a?(Symbol)
