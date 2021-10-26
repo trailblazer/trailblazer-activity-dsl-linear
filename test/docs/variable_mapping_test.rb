@@ -504,6 +504,91 @@ class DocsIOTest < Minitest::Spec
     inject: {:action => [:inner_action, Value()]}
 =end
 
+    it "inject: [:variable], input: {}" do
+      module Y
+        class Log < Trailblazer::Activity::Railway # could be Operation, too.
+          step :write
+          # ...
+          def write(ctx, time: Time.now, **)
+            ctx[:log] = "Called @ #{time}!"
+          end
+        end
+
+        #:inject-array
+        class Create < Trailblazer::Activity::Railway # could be Operation, too.
+          # ...
+          step Subprocess(Log),
+            input:  ->(ctx, current_user:, **) { {current_user: current_user} }, # always pass {current_user}
+            inject: [:time] # only pass {:time} when it's in ctx.
+        end
+        #:inject-array end
+      end
+
+      Log = Y::Log
+      #:inject-log-time
+      signal, (ctx, _) = Activity::TaskWrap.invoke(Log, [{time: "yesterday"}, {}])
+      #:inject-log-time end
+      ctx.inspect.must_equal %{{:time=>\"yesterday\", :log=>\"Called @ yesterday!\"}}
+
+      signal, (ctx, _) = Activity::TaskWrap.invoke(Log, [{}, {}])
+      ctx.inspect[0..18].must_equal '{:log=>"Called @ 20'
+
+      module Z
+        #:write-defaulted
+        class Log < Trailblazer::Activity::Railway # could be Operation, too.
+          step :write
+          # ...
+          def write(ctx, time: Time.now, **) # {:time} is a dependency.
+            ctx[:log] = "Called @ #{time}!"
+          end
+        #:write-defaulted end
+        end
+
+        #:clumsy-merge
+        class Create < Trailblazer::Activity::Railway # could be Operation, too.
+          # ...
+          step Subprocess(Log),
+            input:  ->(ctx, model:, **) {
+              { model: model }                    # always pass {:model}
+              .merge(ctx.key?(:time) ? {time: ctx[:time]} : {}) # only add {:time} when it's there.
+            }
+        end
+        #:clumsy-merge end
+      end
+
+      signal, (ctx, _) = Activity::TaskWrap.invoke(Z::Create, [{model: Object, time: "yesterday"}, {}])
+      ctx.inspect.must_equal %{{:model=>Object, :time=>\"yesterday\", :log=>\"Called @ yesterday!\"}}
+      signal, (ctx, _) = Activity::TaskWrap.invoke(Z::Create, [{model: Object, }, {}])
+      ctx.inspect[0..33].must_equal '{:model=>Object, :log=>"Called @ 2'
+
+      module Q
+        #:write-required
+        class Log < Trailblazer::Activity::Railway # could be Operation, too.
+          step :write
+          # ...
+          def write(ctx, time: Time.now, date:, **) # {date} has no default configured.
+            ctx[:log] = "Called @ #{time} and #{date}!"
+          end
+        #:write-required end
+        end
+require "date"
+        #:inject-default
+        class Create < Trailblazer::Activity::Railway # could be Operation, too.
+          # ...
+          step Subprocess(Log),
+            input:  ->(ctx, model:, **) { {model: model} }, # always pass {current_user}
+            inject: [:time, {date: ->(ctx, **) { Date.today }}]
+        end
+        #:inject-default end
+      end
+
+      signal, (ctx, _) = Activity::TaskWrap.invoke(Q::Create, [{time: "yesterday", model: Object}, {}])
+      ctx.inspect[0..68].must_equal '{:time=>"yesterday", :model=>Object, :log=>"Called @ yesterday and 20'
+      signal, (ctx, _) = Activity::TaskWrap.invoke(Q::Create, [{model: Object}, {}])
+      ctx.inspect[0..33].must_equal '{:model=>Object, :log=>"Called @ 2'
+
+    end # it
+
 
 
     # TODO: test if injections are discarded afterwards
