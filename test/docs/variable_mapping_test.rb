@@ -518,7 +518,7 @@ class DocsIOTest < Minitest::Spec
         class Create < Trailblazer::Activity::Railway # could be Operation, too.
           # ...
           step Subprocess(Log),
-            input:  ->(ctx, current_user:, **) { {current_user: current_user} }, # always pass {current_user}
+            input:  ->(ctx, model:, **) { {model: model} }, # always pass {model}
             inject: [:time] # only pass {:time} when it's in ctx.
         end
         #:inject-array end
@@ -549,7 +549,7 @@ class DocsIOTest < Minitest::Spec
           # ...
           step Subprocess(Log),
             input:  ->(ctx, model:, **) {
-              { model: model }                    # always pass {:model}
+              { model: model }                                  # always pass {:model}
               .merge(ctx.key?(:time) ? {time: ctx[:time]} : {}) # only add {:time} when it's there.
             }
         end
@@ -576,7 +576,7 @@ require "date"
         class Create < Trailblazer::Activity::Railway # could be Operation, too.
           # ...
           step Subprocess(Log),
-            input:  ->(ctx, model:, **) { {model: model} }, # always pass {current_user}
+            input:  ->(ctx, model:, **) { {model: model} }, # always pass {model}
             inject: [:time, {date: ->(ctx, **) { Date.today }}]
         end
         #:inject-default end
