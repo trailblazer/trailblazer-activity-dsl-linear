@@ -5,84 +5,87 @@ module Trailblazer
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
         def self.VariableMapping(input: nil, output: VariableMapping.default_output, output_with_outer_ctx: false, inject: [])
-          # FIXME: this could (should?) be in Normalizer?
-          inject_passthrough  = inject.find_all { |name| name.is_a?(Symbol) }
-          inject_with_default = inject.find { |name| name.is_a?(Hash) } # FIXME: we only support one default hash in the DSL so far.
+          merge_instructions = VariableMapping.merge_instructions_from_dsl(input: input, output: output, output_with_outer_ctx: output_with_outer_ctx, inject: inject)
 
-          input_steps = [
-            ["input.init_hash", VariableMapping.method(:initial_input_hash)],
-          ]
-
-          # With only injections defined, we do not filter out anything, we use the original ctx
-          # and _add_ defaulting for injected variables.
-          if !input # only injections defined
-            input_steps << ["input.default_input", VariableMapping.method(:default_input_ctx)]
-          end
-
-          if input # :input or :input/:inject
-            input_steps << ["input.add_variables", VariableMapping.method(:add_variables)]
-
-            input_filter = Trailblazer::Option(VariableMapping::filter_for(input))
-          end
-
-          if inject_passthrough || inject_with_default
-            input_steps << ["input.add_injections", VariableMapping.method(:add_injections)] # we now allow one filter per injected variable.
-          end
-
-          if inject_passthrough || inject_with_default # FIXME.
-# FIXME: DSL
-            injections = inject.collect do |name|
-              if name.is_a?(Symbol)
-                [[name, Trailblazer::Option(->(*) { [false, name] })]] # we don't want defaulting, this return value signalizes "please pass-through, only".
-              else # we automatically assume this is a hash of callables
-                name.collect do |_name, filter|
-                  [_name, Trailblazer::Option(->(ctx, **kws) { [true, _name, filter.(ctx, **kws)] })] # filter will compute the default value
-                end
-              end
-            end.flatten(1).to_h
-          end
-          # ->(incoming_ctx, **kwargs)
-
-          input_steps << ["input.scope", VariableMapping.method(:scope)]
-
-
-          pipe = Activity::TaskWrap::Pipeline.new(input_steps)
-
-
-          # input =
-          #   VariableMapping::Input::Scoped.new(
-          #     Trailblazer::Option(VariableMapping::filter_for(input)) # DISCUSS: here is where we have to build a sub-pipeline for input,inject,input_map
-          #   )
-
-          # gets wrapped by {VariableMapping::Input} and called there.
-          # API: @filter.([ctx, original_flow_options], **original_circuit_options)
-          # input = Trailblazer::Option(->(original_ctx, **) {  })
-          input = ->((ctx, flow_options), **circuit_options) do
-            wrap_ctx, _ = pipe.({injections: injections, input_filter: input_filter}, [[ctx, flow_options], circuit_options])
-
-            wrap_ctx[:input_ctx]
-          end
-
-          # 1. {} empty input hash
-          # 1. input # dynamic => hash
-          # 2. input_map       => hash
-          # 3. inject          => hash
-          # 4. Input::Scoped()
-
-          unscope_class = output_with_outer_ctx ? VariableMapping::Output::Unscoped::WithOuterContext : VariableMapping::Output::Unscoped
-
-          output =
-            unscope_class.new(
-              Trailblazer::Option(VariableMapping::filter_for(output))
-            )
-
-          TaskWrap::Extension(
-            merge: TaskWrap::VariableMapping.merge_for(input, output, id: input.object_id), # wraps filters: {Input(input), Output(output)}
-          )
+          TaskWrap::Extension(merge: merge_instructions)
         end
 
         module VariableMapping
           module_function
+
+          def merge_instructions_from_dsl(input:, output:, output_with_outer_ctx:, inject:)
+            # FIXME: this could (should?) be in Normalizer?
+            inject_passthrough  = inject.find_all { |name| name.is_a?(Symbol) }
+            inject_with_default = inject.find { |name| name.is_a?(Hash) } # FIXME: we only support one default hash in the DSL so far.
+
+            input_steps = [
+              ["input.init_hash", VariableMapping.method(:initial_input_hash)],
+            ]
+
+            # With only injections defined, we do not filter out anything, we use the original ctx
+            # and _add_ defaulting for injected variables.
+            if !input # only injections defined
+              input_steps << ["input.default_input", VariableMapping.method(:default_input_ctx)]
+            end
+
+            if input # :input or :input/:inject
+              input_steps << ["input.add_variables", VariableMapping.method(:add_variables)]
+
+              input_filter = Trailblazer::Option(VariableMapping::filter_for(input))
+            end
+
+            if inject_passthrough || inject_with_default
+              input_steps << ["input.add_injections", VariableMapping.method(:add_injections)] # we now allow one filter per injected variable.
+            end
+
+            if inject_passthrough || inject_with_default
+  # FIXME: DSL
+              injections = inject.collect do |name|
+                if name.is_a?(Symbol)
+                  [[name, Trailblazer::Option(->(*) { [false, name] })]] # we don't want defaulting, this return value signalizes "please pass-through, only".
+                else # we automatically assume this is a hash of callables
+                  name.collect do |_name, filter|
+                    [_name, Trailblazer::Option(->(ctx, **kws) { [true, _name, filter.(ctx, **kws)] })] # filter will compute the default value
+                  end
+                end
+              end.flatten(1).to_h
+            end
+
+            input_steps << ["input.scope", VariableMapping.method(:scope)]
+
+
+            pipe = Activity::TaskWrap::Pipeline.new(input_steps)
+
+
+            # input =
+            #   VariableMapping::Input::Scoped.new(
+            #     Trailblazer::Option(VariableMapping::filter_for(input)) # DISCUSS: here is where we have to build a sub-pipeline for input,inject,input_map
+            #   )
+
+            # gets wrapped by {VariableMapping::Input} and called there.
+            # API: @filter.([ctx, original_flow_options], **original_circuit_options)
+            # input = Trailblazer::Option(->(original_ctx, **) {  })
+            input = ->((ctx, flow_options), **circuit_options) do
+              wrap_ctx, _ = pipe.({injections: injections, input_filter: input_filter}, [[ctx, flow_options], circuit_options])
+
+              wrap_ctx[:input_ctx]
+            end
+
+            # 1. {} empty input hash
+            # 1. input # dynamic => hash
+            # 2. input_map       => hash
+            # 3. inject          => hash
+            # 4. Input::Scoped()
+
+            unscope_class = output_with_outer_ctx ? VariableMapping::Output::Unscoped::WithOuterContext : VariableMapping::Output::Unscoped
+
+            output =
+              unscope_class.new(
+                Trailblazer::Option(VariableMapping::filter_for(output))
+              )
+
+            TaskWrap::VariableMapping.merge_instructions_for(input, output, id: input.object_id) # wraps filters: {Input(input), Output(output)}
+          end
 
 # FIXME: EXPERIMENTAL
 # DISCUSS: improvable sections such as merge vs hash[]=
