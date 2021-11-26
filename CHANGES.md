@@ -1,3 +1,8 @@
+# 0.5.0
+
+* Introduce `:inject` option to pass-through injected variables and to default input variables.
+* Remove `VariableMapping::Input::Scoped` as we're now using a separate `Pipeline` for input filtering.
+
 # 0.4.2
 
 * Don't allow duplicate activities in Sequence (#47) :ghost:
