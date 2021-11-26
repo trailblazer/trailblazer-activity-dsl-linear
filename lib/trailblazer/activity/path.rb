@@ -43,32 +43,24 @@ module Trailblazer
           {success: [Linear::Search.method(:Forward), track_name]}
         end
 
-        def merge_path_outputs((ctx, flow_options), *)
-          ctx = {outputs: unary_outputs}.merge(ctx)
-
-          return Right, [ctx, flow_options]
+        def merge_path_outputs(ctx, outputs: nil, **)
+          ctx[:outputs] = outputs || unary_outputs
         end
 
-        def merge_path_connections((ctx, flow_options), *)
-          raise unless track_name = ctx[:track_name]# TODO: make track_name required kw.
-          ctx = {connections: unary_connections(track_name: track_name)}.merge(ctx)
-
-          return Right, [ctx, flow_options]
+        def merge_path_connections(ctx, track_name:, connections: nil, **)
+          ctx[:connections] = connections || unary_connections(track_name: track_name)
         end
 
         # Processes {:before,:after,:replace,:delete} options and
         # defaults to {before: "End.success"} which, yeah.
-        def normalize_sequence_insert((ctx, flow_options), *)
+        def normalize_sequence_insert(ctx, end_id:, **)
           insertion = ctx.keys & sequence_insert_options.keys
           insertion = insertion[0]   || :before
-          raise if ctx[:end_id].nil? # FIXME
-          target    = ctx[insertion] || ctx[:end_id]
+          target    = ctx[insertion] || end_id
 
           insertion_method = sequence_insert_options[insertion]
 
-          ctx = ctx.merge(sequence_insert: [Linear::Insert.method(insertion_method), target])
-
-          return Right, [ctx, flow_options]
+          ctx[:sequence_insert] = [Linear::Insert.method(insertion_method), target]
         end
 
         # @private
@@ -81,37 +73,27 @@ module Trailblazer
           }
         end
 
-        def normalize_duplications((ctx, flow_options), *)
-          return Right, [ctx, flow_options] if ctx[:replace]
+        def normalize_duplications(ctx, replace: false, **)
+          return true if replace
 
-          signal, (ctx, flow_options) = raise_on_duplicate_id([ctx, flow_options])
-          signal, (ctx, flow_options) = clone_duplicate_activity([ctx, flow_options])
-
-          return signal, [ctx, flow_options]
+          raise_on_duplicate_id(ctx, **ctx)
+          clone_duplicate_activity(ctx, **ctx) # DISCUSS: mutates {ctx}.
+          true
         end
 
-        def raise_on_duplicate_id((ctx, flow_options), *)
-          id, sequence = ctx[:id], ctx[:sequence]
+        def raise_on_duplicate_id(ctx, id:, sequence:, **)
           raise "ID #{id} is already taken. Please specify an `:id`." if sequence.find { |row| row[3][:id] == id }
-
-          return Right, [ctx, flow_options]
         end
 
-        def clone_duplicate_activity((ctx, flow_options), *)
-          return Right, [ctx, flow_options] unless ctx[:task].is_a?(Class)
+        def clone_duplicate_activity(ctx, task:, sequence:, **)
+          return true unless task.is_a?(Class)
 
-          task, sequence = ctx[:task], ctx[:sequence]
-          ctx = ctx.merge(task: task.clone) if sequence.find { |row| row[1] == task }
-
-          return Right, [ctx, flow_options]
+          ctx[:task] = task.clone if sequence.find { |row| row[1] == task }
         end
 
-        def normalize_magnetic_to((ctx, flow_options), *) # TODO: merge with Railway.merge_magnetic_to
-          raise unless track_name = ctx[:track_name]# TODO: make track_name required kw.
-
-          ctx = {magnetic_to: track_name}.merge(ctx)
-
-          return Right, [ctx, flow_options]
+        def normalize_magnetic_to(ctx, track_name:, **) # TODO: merge with Railway.merge_magnetic_to
+          ctx[:magnetic_to] = ctx.key?(:magnetic_to) ? ctx[:magnetic_to] : track_name # FIXME: can we be magnetic_to {nil}?
+          true
         end
 
         # Return {Path::Normalizer} sequence.
@@ -119,12 +101,12 @@ module Trailblazer
           prepend_to_path(
             sequence,
 
-            "path.outputs"                => method(:merge_path_outputs),
-            "path.connections"            => method(:merge_path_connections),
-            "path.sequence_insert"        => method(:normalize_sequence_insert),
-            "path.normalize_duplications" => method(:normalize_duplications),
-            "path.magnetic_to"            => method(:normalize_magnetic_to),
-            "path.wirings"                => Linear::Normalizer.method(:compile_wirings),
+            "path.outputs"                => TaskBuilder::Binary(method(:merge_path_outputs)),
+            "path.connections"            => TaskBuilder::Binary(method(:merge_path_connections)),
+            "path.sequence_insert"        => TaskBuilder::Binary(method(:normalize_sequence_insert)),
+            "path.normalize_duplications" => TaskBuilder::Binary(method(:normalize_duplications)),
+            "path.magnetic_to"            => TaskBuilder::Binary(method(:normalize_magnetic_to)),
+            "path.wirings"                => TaskBuilder::Binary(Linear::Normalizer.method(:compile_wirings)),
           )
         end
 

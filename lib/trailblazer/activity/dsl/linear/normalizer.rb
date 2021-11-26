@@ -9,18 +9,18 @@ module Trailblazer
 
           #   activity_normalizer.([{options:, user_options:, normalizer_options: }])
           def activity_normalizer(sequence)
-            seq = Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
+            seq = Path::DSL.prepend_to_path(
               sequence,
 
               {
-              "activity.normalize_step_interface"       => method(:normalize_step_interface),      # first
-              "activity.normalize_for_macro"            => method(:merge_user_options),
-              "activity.normalize_normalizer_options"   => method(:merge_normalizer_options),
+              "activity.normalize_step_interface"       => TaskBuilder::Binary(method(:normalize_step_interface)),      # first
+              "activity.normalize_for_macro"            => TaskBuilder::Binary(method(:merge_user_options)),
+              "activity.normalize_normalizer_options"   => TaskBuilder::Binary(method(:merge_normalizer_options)),
               "activity.normalize_context"              => method(:normalize_context),
-              "activity.normalize_id"                   => method(:normalize_id),
-              "activity.normalize_override"             => method(:normalize_override),
-              "activity.wrap_task_with_step_interface"  => method(:wrap_task_with_step_interface), # last
-              "activity.inherit_option"               => method(:inherit_option),
+              "activity.normalize_id"                   => TaskBuilder::Binary(method(:normalize_id)),
+              "activity.normalize_override"             => TaskBuilder::Binary(method(:normalize_override)),
+              "activity.wrap_task_with_step_interface"  => TaskBuilder::Binary(method(:wrap_task_with_step_interface)), # last
+              "activity.inherit_option"                 => TaskBuilder::Binary(method(:inherit_option)),
               },
 
               Linear::Insert.method(:Append), "Start.default"
@@ -32,7 +32,7 @@ module Trailblazer
               {
               "activity.normalize_outputs_from_dsl"     => method(:normalize_outputs_from_dsl),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
-              "activity.input_output_dsl"               => method(:input_output_dsl), # FIXME: make this optional and allow to dynamically change normalizer steps
+              "activity.input_output_dsl"               => TaskBuilder::Binary(method(:input_output_dsl)), # FIXME: make this optional and allow to dynamically change normalizer steps
               },
 
               Linear::Insert.method(:Prepend), "path.wirings"
@@ -53,71 +53,57 @@ module Trailblazer
 
           # Specific to the "step DSL": if the first argument is a callable, wrap it in a {step_interface_builder}
           # since its interface expects the step interface, but the circuit will call it with circuit interface.
-          def normalize_step_interface((ctx, flow_options), *)
-            options = case ctx[:options]
+          def normalize_step_interface(ctx, options:, **)
+            options = case options
                       when Hash
                         # Circuit Interface
-                        task  = ctx[:options].fetch(:task)
-                        id    = ctx[:options][:id]
+                        task  = options.fetch(:task)
+                        id    = options[:id]
 
                         if task.is_a?(Symbol)
                           # step task: :find, id: :load
-                          { **ctx[:options], id: (id || task), task: Trailblazer::Option(task) }
+                          { **options, id: (id || task), task: Trailblazer::Option(task) }
                         else
                           # step task: Callable, ... (Subprocess, Proc, macros etc)
-                          ctx[:options] # NOOP
+                          options # NOOP
                         end
                       else
                         # Step Interface
                         # step :find, ...
                         # step Callable, ... (Method, Proc etc)
-                        { task: ctx[:options], wrap_task: true }
+                        { task: options, wrap_task: true }
                       end
 
-            return Trailblazer::Activity::Right, [ctx.merge(options: options), flow_options]
+            ctx[:options] = options
           end
 
-          def wrap_task_with_step_interface((ctx, flow_options), **)
-            return Trailblazer::Activity::Right, [ctx, flow_options] unless ctx[:wrap_task]
+          def wrap_task_with_step_interface(ctx, wrap_task: false, step_interface_builder:, task:, **)
+            return true unless wrap_task
 
-            step_interface_builder = ctx[:step_interface_builder] # FIXME: use kw!
-            task                   = ctx[:task] # FIXME: use kw!
-
-            wrapped_task = step_interface_builder.(task)
-
-            return Trailblazer::Activity::Right, [ctx.merge(task: wrapped_task), flow_options]
+            ctx[:task] = step_interface_builder.(task)
           end
 
-          def normalize_id((ctx, flow_options), **)
-            id = ctx[:id] || ctx[:task]
-
-            return Trailblazer::Activity::Right, [ctx.merge(id: id), flow_options]
+          def normalize_id(ctx, id: false, task:, **)
+            ctx[:id] = id || task
+            true # FIXME: why do we need this?
           end
 
           # {:override} really only makes sense for {step Macro(), {override: true}} where the {user_options}
           # dictate the overriding.
-          def normalize_override((ctx, flow_options), *)
-            ctx = ctx.merge(replace: ctx[:id] || raise) if ctx[:override]
-
-            return Trailblazer::Activity::Right, [ctx, flow_options]
+          def normalize_override(ctx, id:, override: false, **)
+            return true unless override
+            ctx[:replace] = (id || raise)
           end
 
           # make ctx[:options] the actual ctx
-          def merge_user_options((ctx, flow_options), *)
-            options = ctx[:options] # either a <#task> or {} from macro
-
-            ctx = ctx.merge(options: options.merge(ctx[:user_options])) # Note that the user options are merged over the macro options.
-
-            return Trailblazer::Activity::Right, [ctx, flow_options]
+          def merge_user_options(ctx, options:, **)
+            # {options} are either a <#task> or {} from macro
+            ctx[:options] = options.merge(ctx[:user_options]) # Note that the user options are merged over the macro options.
           end
 
           # {:normalizer_options} such as {:track_name} get overridden by user/macro.
-          def merge_normalizer_options((ctx, flow_options), *)
-            normalizer_options = ctx[:normalizer_options] # either a <#task> or {} from macro
-
-            ctx = ctx.merge(options: normalizer_options.merge(ctx[:options])) #
-
-            return Trailblazer::Activity::Right, [ctx, flow_options]
+          def merge_normalizer_options(ctx, normalizer_options:, options:, **)
+            ctx[:options] = normalizer_options.merge(options)
           end
 
           def normalize_context((ctx, flow_options), *)
@@ -128,21 +114,16 @@ module Trailblazer
 
           # Compile the actual {Seq::Row}'s {wiring}.
           # This combines {:connections} and {:outputs}
-          def compile_wirings((ctx, flow_options), *)
-            connections = ctx[:connections] || raise # FIXME
-            outputs = ctx[:outputs] || raise # FIXME
-
+          def compile_wirings(ctx, connections:, outputs:, id:, **)
             ctx[:wirings] =
               connections.collect do |semantic, (search_strategy_builder, *search_args)|
-                output = outputs[semantic] || raise("No `#{semantic}` output found for #{ctx[:id].inspect} and outputs #{outputs.inspect}")
+                output = outputs[semantic] || raise("No `#{semantic}` output found for #{id.inspect} and outputs #{outputs.inspect}")
 
                 search_strategy_builder.( # return proc to be called when compiling Seq, e.g. {ById(output, :id)}
                   output,
                   *search_args
                 )
               end
-
-            return Trailblazer::Activity::Right, [ctx, flow_options]
           end
 
           # Process {Output(:semantic) => target}.
@@ -223,35 +204,23 @@ module Trailblazer
             return Trailblazer::Activity::Right, [new_ctx, flow_options]
           end
 
-          def input_output_dsl((ctx, flow_options), *)
+          def input_output_dsl(ctx, extensions: [], **)
             config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx, :inject].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
+            return true unless config.any? # no :input/:output/:inject passed.
 
-            return Trailblazer::Activity::Right, [ctx, flow_options] if config.size == 0 # no :input/:output/:inject passed.
-
-            new_ctx = {}
-            new_ctx[:extensions] = ctx[:extensions] || [] # merge DSL extensions with I/O.
-            new_ctx[:extensions] += [Linear.VariableMapping(**config)]
-
-            return Trailblazer::Activity::Right, [ctx.merge(new_ctx), flow_options]
+            ctx[:extensions] = extensions + [Linear.VariableMapping(**config)]
           end
 
           # Currently, the {:inherit} option copies over {:connections} from the original step
           # and merges them with the (prolly) connections passed from the user.
-          def inherit_option((ctx, flow_options), *)
-            return Trailblazer::Activity::Right, [ctx, flow_options] unless ctx[:inherit]
-
-            sequence = ctx[:sequence]
-            id = ctx[:id]
+          def inherit_option(ctx, inherit: false, sequence:, id:, extensions: [], **)
+            return true unless inherit
 
             index = Linear::Insert.find_index(sequence, id)
             row   = sequence[index] # from this row we're inheriting options.
 
-            connections = get_inheritable_connections(ctx, row[3][:connections])
-            extensions  = Array(row[3][:extensions]) + Array(ctx[:extensions])
-
-            ctx = ctx.merge(connections: connections, extensions: extensions) # "inherit"
-
-            return Trailblazer::Activity::Right, [ctx, flow_options]
+            ctx[:connections] = get_inheritable_connections(ctx, row[3][:connections])
+            ctx[:extensions]  = Array(row[3][:extensions]) + Array(extensions)
           end
 
           # return connections from {parent} step which are supported by current step

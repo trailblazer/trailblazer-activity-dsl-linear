@@ -495,9 +495,9 @@ class ActivityTest < Minitest::Spec
     data2 = activity.to_h[:nodes][2][:data]
     data3 = activity.to_h[:nodes][3][:data]
 
-    data1.keys.must_equal [:connections, :id, :dsl_track]
-    data2.keys.must_equal [:connections, :id, :dsl_track]
-    data3.keys.must_equal [:connections, :id, :dsl_track]
+    data1.keys.must_equal [:id, :dsl_track, :connections]
+    data2.keys.must_equal [:id, :dsl_track, :connections]
+    data3.keys.must_equal [:id, :dsl_track, :connections]
 
     [data1[:id], data1[:dsl_track]].must_equal [:f, :step]
     renderer.(data1[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :success]]]}

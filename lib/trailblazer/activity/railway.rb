@@ -22,7 +22,7 @@ module Trailblazer
 
 # TODO: use prepend_to_path
           sequence = Linear::DSL.insert_task(sequence,
-            task: task,
+            task: TaskBuilder::Binary(task),
             magnetic_to: :success, id: id,
             wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
             sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"])
@@ -31,7 +31,7 @@ module Trailblazer
           task = Fail.method(:connect_success_to_failure)
 
           sequence = Linear::DSL.insert_task(sequence,
-            task: task,
+            task: TaskBuilder::Binary(task),
             magnetic_to: :success, id: id,
             wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
             sequence_insert: [Linear::Insert.method(:Replace), "path.connections"])
@@ -44,7 +44,7 @@ module Trailblazer
           task = Pass.method(:connect_failure_to_success)
 
           sequence = Linear::DSL.insert_task(sequence,
-            task: task,
+            task: TaskBuilder::Binary(task),
             magnetic_to: :success, id: id,
             wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
             sequence_insert: [Linear::Insert.method(:Append), "path.connections"])
@@ -53,26 +53,20 @@ module Trailblazer
         module Fail
           module_function
 
-          def merge_magnetic_to((ctx, flow_options), *)
-            ctx = ctx.merge(magnetic_to: :failure)
-
-            return Right, [ctx, flow_options]
+          def merge_magnetic_to(ctx, **)
+            ctx[:magnetic_to] = :failure
           end
 
-          def connect_success_to_failure((ctx, flow_options), *)
-            ctx = {connections: {success: [Linear::Search.method(:Forward), :failure]}}.merge(ctx)
-
-            return Right, [ctx, flow_options]
+          def connect_success_to_failure(ctx, connections: nil, **)
+            ctx[:connections] = connections || {success: [Linear::Search.method(:Forward), :failure]}
           end
         end
 
         module Pass
           module_function
 
-          def connect_failure_to_success((ctx, flow_options), *)
-            connections = ctx[:connections].merge({failure: [Linear::Search.method(:Forward), :success]})
-
-            return Right, [ctx.merge(connections: connections), flow_options]
+          def connect_failure_to_success(ctx, connections:, **)
+            ctx[:connections] = connections.merge({failure: [Linear::Search.method(:Forward), :success]})
           end
         end
 
@@ -82,8 +76,8 @@ module Trailblazer
             sequence,
 
             {
-              "railway.outputs"     => method(:normalize_path_outputs),
-              "railway.connections" => method(:normalize_path_connections),
+              "railway.outputs"     => TaskBuilder::Binary(method(:normalize_path_outputs)),
+              "railway.connections" => TaskBuilder::Binary(method(:normalize_path_connections)),
             },
 
             Linear::Insert.method(:Prepend), "path.wirings" # override where it's added.
@@ -92,18 +86,14 @@ module Trailblazer
 
         # Add {:failure} output to {:outputs}.
         # TODO: assert that failure_outputs doesn't override existing {:outputs}
-        def normalize_path_outputs((ctx, flow_options), *)
-          outputs = failure_outputs.merge(ctx[:outputs])
-          ctx     = ctx.merge(outputs: outputs)
+        def normalize_path_outputs(ctx, outputs:, **)
+          outputs = failure_outputs.merge(outputs)
 
-          return Right, [ctx, flow_options]
+          ctx[:outputs] = outputs
         end
 
-        def normalize_path_connections((ctx, flow_options), *)
-          connections = failure_connections.merge(ctx[:connections])
-          ctx         = ctx.merge(connections: connections)
-
-          return Right, [ctx, flow_options]
+        def normalize_path_connections(ctx, connections:, **)
+          ctx[:connections] = failure_connections.merge(connections)
         end
 
         def failure_outputs
