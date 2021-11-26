@@ -62,12 +62,6 @@ module Trailblazer
 
             pipe = Activity::TaskWrap::Pipeline.new(input_steps)
 
-
-            # input =
-            #   VariableMapping::Input::Scoped.new(
-            #     Trailblazer::Option(VariableMapping::filter_for(input)) # DISCUSS: here is where we have to build a sub-pipeline for input,inject,input_map
-            #   )
-
             # gets wrapped by {VariableMapping::Input} and called there.
             # API: @filter.([ctx, original_flow_options], **original_circuit_options)
             # input = Trailblazer::Option(->(original_ctx, **) {  })
@@ -208,22 +202,6 @@ module Trailblazer
             def self.hash_for(ary)
               return ary if ary.instance_of?(::Hash)
               Hash[ary.collect { |name| [name, name] }]
-            end
-          end
-
-          module Input
-            class Scoped
-              def initialize(filter)
-                @filter = filter
-              end
-
-              def call((original_ctx, flow_options), **circuit_options)
-                Trailblazer::Context(
-                  @filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options), # these are the non-mutable variables
-                  {}, # mutable variables
-                  flow_options[:context_options]
-                )
-              end
             end
           end
 
