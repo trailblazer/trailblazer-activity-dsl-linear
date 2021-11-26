@@ -1,3 +1,7 @@
+# 0.4.3
+
+* Limit `trailblazer-activity` dependency to `< 0.13.0`.
+
 # 0.4.2
 
 * Don't allow duplicate activities in Sequence (#47) :ghost:
