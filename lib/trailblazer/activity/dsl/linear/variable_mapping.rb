@@ -13,6 +13,13 @@ module Trailblazer
         module VariableMapping
           module_function
 
+          # For the input filter we
+          #   1. create a separate {Pipeline} instance {pipe}. Depending on the user's options, this might have up to four steps.
+          #   2. The {pipe} is run in a lamdba {input}, the lambda returns the pipe's ctx[:input_ctx].
+          #   3. The {input} filter in turn is wrapped into an {Activity::TaskWrap::Input} object via {#merge_instructions_for}.
+          #   4. The {TaskWrap::Input} instance is then finally placed into the taskWrap as {"task_wrap.input"}.
+          #
+          # @private
           def merge_instructions_from_dsl(input:, output:, output_with_outer_ctx:, inject:)
             # FIXME: this could (should?) be in Normalizer?
             inject_passthrough  = inject.find_all { |name| name.is_a?(Symbol) }
@@ -39,7 +46,6 @@ module Trailblazer
             end
 
             if inject_passthrough || inject_with_default
-  # FIXME: DSL
               injections = inject.collect do |name|
                 if name.is_a?(Symbol)
                   [[name, Trailblazer::Option(->(*) { [false, name] })]] # we don't want defaulting, this return value signalizes "please pass-through, only".
@@ -65,7 +71,7 @@ module Trailblazer
             # gets wrapped by {VariableMapping::Input} and called there.
             # API: @filter.([ctx, original_flow_options], **original_circuit_options)
             # input = Trailblazer::Option(->(original_ctx, **) {  })
-            input = ->((ctx, flow_options), **circuit_options) do
+            input = ->((ctx, flow_options), **circuit_options) do # This filter is called by {TaskWrap::Input#call} in the {activity} gem.
               wrap_ctx, _ = pipe.({injections: injections, input_filter: input_filter}, [[ctx, flow_options], circuit_options])
 
               wrap_ctx[:input_ctx]
@@ -87,7 +93,6 @@ module Trailblazer
             TaskWrap::VariableMapping.merge_instructions_for(input, output, id: input.object_id) # wraps filters: {Input(input), Output(output)}
           end
 
-# FIXME: EXPERIMENTAL
 # DISCUSS: improvable sections such as merge vs hash[]=
           def initial_input_hash(wrap_ctx, original_args)
             wrap_ctx = wrap_ctx.merge(input_hash: {})
@@ -130,7 +135,7 @@ module Trailblazer
             filter = wrap_ctx[:input_filter]
             ((original_ctx, _), circuit_options) = original_args
 
-            # this is the actual logic. fuck this
+            # this is the actual logic.
             variables = filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options)
 
             MergeVariables(variables, wrap_ctx, original_args)
@@ -159,8 +164,6 @@ module Trailblazer
 
             return wrap_ctx, original_args
           end
-# FIXME: /EXPERIMENTAL
-
 
           # @private
           # The default {:output} filter only returns the "mutable" part of the inner ctx.
@@ -170,11 +173,6 @@ module Trailblazer
               _wrapped, mutable = scoped.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
               mutable
             end
-          end
-
-          # @private
-          def default_input # FIXME: remove
-            ->(ctx, **) { ctx }
           end
 
           # Returns a filter proc to be called in an Option.
