@@ -7,20 +7,34 @@ module Trailblazer
         module Normalizer
           module_function
 
+          # Wrap {task} with {Trailblazer::Option} and execute it with kw args in {#call}.
+          # Note that this instance always return {Right}.
+          class Task < TaskBuilder::Task
+            def call((ctx, flow_options), **circuit_options)
+              result = call_option(@task, [ctx, flow_options], **circuit_options) # DISCUSS: this mutates {ctx}.
+
+              return Activity::Right, [ctx, flow_options]
+            end
+          end
+
+          def Task(user_proc)
+            Normalizer::Task.new(Trailblazer::Option(user_proc), user_proc)
+          end
+
           #   activity_normalizer.([{options:, user_options:, normalizer_options: }])
           def activity_normalizer(sequence)
             seq = Path::DSL.prepend_to_path(
               sequence,
 
               {
-              "activity.normalize_step_interface"       => TaskBuilder::Binary(method(:normalize_step_interface)),      # first
-              "activity.normalize_for_macro"            => TaskBuilder::Binary(method(:merge_user_options)),
-              "activity.normalize_normalizer_options"   => TaskBuilder::Binary(method(:merge_normalizer_options)),
+              "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)),      # first
+              "activity.normalize_for_macro"            => Normalizer.Task(method(:merge_user_options)),
+              "activity.normalize_normalizer_options"   => Normalizer.Task(method(:merge_normalizer_options)),
               "activity.normalize_context"              => method(:normalize_context),
-              "activity.normalize_id"                   => TaskBuilder::Binary(method(:normalize_id)),
-              "activity.normalize_override"             => TaskBuilder::Binary(method(:normalize_override)),
-              "activity.wrap_task_with_step_interface"  => TaskBuilder::Binary(method(:wrap_task_with_step_interface)), # last
-              "activity.inherit_option"                 => TaskBuilder::Binary(method(:inherit_option)),
+              "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
+              "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)),
+              "activity.wrap_task_with_step_interface"  => Normalizer.Task(method(:wrap_task_with_step_interface)), # last
+              "activity.inherit_option"                 => Normalizer.Task(method(:inherit_option)),
               },
 
               Linear::Insert.method(:Append), "Start.default"
@@ -32,7 +46,7 @@ module Trailblazer
               {
               "activity.normalize_outputs_from_dsl"     => method(:normalize_outputs_from_dsl),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
-              "activity.input_output_dsl"               => TaskBuilder::Binary(method(:input_output_dsl)), # FIXME: make this optional and allow to dynamically change normalizer steps
+              "activity.input_output_dsl"               => Normalizer.Task(method(:input_output_dsl)), # FIXME: make this optional and allow to dynamically change normalizer steps
               },
 
               Linear::Insert.method(:Prepend), "path.wirings"

@@ -74,11 +74,10 @@ module Trailblazer
         end
 
         def normalize_duplications(ctx, replace: false, **)
-          return true if replace
+          return if replace
 
           raise_on_duplicate_id(ctx, **ctx)
           clone_duplicate_activity(ctx, **ctx) # DISCUSS: mutates {ctx}.
-          true
         end
 
         def raise_on_duplicate_id(ctx, id:, sequence:, **)
@@ -86,14 +85,13 @@ module Trailblazer
         end
 
         def clone_duplicate_activity(ctx, task:, sequence:, **)
-          return true unless task.is_a?(Class)
+          return unless task.is_a?(Class)
 
           ctx[:task] = task.clone if sequence.find { |row| row[1] == task }
         end
 
         def normalize_magnetic_to(ctx, track_name:, **) # TODO: merge with Railway.merge_magnetic_to
           ctx[:magnetic_to] = ctx.key?(:magnetic_to) ? ctx[:magnetic_to] : track_name # FIXME: can we be magnetic_to {nil}?
-          true
         end
 
         # Return {Path::Normalizer} sequence.
@@ -101,12 +99,12 @@ module Trailblazer
           prepend_to_path(
             sequence,
 
-            "path.outputs"                => TaskBuilder::Binary(method(:merge_path_outputs)),
-            "path.connections"            => TaskBuilder::Binary(method(:merge_path_connections)),
-            "path.sequence_insert"        => TaskBuilder::Binary(method(:normalize_sequence_insert)),
-            "path.normalize_duplications" => TaskBuilder::Binary(method(:normalize_duplications)),
-            "path.magnetic_to"            => TaskBuilder::Binary(method(:normalize_magnetic_to)),
-            "path.wirings"                => TaskBuilder::Binary(Linear::Normalizer.method(:compile_wirings)),
+            "path.outputs"                => Linear::Normalizer.Task(method(:merge_path_outputs)),
+            "path.connections"            => Linear::Normalizer.Task(method(:merge_path_connections)),
+            "path.sequence_insert"        => Linear::Normalizer.Task(method(:normalize_sequence_insert)),
+            "path.normalize_duplications" => Linear::Normalizer.Task(method(:normalize_duplications)),
+            "path.magnetic_to"            => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
+            "path.wirings"                => Linear::Normalizer.Task(Linear::Normalizer.method(:compile_wirings)),
           )
         end
 

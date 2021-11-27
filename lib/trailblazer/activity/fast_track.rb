@@ -28,7 +28,7 @@ module Trailblazer
             sequence,
 
             {
-              "fast_track.fail_fast_option_for_fail"  => TaskBuilder::Binary(method(:fail_fast_option_for_fail)),
+              "fast_track.fail_fast_option_for_fail"  => Linear::Normalizer.Task(method(:fail_fast_option_for_fail)),
             },
             Linear::Insert.method(:Prepend), "path.wirings"
           )
@@ -41,7 +41,7 @@ module Trailblazer
             sequence,
 
             {
-              "fast_track.pass_fast_option_for_pass"  => TaskBuilder::Binary(method(:pass_fast_option_for_pass)),
+              "fast_track.pass_fast_option_for_pass"  => Linear::Normalizer.Task(method(:pass_fast_option_for_pass)),
             },
             Linear::Insert.method(:Prepend), "path.wirings"
           )
@@ -52,9 +52,9 @@ module Trailblazer
             sequence,
 
             {
-              "fast_track.pass_fast_option"  => TaskBuilder::Binary(method(:pass_fast_option)),
-              "fast_track.fail_fast_option"  => TaskBuilder::Binary(method(:fail_fast_option)),
-              "fast_track.fast_track_option" => TaskBuilder::Binary(method(:fast_track_option)),
+              "fast_track.pass_fast_option"  => Linear::Normalizer.Task(method(:pass_fast_option)),
+              "fast_track.fail_fast_option"  => Linear::Normalizer.Task(method(:fail_fast_option)),
+              "fast_track.fast_track_option" => Linear::Normalizer.Task(method(:fast_track_option)),
             },
             Linear::Insert.method(:Prepend), "path.wirings"
           )
@@ -91,7 +91,7 @@ module Trailblazer
         end
 
         def fast_track_option(ctx, fast_track: false, **)
-          return true unless fast_track
+          return unless fast_track
 
           ctx = merge_connections_for!(ctx, :fast_track, :fail_fast, :fail_fast, **ctx)
           ctx = merge_connections_for!(ctx, :fast_track, :pass_fast, :pass_fast, **ctx)
@@ -158,7 +158,6 @@ module Trailblazer
       extend Activity::DSL::Linear::Strategy
 
       initialize!(Railway::DSL::State.new(**DSL.OptionsForState()))
-
     end # FastTrack
   end
 end

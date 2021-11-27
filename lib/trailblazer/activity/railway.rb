@@ -22,7 +22,7 @@ module Trailblazer
 
 # TODO: use prepend_to_path
           sequence = Linear::DSL.insert_task(sequence,
-            task: TaskBuilder::Binary(task),
+            task: Linear::Normalizer.Task(task),
             magnetic_to: :success, id: id,
             wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
             sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"])
@@ -31,7 +31,7 @@ module Trailblazer
           task = Fail.method(:connect_success_to_failure)
 
           sequence = Linear::DSL.insert_task(sequence,
-            task: TaskBuilder::Binary(task),
+            task: Linear::Normalizer.Task(task),
             magnetic_to: :success, id: id,
             wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
             sequence_insert: [Linear::Insert.method(:Replace), "path.connections"])
@@ -44,7 +44,7 @@ module Trailblazer
           task = Pass.method(:connect_failure_to_success)
 
           sequence = Linear::DSL.insert_task(sequence,
-            task: TaskBuilder::Binary(task),
+            task: Linear::Normalizer.Task(task),
             magnetic_to: :success, id: id,
             wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
             sequence_insert: [Linear::Insert.method(:Append), "path.connections"])
@@ -76,8 +76,8 @@ module Trailblazer
             sequence,
 
             {
-              "railway.outputs"     => TaskBuilder::Binary(method(:normalize_path_outputs)),
-              "railway.connections" => TaskBuilder::Binary(method(:normalize_path_connections)),
+              "railway.outputs"     => Linear::Normalizer.Task(method(:normalize_path_outputs)),
+              "railway.connections" => Linear::Normalizer.Task(method(:normalize_path_connections)),
             },
 
             Linear::Insert.method(:Prepend), "path.wirings" # override where it's added.
@@ -152,7 +152,6 @@ module Trailblazer
       extend DSL::Linear::Strategy
 
       initialize!(Railway::DSL::State.new(**DSL.OptionsForState()))
-
     end # Railway
 
     def self.Railway(options)
