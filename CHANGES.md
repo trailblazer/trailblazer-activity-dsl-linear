@@ -2,6 +2,7 @@
 
 * Introduce `:inject` option to pass-through injected variables and to default input variables.
 * Remove `VariableMapping::Input::Scoped` as we're now using a separate `Pipeline` for input filtering.
+* Massively simplify (and accelerate!) the `Normalizer` layer by using `TaskWrap::Pipeline` instead of `Activity::Path`. Note that you can alter a normalizer by using the `TaskWrap::Pipeline` API now.
 
 # 0.4.3
 

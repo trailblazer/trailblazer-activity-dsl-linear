@@ -992,7 +992,7 @@ ActivityTest::NestedWithThreeTermini
       shared_options = {step_interface_builder: Fixtures.method(:circuit_interface_builder)}
       # state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(**shared_options))
 
-      activity = Class.new(Activity::Path(shared_options)) do
+      activity = Class.new(Activity::Path(**shared_options)) do
         extend T.def_steps(:a, :b, :c)
 
         path = self
@@ -1462,6 +1462,11 @@ ActivityTest::NestedWithThreeTermini
 
 #<End/:failure>
 }
+  end
+
+  it "what" do
+    skip
+    raise "make sure options don't get mutated"
   end
 
 

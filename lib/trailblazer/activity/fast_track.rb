@@ -22,41 +22,41 @@ module Trailblazer
         end
 
         def normalizer_for_fail
-          sequence = step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_fail)
+          pipeline = step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_fail)
 
-          Path::DSL.prepend_to_path(
-            sequence,
+          TaskWrap::Pipeline.prepend(
+            pipeline,
+            "path.wirings",
 
             {
               "fast_track.fail_fast_option_for_fail"  => Linear::Normalizer.Task(method(:fail_fast_option_for_fail)),
-            },
-            Linear::Insert.method(:Prepend), "path.wirings"
+            }
           )
         end
 
         def normalizer_for_pass
-          sequence = step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_pass)
+          pipeline = step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_pass)
 
-          Path::DSL.prepend_to_path(
-            sequence,
+          TaskWrap::Pipeline.prepend(
+            pipeline,
+            "path.wirings",
 
             {
               "fast_track.pass_fast_option_for_pass"  => Linear::Normalizer.Task(method(:pass_fast_option_for_pass)),
-            },
-            Linear::Insert.method(:Prepend), "path.wirings"
+            }
           )
         end
 
-        def step_options(sequence)
-          Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
-            sequence,
+        def step_options(pipeline)
+          TaskWrap::Pipeline.prepend(
+            pipeline,
+            "path.wirings",
 
             {
               "fast_track.pass_fast_option"  => Linear::Normalizer.Task(method(:pass_fast_option)),
               "fast_track.fail_fast_option"  => Linear::Normalizer.Task(method(:fail_fast_option)),
               "fast_track.fast_track_option" => Linear::Normalizer.Task(method(:fast_track_option)),
-            },
-            Linear::Insert.method(:Prepend), "path.wirings"
+            }
           )
         end
 

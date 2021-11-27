@@ -15,39 +15,30 @@ module Trailblazer
         # TODO: make this easier, even at this step.
 
         def normalizer_for_fail
-          sequence = normalizer
+          pipeline = TaskWrap::Pipeline.prepend(
+            normalizer,
+            "path.wirings",
+            {
+              "railway.magnetic_to.fail" => Linear::Normalizer.Task(Fail.method(:merge_magnetic_to)),
+            }
+          )
 
-          id = "railway.magnetic_to.fail"
-          task = Fail.method(:merge_magnetic_to)
-
-# TODO: use prepend_to_path
-          sequence = Linear::DSL.insert_task(sequence,
-            task: Linear::Normalizer.Task(task),
-            magnetic_to: :success, id: id,
-            wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
-            sequence_insert: [Linear::Insert.method(:Prepend), "path.wirings"])
-
-          id = "railway.connections.fail.success_to_failure"
-          task = Fail.method(:connect_success_to_failure)
-
-          sequence = Linear::DSL.insert_task(sequence,
-            task: Linear::Normalizer.Task(task),
-            magnetic_to: :success, id: id,
-            wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
-            sequence_insert: [Linear::Insert.method(:Replace), "path.connections"])
+          pipeline = TaskWrap::Pipeline.prepend(
+            pipeline,
+            "path.connections",
+            {
+              "railway.connections.fail.success_to_failure" => Linear::Normalizer.Task(Fail.method(:connect_success_to_failure)),
+            },
+            replace: 1 # replace {"path.connections"}
+          )
         end
 
         def normalizer_for_pass
-          sequence = normalizer
-
-          id = "railway.connections.pass.failure_to_success"
-          task = Pass.method(:connect_failure_to_success)
-
-          sequence = Linear::DSL.insert_task(sequence,
-            task: Linear::Normalizer.Task(task),
-            magnetic_to: :success, id: id,
-            wirings: [Linear::Search.Forward(Path::DSL.unary_outputs[:success], :success)],
-            sequence_insert: [Linear::Insert.method(:Append), "path.connections"])
+          pipeline = TaskWrap::Pipeline.insert_after(
+            normalizer,
+            "path.connections",
+            ["railway.connections.pass.failure_to_success", Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))],
+          )
         end
 
         module Fail
@@ -71,16 +62,14 @@ module Trailblazer
         end
 
         # Add {Railway} steps to normalizer path.
-        def step_options(sequence)
-          Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
-            sequence,
-
+        def step_options(pipeline)
+          TaskWrap::Pipeline.prepend(
+            pipeline,
+            "path.wirings",
             {
               "railway.outputs"     => Linear::Normalizer.Task(method(:normalize_path_outputs)),
               "railway.connections" => Linear::Normalizer.Task(method(:normalize_path_connections)),
             },
-
-            Linear::Insert.method(:Prepend), "path.wirings" # override where it's added.
           )
         end
 

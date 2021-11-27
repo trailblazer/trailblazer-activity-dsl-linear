@@ -9,20 +9,30 @@ module Trailblazer
         module_function
 
         def normalizer
-          prepend_step_options(
-            initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
-          )
+          TaskWrap::Pipeline.new(normalizer_steps.to_a)
+        end
+
+        # Return {Path::Normalizer} sequence.
+        private def normalizer_steps
+          {
+            "path.outputs"                => Linear::Normalizer.Task(method(:merge_path_outputs)),
+            "path.connections"            => Linear::Normalizer.Task(method(:merge_path_connections)),
+            "path.sequence_insert"        => Linear::Normalizer.Task(method(:normalize_sequence_insert)),
+            "path.normalize_duplications" => Linear::Normalizer.Task(method(:normalize_duplications)),
+            "path.magnetic_to"            => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
+            "path.wirings"                => Linear::Normalizer.Task(Linear::Normalizer.method(:compile_wirings)),
+          }
         end
 
         def start_sequence(track_name:)
           start_default = Activity::Start.new(semantic: :default)
           start_event   = Linear::Sequence.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
-          _sequence      = Linear::Sequence[start_event]
+          _sequence     = Linear::Sequence[start_event]
         end
 
         # DISCUSS: still not sure this should sit here.
         # Pseudo-DSL that prepends {steps} to {sequence}.
-        def prepend_to_path(sequence, steps, insertion_method=Linear::Insert.method(:Prepend), insert_id="End.success")
+        def prepend_to_path(sequence, steps, insertion_method=Linear::Insert.method(:Prepend), insert_id="End.success") # FIXME: where do we need you?
           new_rows = steps.collect do |id, task|
             Linear::Sequence.create_row(
               task:         task,
@@ -94,20 +104,6 @@ module Trailblazer
           ctx[:magnetic_to] = ctx.key?(:magnetic_to) ? ctx[:magnetic_to] : track_name # FIXME: can we be magnetic_to {nil}?
         end
 
-        # Return {Path::Normalizer} sequence.
-        def prepend_step_options(sequence)
-          prepend_to_path(
-            sequence,
-
-            "path.outputs"                => Linear::Normalizer.Task(method(:merge_path_outputs)),
-            "path.connections"            => Linear::Normalizer.Task(method(:merge_path_connections)),
-            "path.sequence_insert"        => Linear::Normalizer.Task(method(:normalize_sequence_insert)),
-            "path.normalize_duplications" => Linear::Normalizer.Task(method(:normalize_duplications)),
-            "path.magnetic_to"            => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
-            "path.wirings"                => Linear::Normalizer.Task(Linear::Normalizer.method(:compile_wirings)),
-          )
-        end
-
         # Returns an initial two-step sequence with {Start.default > End.success}.
         def initial_sequence(track_name:, end_task:, end_id:)
           # TODO: this could be an Activity itself but maybe a bit too much for now.
@@ -141,7 +137,7 @@ module Trailblazer
         # DISCUSS: maybe make this a function?
         # These are the normalizers for an {Activity}, to be injected into a State.
         Normalizers = Linear::State::Normalizer.new(
-          step:  Linear::Normalizer.activity_normalizer( Path::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
+          step:  Linear::Normalizer.activity_normalizer(Path::DSL.normalizer), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
         )
 
         # pp Normalizers

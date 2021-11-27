@@ -39,27 +39,20 @@ module Trailblazer
 
           # Compiles and maintains all final normalizers for a specific DSL.
           class Normalizer
-            def compile_normalizer(normalizer_sequence)
-              process = Trailblazer::Activity::DSL::Linear::Compiler.(normalizer_sequence)
-              process.to_h[:circuit]
-            end
-
             # [gets instantiated at compile time.]
             #
             # We simply compile the activities that represent the normalizers for #step, #pass, etc.
             # This can happen at compile-time, as normalizers are stateless.
             def initialize(normalizer_sequences)
-              @normalizers = Hash[
-                normalizer_sequences.collect { |name, seq| [name, compile_normalizer(seq)] }
-              ]
+              @normalizers = normalizer_sequences
             end
 
             # Execute the specific normalizer (step, fail, pass) for a particular option set provided
             # by the DSL user. This is usually when you call Operation::step.
-            def call(name, *args)
+            def call(name, ctx)
               normalizer = @normalizers.fetch(name)
-              _signal, (options, _) = normalizer.(*args)
-              options
+              wrap_ctx, _ = normalizer.(ctx, nil)
+              wrap_ctx
             end
           end
         end # State

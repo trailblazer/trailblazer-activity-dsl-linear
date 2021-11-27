@@ -10,10 +10,10 @@ module Trailblazer
           # Wrap {task} with {Trailblazer::Option} and execute it with kw args in {#call}.
           # Note that this instance always return {Right}.
           class Task < TaskBuilder::Task
-            def call((ctx, flow_options), **circuit_options)
-              _result = call_option(@task, [ctx, flow_options], **circuit_options) # DISCUSS: this mutates {ctx}.
+            def call(wrap_ctx, _)
+              result = call_option(@task, [wrap_ctx, {}]) # DISCUSS: this mutates {ctx}.
 
-              return Activity::Right, [ctx, flow_options]
+              return wrap_ctx, result
             end
           end
 
@@ -22,10 +22,10 @@ module Trailblazer
           end
 
           #   activity_normalizer.([{options:, user_options:, normalizer_options: }])
-          def activity_normalizer(sequence)
-            seq = Path::DSL.prepend_to_path(
-              sequence,
-
+          def activity_normalizer(pipeline)
+            pipeline = TaskWrap::Pipeline.prepend(
+              pipeline,
+              nil, # this means, put it to the beginning.
               {
               "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)),      # first
               "activity.normalize_for_macro"            => Normalizer.Task(method(:merge_user_options)),
@@ -37,33 +37,25 @@ module Trailblazer
               "activity.wrap_task_with_step_interface"  => Normalizer.Task(method(:wrap_task_with_step_interface)), # last
               "activity.inherit_option"                 => Normalizer.Task(method(:inherit_option)),
               },
-
-              Linear::Insert.method(:Append), "Start.default"
             )
 
-            seq = Trailblazer::Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
-              seq,
-
+            pipeline = TaskWrap::Pipeline.prepend(
+              pipeline,
+              "path.wirings",
               {
               "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
-              "activity.input_output_dsl"               => Normalizer.Task(method(:input_output_dsl)), # FIXME: make this optional and allow to dynamically change normalizer steps
+              "activity.input_output_dsl"               => Normalizer.Task(method(:input_output_dsl)),
               },
-
-              Linear::Insert.method(:Prepend), "path.wirings"
             )
 
-            seq = Trailblazer::Activity::Path::DSL.prepend_to_path( # this doesn't particularly put the steps after the Path steps.
-              seq,
-
-              {
-              "activity.cleanup_options"     => method(:cleanup_options),
-              },
-
-              Linear::Insert.method(:Prepend), "End.success"
+            pipeline = TaskWrap::Pipeline.append(
+              pipeline,
+              nil,
+              ["activity.cleanup_options", method(:cleanup_options)]
             )
-# pp seq
-            seq
+
+            pipeline
           end
 
           # Specific to the "step DSL": if the first argument is a callable, wrap it in a {step_interface_builder}
@@ -123,7 +115,7 @@ module Trailblazer
           def normalize_context((ctx, flow_options), *)
             ctx = ctx[:options]
 
-            return Trailblazer::Activity::Right, [ctx, flow_options]
+            return ctx, nil
           end
 
           # Compile the actual {Seq::Row}'s {wiring}.
@@ -249,11 +241,11 @@ module Trailblazer
           end
 
           # TODO: make this extendable!
-          def cleanup_options((ctx, flow_options), *)
+          def cleanup_options(ctx, _)
             # new_ctx = ctx.reject { |k, v| [:connections, :outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence].include?(k) }
             new_ctx = ctx.reject { |k, v| [:outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence, :non_symbol_options].include?(k) }
 
-            return Trailblazer::Activity::Right, [new_ctx, flow_options]
+            return new_ctx, nil
           end
         end
 
