@@ -30,6 +30,7 @@ module Trailblazer
               "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)),      # first
               "activity.normalize_for_macro"            => Normalizer.Task(method(:merge_user_options)),
               "activity.normalize_normalizer_options"   => Normalizer.Task(method(:merge_normalizer_options)),
+              "activity.normalize_non_symbol_options"   => Normalizer.Task(method(:normalize_non_symbol_options)),
               "activity.normalize_context"              => method(:normalize_context),
               "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
               "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)),
@@ -44,8 +45,8 @@ module Trailblazer
               seq,
 
               {
-              "activity.normalize_outputs_from_dsl"     => method(:normalize_outputs_from_dsl),     # Output(Signal, :semantic) => Id()
-              "activity.normalize_connections_from_dsl" => method(:normalize_connections_from_dsl),
+              "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
+              "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
               "activity.input_output_dsl"               => Normalizer.Task(method(:input_output_dsl)), # FIXME: make this optional and allow to dynamically change normalizer steps
               },
 
@@ -92,20 +93,19 @@ module Trailblazer
           end
 
           def wrap_task_with_step_interface(ctx, wrap_task: false, step_interface_builder:, task:, **)
-            return true unless wrap_task
+            return unless wrap_task
 
             ctx[:task] = step_interface_builder.(task)
           end
 
           def normalize_id(ctx, id: false, task:, **)
             ctx[:id] = id || task
-            true # FIXME: why do we need this?
           end
 
           # {:override} really only makes sense for {step Macro(), {override: true}} where the {user_options}
           # dictate the overriding.
           def normalize_override(ctx, id:, override: false, **)
-            return true unless override
+            return unless override
             ctx[:replace] = (id || raise)
           end
 
@@ -140,16 +140,24 @@ module Trailblazer
               end
           end
 
-          # Process {Output(:semantic) => target}.
-          def normalize_connections_from_dsl((ctx, flow_options), *)
-            new_ctx = ctx.reject { |output, cfg| output.kind_of?(Activity::DSL::Linear::OutputSemantic) }
-            connections = new_ctx[:connections]
-            adds        = new_ctx[:adds]
+          # Move DSL user options such as {Output(:success) => Track(:found)} to
+          # a new key {options[:non_symbol_options]}.
+          # This allows using {options} as a {**ctx}-able hash in Ruby 2.6 and 3.0.
+          def normalize_non_symbol_options(ctx, options:, **)
+            symbol_options     = options.find_all { |k, v| k.is_a?(Symbol) }.to_h
+            non_symbol_options = options.slice(*(options.keys - symbol_options.keys))
+            # raise unless (symbol_options.size+non_symbol_options.size) == options.size
 
+            ctx[:options] = symbol_options.merge(non_symbol_options: non_symbol_options)
+          end
+
+          # Process {Output(:semantic) => target} and make them {:connections}.
+          def normalize_connections_from_dsl(ctx, connections:, adds:, non_symbol_options:, **)
             # Find all {Output() => Track()/Id()/End()}
-            (ctx.keys - new_ctx.keys).each do |output|
-              cfg = ctx[output]
+            output_configs = non_symbol_options.find_all{ |k,v| k.kind_of?(Activity::DSL::Linear::OutputSemantic) }
+            return unless output_configs.any?
 
+            output_configs.each do |output, cfg|
               new_connections, add =
                 if cfg.is_a?(Activity::DSL::Linear::Track)
                   [output_to_track(ctx, output, cfg), cfg.adds]
@@ -172,9 +180,8 @@ module Trailblazer
               adds += add
             end
 
-            new_ctx = new_ctx.merge(connections: connections, adds: adds)
-
-            return Trailblazer::Activity::Right, [new_ctx, flow_options]
+            ctx[:connections] = connections
+            ctx[:adds]        = adds
           end
 
           def output_to_track(ctx, output, track)
@@ -200,27 +207,24 @@ module Trailblazer
           end
 
           # Output(Signal, :semantic) => Id()
-          def normalize_outputs_from_dsl((ctx, flow_options), *)
-            new_ctx = ctx.reject { |output, cfg| output.kind_of?(Activity::Output) }
+          def normalize_outputs_from_dsl(ctx, non_symbol_options:, outputs:, **)
+            output_configs = non_symbol_options.find_all{ |k,v| k.kind_of?(Activity::Output) }
+            return unless output_configs.any?
 
-            outputs     = ctx[:outputs]
             dsl_options = {}
 
-            (ctx.keys - new_ctx.keys).collect do |output|
-              cfg      = ctx[output] # e.g. Track(:success)
-
-              outputs = outputs.merge(output.semantic => output)
+            output_configs.collect do |output, cfg| # {cfg} = Track(:success)
+              outputs     = outputs.merge(output.semantic => output)
               dsl_options = dsl_options.merge(Linear.Output(output.semantic) => cfg)
             end
 
-            new_ctx = new_ctx.merge(outputs: outputs).merge(dsl_options)
-
-            return Trailblazer::Activity::Right, [new_ctx, flow_options]
+            ctx[:outputs]            = outputs
+            ctx[:non_symbol_options] = non_symbol_options.merge(dsl_options)
           end
 
           def input_output_dsl(ctx, extensions: [], **)
             config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx, :inject].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
-            return true unless config.any? # no :input/:output/:inject passed.
+            return unless config.any? # no :input/:output/:inject passed.
 
             ctx[:extensions] = extensions + [Linear.VariableMapping(**config)]
           end
@@ -228,7 +232,7 @@ module Trailblazer
           # Currently, the {:inherit} option copies over {:connections} from the original step
           # and merges them with the (prolly) connections passed from the user.
           def inherit_option(ctx, inherit: false, sequence:, id:, extensions: [], **)
-            return true unless inherit
+            return unless inherit
 
             index = Linear::Insert.find_index(sequence, id)
             row   = sequence[index] # from this row we're inheriting options.
@@ -247,7 +251,7 @@ module Trailblazer
           # TODO: make this extendable!
           def cleanup_options((ctx, flow_options), *)
             # new_ctx = ctx.reject { |k, v| [:connections, :outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence].include?(k) }
-            new_ctx = ctx.reject { |k, v| [:outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence].include?(k) }
+            new_ctx = ctx.reject { |k, v| [:outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence, :non_symbol_options].include?(k) }
 
             return Trailblazer::Activity::Right, [new_ctx, flow_options]
           end
