@@ -10,10 +10,10 @@ module Trailblazer
           # Wrap {task} with {Trailblazer::Option} and execute it with kw args in {#call}.
           # Note that this instance always return {Right}.
           class Task < TaskBuilder::Task
-            def call(wrap_ctx, _)
-              result = call_option(@task, [wrap_ctx, {}]) # DISCUSS: this mutates {ctx}.
+            def call(wrap_ctx, flow_options={})
+              result = call_option(@task, [wrap_ctx, flow_options]) # DISCUSS: this mutates {ctx}.
 
-              return wrap_ctx, result
+              return wrap_ctx, flow_options
             end
           end
 
@@ -112,10 +112,10 @@ module Trailblazer
             ctx[:options] = normalizer_options.merge(options)
           end
 
-          def normalize_context((ctx, flow_options), *)
+          def normalize_context(ctx, flow_options)
             ctx = ctx[:options]
 
-            return ctx, nil
+            return ctx, flow_options
           end
 
           # Compile the actual {Seq::Row}'s {wiring}.
@@ -241,11 +241,11 @@ module Trailblazer
           end
 
           # TODO: make this extendable!
-          def cleanup_options(ctx, _)
+          def cleanup_options(ctx, flow_options)
             # new_ctx = ctx.reject { |k, v| [:connections, :outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence].include?(k) }
             new_ctx = ctx.reject { |k, v| [:outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence, :non_symbol_options].include?(k) }
 
-            return new_ctx, nil
+            return new_ctx, flow_options
           end
         end
 
