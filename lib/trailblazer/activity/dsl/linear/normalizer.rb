@@ -11,7 +11,7 @@ module Trailblazer
           # Note that this instance always return {Right}.
           class Task < TaskBuilder::Task
             def call((ctx, flow_options), **circuit_options)
-              result = call_option(@task, [ctx, flow_options], **circuit_options) # DISCUSS: this mutates {ctx}.
+              _result = call_option(@task, [ctx, flow_options], **circuit_options) # DISCUSS: this mutates {ctx}.
 
               return Activity::Right, [ctx, flow_options]
             end

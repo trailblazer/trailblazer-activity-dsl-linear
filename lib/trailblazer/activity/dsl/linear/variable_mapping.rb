@@ -220,13 +220,13 @@ module Trailblazer
                 )
               end
 
-              def call_filter(new_ctx, (original_ctx, flow_options), **circuit_options)
+              def call_filter(new_ctx, (_original_ctx, _flow_options), **circuit_options)
                 # Pass {inner_ctx, **inner_ctx}
                 @filter.(new_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
               end
 
               class WithOuterContext < Unscoped
-                def call_filter(new_ctx, (original_ctx, flow_options), **circuit_options)
+                def call_filter(new_ctx, (original_ctx, _flow_options), **circuit_options)
                   # Pass {inner_ctx, outer_ctx, **inner_ctx}
                   @filter.(new_ctx, original_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
                 end

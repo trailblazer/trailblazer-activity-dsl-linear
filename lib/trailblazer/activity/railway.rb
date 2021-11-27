@@ -105,16 +105,16 @@ module Trailblazer
 
         def initial_sequence(failure_end:, initial_sequence:, **path_options)
           # TODO: this could be an Activity itself but maybe a bit too much for now.
-          sequence = Path::DSL.append_end(initial_sequence, task: failure_end, magnetic_to: :failure, id: "End.failure")
+          _seq = Path::DSL.append_end(initial_sequence, task: failure_end, magnetic_to: :failure, id: "End.failure")
         end
 
         class State < Path::DSL::State
           def fail(*args)
-            seq = Linear::Strategy.task_for!(self, :fail, *args) # mutate @state
+            _seq = Linear::Strategy.task_for!(self, :fail, *args) # mutate @state
           end
 
           def pass(*args)
-            seq = Linear::Strategy.task_for!(self, :pass, *args) # mutate @state
+            _seq = Linear::Strategy.task_for!(self, :pass, *args) # mutate @state
           end
         end # Instance
 
