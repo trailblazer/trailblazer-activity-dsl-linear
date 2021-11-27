@@ -9,4 +9,5 @@ gem "rubocop", require: false
 
 # gem "trailblazer-developer", path: "../trailblazer-developer"
 # gem "trailblazer-activity", path: "../trailblazer-activity"
+gem "trailblazer-activity", github: "trailblazer/trailblazer-activity"
 # gem "trailblazer-activity", path: "../circuit"
