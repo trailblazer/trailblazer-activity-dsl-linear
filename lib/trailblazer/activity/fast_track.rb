@@ -6,7 +6,7 @@ module Trailblazer
       end
     end
 
-    # Implementation module that can be passed to `Activity[]`.
+    # Implementation module that can be passed to `Activity()`.
     class FastTrack
       Linear = Activity::DSL::Linear
 
@@ -28,7 +28,7 @@ module Trailblazer
             sequence,
 
             {
-              "fast_track.fail_fast_option_for_fail"  => method(:fail_fast_option_for_fail),
+              "fast_track.fail_fast_option_for_fail"  => TaskBuilder::Binary(method(:fail_fast_option_for_fail)),
             },
             Linear::Insert.method(:Prepend), "path.wirings"
           )
@@ -41,7 +41,7 @@ module Trailblazer
             sequence,
 
             {
-              "fast_track.pass_fast_option_for_pass"  => method(:pass_fast_option_for_pass),
+              "fast_track.pass_fast_option_for_pass"  => TaskBuilder::Binary(method(:pass_fast_option_for_pass)),
             },
             Linear::Insert.method(:Prepend), "path.wirings"
           )
@@ -52,75 +52,67 @@ module Trailblazer
             sequence,
 
             {
-              "fast_track.pass_fast_option"  => method(:pass_fast_option),
-              "fast_track.fail_fast_option"  => method(:fail_fast_option),
-              "fast_track.fast_track_option" => method(:fast_track_option),
+              "fast_track.pass_fast_option"  => TaskBuilder::Binary(method(:pass_fast_option)),
+              "fast_track.fail_fast_option"  => TaskBuilder::Binary(method(:fail_fast_option)),
+              "fast_track.fast_track_option" => TaskBuilder::Binary(method(:fast_track_option)),
             },
             Linear::Insert.method(:Prepend), "path.wirings"
           )
         end
 
-        def pass_fast_option((ctx, flow_options), *)
-          ctx = merge_connections_for(ctx, ctx, :pass_fast, :success)
+        def pass_fast_option(ctx, **)
+          ctx = merge_connections_for!(ctx, :pass_fast, :success, **ctx)
 
-          ctx = merge_connections_for(ctx, ctx, :pass_fast, :pass_fast, :pass_fast)
-          ctx = merge_outputs_for(ctx,
-            pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast),
+          ctx = merge_connections_for!(ctx, :pass_fast, :pass_fast, :pass_fast, **ctx)
+          ctx = merge_outputs_for!(ctx,
+            {pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast)},
+            **ctx
           )
-
-          return Right, [ctx, flow_options]
         end
 
-        def pass_fast_option_for_pass((ctx, flow_options), *)
-          ctx = merge_connections_for(ctx, ctx, :pass_fast, :failure)
-          ctx = merge_connections_for(ctx, ctx, :pass_fast, :success)
-
-          return Right, [ctx, flow_options]
+        def pass_fast_option_for_pass(ctx, **)
+          ctx = merge_connections_for!(ctx, :pass_fast, :failure, **ctx)
+          ctx = merge_connections_for!(ctx, :pass_fast, :success, **ctx)
         end
 
-        def fail_fast_option((ctx, flow_options), *)
-          ctx = merge_connections_for(ctx, ctx, :fail_fast, :failure)
+        def fail_fast_option(ctx, **)
+          ctx = merge_connections_for!(ctx, :fail_fast, :failure, **ctx)
 
-          ctx = merge_connections_for(ctx, ctx, :fail_fast, :fail_fast, :fail_fast)
-          ctx = merge_outputs_for(ctx,
-            fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast),
+          ctx = merge_connections_for!(ctx, :fail_fast, :fail_fast, :fail_fast, **ctx)
+          ctx = merge_outputs_for!(ctx,
+            {fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast)},
+            **ctx
           )
-
-          return Right, [ctx, flow_options]
         end
 
-        def fail_fast_option_for_fail((ctx, flow_options), *)
-          ctx = merge_connections_for(ctx, ctx, :fail_fast, :failure)
-          ctx = merge_connections_for(ctx, ctx, :fail_fast, :success)
-
-          return Right, [ctx, flow_options]
+        def fail_fast_option_for_fail(ctx, **)
+          ctx = merge_connections_for!(ctx, :fail_fast, :failure, **ctx)
+          ctx = merge_connections_for!(ctx, :fail_fast, :success, **ctx)
         end
 
-        def fast_track_option((ctx, flow_options), *)
-          return Right, [ctx, flow_options] unless ctx[:fast_track]
+        def fast_track_option(ctx, fast_track: false, **)
+          return true unless fast_track
 
-          ctx = merge_connections_for(ctx, ctx, :fast_track, :fail_fast, :fail_fast)
-          ctx = merge_connections_for(ctx, ctx, :fast_track, :pass_fast, :pass_fast)
+          ctx = merge_connections_for!(ctx, :fast_track, :fail_fast, :fail_fast, **ctx)
+          ctx = merge_connections_for!(ctx, :fast_track, :pass_fast, :pass_fast, **ctx)
 
-          ctx = merge_outputs_for(ctx,
-            pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast),
-            fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast),
+          ctx = merge_outputs_for!(ctx,
+            {pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast),
+                        fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast)},
+            **ctx
           )
-
-          return Right, [ctx, flow_options]
         end
 
-        def merge_connections_for(ctx, options, option_name, semantic, magnetic_to=option_name)
-          return ctx unless options[option_name]
+        def merge_connections_for!(ctx, option_name, semantic, magnetic_to=option_name, connections:, **)
+          return ctx unless ctx[option_name]
 
-          connections  = ctx[:connections].merge(semantic => [Linear::Search.method(:Forward), magnetic_to])
-          ctx          = ctx.merge(connections: connections)
+          ctx[:connections] = connections.merge(semantic => [Linear::Search.method(:Forward), magnetic_to])
+          ctx
         end
 
-        def merge_outputs_for(ctx, outputs)
-          ctx = ctx.merge(
-            outputs: outputs.merge(ctx[:outputs])
-          )
+        def merge_outputs_for!(ctx, new_outputs, outputs:, **)
+          ctx[:outputs] = new_outputs.merge(outputs)
+          ctx
         end
 
         def initial_sequence(initial_sequence:, fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **_o)

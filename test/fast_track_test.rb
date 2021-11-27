@@ -206,7 +206,7 @@ class FastTrackTest < Minitest::Spec
       _(ctx.inspect).must_equal     %{{:seq=>[:f, :g], :g=>false}}
     end
 
-    it "{:pass_fast} and {:fail_fast} DSL options also registers their own ends" do
+    it "{:pass_fast} and {:fail_fast} DSL options also registers their own termini" do
       implementing = T.def_tasks(:a, :b, :c, :d, :e, :f)
 
       sub_nested = Class.new(Activity::FastTrack) do
