@@ -1,17 +1,17 @@
 # Activity-DSL-Linear
 
 The `activity-dsl-linear` gem brings:
-- [Path](https://2019.trailblazer.to/2.1/docs/activity.html#activity-strategy-path)
-- [Railway](https://2019.trailblazer.to/2.1/docs/activity.html#activity-strategy-railway)
-- [Fasttrack](https://2019.trailblazer.to/2.1/docs/activity.html#activity-strategy-fasttrack)
+- [Path](https://trailblazer.to/2.1/docs/activity.html#activity-strategy-path)
+- [Railway](https://trailblazer.to/2.1/docs/activity.html#activity-strategy-railway)
+- [Fasttrack](https://trailblazer.to/2.1/docs/activity.html#activity-strategy-fasttrack)
   
 DSLs strategies for buildig activities. It is build around [`activity`](https://github.com/trailblazer/trailblazer-activity) gem.
 
-Please find the [full documentation on the Trailblazer website](https://2019.trailblazer.to/2.1/docs/activity.html#activity-strategy). [Note that the docs are WIP.]
+Please find the [full documentation on the Trailblazer website](https://trailblazer.to/2.1/docs/activity.html#activity-strategy).
 
 ## Example
 
-The `activity-dsl-linear` gem provides three default patterns to model processes: `Path`, `Railway` and `FastTrack`. Here's an example of what a railway activity could look like, along with some more complex connections (you can read more about Railway strategy in the [docs](https://2019.trailblazer.to/2.1/docs/activity.html#activity-strategy-railway)).
+The `activity-dsl-linear` gem provides three default patterns to model processes: `Path`, `Railway` and `FastTrack`. Here's an example of what a railway activity could look like, along with some more complex connections (you can read more about Railway strategy in the [docs](https://trailblazer.to/2.1/docs/activity.html#activity-strategy-railway)).
 
 ```ruby
 require "trailblazer-activity"
@@ -79,15 +79,15 @@ With Activity, modeling business processes turns out to be ridiculously simple: 
 
 ## Operation
 
-Trailblazer's [`Operation`](https://2019.trailblazer.to/2.1/docs/operation.html#operation-overview) internally uses an activity to model the processes.
+Trailblazer's [`Operation`](https://trailblazer.to/2.1/docs/operation.html#operation-overview) internally uses an activity to model the processes.
 
 ## Workflow
-Activities can be formed into bigger compounds and using workflow, you can build long-running processes such as a moderated blog post or a parcel delivery. Also, you don't have to use the DSL but can use the [`editor`](https://2019.trailblazer.to/2.1/docs/pro.html#pro-editor)instead(cool for more complex, long-running flows). Here comes a sample screenshot.
+Activities can be formed into bigger compounds and using workflow, you can build long-running processes such as a moderated blog post or a parcel delivery. Also, you don't have to use the DSL but can use the [`editor`](https://trailblazer.to/2.1/docs/pro.html#pro-editor)instead(cool for more complex, long-running flows). Here comes a sample screenshot.
 
-<img src="http://2019.trailblazer.to/2.1/dist/img/flow.png">
+<img src="http://trailblazer.to/2.1/dist/img/flow.png">
 
 ## License
 
 © Copyright 2018, Trailblazer GmbH
 
-Licensed under the LGPLv3 license. We also offer a commercial-friendly [license](https://2019.trailblazer.to/2.1/docs/pro.html#pro-license).
+Licensed under the LGPLv3 license. We also offer a commercial-friendly [license](https://trailblazer.to/2.1/docs/pro.html#pro-license).
