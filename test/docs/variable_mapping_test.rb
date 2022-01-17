@@ -589,6 +589,26 @@ require "date"
 
     end # it
 
+    it "merging multiple input/output steps via Input() DSL" do
+      module R
+        class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
+          step :write,
+            # all filters can see the original ctx:
+            input:     [:model],
+            Input() => [:current_user],
+            # we can still see {:time} here:
+            Input() => ->(ctx, model:, time:, **) { {model: model.to_s + "hello! #{time}"} }
+
+          def write(ctx, model:, current_user:, **)
+            ctx[:incoming] = [model, current_user, ctx.keys]
+          end
+        end
+      end
+
+      signal, (ctx, _) = Activity::TaskWrap.invoke(R::Create, [{time: "yesterday", model: Object}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :incoming=>["Objecthello! yesterday", nil, [:model, :current_user]]}}
+    end
+
 
 
     # TODO: test if injections are discarded afterwards
