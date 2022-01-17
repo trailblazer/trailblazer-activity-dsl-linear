@@ -4,8 +4,8 @@ module Trailblazer
       module Linear
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
-        def self.VariableMapping(input: nil, output: VariableMapping.default_output, output_with_outer_ctx: false, inject: [])
-          merge_instructions = VariableMapping.merge_instructions_from_dsl(input: input, output: output, output_with_outer_ctx: output_with_outer_ctx, inject: inject)
+        def self.VariableMapping(input: nil, output: VariableMapping.default_output, output_with_outer_ctx: false, inject: [], input_filters: [], output_filters: [])
+          merge_instructions = VariableMapping.merge_instructions_from_dsl(input: input, output: output, output_with_outer_ctx: output_with_outer_ctx, inject: inject, input_filters: input_filters, output_filters: output_filters)
 
           TaskWrap::Extension(merge: merge_instructions)
         end
@@ -20,7 +20,7 @@ module Trailblazer
           #   4. The {TaskWrap::Input} instance is then finally placed into the taskWrap as {"task_wrap.input"}.
           #
           # @private
-          def merge_instructions_from_dsl(input:, output:, output_with_outer_ctx:, inject:)
+          def merge_instructions_from_dsl(input:, output:, output_with_outer_ctx:, inject:, input_filters:, output_filters:)
             # FIXME: this could (should?) be in Normalizer?
             inject_passthrough  = inject.find_all { |name| name.is_a?(Symbol) }
             inject_with_default = inject.find { |name| name.is_a?(Hash) } # FIXME: we only support one default hash in the DSL so far.
@@ -29,6 +29,8 @@ module Trailblazer
               ["input.init_hash", VariableMapping.method(:initial_input_hash)],
             ]
 
+
+
             # With only injections defined, we do not filter out anything, we use the original ctx
             # and _add_ defaulting for injected variables.
             if !input # only injections defined
@@ -36,9 +38,9 @@ module Trailblazer
             end
 
             if input # :input or :input/:inject
-              input_steps << ["input.add_variables", VariableMapping.method(:add_variables)]
-
               input_filter = Trailblazer::Option(VariableMapping::filter_for(input))
+
+              input_steps << ["input.add_variables", AddVariables.new(input_filter)]
             end
 
             if inject_passthrough || inject_with_default
@@ -66,7 +68,7 @@ module Trailblazer
             # API: @filter.([ctx, original_flow_options], **original_circuit_options)
             # input = Trailblazer::Option(->(original_ctx, **) {  })
             input = ->((ctx, flow_options), **circuit_options) do # This filter is called by {TaskWrap::Input#call} in the {activity} gem.
-              wrap_ctx, _ = pipe.({injections: injections, input_filter: input_filter}, [[ctx, flow_options], circuit_options])
+              wrap_ctx, _ = pipe.({injections: injections}, [[ctx, flow_options], circuit_options])
 
               wrap_ctx[:input_ctx]
             end
@@ -124,15 +126,23 @@ module Trailblazer
             MergeVariables(injections, wrap_ctx, original_args)
           end
 
-          # Implements {:input}.
-          def add_variables(wrap_ctx, original_args)
-            filter = wrap_ctx[:input_filter]
-            ((original_ctx, _), circuit_options) = original_args
+          # Input/output Pipeline step that runs the user's {filter} and adds
+          # variables to the computed ctx.
+          #
+          # Basically implements {:input}.
+          class AddVariables
+            def initialize(input_filter)
+              @filter = input_filter # The users input/output filter.
+            end
 
-            # this is the actual logic.
-            variables = filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options)
+            def call(wrap_ctx, original_args)
+              ((original_ctx, _), circuit_options) = original_args
 
-            MergeVariables(variables, wrap_ctx, original_args)
+              # this is the actual logic.
+              variables = @filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options)
+
+              VariableMapping.MergeVariables(variables, wrap_ctx, original_args)
+            end
           end
 
           # Finally, create a new input ctx from all the
@@ -191,6 +201,12 @@ module Trailblazer
 
 
           module DSL
+            class Input
+            end
+
+            class Output
+            end
+
             # The returned filter compiles a new hash for Scoped/Unscoped that only contains
             # the desired i/o variables.
             def self.filter_from_dsl(map)
