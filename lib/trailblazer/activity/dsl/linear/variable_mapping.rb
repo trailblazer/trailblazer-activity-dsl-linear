@@ -29,18 +29,25 @@ module Trailblazer
               ["input.init_hash", VariableMapping.method(:initial_input_hash)],
             ]
 
+            # TODO: introduce structure for [input, nil] where {nil} will be the filter's config.
+            if input
+              input_filters = ([[input, ":input"]] + input_filters)
+            end
 
 
             # With only injections defined, we do not filter out anything, we use the original ctx
             # and _add_ defaulting for injected variables.
-            if !input # only injections defined
+            if ! input_filters.any? # only injections defined
               input_steps << ["input.default_input", VariableMapping.method(:default_input_ctx)]
             end
 
-            if input # :input or :input/:inject
-              input_filter = Trailblazer::Option(VariableMapping::filter_for(input))
+            if input_filters.any? # :input or :input/:inject
+              input_filters.each do |filter_dsl_value, config|
+                filter = Trailblazer::Option(VariableMapping::filter_for(filter_dsl_value))
 
-              input_steps << ["input.add_variables", AddVariables.new(input_filter)]
+                input_steps << ["input.add_variables.#{config}", AddVariables.new(filter)] # FIXME: config name sucks, of course, if we want to allow inserting etc.
+              end
+
             end
 
             if inject_passthrough || inject_with_default

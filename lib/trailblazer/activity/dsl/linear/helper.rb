@@ -103,6 +103,10 @@ module Trailblazer
               }
             end
 
+            def Input(**options)
+              VariableMapping::DSL::Input.new(**options)
+            end
+
             module Patch
               module_function
 

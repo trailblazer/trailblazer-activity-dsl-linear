@@ -45,6 +45,7 @@ module Trailblazer
               {
               "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
+              "activity.input_output_extensions"        => Normalizer.Task(method(:input_output_extensions)),
               "activity.input_output_dsl"               => Normalizer.Task(method(:input_output_dsl)),
               },
             )
@@ -214,11 +215,23 @@ module Trailblazer
             ctx[:non_symbol_options] = non_symbol_options.merge(dsl_options)
           end
 
-          def input_output_dsl(ctx, extensions: [], **)
+          # Process {Input() => [:model]}
+          # TODO: order matters?
+          def input_output_extensions(ctx, non_symbol_options:, **)
+            input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Input) }.collect { |k, filter| [filter, k] }
+            output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Output) }.collect { |k, filter| [filter, k] }
+
+            ctx[:input_filters] = input_exts
+            ctx[:output_filters] = output_exts # DISCUSS: naming
+          end
+
+          def input_output_dsl(ctx, extensions: [], input_filters: [], output_filters: [], **)
             config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx, :inject].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
             return unless config.any? # no :input/:output/:inject passed.
 
-            ctx[:extensions] = extensions + [Linear.VariableMapping(**config)]
+            ctx[:extensions] = extensions + [
+              Linear.VariableMapping(input_filters: input_filters, output_filters: output_filters, **config)
+            ]
           end
 
           # Currently, the {:inherit} option copies over {:connections} from the original step
