@@ -104,7 +104,7 @@ module Trailblazer
             end
 
             def Input(**options)
-              VariableMapping::DSL::Input.new(**options)
+              VariableMapping::DSL::Input(**options)
             end
 
             module Patch

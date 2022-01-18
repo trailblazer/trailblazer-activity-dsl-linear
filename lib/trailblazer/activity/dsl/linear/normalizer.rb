@@ -218,8 +218,13 @@ module Trailblazer
           # Process {Input() => [:model]}
           # TODO: order matters?
           def input_output_extensions(ctx, non_symbol_options:, **)
-            input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Input) }.collect { |k, filter| [filter, k] }
-            output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Output) }.collect { |k, filter| [filter, k] }
+            # FIXME: move FilterConfig-specific knowledge to VariableMapping.
+
+            input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Input) }.collect { |k, filter| VariableMapping::FilterConfig.new(filter, filter.object_id, VariableMapping::AddVariables) }
+            output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Output) }.collect { |k, filter|
+
+              VariableMapping::FilterConfig.new(filter, filter.object_id, VariableMapping::AddVariables::Output)
+            }
 
             ctx[:input_filters] = input_exts
             ctx[:output_filters] = output_exts # DISCUSS: naming

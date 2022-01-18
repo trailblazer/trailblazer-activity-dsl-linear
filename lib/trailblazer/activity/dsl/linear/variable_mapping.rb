@@ -4,7 +4,7 @@ module Trailblazer
       module Linear
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
-        def self.VariableMapping(input: nil, output: VariableMapping.default_output, output_with_outer_ctx: false, inject: [], input_filters: [], output_filters: [])
+        def self.VariableMapping(input: nil, output: nil, output_with_outer_ctx: false, inject: [], input_filters: [], output_filters: [])
           merge_instructions = VariableMapping.merge_instructions_from_dsl(input: input, output: output, output_with_outer_ctx: output_with_outer_ctx, inject: inject, input_filters: input_filters, output_filters: output_filters)
 
           TaskWrap::Extension(merge: merge_instructions)
@@ -12,6 +12,8 @@ module Trailblazer
 
         module VariableMapping
           module_function
+
+          FilterConfig = Struct.new(:user_filter, :name, :add_variables_class)
 
           # For the input filter we
           #   1. create a separate {Pipeline} instance {pipe}. Depending on the user's options, this might have up to four steps.
@@ -31,7 +33,7 @@ module Trailblazer
 
             # TODO: introduce structure for [input, nil] where {nil} will be the filter's config.
             if input
-              input_filters = ([[input, ":input"]] + input_filters)
+              input_filters = [FilterConfig.new(input, ":input", AddVariables)] + input_filters
             end
 
 
@@ -42,12 +44,8 @@ module Trailblazer
             end
 
             if input_filters.any? # :input or :input/:inject
-              input_filters.each do |filter_dsl_value, config|
-                filter = Trailblazer::Option(VariableMapping::filter_for(filter_dsl_value))
-
-                input_steps << ["input.add_variables.#{config}", AddVariables.new(filter)] # FIXME: config name sucks, of course, if we want to allow inserting etc.
-              end
-
+              # Add one row per filter (either {:input} or {Input()}).
+              input_steps += add_variables_steps_for_filters(input_filters)
             end
 
             if inject_passthrough || inject_with_default
@@ -86,14 +84,57 @@ module Trailblazer
             # 3. inject          => hash
             # 4. Input::Scoped()
 
-            unscope_class = output_with_outer_ctx ? VariableMapping::Output::Unscoped::WithOuterContext : VariableMapping::Output::Unscoped
-
-            output =
-              unscope_class.new(
-                Trailblazer::Option(VariableMapping::filter_for(output))
-              )
+            output = output_for(output: output, output_with_outer_ctx: output_with_outer_ctx)
 
             TaskWrap::VariableMapping.merge_instructions_for(input, output, id: input.object_id) # wraps filters: {Input(input), Output(output)}
+          end
+
+          def output_for(output_with_outer_ctx:, output:)
+            steps = [
+              ["output.init_hash", VariableMapping.method(:initial_input_hash)],
+            ]
+
+            output_filters = []
+            if ! output # no {:output} defined.
+              steps << ["output.default_output", VariableMapping.method(:default_output_ctx)]
+    # TODO: make this just another output_filter(s)
+            end
+
+            if output
+              add_variables_class = output_with_outer_ctx ? AddVariables::Output::WithOuterContext : AddVariables::Output
+
+              output_filters = [FilterConfig.new(output, ":output", add_variables_class)]
+            end
+
+
+
+            if output_filters.any? # :input or :input/:inject
+              # Add one row per filter (either {:output} or {Output()}).
+              steps += add_variables_steps_for_filters(output_filters, add_variables_class: AddVariables::Output)
+            end
+
+
+            steps << ["output.merge_with_original", VariableMapping.method(:merge_with_original)]
+
+            pipe = Activity::TaskWrap::Pipeline.new(steps)
+
+            # API in VariableMapping::Output:
+            #   output_ctx = @filter.(returned_ctx, [original_ctx, returned_flow_options], **original_circuit_options)
+            # Returns {output_ctx} that is used after taskWrap finished.
+            output = ->(returned_ctx, (original_ctx, returned_flow_options), **original_circuit_options) {
+              wrap_ctx, _ = pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx}, [[original_ctx, returned_flow_options], original_circuit_options])
+
+              wrap_ctx[:input_hash]
+            }
+          end
+
+          # Returns array of step rows.
+          def add_variables_steps_for_filters(filters, add_variables_class: AddVariables)
+            filters.collect do |config|
+              filter = Trailblazer::Option(VariableMapping::filter_for(config.user_filter))
+
+              ["input.add_variables.#{config.name}", config.add_variables_class.new(filter)] # FIXME: config name sucks, of course, if we want to allow inserting etc.
+            end
           end
 
 # DISCUSS: improvable sections such as merge vs hash[]=
@@ -138,17 +179,40 @@ module Trailblazer
           #
           # Basically implements {:input}.
           class AddVariables
-            def initialize(input_filter)
-              @filter = input_filter # The users input/output filter.
+            def initialize(filter)
+              @filter = filter # The users input/output filter.
             end
 
             def call(wrap_ctx, original_args)
               ((original_ctx, _), circuit_options) = original_args
+              # puts "@@@@@ #{wrap_ctx[:returned_ctx].inspect}"
 
               # this is the actual logic.
-              variables = @filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options)
+              variables = call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
 
               VariableMapping.MergeVariables(variables, wrap_ctx, original_args)
+            end
+
+            def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
+              _variables = @filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options)
+            end
+
+            # Pass {inner_ctx, **inner_ctx} to the filter.
+            class Output < AddVariables
+              def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
+                new_ctx = wrap_ctx[:returned_ctx]
+
+                @filter.(new_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
+              end
+
+              # Pass {inner_ctx, outer_ctx, **inner_ctx}
+              class WithOuterContext < Output
+                def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
+                  new_ctx = wrap_ctx[:returned_ctx]
+
+                  @filter.(new_ctx, original_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
+                end
+              end
             end
           end
 
@@ -179,11 +243,21 @@ module Trailblazer
           # @private
           # The default {:output} filter only returns the "mutable" part of the inner ctx.
           # This means only variables added using {inner_ctx[..]=} are merged on the outside.
-          def default_output
-            ->(scoped, **) do
-              _wrapped, mutable = scoped.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
-              mutable
-            end
+          def default_output_ctx(wrap_ctx, original_args)
+            new_ctx = wrap_ctx[:returned_ctx]
+
+            _wrapped, mutable = new_ctx.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
+
+            MergeVariables(mutable, wrap_ctx, original_args)
+          end
+
+          def merge_with_original(wrap_ctx, original_args)
+            original_ctx     = wrap_ctx[:original_ctx]  # outer ctx
+            output_variables = wrap_ctx[:input_hash]
+
+            wrap_ctx[:input_hash] = original_ctx.merge(output_variables) # FIXME: use MergeVariables()
+            # pp wrap_ctx
+            return wrap_ctx, original_args
           end
 
           # Returns a filter proc to be called in an Option.
@@ -196,22 +270,15 @@ module Trailblazer
             end
           end
 
-          # @private
-          def output_option_for(option, pass_outer_ctx) # DISCUSS: not sure I like this.
-
-            return option if pass_outer_ctx
-            # OutputReceivingInnerCtxOnly =
-
-             # don't pass {outer_ctx}, only {inner_ctx}. this is the default.
-            return ->(inner_ctx, outer_ctx, **kws) { option.(inner_ctx, **kws) }
-          end
-
-
           module DSL
-            class Input
+            class Input < Struct.new(:config)
             end
 
-            class Output
+            class Output < Struct.new(:config)
+            end
+
+            def self.Input(name: rand, add_variables_class: AddVariables)
+              Input.new(name: name, add_variables_class: add_variables_class)
             end
 
             # The returned filter compiles a new hash for Scoped/Unscoped that only contains
@@ -228,34 +295,7 @@ module Trailblazer
             end
           end
 
-          module Output
-            # Merge the resulting {@filter.()} hash back into the original ctx.
-            # DISCUSS: do we need the original_ctx as a filter argument?
-            class Unscoped
-              def initialize(filter)
-                @filter = filter
-              end
 
-              # The returned hash from {@filter} is merged with the original ctx.
-              def call(new_ctx, (original_ctx, flow_options), **circuit_options)
-                original_ctx.merge(
-                  call_filter(new_ctx, [original_ctx, flow_options], **circuit_options)
-                )
-              end
-
-              def call_filter(new_ctx, (_original_ctx, _flow_options), **circuit_options)
-                # Pass {inner_ctx, **inner_ctx}
-                @filter.(new_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
-              end
-
-              class WithOuterContext < Unscoped
-                def call_filter(new_ctx, (original_ctx, _flow_options), **circuit_options)
-                  # Pass {inner_ctx, outer_ctx, **inner_ctx}
-                  @filter.(new_ctx, original_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
-                end
-              end
-            end
-          end
         end # VariableMapping
       end
     end
