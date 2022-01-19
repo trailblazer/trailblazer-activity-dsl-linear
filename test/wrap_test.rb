@@ -17,12 +17,12 @@ class TaskWrapTest < Minitest::Spec
       step task: implementing.method(:c)
     end
 
-    signal, (ctx, flow_options) = taskWrap.invoke(activity, [{seq: []}])
+    signal, (ctx, flow_options) = taskWrap.invoke(activity, [{seq: []}, {}])
 
     _(ctx.inspect).must_equal %{{:seq=>[1, :a, 2, :b, :c]}}
 
 # {Activity.invoke} is an alias for {TaskWrap.invoke}
-    signal, (ctx, flow_options) = activity.invoke([{seq: []}], **{})
+    signal, (ctx, flow_options) = activity.invoke([{seq: []}, {}], **{})
 
     _(ctx.inspect).must_equal %{{:seq=>[1, :a, 2, :b, :c]}}
 
@@ -36,7 +36,7 @@ class TaskWrapTest < Minitest::Spec
       step task: c, extensions: [taskWrap::Extension(merge: merge)]
     end
 
-    signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}], **{})
+    signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}, {}], **{})
 
     _(ctx.inspect).must_equal %{{:seq=>[:a, 1, :a, 2, :b, :c, 1, :c, 2]}}
 
@@ -44,7 +44,7 @@ class TaskWrapTest < Minitest::Spec
 
     wrap_runtime = {c => taskWrap::Pipeline::Merge.new(*merge)}
 
-    signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}], **{wrap_runtime: wrap_runtime})
+    signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}, {}], **{wrap_runtime: wrap_runtime})
 
     _(ctx.inspect).must_equal %{{:seq=>[:a, 1, :a, 2, :b, 1, :c, 2, 1, 1, :c, 2, 2]}}
   end
