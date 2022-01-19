@@ -609,7 +609,7 @@ require "date"
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :incoming=>[9, Module, [:current_user]]}}
     end
 
-    it "Output() DSL: single {Output() => [:current_user]}" do
+    it "Output() DSL: single {Out() => [:current_user]}" do
       module RRR
         class Create < Trailblazer::Activity::Railway
           step :create_model,
@@ -622,12 +622,85 @@ require "date"
         end
       end
 
+      # {:private} invisible
       signal, (ctx, _) = Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module}}
 
       # no {:model} for invocation
       signal, (ctx, _) = Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :model=>[Module, [:time, :current_user, :private]]}}
+    end
+
+    it "Output() DSL: single {Out() => {:model => :user}}" do
+      module RRRR
+        class Create < Trailblazer::Activity::Railway
+          step :create_model,
+            Out() => {:model => :song}
+
+          def create_model(ctx, current_user:, **)
+            ctx[:private] = "hi!"
+            ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song}!
+          end
+        end
+      end
+
+      # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]]}}
+
+      # no {:model} in original ctx
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :song=>[Module, [:time, :current_user, :private]]}}
+    end
+
+    it "Out() DSL: multiple overlapping {Out() => {:model => :user}} will create two aliases" do
+      module RRRRR
+        class Create < Trailblazer::Activity::Railway
+          step :create_model,
+            Out() => {:model => :song, :current_user => :user},
+            Out() => {:model => :hit}
+
+          def create_model(ctx, current_user:, **)
+            ctx[:private] = "hi!"
+            ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song} and {:hit}!
+          end
+        end
+      end
+
+      # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]], :user=>Module, :hit=>[Module, [:time, :model, :current_user, :private]]}}
+
+      # no {:model} in original ctx
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :song=>[Module, [:time, :current_user, :private]], :user=>Module, :hit=>[Module, [:time, :current_user, :private]]}}
+    end
+
+    it "Out() DSL: Dynamic lambda {Out() => ->{}}" do
+      module RRRRRR
+        class Create < Trailblazer::Activity::Railway
+          step :create_model,
+            Out() => -> (inner_ctx, model:, private:, **) {
+              {
+                :model    => model,
+                :private  => private.gsub(/./, "X") # CC number should be Xs outside.
+              }
+            }
+
+          def create_model(ctx, current_user:, **)
+            ctx[:private] = "hi!"
+            ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song} and {:hit}!
+          end
+        end
+      end
+
+      # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module, :private=>"XXX"}}
+
+      # no {:model} in original ctx
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :model=>[Module, [:time, :current_user, :private]], :private=>"XXX"}}
     end
 
 
