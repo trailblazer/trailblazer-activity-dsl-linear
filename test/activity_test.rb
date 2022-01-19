@@ -433,7 +433,7 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
 
-        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
+        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
 
         _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
         _(ctx.inspect).must_equal %{{:seq=>[1, :a, :b]}}
@@ -800,11 +800,11 @@ ActivityTest::NestedWithThreeTermini
       step :b, inherit: true, id: :b, replace: :b, extensions: [ext] # we want to "override" the original {:extensions}
     end
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}])
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:seq=>[1, :a, :b]}}
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(sub, [{seq: []}])
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(sub, [{seq: []}, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:seq=>[1, :a, 1, :b]}}
   end
