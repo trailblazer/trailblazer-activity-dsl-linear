@@ -84,22 +84,23 @@ module Trailblazer
             # 3. inject          => hash
             # 4. Input::Scoped()
 
-            output = output_for(output: output, output_with_outer_ctx: output_with_outer_ctx)
+            output = output_for(output: output, output_with_outer_ctx: output_with_outer_ctx, output_filters: output_filters)
 
             TaskWrap::VariableMapping.merge_instructions_for(input, output, id: input.object_id) # wraps filters: {Input(input), Output(output)}
           end
 
-          def output_for(output_with_outer_ctx:, output:)
+          def output_for(output_with_outer_ctx:, output:, output_filters:)
             steps = [
               ["output.init_hash", VariableMapping.method(:initial_input_hash)],
             ]
 
-            output_filters = []
-            if ! output # no {:output} defined.
+            # output_filters = []
+            if ! output && output_filters.empty? # no {:output} defined.
               steps << ["output.default_output", VariableMapping.method(:default_output_ctx)]
     # TODO: make this just another output_filter(s)
             end
 
+            # {:output} option
             if output
               add_variables_class = output_with_outer_ctx ? AddVariables::Output::WithOuterContext : AddVariables::Output
 
@@ -110,7 +111,7 @@ module Trailblazer
 
             if output_filters.any? # :input or :input/:inject
               # Add one row per filter (either {:output} or {Output()}).
-              steps += add_variables_steps_for_filters(output_filters, add_variables_class: AddVariables::Output)
+              steps += add_variables_steps_for_filters(output_filters)
             end
 
 
@@ -129,7 +130,7 @@ module Trailblazer
           end
 
           # Returns array of step rows.
-          def add_variables_steps_for_filters(filters, add_variables_class: AddVariables)
+          def add_variables_steps_for_filters(filters)
             filters.collect do |config|
               filter = Trailblazer::Option(VariableMapping::filter_for(config.user_filter))
 
@@ -279,6 +280,10 @@ module Trailblazer
 
             def self.Input(name: rand, add_variables_class: AddVariables)
               Input.new(name: name, add_variables_class: add_variables_class)
+            end
+
+            def self.Output(name: rand, add_variables_class: AddVariables::Output)
+              Output.new(name: name, add_variables_class: add_variables_class)
             end
 
             # The returned filter compiles a new hash for Scoped/Unscoped that only contains

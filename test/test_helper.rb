@@ -12,6 +12,10 @@ require "trailblazer/activity/testing"
 T = Trailblazer::Activity::Testing
 
 Minitest::Spec.class_eval do
+  def assert_equal(asserted, expected)
+    super(expected, asserted)
+  end
+
   def compile_process(sequence)
     _process = Linear::Compiler.(sequence)
   end

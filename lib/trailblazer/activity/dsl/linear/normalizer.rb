@@ -230,13 +230,14 @@ module Trailblazer
             ctx[:output_filters] = output_exts # DISCUSS: naming
           end
 
-          def input_output_dsl(ctx, extensions: [], input_filters: [], output_filters: [], **)
+          def input_output_dsl(ctx, extensions: [], input_filters: nil, output_filters: nil, **)
             config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx, :inject].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
-            return unless config.any? # no :input/:output/:inject passed.
+            config = config.merge(input_filters: input_filters)   if input_filters
+            config = config.merge(output_filters: output_filters) if output_filters # TODO: hm, is this nice code?
 
-            ctx[:extensions] = extensions + [
-              Linear.VariableMapping(input_filters: input_filters, output_filters: output_filters, **config)
-            ]
+            return unless config.any? # no :input/:output/:inject/Input()/Output() passed.
+
+            ctx[:extensions] = extensions + [Linear.VariableMapping(**config)]
           end
 
           # Currently, the {:inherit} option copies over {:connections} from the original step

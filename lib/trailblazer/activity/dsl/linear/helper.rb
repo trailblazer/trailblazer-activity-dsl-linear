@@ -107,6 +107,10 @@ module Trailblazer
               VariableMapping::DSL::Input(**options)
             end
 
+            def Out(**options)
+              VariableMapping::DSL::Output(**options)
+            end
+
             module Patch
               module_function
 
