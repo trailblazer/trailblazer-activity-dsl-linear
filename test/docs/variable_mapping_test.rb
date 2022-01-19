@@ -703,6 +703,34 @@ require "date"
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :model=>[Module, [:time, :current_user, :private]], :private=>"XXX"}}
     end
 
+    it "Out() DSL: Dynamic lambda {Out() => ->{}}, order matters!" do
+      module RRRRRRR
+        class Create < Trailblazer::Activity::Railway
+          step :create_model,
+            Out() => -> (inner_ctx, model:, private:, **) {
+              {
+                :model    => model,
+                :private  => private.gsub(/./, "X") # CC number should be Xs outside.
+              }
+            },
+            Out() => ->(inner_ctx, model:, **) { {:model => "<#{model}>"} }
+
+          def create_model(ctx, current_user:, **)
+            ctx[:private] = "hi!"
+            ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song} and {:hit}!
+          end
+        end
+      end
+
+      # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>"<[Module, [:time, :model, :current_user, :private]]>", :current_user=>Module, :private=>"XXX"}}
+
+      # no {:model} in original ctx
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :model=>"<[Module, [:time, :current_user, :private]]>", :private=>"XXX"}}
+    end
+
 
     it "merging multiple input/output steps via Input() DSL" do
       module R
