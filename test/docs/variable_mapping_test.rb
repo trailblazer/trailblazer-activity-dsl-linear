@@ -589,6 +589,48 @@ require "date"
 
     end # it
 
+# Composing input/output
+    it "Input() DSL: single {Input() => [:current_user]}" do
+      module RR
+        class Create < Trailblazer::Activity::Railway
+          step :write,
+            Input() => [:current_user] # TODO: discuss Inject
+
+          def write(ctx, model: 9, current_user:, **)
+            ctx[:incoming] = [model, current_user, ctx.keys]
+          end
+        end
+      end
+
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RR::Create, [{time: "yesterday", model: Object}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :incoming=>[9, nil, [:current_user]]}}
+      # pass {:current_user} from the outside
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :incoming=>[9, Module, [:current_user]]}}
+    end
+
+    it "Output() DSL: single {Output() => [:current_user]}" do
+      module RRR
+        class Create < Trailblazer::Activity::Railway
+          step :create_model,
+            Out() => [:model]
+
+          def create_model(ctx, current_user:, **)
+            ctx[:private] = "hi!"
+            ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside!
+          end
+        end
+      end
+
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module}}
+
+      # no {:model} for invocation
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :model=>[Module, [:time, :current_user, :private]]}}
+    end
+
+
     it "merging multiple input/output steps via Input() DSL" do
       module R
         class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
