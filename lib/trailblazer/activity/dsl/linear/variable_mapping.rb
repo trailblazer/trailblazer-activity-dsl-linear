@@ -279,13 +279,13 @@ module Trailblazer
             end
 
             def self.Input(name: rand, add_variables_class: AddVariables)
-              Input.new(name: name, add_variables_class: add_variables_class)
+              Input.new({name: name, add_variables_class: add_variables_class})
             end
 
             def self.Output(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false)
               add_variables_class = AddVariables::Output::WithOuterContext if with_outer_ctx
 
-              Output.new(name: name, add_variables_class: add_variables_class)
+              Output.new({name: name, add_variables_class: add_variables_class})
             end
 
             # The returned filter compiles a new hash for Scoped/Unscoped that only contains
