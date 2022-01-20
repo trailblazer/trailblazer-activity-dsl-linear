@@ -767,7 +767,8 @@ require "date"
             input:     [:model],
             Input() => [:current_user],
             # we can still see {:time} here:
-            Input() => ->(ctx, model:, time:, **) { {model: model.to_s + "hello! #{time}"} }
+            Input() => ->(ctx, model:, time:, **) { {model: model.to_s + "hello! #{time}"} },
+            Out() => ->(ctx, model:, **) { {out: [model, ctx[:incoming]]} }
 
           def write(ctx, model:, current_user:, **)
             ctx[:incoming] = [model, current_user, ctx.keys]
@@ -776,7 +777,7 @@ require "date"
       end
 
       signal, (ctx, _) = Activity::TaskWrap.invoke(R::Create, [{time: "yesterday", model: Object}, {}])
-      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :incoming=>["Objecthello! yesterday", nil, [:model, :current_user]]}}
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, [:model, :current_user]]]}}
     end
 
 

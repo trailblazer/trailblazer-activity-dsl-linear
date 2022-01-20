@@ -495,7 +495,7 @@ class ActivityTest < Minitest::Spec
     data2 = activity.to_h[:nodes][2][:data]
     data3 = activity.to_h[:nodes][3][:data]
 
-    data1.keys.must_equal [:id, :dsl_track, :connections]
+    assert_equal data1.keys, [:id, :dsl_track, :connections]
     data2.keys.must_equal [:id, :dsl_track, :connections]
     data3.keys.must_equal [:id, :dsl_track, :connections]
 
