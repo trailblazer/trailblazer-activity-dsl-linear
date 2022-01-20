@@ -731,6 +731,33 @@ require "date"
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :model=>"<[Module, [:time, :current_user, :private]]>", :private=>"XXX"}}
     end
 
+    it "Out() DSL: { Out(with_outer_ctx: true) => ->{} }" do
+      module RRRRRRRR
+        class Create < Trailblazer::Activity::Railway
+          step :create_model,
+            Out() => -> (inner_ctx, model:, private:, **) {
+              {
+                :model    => model,
+                :private  => private.gsub(/./, "X") # CC number should be Xs outside.
+              }
+            },
+            Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx, model:, **) { {:song => model, private: outer_ctx[:private].to_i + 1} }
+
+          def create_model(ctx, current_user:, **)
+            ctx[:private] = "hi!"
+            ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song} and {:hit}!
+          end
+        end
+      end
+
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module, :private=>1, :song=>[Module, [:time, :model, :current_user, :private]]}}
+
+      # no {:model} in original ctx
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRRRR::Create, [{time: "yesterday", current_user: Module, private: 9}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :private=>10, :model=>[Module, [:time, :current_user, :private]], :song=>[Module, [:time, :current_user, :private]]}}
+    end
+
 
     it "merging multiple input/output steps via Input() DSL" do
       module R

@@ -282,7 +282,9 @@ module Trailblazer
               Input.new(name: name, add_variables_class: add_variables_class)
             end
 
-            def self.Output(name: rand, add_variables_class: AddVariables::Output)
+            def self.Output(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false)
+              add_variables_class = AddVariables::Output::WithOuterContext if with_outer_ctx
+
               Output.new(name: name, add_variables_class: add_variables_class)
             end
 
