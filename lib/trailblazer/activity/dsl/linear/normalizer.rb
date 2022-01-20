@@ -221,9 +221,9 @@ module Trailblazer
             # FIXME: move FilterConfig-specific knowledge to VariableMapping.
 
             input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Input) }.collect { |k, filter| VariableMapping::FilterConfig.new(filter, filter.object_id, VariableMapping::AddVariables) }
-            output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Output) }.collect { |k, filter|
+            output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Output) }.collect { |out, filter|
 
-              VariableMapping::FilterConfig.new(filter, filter.object_id, VariableMapping::AddVariables::Output)
+              VariableMapping::FilterConfig.new(filter, filter.object_id, out.config[:add_variables_class] || raise)
             }
 
             ctx[:input_filters] = input_exts
