@@ -216,7 +216,6 @@ module Trailblazer
           end
 
           # Process {Input() => [:model]}
-          # TODO: order matters?
           def input_output_extensions(ctx, non_symbol_options:, **)
             # FIXME: move FilterConfig-specific knowledge to VariableMapping.
 
@@ -225,6 +224,8 @@ module Trailblazer
 
               VariableMapping::FilterConfig.new(filter, filter.object_id, out.config[:add_variables_class] || raise)
             }
+
+            return unless input_exts.any? || output_exts.any?
 
             ctx[:input_filters] = input_exts
             ctx[:output_filters] = output_exts # DISCUSS: naming
