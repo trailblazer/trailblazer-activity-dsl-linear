@@ -758,6 +758,8 @@ require "date"
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :private=>10, :model=>[Module, [:time, :current_user, :private]], :song=>[Module, [:time, :current_user, :private]]}}
     end
 
+# TODO: renaming as in {:old => :new} should delete {old} when both are {Out()}!
+
 
     it "merging multiple input/output steps via Input() DSL" do
       module R

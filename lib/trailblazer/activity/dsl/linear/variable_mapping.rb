@@ -73,7 +73,7 @@ module Trailblazer
             # API: @filter.([ctx, original_flow_options], **original_circuit_options)
             # input = Trailblazer::Option(->(original_ctx, **) {  })
             input = ->((ctx, flow_options), **circuit_options) do # This filter is called by {TaskWrap::Input#call} in the {activity} gem.
-              wrap_ctx, _ = pipe.({injections: injections}, [[ctx, flow_options], circuit_options])
+              wrap_ctx, _ = pipe.({injections: injections, original_ctx: ctx}, [[ctx, flow_options], circuit_options])
 
               wrap_ctx[:input_ctx]
             end
@@ -148,13 +148,14 @@ module Trailblazer
           # Merge all original ctx variables into the new input_ctx.
           # This happens when no {:input} is provided.
           def default_input_ctx(wrap_ctx, original_args)
-            ((original_ctx, _), _) = original_args
+            default_ctx = wrap_ctx[:original_ctx]
 
-            MergeVariables(original_ctx, wrap_ctx, original_args)
+            MergeVariables(default_ctx, wrap_ctx, original_args)
           end
 
 # TODO: test {nil} default
 # FIXME: what if you don't want inject but always the value from the config?
+# TODO: use AddVariables here, too, for consistency.
           # Add injected variables if they're present on
           # the original, incoming ctx.
           def add_injections(wrap_ctx, original_args)
@@ -272,6 +273,7 @@ module Trailblazer
           end
 
           module DSL
+            # Keeps user's DSL configuration for a particular I/O step.
             class Input < Struct.new(:config)
             end
 
@@ -301,7 +303,6 @@ module Trailblazer
               Hash[ary.collect { |name| [name, name] }]
             end
           end
-
 
         end # VariableMapping
       end
