@@ -5,6 +5,12 @@ module Trailblazer
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
         def self.VariableMapping(input: nil, output: nil, output_with_outer_ctx: false, inject: [], input_filters: [], output_filters: [])
+          if output && output_filters.any? # DISCUSS: where does this live?
+            warn "[Trailblazer] You are mixing `:output` and `Out() => ...`. `Out()` options are ignored and `:output` wins."
+
+            output_filters = []
+          end
+
           merge_instructions = VariableMapping.merge_instructions_from_dsl(input: input, output: output, output_with_outer_ctx: output_with_outer_ctx, inject: inject, input_filters: input_filters, output_filters: output_filters)
 
           TaskWrap::Extension(merge: merge_instructions)
@@ -104,7 +110,7 @@ module Trailblazer
             if output
               add_variables_class = output_with_outer_ctx ? AddVariables::Output::WithOuterContext : AddVariables::Output
 
-              output_filters = [FilterConfig.new(output, ":output", add_variables_class)]
+              output_filters << FilterConfig.new(output, ":output", add_variables_class)
             end
 
 

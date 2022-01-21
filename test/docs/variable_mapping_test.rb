@@ -758,8 +758,32 @@ require "date"
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :private=>10, :model=>[Module, [:time, :current_user, :private]], :song=>[Module, [:time, :current_user, :private]]}}
     end
 
-# TODO: renaming as in {:old => :new} should delete {old} when both are {Out()}!
+    it "{Out()} with {:output} warns and {:output} overrides everything" do
+      output, err = capture_io {
+        module S
+          class Create < Trailblazer::Activity::Railway
+            step :create_model,
+              Out() => -> (inner_ctx, model:, private:, **) { raise },
+              Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx, model:, **) { raise },
+              output: {:model => :song}
 
+            def create_model(ctx, current_user:, **)
+              ctx[:private] = "hi!"
+              ctx[:model]   = [current_user, ctx.keys]
+            end
+          end
+        end
+      }
+
+      assert_match /\[Trailblazer\] You are mixing/, err
+
+      signal, (ctx, _) = Activity::TaskWrap.invoke(S::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]]}}
+    end
+
+# TODO: renaming as in {:old => :new} should delete {old} when both are {Out()}!
+# TODO:           Out(with_merged_ctx: true) => ->(ctx, merged_ctx, **) {  raise merged_ctx[:errors].inspect; {hello: true} }
+                  # retrieve the {merged_ctx} that is being populated by the {Out()} filters.
 
     it "merging multiple input/output steps via Input() DSL" do
       module R
