@@ -295,4 +295,41 @@ class DocsPathTest < Minitest::Spec
 #<End/:failure>
 }
   end
+
+  it "{Path() ..., before: :element} will add all path steps {before} given step with custom {End}" do
+    module G
+      class Charge < Trailblazer::Activity::Railway
+        step :b
+        step :f
+        step :a, before: :b, # note the {:before}
+          Output(:failure) => Path(before: :b) do
+            step :c
+            step :d, Output(:success) => End(:with_cc)
+          end
+      end
+    end
+
+    assert_process_for G::Charge, :with_cc, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Left} => <*c>
+ {Trailblazer::Activity::Right} => <*b>
+<*c>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
+ {Trailblazer::Activity::Right} => #<End/:with_cc>
+<*b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*f>
+#<End/:with_cc>
+
+<*f>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
 end
