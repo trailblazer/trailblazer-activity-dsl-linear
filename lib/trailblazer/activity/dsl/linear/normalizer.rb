@@ -219,11 +219,17 @@ module Trailblazer
           def input_output_extensions(ctx, non_symbol_options:, **)
             # FIXME: move FilterConfig-specific knowledge to VariableMapping.
 
-            input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Input) }.collect { |k, filter| VariableMapping::FilterConfig.new(filter, filter.object_id, VariableMapping::AddVariables) }
-            output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Output) }.collect { |out, filter|
+            input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Input) }.collect { |in_config, filter|
+              # VariableMapping::FilterConfig.new(filter, filter.object_id, VariableMapping::AddVariables)
 
-              VariableMapping::FilterConfig.new(filter, filter.object_id, out.config[:add_variables_class] || raise)
+              VariableMapping::DSL.filter_config_for(filter, in_config)
             }
+
+            output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Output) }.collect { |out_config, filter|
+              VariableMapping::DSL.filter_config_for(filter, out_config)
+              # VariableMapping::FilterConfig.new(filter, filter.object_id, out.config[:add_variables_class] || raise)
+            }
+
 
             return unless input_exts.any? || output_exts.any?
 
