@@ -205,7 +205,6 @@ module Trailblazer
               _variables = @filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options)
             end
 
-            # Pass {inner_ctx, **inner_ctx} to the filter.
             class Output < AddVariables
               def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
                 new_ctx = wrap_ctx[:returned_ctx]
