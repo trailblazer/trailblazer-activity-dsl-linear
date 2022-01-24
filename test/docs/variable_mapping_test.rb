@@ -40,6 +40,7 @@ class DocsIOTest < Minitest::Spec
     signal, (ctx, flow_options) = Activity::TaskWrap.invoke(A::Memo::Create, [{params: {id: 1}}, {}])
     #:io-call end
     assert_equal %{#<Trailblazer::Activity::End semantic=:success>}, signal.inspect
+  ## {:user} is not visible in public ctx due to {:output}.
     assert_equal %{{:params=>{:id=>1}, :current_user=>\"User 1\", :model=>\"User 1\"}}, ctx.inspect
 
     module B
@@ -390,6 +391,7 @@ class DocsIOTest < Minitest::Spec
       assert_equal %{{:catch_args=>[[:catch_args, :database, :time], [:catch_args, :database, :time], [:catch_args, :database, :time, :log]], :database=>[], :time=>\"yesterday\", :log=>\"Called yesterday!\"}}, ctx.inspect
 
     # default {:time}
+    # injected/defaulted variables such as {:time} are NOT visible in the outer context if not configured otherwise.
       _, (ctx, _) = Activity::TaskWrap.invoke(X::Create, [{catch_args: [], database: []}, {}])        # {:time} is "gone", not here anymore!
       assert_equal '{:catch_args=>[[:catch_args, :database], [:catch_args, :database, :time], [:catch_args, :database, :log]], :database=>[], :log=>"Called 1!"}', ctx.inspect
     end
@@ -622,7 +624,7 @@ require "date"
         end
       end
 
-      # {:private} invisible
+    ## {:private} invisible in outer ctx
       signal, (ctx, _) = Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module}}
 
@@ -644,11 +646,11 @@ require "date"
         end
       end
 
-      # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
+    ## {:model} is in outer ctx as we passed it into invocation, {:private} invisible:
       signal, (ctx, _) = Activity::TaskWrap.invoke(RRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]]}}
 
-      # no {:model} in original ctx
+      # no {:model} in outer ctx
       signal, (ctx, _) = Activity::TaskWrap.invoke(RRRR::Create, [{time: "yesterday", current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :song=>[Module, [:time, :current_user, :private]]}}
     end
@@ -658,7 +660,10 @@ require "date"
         class Create < Trailblazer::Activity::Railway
           step :create_model,
             Out() => {:model => :song, :current_user => :user},
+          ## we refer to {:model} a second time here, it's still there in the Out pipe.
+          ## and won't be in the final output hash.
             Out() => {:model => :hit}
+          # }
 
           def create_model(ctx, current_user:, **)
             ctx[:private] = "hi!"
@@ -674,6 +679,21 @@ require "date"
       # no {:model} in original ctx
       signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :song=>[Module, [:time, :current_user, :private]], :user=>Module, :hit=>[Module, [:time, :current_user, :private]]}}
+    end
+
+    it "Out() DSL: variable created in Out() and then renamed in Out()" do
+      module SSS
+        class Create < Trailblazer::Activity::Railway
+          step :create_model,
+            Out() => ->(ctx, **) { {errors: {}} },
+            Out(hard_delete_source: true) => {:errors => :create_model_errors} # rename the "private" errors
+
+          def create_model(ctx, current_user:, **)
+            ctx[:private] = "hi!"
+            ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song} and {:hit}!
+          end
+        end
+      end
     end
 
     it "Out() DSL: Dynamic lambda {Out() => ->{}}" do
