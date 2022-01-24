@@ -38,7 +38,7 @@ module Trailblazer
             inject_with_default = inject.find { |name| name.is_a?(Hash) } # FIXME: we only support one default hash in the DSL so far.
 
             input_steps = [
-              ["input.init_hash", VariableMapping.method(:initial_input_hash)],
+              ["input.init_hash", VariableMapping.method(:initial_aggregate)],
             ]
 
             if input
@@ -102,7 +102,7 @@ module Trailblazer
 
           def output_for(output_with_outer_ctx:, output:, output_filters:)
             steps = [
-              ["output.init_hash", VariableMapping.method(:initial_input_hash)],
+              ["output.init_hash", VariableMapping.method(:initial_aggregate)],
             ]
 
             # output_filters = []
@@ -136,7 +136,7 @@ module Trailblazer
             output = ->(returned_ctx, (original_ctx, returned_flow_options), **original_circuit_options) {
               wrap_ctx, _ = pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx}, [[original_ctx, returned_flow_options], original_circuit_options])
 
-              wrap_ctx[:input_hash]
+              wrap_ctx[:aggregate]
             }
           end
 
@@ -151,8 +151,8 @@ module Trailblazer
           end
 
 # DISCUSS: improvable sections such as merge vs hash[]=
-          def initial_input_hash(wrap_ctx, original_args)
-            wrap_ctx = wrap_ctx.merge(input_hash: {})
+          def initial_aggregate(wrap_ctx, original_args)
+            wrap_ctx = wrap_ctx.merge(aggregate: {})
 
             return wrap_ctx, original_args
           end
@@ -194,7 +194,7 @@ module Trailblazer
           # Basically implements {:input}.
           #
 # AddVariables: I call something with an Option-interface and run the return value through MergeVariables().
-          # works on {:input_hash} by (usually) producing a hash fragment that is merged with the existing {:input_hash}
+          # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
           class AddVariables
             def initialize(filter)
               @filter = filter # The users input/output filter.
@@ -216,7 +216,7 @@ module Trailblazer
 
             class ReadFromAggregate < AddVariables # FIXME: REFACTOR
               def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
-                new_ctx = wrap_ctx[:input_hash]
+                new_ctx = wrap_ctx[:aggregate]
 
                 _variables = @filter.(new_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
               end
@@ -238,11 +238,11 @@ module Trailblazer
                 end
               end
 
-              # Always deletes from {:input_hash}.
+              # Always deletes from {:aggregate}.
               class Delete < AddVariables
                 def call(wrap_ctx, original_args)
                   @filter.collect do |name|
-                    wrap_ctx[:input_hash].delete(name) # FIXME: we're mutating a hash here!
+                    wrap_ctx[:aggregate].delete(name) # FIXME: we're mutating a hash here!
                   end
 
                   return wrap_ctx, original_args
@@ -259,7 +259,7 @@ module Trailblazer
 
             # this is the actual context passed into the step.
             wrap_ctx[:input_ctx] = Trailblazer::Context(
-              wrap_ctx[:input_hash],
+              wrap_ctx[:aggregate],
               {}, # mutable variables
               flow_options[:context_options]
             )
@@ -270,7 +270,7 @@ module Trailblazer
           # Last call in every step. Currently replaces {:input_ctx} by adding variables using {#merge}.
           # DISCUSS: improve here?
           def MergeVariables(variables, wrap_ctx, original_args)
-            wrap_ctx[:input_hash] = wrap_ctx[:input_hash].merge(variables)
+            wrap_ctx[:aggregate] = wrap_ctx[:aggregate].merge(variables)
 
             return wrap_ctx, original_args
           end
@@ -288,9 +288,9 @@ module Trailblazer
 
           def merge_with_original(wrap_ctx, original_args)
             original_ctx     = wrap_ctx[:original_ctx]  # outer ctx
-            output_variables = wrap_ctx[:input_hash]
+            output_variables = wrap_ctx[:aggregate]
 
-            wrap_ctx[:input_hash] = original_ctx.merge(output_variables) # FIXME: use MergeVariables()
+            wrap_ctx[:aggregate] = original_ctx.merge(output_variables) # FIXME: use MergeVariables()
             # pp wrap_ctx
             return wrap_ctx, original_args
           end
