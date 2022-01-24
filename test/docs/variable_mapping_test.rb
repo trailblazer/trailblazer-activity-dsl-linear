@@ -681,18 +681,25 @@ require "date"
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :song=>[Module, [:time, :current_user, :private]], :user=>Module, :hit=>[Module, [:time, :current_user, :private]]}}
     end
 
-    it "Out() DSL: variable created in Out() and then renamed in Out()" do
+  # Delete a key in the outgoing ctx.
+  # NOTE: this is currently experimental.
+    it "Out() DSL: {delete: true} forces deletion in outgoing ctx" do
       module SSS
         class Create < Trailblazer::Activity::Railway
           step :create_model,
+            Out() => [:model],
             Out() => ->(ctx, **) { {errors: {}} },
-            Out(hard_delete_source: true) => {:errors => :create_model_errors} # rename the "private" errors
+            Out() => {:errors => :create_model_errors},
+            Out(delete: true) => [:errors]
 
           def create_model(ctx, current_user:, **)
             ctx[:private] = "hi!"
             ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song} and {:hit}!
           end
         end
+
+        signal, (ctx, _) = Activity::TaskWrap.invoke(SSS::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+        assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module, :private=>"XXX"}}
       end
     end
 
