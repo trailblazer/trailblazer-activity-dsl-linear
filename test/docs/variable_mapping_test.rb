@@ -828,7 +828,8 @@ require "date"
         class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
           step :write,
             # all filters can see the original ctx:
-            input:     [:model],
+            # input:     [:model],
+            Input() => [:model],
             Input() => [:current_user],
             # we can still see {:time} here:
             Input() => ->(ctx, model:, time:, **) { {model: model.to_s + "hello! #{time}"} },
