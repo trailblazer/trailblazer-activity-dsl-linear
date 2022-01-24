@@ -11,6 +11,12 @@ module Trailblazer
             output_filters = []
           end
 
+          if input && input_filters.any? # DISCUSS: where does this live?
+            warn "[Trailblazer] You are mixing `:input` and `In() => ...`. `In()` options are ignored and `:input` wins."
+
+            input_filters = []
+          end
+
           merge_instructions = VariableMapping.merge_instructions_from_dsl(input: input, output: output, output_with_outer_ctx: output_with_outer_ctx, inject: inject, input_filters: input_filters, output_filters: output_filters)
 
           TaskWrap::Extension(merge: merge_instructions)
