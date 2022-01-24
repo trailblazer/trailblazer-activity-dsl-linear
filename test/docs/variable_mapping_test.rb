@@ -795,15 +795,33 @@ require "date"
         end
       }
 
-      assert_match /\[Trailblazer\] You are mixing/, err
+      assert_match /\[Trailblazer\] You are mixing `:output/, err
 
       signal, (ctx, _) = Activity::TaskWrap.invoke(S::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]]}}
     end
 
-# TODO: renaming as in {:old => :new} should delete {old} when both are {Out()}!
-# TODO:           Out(with_merged_ctx: true) => ->(ctx, merged_ctx, **) {  raise merged_ctx[:errors].inspect; {hello: true} }
-                  # retrieve the {merged_ctx} that is being populated by the {Out()} filters.
+    it "{Input()} with {:input} warns and {:input} overrides everything" do
+      output, err = capture_io {
+        module RRRRRRRRRR
+          class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
+            step :write,
+              input:     [:model],
+              Input() => [:current_user],
+              Input() => ->(ctx, **) { raise }
+
+            def write(ctx, model:, **)
+              ctx[:incoming] = [model, ctx.keys]
+            end
+          end
+        end
+      }
+
+      assert_match /\[Trailblazer\] You are mixing `:input/, err
+
+      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRRRRRR::Create, [{time: "yesterday", model: Object}, {}])
+      assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :incoming=>[Object, [:model]]}}
+    end
 
     it "merging multiple input/output steps via Input() DSL" do
       module R
