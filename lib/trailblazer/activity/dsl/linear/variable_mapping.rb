@@ -7,13 +7,11 @@ module Trailblazer
         def self.VariableMapping(input: nil, output: nil, output_with_outer_ctx: false, inject: [], input_filters: [], output_filters: [])
           if output && output_filters.any? # DISCUSS: where does this live?
             warn "[Trailblazer] You are mixing `:output` and `Out() => ...`. `Out()` options are ignored and `:output` wins."
-
             output_filters = []
           end
 
           if input && input_filters.any? # DISCUSS: where does this live?
             warn "[Trailblazer] You are mixing `:input` and `In() => ...`. `In()` options are ignored and `:input` wins."
-
             input_filters = []
           end
 
@@ -25,7 +23,7 @@ module Trailblazer
         module VariableMapping
           module_function
 
-          FilterConfig = Struct.new(:user_filter, :name, :add_variables_class)
+          FilterConfig = Struct.new(:filter, :name, :add_variables_class)
 
           # For the input filter we
           #   1. create a separate {Pipeline} instance {pipe}. Depending on the user's options, this might have up to four steps.
@@ -43,9 +41,10 @@ module Trailblazer
               ["input.init_hash", VariableMapping.method(:initial_input_hash)],
             ]
 
-            # TODO: introduce structure for [input, nil] where {nil} will be the filter's config.
             if input
-              input_filters = [FilterConfig.new(input, ":input", AddVariables)] + input_filters
+              in_config = DSL.Input(name: ":input") # simulate {In() => input}
+
+              input_filters = [DSL.filter_config_for(input, in_config)] + input_filters
             end
 
 
@@ -114,9 +113,9 @@ module Trailblazer
 
             # {:output} option
             if output
-              add_variables_class = output_with_outer_ctx ? AddVariables::Output::WithOuterContext : AddVariables::Output
+              out_config = DSL.Output(name: ":input", with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
 
-              output_filters << FilterConfig.new(output, ":output", add_variables_class)
+              output_filters << DSL.filter_config_for(output, out_config)
             end
 
 
@@ -142,11 +141,12 @@ module Trailblazer
           end
 
           # Returns array of step rows.
-          def add_variables_steps_for_filters(filters)
-            filters.collect do |config|
-              filter = Trailblazer::Option(VariableMapping::filter_for(config.user_filter))
+          # @param filters [Array] List of {FilterConfig} objects
+          def add_variables_steps_for_filters(filter_configs)
+            filter_configs.collect do |config|
+              # filter = Trailblazer::Option(VariableMapping::filter_for(config.user_filter))
 
-              ["input.add_variables.#{config.name}", config.add_variables_class.new(filter)] # FIXME: config name sucks, of course, if we want to allow inserting etc.
+              ["input.add_variables.#{config.name}", config.add_variables_class.new(config.filter)] # FIXME: config name sucks, of course, if we want to allow inserting etc.
             end
           end
 
@@ -192,6 +192,9 @@ module Trailblazer
           # variables to the computed ctx.
           #
           # Basically implements {:input}.
+          #
+# AddVariables: I call something with an Option-interface and run the return value through MergeVariables().
+          # works on {:input_hash} by (usually) producing a hash fragment that is merged with the existing {:input_hash}
           class AddVariables
             def initialize(filter)
               @filter = filter # The users input/output filter.
@@ -211,6 +214,14 @@ module Trailblazer
               _variables = @filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options)
             end
 
+            class ReadFromAggregate < AddVariables # FIXME: REFACTOR
+              def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
+                new_ctx = wrap_ctx[:input_hash]
+
+                _variables = @filter.(new_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
+              end
+            end
+
             class Output < AddVariables
               def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
                 new_ctx = wrap_ctx[:returned_ctx]
@@ -224,6 +235,17 @@ module Trailblazer
                   new_ctx = wrap_ctx[:returned_ctx]
 
                   @filter.(new_ctx, original_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
+                end
+              end
+
+              # Always deletes from {:input_hash}.
+              class Delete < AddVariables
+                def call(wrap_ctx, original_args)
+                  @filter.collect do |name|
+                    wrap_ctx[:input_hash].delete(name) # FIXME: we're mutating a hash here!
+                  end
+
+                  return wrap_ctx, original_args
                 end
               end
             end
@@ -273,36 +295,39 @@ module Trailblazer
             return wrap_ctx, original_args
           end
 
-          # Returns a filter proc to be called in an Option.
-          # @private
-          def filter_for(filter)
-            if filter.is_a?(::Array) || filter.is_a?(::Hash)
-              DSL.filter_from_dsl(filter)
-            else
-              filter
-            end
-          end
 
           module DSL
-            # Keeps user's DSL configuration for a particular I/O step.
-            class Input < Struct.new(:config)
+            def self.filter_config_for(user_filter, config)
+              # raise config.config[:filter_builder].inspect
+              filter = config.config[:filter_builder].(user_filter)
+
+              VariableMapping::FilterConfig.new(filter, user_filter.object_id, config.config[:add_variables_class] || raise)
             end
 
-            class Output < Struct.new(:config)
+            # @param [Array, Hash, Proc] User option coming from the DSL, like {[:model]}
+            #
+            # Returns a "filter interface" callable that's invoked in {AddVariables}:
+            #   filter.(new_ctx, ..., keyword_arguments: new_ctx.to_hash, **circuit_options)
+            def self.build_filter(user_filter)
+              Trailblazer::Option(filter_for(user_filter))
             end
 
-            def self.Input(name: rand, add_variables_class: AddVariables)
-              Input.new({name: name, add_variables_class: add_variables_class})
-            end
-
-            def self.Output(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false)
-              add_variables_class = AddVariables::Output::WithOuterContext if with_outer_ctx
-
-              Output.new({name: name, add_variables_class: add_variables_class})
+            # Convert a user option such as {[:model]} to a filter.
+            #
+            # Returns a filter proc to be called in an Option.
+            # @private
+            def self.filter_for(filter)
+              if filter.is_a?(::Array) || filter.is_a?(::Hash)
+                filter_from_dsl(filter)
+              else
+                filter
+              end
             end
 
             # The returned filter compiles a new hash for Scoped/Unscoped that only contains
             # the desired i/o variables.
+            #
+            # Filter expects a "filter interface" {(ctx, **)}.
             def self.filter_from_dsl(map)
               hsh = DSL.hash_for(map)
 
@@ -312,6 +337,32 @@ module Trailblazer
             def self.hash_for(ary)
               return ary if ary.instance_of?(::Hash)
               Hash[ary.collect { |name| [name, name] }]
+            end
+
+            # Keeps user's DSL configuration for a particular I/O step.
+            class Input < Struct.new(:config)
+            end
+
+            class Output < Struct.new(:config)
+            end
+
+            def self.Input(name: rand, add_variables_class: AddVariables, filter_builder: method(:build_filter))
+              Input.new({name: name, add_variables_class: add_variables_class, filter_builder: filter_builder})
+            end
+
+# We need DSL::Input/Output objects to find those in the DSL options hash.
+#   Output knows add_variables and filter_builder
+
+
+
+            # Builder for a DSL Output() object.
+            def self.Output(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false, delete: false, filter_builder: method(:build_filter), read_from_aggregate: false)
+              add_variables_class = AddVariables::Output::WithOuterContext if with_outer_ctx
+              add_variables_class = AddVariables::Output::Delete           if delete
+              filter_builder = ->(user_filter) { user_filter } if delete # FIXME: not sure this should be here!
+              add_variables_class = AddVariables::ReadFromAggregate if read_from_aggregate
+
+              Output.new({name: name, add_variables_class: add_variables_class, filter_builder: filter_builder})
             end
           end
 
