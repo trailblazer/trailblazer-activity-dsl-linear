@@ -49,4 +49,7 @@ class TaskWrapTest < Minitest::Spec
     _(ctx.inspect).must_equal %{{:seq=>[:a, 1, :a, 2, :b, 1, :c, 2, 1, 1, :c, 2, 2]}}
   end
 
+  it "Ext() allows adding taskWrap extensions" do
+
+  end
 end
