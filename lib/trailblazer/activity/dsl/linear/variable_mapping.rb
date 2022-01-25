@@ -20,6 +20,12 @@ module Trailblazer
           TaskWrap::Extension(merge: merge_instructions)
         end
 
+
+# < AddVariables
+#   Option
+#     filter
+#   MergeVariables
+
         module VariableMapping
           module_function
 
@@ -42,9 +48,9 @@ module Trailblazer
             ]
 
             if input
-              in_config = DSL.In(name: ":input") # simulate {In() => input}
+              tuple = DSL.In(name: ":input") # simulate {In() => input}
 
-              input_filters = [DSL.filter_config_for(input, in_config)] + input_filters
+              input_filters = [tuple.(input)] + input_filters
             end
 
 
@@ -59,32 +65,46 @@ module Trailblazer
               input_steps += add_variables_steps_for_filters(input_filters)
             end
 
-            if inject_passthrough || inject_with_default
-              input_steps << ["input.add_injections", VariableMapping.method(:add_injections)] # we now allow one filter per injected variable.
-            end
+            # if inject_passthrough || inject_with_default
+            #   input_steps << ["input.add_injections", VariableMapping.method(:add_injections)] # we now allow one filter per injected variable.
+            # end
 
+            # Inject filters are just input filters.
             if inject_passthrough || inject_with_default
-              injections = inject.collect do |name|
+              inject.collect do |name|
                 if name.is_a?(Symbol)
-                  [[name, Trailblazer::Option(->(*) { [false, name] })]] # we don't want defaulting, this return value signalizes "please pass-through, only".
+                  #[[name, Trailblazer::Option(->(*) { [false, name] })]] # we don't want defaulting, this return value signalizes "please pass-through, only".
+
+                # FIXME
+                  inject_filter = ->(original_ctx, **) { original_ctx.key?(name) ? {name => original_ctx[name]} : {} } # FIXME: make me an {Inject::} method.
+
+                  tuple = DSL.In(name: "inject.passthrough.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
+
+                  input_steps += add_variables_steps_for_filters([tuple])
                 else # we automatically assume this is a hash of callables
                   name.collect do |_name, filter|
-                    [_name, Trailblazer::Option(->(ctx, **kws) { [true, _name, filter.(ctx, **kws)] })] # filter will compute the default value
+                    # [_name, Trailblazer::Option(->(ctx, **kws) { [true, _name, filter.(ctx, **kws)] })] # filter will compute the default value
+
+                    inject_filter = ->(original_ctx, **kws) { original_ctx.key?(_name) ? {_name => original_ctx[_name]} : {_name => filter.(original_ctx, **kws)} } # FIXME: make me an {Inject::} method.
+
+                    tuple = DSL.In(name: "inject.defaulted.#{_name.inspect}", add_variables_class: AddVariables).(inject_filter)
+
+                    input_steps += add_variables_steps_for_filters([tuple])
                   end
                 end
-              end.flatten(1).to_h
+              end
             end
 
             input_steps << ["input.scope", VariableMapping.method(:scope)]
 
-
+pp input_steps
             pipe = Activity::TaskWrap::Pipeline.new(input_steps)
 
             # gets wrapped by {VariableMapping::Input} and called there.
             # API: @filter.([ctx, original_flow_options], **original_circuit_options)
             # input = Trailblazer::Option(->(original_ctx, **) {  })
             input = ->((ctx, flow_options), **circuit_options) do # This filter is called by {TaskWrap::Input#call} in the {activity} gem.
-              wrap_ctx, _ = pipe.({injections: injections, original_ctx: ctx}, [[ctx, flow_options], circuit_options])
+              wrap_ctx, _ = pipe.({original_ctx: ctx}, [[ctx, flow_options], circuit_options])
 
               wrap_ctx[:input_ctx]
             end
@@ -113,9 +133,9 @@ module Trailblazer
 
             # {:output} option
             if output
-              out_config = DSL.Out(name: ":input", with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
+              tuple = DSL.Out(name: ":output", with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
 
-              output_filters << DSL.filter_config_for(output, out_config)
+              output_filters << tuple.(output)
             end
 
 
@@ -144,8 +164,6 @@ module Trailblazer
           # @param filters [Array] List of {FilterConfig} objects
           def add_variables_steps_for_filters(filter_configs)
             filter_configs.collect do |config|
-              # filter = Trailblazer::Option(VariableMapping::filter_for(config.user_filter))
-
               ["input.add_variables.#{config.name}", config.add_variables_class.new(config.filter)] # FIXME: config name sucks, of course, if we want to allow inserting etc.
             end
           end
@@ -163,29 +181,6 @@ module Trailblazer
             default_ctx = wrap_ctx[:original_ctx]
 
             MergeVariables(default_ctx, wrap_ctx, original_args)
-          end
-
-# TODO: test {nil} default
-# FIXME: what if you don't want inject but always the value from the config?
-# TODO: use AddVariables here, too, for consistency.
-          # Add injected variables if they're present on
-          # the original, incoming ctx.
-          def add_injections(wrap_ctx, original_args)
-            name2filter     = wrap_ctx[:injections]
-            ((original_ctx, _), circuit_options) = original_args
-
-            injections =
-              name2filter.collect do |name, filter|
-                # DISCUSS: should we remove {is_defaulted} and infer type from {filter} or the return value?
-                is_defaulted, new_name, default_value = filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options) # FIXME: interface?           # {filter} exposes {Option} interface
-
-                original_ctx.key?(name) ?
-                  [new_name, original_ctx[name]] : (
-                    is_defaulted ? [new_name, default_value] : nil
-                  )
-              end.compact.to_h # FIXME: are we <2.6 safe here?
-
-            MergeVariables(injections, wrap_ctx, original_args)
           end
 
           # Input/output Pipeline step that runs the user's {filter} and adds
@@ -299,7 +294,7 @@ module Trailblazer
           module DSL
             def self.filter_config_for(user_filter, config)
               filter = config.filter_builder.(user_filter)
-              VariableMapping::FilterConfig.new(filter, user_filter.object_id, config.add_variables_class || raise) # FIXME: check should be in In/Our in constructor.
+              VariableMapping::FilterConfig.new(filter, config.name, config.add_variables_class || raise) # FIXME: check should be in In/Our in constructor.
             end
 
             # @param [Array, Hash, Proc] User option coming from the DSL, like {[:model]}
@@ -343,8 +338,16 @@ module Trailblazer
             #
             # If a user needs to inject their own private iop step they can create this data structure with desired values here.
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
-            class In < Struct.new(:name, :add_variables_class, :filter_builder, :insert_args); end # TODO: implement {:insert_args}
-            class Out < In; end
+
+
+            class Tuple < Struct.new(:name, :add_variables_class, :filter_builder, :insert_args)
+              def call(user_filter)
+                DSL.filter_config_for(user_filter, self)
+              end
+            end # TODO: implement {:insert_args}
+
+            class In < Tuple; end
+            class Out < Tuple; end
 
             def self.In(name: rand, add_variables_class: AddVariables, filter_builder: method(:build_filter))
               In.new(name, add_variables_class, filter_builder)
