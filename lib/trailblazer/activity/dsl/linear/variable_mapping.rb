@@ -42,7 +42,7 @@ module Trailblazer
             ]
 
             if input
-              in_config = DSL.Input(name: ":input") # simulate {In() => input}
+              in_config = DSL.In(name: ":input") # simulate {In() => input}
 
               input_filters = [DSL.filter_config_for(input, in_config)] + input_filters
             end
@@ -113,7 +113,7 @@ module Trailblazer
 
             # {:output} option
             if output
-              out_config = DSL.Output(name: ":input", with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
+              out_config = DSL.Out(name: ":input", with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
 
               output_filters << DSL.filter_config_for(output, out_config)
             end
@@ -298,10 +298,8 @@ module Trailblazer
 
           module DSL
             def self.filter_config_for(user_filter, config)
-              # raise config.config[:filter_builder].inspect
-              filter = config.config[:filter_builder].(user_filter)
-
-              VariableMapping::FilterConfig.new(filter, user_filter.object_id, config.config[:add_variables_class] || raise)
+              filter = config.filter_builder.(user_filter)
+              VariableMapping::FilterConfig.new(filter, user_filter.object_id, config.add_variables_class || raise) # FIXME: check should be in In/Our in constructor.
             end
 
             # @param [Array, Hash, Proc] User option coming from the DSL, like {[:model]}
@@ -339,30 +337,29 @@ module Trailblazer
               Hash[ary.collect { |name| [name, name] }]
             end
 
-            # Keeps user's DSL configuration for a particular I/O step.
-            class Input < Struct.new(:config)
-            end
+            # Keeps user's DSL configuration for a particular io-pipe step.
+            # Implements the interface for the actual I/O code and is DSL code happening in the normalizer.
+            # The actual I/O code expects {DSL::In} and {DSL::Out} objects to generate the two io-pipes.
+            #
+            # If a user needs to inject their own private iop step they can create this data structure with desired values here.
+            # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
+            class In < Struct.new(:name, :add_variables_class, :filter_builder, :insert_args); end # TODO: implement {:insert_args}
+            class Out < In; end
 
-            class Output < Struct.new(:config)
-            end
-
-            def self.Input(name: rand, add_variables_class: AddVariables, filter_builder: method(:build_filter))
-              Input.new({name: name, add_variables_class: add_variables_class, filter_builder: filter_builder})
+            def self.In(name: rand, add_variables_class: AddVariables, filter_builder: method(:build_filter))
+              In.new(name, add_variables_class, filter_builder)
             end
 
 # We need DSL::Input/Output objects to find those in the DSL options hash.
-#   Output knows add_variables and filter_builder
-
-
 
             # Builder for a DSL Output() object.
-            def self.Output(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false, delete: false, filter_builder: method(:build_filter), read_from_aggregate: false)
-              add_variables_class = AddVariables::Output::WithOuterContext if with_outer_ctx
-              add_variables_class = AddVariables::Output::Delete           if delete
-              filter_builder = ->(user_filter) { user_filter } if delete # FIXME: not sure this should be here!
-              add_variables_class = AddVariables::ReadFromAggregate if read_from_aggregate
+            def self.Out(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false, delete: false, filter_builder: method(:build_filter), read_from_aggregate: false)
+              add_variables_class = AddVariables::Output::WithOuterContext  if with_outer_ctx
+              add_variables_class = AddVariables::Output::Delete            if delete
+              filter_builder      = ->(user_filter) { user_filter }         if delete
+              add_variables_class = AddVariables::ReadFromAggregate         if read_from_aggregate
 
-              Output.new({name: name, add_variables_class: add_variables_class, filter_builder: filter_builder})
+              Out.new(name, add_variables_class, filter_builder)
             end
           end
 

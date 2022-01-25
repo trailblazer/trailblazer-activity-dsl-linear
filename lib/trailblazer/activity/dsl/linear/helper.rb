@@ -104,11 +104,11 @@ module Trailblazer
             end
 
             def Input(**options)
-              VariableMapping::DSL::Input(**options)
+              VariableMapping::DSL::In(**options)
             end
 
             def Out(**options)
-              VariableMapping::DSL::Output(**options)
+              VariableMapping::DSL::Out(**options)
             end
 
             module Patch
