@@ -4,7 +4,7 @@ module Trailblazer
       module Linear
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
-        def self.VariableMapping(input: nil, output: nil, output_with_outer_ctx: false, inject: [], input_filters: [], output_filters: [])
+        def self.VariableMapping(input: nil, output: nil, output_with_outer_ctx: false, inject: [], input_filters: [], output_filters: [], injects: [])
           if output && output_filters.any? # DISCUSS: where does this live?
             warn "[Trailblazer] You are mixing `:output` and `Out() => ...`. `Out()` options are ignored and `:output` wins."
             output_filters = []
@@ -15,7 +15,7 @@ module Trailblazer
             input_filters = []
           end
 
-          merge_instructions = VariableMapping.merge_instructions_from_dsl(input: input, output: output, output_with_outer_ctx: output_with_outer_ctx, inject: inject, input_filters: input_filters, output_filters: output_filters)
+          merge_instructions = VariableMapping.merge_instructions_from_dsl(input: input, output: output, output_with_outer_ctx: output_with_outer_ctx, inject: inject, input_filters: input_filters, output_filters: output_filters, injects: injects)
 
           TaskWrap::Extension(merge: merge_instructions)
         end
@@ -29,7 +29,7 @@ module Trailblazer
         module VariableMapping
           module_function
 
-          FilterConfig = Struct.new(:filter, :name, :add_variables_class)
+          Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class)
 
           # For the input filter we
           #   1. create a separate {Pipeline} instance {pipe}. Depending on the user's options, this might have up to four steps.
@@ -38,10 +38,15 @@ module Trailblazer
           #   4. The {TaskWrap::Input} instance is then finally placed into the taskWrap as {"task_wrap.input"}.
           #
           # @private
-          def merge_instructions_from_dsl(input:, output:, output_with_outer_ctx:, inject:, input_filters:, output_filters:)
+          def merge_instructions_from_dsl(input:, output:, output_with_outer_ctx:, inject:, input_filters:, output_filters:, injects:)
             # FIXME: this could (should?) be in Normalizer?
             inject_passthrough  = inject.find_all { |name| name.is_a?(Symbol) }
             inject_with_default = inject.find { |name| name.is_a?(Hash) } # FIXME: we only support one default hash in the DSL so far.
+
+            # puts injects.inspect
+
+
+
 
             input_steps = [
               ["input.init_hash", VariableMapping.method(:initial_aggregate)],
@@ -71,33 +76,27 @@ module Trailblazer
 
             # Inject filters are just input filters.
             if inject_passthrough || inject_with_default
-              inject.collect do |name|
+              tuples = inject.collect do |name|
                 if name.is_a?(Symbol)
-                  #[[name, Trailblazer::Option(->(*) { [false, name] })]] # we don't want defaulting, this return value signalizes "please pass-through, only".
-
                 # FIXME
                   inject_filter = ->(original_ctx, **) { original_ctx.key?(name) ? {name => original_ctx[name]} : {} } # FIXME: make me an {Inject::} method.
 
-                  tuple = DSL.In(name: "inject.passthrough.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
-
-                  input_steps += add_variables_steps_for_filters([tuple])
+                  DSL.In(name: "inject.passthrough.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
                 else # we automatically assume this is a hash of callables
                   name.collect do |_name, filter|
-                    # [_name, Trailblazer::Option(->(ctx, **kws) { [true, _name, filter.(ctx, **kws)] })] # filter will compute the default value
 
                     inject_filter = ->(original_ctx, **kws) { original_ctx.key?(_name) ? {_name => original_ctx[_name]} : {_name => filter.(original_ctx, **kws)} } # FIXME: make me an {Inject::} method.
 
-                    tuple = DSL.In(name: "inject.defaulted.#{_name.inspect}", add_variables_class: AddVariables).(inject_filter)
-
-                    input_steps += add_variables_steps_for_filters([tuple])
+                    DSL.In(name: "inject.defaulted.#{_name.inspect}", add_variables_class: AddVariables).(inject_filter)
                   end
                 end
               end
+
+              input_steps += add_variables_steps_for_filters(tuples.flatten(1))
             end
 
             input_steps << ["input.scope", VariableMapping.method(:scope)]
 
-pp input_steps
             pipe = Activity::TaskWrap::Pipeline.new(input_steps)
 
             # gets wrapped by {VariableMapping::Input} and called there.
@@ -160,11 +159,11 @@ pp input_steps
             }
           end
 
-          # Returns array of step rows.
-          # @param filters [Array] List of {FilterConfig} objects
-          def add_variables_steps_for_filters(filter_configs)
-            filter_configs.collect do |config|
-              ["input.add_variables.#{config.name}", config.add_variables_class.new(config.filter)] # FIXME: config name sucks, of course, if we want to allow inserting etc.
+          # Returns array of step rows ("sequence").
+          # @param filters [Array] List of {Filter} objects
+          def add_variables_steps_for_filters(filters) # FIXME: allow output too!
+            filters.collect do |filter|
+              ["input.add_variables.#{filter.name}", filter.aggregate_step] # FIXME: config name sucks, of course, if we want to allow inserting etc.
             end
           end
 
@@ -292,11 +291,6 @@ pp input_steps
 
 
           module DSL
-            def self.filter_config_for(user_filter, config)
-              filter = config.filter_builder.(user_filter)
-              VariableMapping::FilterConfig.new(filter, config.name, config.add_variables_class || raise) # FIXME: check should be in In/Our in constructor.
-            end
-
             # @param [Array, Hash, Proc] User option coming from the DSL, like {[:model]}
             #
             # Returns a "filter interface" callable that's invoked in {AddVariables}:
@@ -341,8 +335,12 @@ pp input_steps
 
 
             class Tuple < Struct.new(:name, :add_variables_class, :filter_builder, :insert_args)
+              # @return [Filter] Filter instance that keeps {name} and {aggregate_step}.
               def call(user_filter)
-                DSL.filter_config_for(user_filter, self)
+                filter         = filter_builder.(user_filter)
+                aggregate_step = add_variables_class.new(filter)
+
+                VariableMapping::Filter.new(aggregate_step, filter, name, add_variables_class)
               end
             end # TODO: implement {:insert_args}
 
@@ -363,6 +361,12 @@ pp input_steps
               add_variables_class = AddVariables::ReadFromAggregate         if read_from_aggregate
 
               Out.new(name, add_variables_class, filter_builder)
+            end
+
+            class Inject; end
+
+            def self.Inject()
+              Inject.new
             end
           end
 

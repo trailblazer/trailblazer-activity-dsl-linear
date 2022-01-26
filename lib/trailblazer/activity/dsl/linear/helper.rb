@@ -103,13 +103,9 @@ module Trailblazer
               }
             end
 
-            def Input(**options)
-              VariableMapping::DSL::In(**options)
-            end
-
-            def Out(**options)
-              VariableMapping::DSL::Out(**options)
-            end
+            def Input(**options); VariableMapping::DSL::In(**options) end
+            def Out(**options); VariableMapping::DSL::Out(**options) end
+            def Inject(**options); VariableMapping::DSL::Inject(**options) end
 
             module Patch
               module_function
