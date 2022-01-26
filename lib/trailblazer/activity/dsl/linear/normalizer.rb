@@ -221,6 +221,9 @@ module Trailblazer
 
             input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::In) }.collect  { |tuple, filter| tuple.(filter) }
             output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Out) }.collect { |tuple, filter| tuple.(filter) }
+            inject_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Inject) }#.collect { |tuple, filter| tuple.(filter) }
+
+            ctx[:injects] = inject_exts
 
             return unless input_exts.any? || output_exts.any?
 
@@ -228,10 +231,12 @@ module Trailblazer
             ctx[:output_filters] = output_exts # DISCUSS: naming
           end
 
-          def input_output_dsl(ctx, extensions: [], input_filters: nil, output_filters: nil, **)
+          def input_output_dsl(ctx, extensions: [], input_filters: nil, output_filters: nil, injects:, **)
             config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx, :inject].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
             config = config.merge(input_filters: input_filters)   if input_filters
             config = config.merge(output_filters: output_filters) if output_filters # TODO: hm, is this nice code?
+
+            config = config.merge(injects: injects)
 
             return unless config.any? # no :input/:output/:inject/Input()/Output() passed.
 
