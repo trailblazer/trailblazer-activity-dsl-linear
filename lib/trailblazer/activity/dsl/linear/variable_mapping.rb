@@ -39,11 +39,13 @@ module Trailblazer
           #
           # @private
           def merge_instructions_from_dsl(input:, output:, output_with_outer_ctx:, inject:, input_filters:, output_filters:, injects:)
-            # FIXME: this could (should?) be in Normalizer?
-            inject_passthrough  = inject.find_all { |name| name.is_a?(Symbol) }
-            inject_with_default = inject.find { |name| name.is_a?(Hash) } # FIXME: we only support one default hash in the DSL so far.
 
-            # puts injects.inspect
+            inject_filters = DSL::Inject.filters_for_injects(injects) # {Inject() => ...} the pure user input gets translated into AddVariable aggregate steps.
+            # pp inject_filters
+
+
+
+
 
 
 
@@ -70,30 +72,20 @@ module Trailblazer
               input_steps += add_variables_steps_for_filters(input_filters)
             end
 
-            # if inject_passthrough || inject_with_default
-            #   input_steps << ["input.add_injections", VariableMapping.method(:add_injections)] # we now allow one filter per injected variable.
-            # end
-
             # Inject filters are just input filters.
-            if inject_passthrough || inject_with_default
-              tuples = inject.collect do |name|
-                if name.is_a?(Symbol)
-                # FIXME
-                  inject_filter = ->(original_ctx, **) { original_ctx.key?(name) ? {name => original_ctx[name]} : {} } # FIXME: make me an {Inject::} method.
+            #
+            # {inject} can be {[:current_user, :model, {volume: ->() {}, }]}
+            if inject.any?
+              injects = inject.collect { |name| name.is_a?(Symbol) ? [DSL.Inject(), [name]] : [DSL.Inject(), name] }
+              tuples  = DSL::Inject.filters_for_injects(injects)
+            # FIXME: add names like {inject.passthrough}
+               #    DSL.In(name: "inject.passthrough.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
 
-                  DSL.In(name: "inject.passthrough.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
-                else # we automatically assume this is a hash of callables
-                  name.collect do |_name, filter|
-
-                    inject_filter = ->(original_ctx, **kws) { original_ctx.key?(_name) ? {_name => original_ctx[_name]} : {_name => filter.(original_ctx, **kws)} } # FIXME: make me an {Inject::} method.
-
-                    DSL.In(name: "inject.defaulted.#{_name.inspect}", add_variables_class: AddVariables).(inject_filter)
-                  end
-                end
-              end
-
-              input_steps += add_variables_steps_for_filters(tuples.flatten(1))
+              input_steps += add_variables_steps_for_filters(tuples)
             end
+
+            # add Inject() steps
+            input_steps += add_variables_steps_for_filters(inject_filters)
 
             input_steps << ["input.scope", VariableMapping.method(:scope)]
 
@@ -118,6 +110,7 @@ module Trailblazer
 
             TaskWrap::VariableMapping.merge_instructions_for(input, output, id: input.object_id) # wraps filters: {Input(input), Output(output)}
           end
+
 
           def output_for(output_with_outer_ctx:, output:, output_filters:)
             steps = [
@@ -368,7 +361,51 @@ module Trailblazer
             def self.Inject()
               Inject.new
             end
-          end
+
+            class Inject
+            # Translate the raw input of the user to {In} tuples
+              # {injects}:
+              # [[#<Trailblazer::Activity::DSL::Linear::VariableMapping::DSL::Inject:0x0000556e7a206000>, [:date, :time]],
+              #  [#<Trailblazer::Activity::DSL::Linear::VariableMapping::DSL::Inject:0x0000556e7a205e48>, {:current_user=>#<Proc:0x0000556e7a205d58 test/docs/variable_mapping_test.rb:601 (lambda)>}]]
+              def self.filters_for_injects(injects)
+                puts injects.inspect
+                puts
+                injects.collect do |inject, user_filter| # iterate all {Inject() => user_filter} calls
+                  DSL::Inject.compute_tuples_for_inject(inject, user_filter)
+                end.flatten(1)
+              end
+
+              # Compute {In} tuples from the user's DSL input.
+              # We simply use AddVariables but use our own {inject_filter} which checks if the particular
+              # variable is already present in the incoming ctx.
+              def self.compute_tuples_for_inject(inject, user_filter) # {user_filter} either [:current_user, :model] or {model: ->{}}
+                return tuples_for_array(inject, user_filter) if user_filter.is_a?(Array)
+                tuples_for_hash_of_callables(inject, user_filter)
+              end
+
+              # [:model, :current_user]
+              def self.tuples_for_array(inject, user_filter)
+                user_filter.collect do |name|
+                  inject_filter = ->(original_ctx, **) { original_ctx.key?(name) ? {name => original_ctx[name]} : {} } # FIXME: make me an {Inject::} method.
+
+                  tuple_for(inject, inject_filter, name)
+                end
+              end
+
+              # {model: ->(*) { snippet }}
+              def self.tuples_for_hash_of_callables(inject, user_filter)
+                user_filter.collect do |name, defaulting_filter|
+                  inject_filter = ->(original_ctx, **kws) { original_ctx.key?(name) ? {name => original_ctx[name]} : {name => defaulting_filter.(original_ctx, **kws)} }
+
+                  tuple_for(inject, inject_filter, name)
+                end
+              end
+
+              def self.tuple_for(inject, inject_filter, name)
+                DSL.In(name: "inject.passthrough.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
+              end
+            end
+          end # DSL
 
         end # VariableMapping
       end

@@ -592,11 +592,49 @@ require "date"
     end # it
 
 # Composing input/output
+# Composing Inject()
+    it "Inject(): allows [] and {} and ->{}" do
+      module T
+        class Create < Trailblazer::Activity::Railway
+          step :write,
+            Inject() => [:date, :time],
+            Inject() => {current_user: ->(ctx, **) { ctx.keys.inspect }} # FIXME: test/design kws here
+
+          def write(ctx, time: "Time.now", date:, current_user:, **) # {date} has no default configured.
+            ctx[:log] = "Called @ #{time} and #{date.inspect} by #{current_user}!"
+            ctx[:private] = ctx.keys.inspect
+          end
+        end
+      end
+
+    ## this must break because of missing {:date} - it is not defaulted, only injected when present.
+      exception = assert_raises do
+        signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{time: "yesterday", model: Object}, {}])
+      end
+      assert_equal exception.message, %{missing keyword: :date}
+
+    ## {:time} is passed-through.
+    ## {:date} is passed-through.
+    ## {:current_user} is defaulted through Inject()
+    ## Note that Inject()s are put "on top" of the default input, no whitelisting is happening.
+      signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{time: "yesterday", date: "today", model: Object}, {}])
+      ctx.inspect.must_equal '{:time=>"yesterday", :date=>"today", :model=>Object, :log=>"Called @ yesterday and \"today\" by [:time, :date, :model]!", :private=>"[:time, :date, :model, :current_user, :log]"}'
+
+    ## {:time} is defaulted through kw
+    ## {:current_user} is defaulted through Inject()
+      signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{date: "today"}, {}])
+      assert_equal ctx.inspect, '{:date=>"today", :log=>"Called @ Time.now and \"today\" by [:date]!", :private=>"[:date, :current_user, :log]"}'
+
+    ## {:current_user} is passed-through
+      signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{date: "today", current_user: Object}, {}])
+      assert_equal ctx.inspect, '{:date=>"today", :current_user=>Object, :log=>"Called @ Time.now and \"today\" by Object!", :private=>"[:date, :current_user, :log]"}'
+    end
+
     it "Input() DSL: single {Input() => [:current_user]}" do
       module RR
         class Create < Trailblazer::Activity::Railway
           step :write,
-            Input() => [:current_user] # TODO: discuss Inject
+            Input() => [:current_user]
 
           def write(ctx, model: 9, current_user:, **)
             ctx[:incoming] = [model, current_user, ctx.keys]
