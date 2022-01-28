@@ -593,12 +593,12 @@ require "date"
 
 # Composing input/output
 # Composing Inject()
-    it "Inject(): allows [] and {} and ->{}" do
+    it "Inject(): allows [] and ->{}" do
       module T
         class Create < Trailblazer::Activity::Railway
           step :write,
             Inject() => [:date, :time],
-            Inject() => {current_user: ->(ctx, **) { ctx.keys.inspect }} # FIXME: test/design kws here
+            Inject() => {current_user: ->(ctx, **kws) { ctx.keys.inspect + kws.inspect }} # FIXME: test/design kws here
 
           def write(ctx, time: "Time.now", date:, current_user:, **) # {date} has no default configured.
             ctx[:log] = "Called @ #{time} and #{date.inspect} by #{current_user}!"
@@ -616,18 +616,40 @@ require "date"
     ## {:time} is passed-through.
     ## {:date} is passed-through.
     ## {:current_user} is defaulted through Inject()
-    ## Note that Inject()s are put "on top" of the default input, no whitelisting is happening.
+    ## Note that Inject()s are put "on top" of the default input, no whitelisting is happening, we can still see {:model}.
       signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{time: "yesterday", date: "today", model: Object}, {}])
-      ctx.inspect.must_equal '{:time=>"yesterday", :date=>"today", :model=>Object, :log=>"Called @ yesterday and \"today\" by [:time, :date, :model]!", :private=>"[:time, :date, :model, :current_user, :log]"}'
+      assert_equal ctx.inspect, '{:time=>"yesterday", :date=>"today", :model=>Object, :log=>"Called @ yesterday and \"today\" by [:time, :date, :model]{:time=>\"yesterday\", :date=>\"today\", :model=>Object}!", :private=>"[:time, :date, :model, :current_user, :log]"}'
 
     ## {:time} is defaulted through kw
     ## {:current_user} is defaulted through Inject()
       signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{date: "today"}, {}])
-      assert_equal ctx.inspect, '{:date=>"today", :log=>"Called @ Time.now and \"today\" by [:date]!", :private=>"[:date, :current_user, :log]"}'
+      assert_equal ctx.inspect, '{:date=>"today", :log=>"Called @ Time.now and \"today\" by [:date]{:date=>\"today\"}!", :private=>"[:date, :current_user, :log]"}'
 
     ## {:current_user} is passed-through
       signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{date: "today", current_user: Object}, {}])
       assert_equal ctx.inspect, '{:date=>"today", :current_user=>Object, :log=>"Called @ Time.now and \"today\" by Object!", :private=>"[:date, :current_user, :log]"}'
+    end
+
+    it "Inject() adds variables to Input() when configured" do
+      module TT
+        class Create < Trailblazer::Activity::Railway
+          step :write,
+            Inject() => [:date, :time],
+            Inject() => {current_user: ->(ctx, **) { ctx.keys.inspect }},
+            Input() => [:model],
+            Input() => {:something => :thing}
+
+          def write(ctx, time: "Time.now", date:, current_user:, **) # {date} has no default configured.
+            ctx[:log] = "Called @ #{time} and #{date.inspect} by #{current_user}!"
+            ctx[:private] = ctx.keys.inspect
+            ctx[:private] += ctx[:model].inspect
+          end
+        end
+      end
+
+    ## we can only see variables combined from Inject() and Input() in the step.
+      signal, (ctx, _) = Activity::TaskWrap.invoke(TT::Create, [{date: "today", model: Object, something: 99}, {}])
+      assert_equal ctx.inspect, '{:date=>"today", :model=>Object, :something=>99, :log=>"Called @ Time.now and \"today\" by [:date, :model, :something]!", :private=>"[:model, :thing, :date, :current_user, :log]Object"}'
     end
 
     it "Input() DSL: single {Input() => [:current_user]}" do
