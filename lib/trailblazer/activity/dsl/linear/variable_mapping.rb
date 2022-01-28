@@ -45,11 +45,6 @@ module Trailblazer
 
 
 
-
-
-
-
-
             input_steps = [
               ["input.init_hash", VariableMapping.method(:initial_aggregate)],
             ]
@@ -63,23 +58,21 @@ module Trailblazer
 
             # With only injections defined, we do not filter out anything, we use the original ctx
             # and _add_ defaulting for injected variables.
-            if ! input_filters.any? # only injections defined
-              input_steps << ["input.default_input", VariableMapping.method(:default_input_ctx)]
-            end
-
             if input_filters.any? # :input or :input/:inject
               # Add one row per filter (either {:input} or {Input()}).
               input_steps += add_variables_steps_for_filters(input_filters)
+            else # only injections defined
+              input_steps << ["input.default_input", VariableMapping.method(:default_input_ctx)]
             end
+
 
             # Inject filters are just input filters.
             #
             # {inject} can be {[:current_user, :model, {volume: ->() {}, }]}
             if inject.any?
               injects = inject.collect { |name| name.is_a?(Symbol) ? [DSL.Inject(), [name]] : [DSL.Inject(), name] }
-              tuples  = DSL::Inject.filters_for_injects(injects)
-            # FIXME: add names like {inject.passthrough}
-               #    DSL.In(name: "inject.passthrough.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
+
+              tuples  = DSL::Inject.filters_for_injects(injects) # DISCUSS: should we add passthrough/defaulting here at Inject()-time?
 
               input_steps += add_variables_steps_for_filters(tuples)
             end
@@ -356,20 +349,17 @@ module Trailblazer
               Out.new(name, add_variables_class, filter_builder)
             end
 
-            class Inject; end
-
             def self.Inject()
               Inject.new
             end
 
+            # This class is supposed to hold configuration options for Inject().
             class Inject
             # Translate the raw input of the user to {In} tuples
               # {injects}:
               # [[#<Trailblazer::Activity::DSL::Linear::VariableMapping::DSL::Inject:0x0000556e7a206000>, [:date, :time]],
               #  [#<Trailblazer::Activity::DSL::Linear::VariableMapping::DSL::Inject:0x0000556e7a205e48>, {:current_user=>#<Proc:0x0000556e7a205d58 test/docs/variable_mapping_test.rb:601 (lambda)>}]]
               def self.filters_for_injects(injects)
-                puts injects.inspect
-                puts
                 injects.collect do |inject, user_filter| # iterate all {Inject() => user_filter} calls
                   DSL::Inject.compute_tuples_for_inject(inject, user_filter)
                 end.flatten(1)
@@ -388,7 +378,7 @@ module Trailblazer
                 user_filter.collect do |name|
                   inject_filter = ->(original_ctx, **) { original_ctx.key?(name) ? {name => original_ctx[name]} : {} } # FIXME: make me an {Inject::} method.
 
-                  tuple_for(inject, inject_filter, name)
+                  tuple_for(inject, inject_filter, name, "passthrough")
                 end
               end
 
@@ -397,12 +387,12 @@ module Trailblazer
                 user_filter.collect do |name, defaulting_filter|
                   inject_filter = ->(original_ctx, **kws) { original_ctx.key?(name) ? {name => original_ctx[name]} : {name => defaulting_filter.(original_ctx, **kws)} }
 
-                  tuple_for(inject, inject_filter, name)
+                  tuple_for(inject, inject_filter, name, "defaulting_callable")
                 end
               end
 
-              def self.tuple_for(inject, inject_filter, name)
-                DSL.In(name: "inject.passthrough.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
+              def self.tuple_for(inject, inject_filter, name, type)
+                DSL.In(name: "inject.#{type}.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
               end
             end
           end # DSL
