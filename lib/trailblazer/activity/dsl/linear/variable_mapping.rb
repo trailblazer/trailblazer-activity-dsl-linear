@@ -43,28 +43,32 @@ module Trailblazer
             inject_filters = DSL::Inject.filters_for_injects(injects) # {Inject() => ...} the pure user input gets translated into AddVariable aggregate steps.
             # pp inject_filters
 
+            in_filters = DSL::Tuple.filters_from_tuples(input_filters)
+            # puts in_filters.inspect
+
 
 
             input_steps = [
               ["input.init_hash", VariableMapping.method(:initial_aggregate)],
             ]
 
+            # The overriding {:input} option is set.
             if input
-              tuple = DSL.In(name: ":input") # simulate {In() => input}
+              tuple         = DSL.In(name: ":input") # simulate {In() => input}
+              input_filter  = DSL::Tuple.filters_from_tuples([[tuple, input]])
 
-              input_filters = [tuple.(input)] + input_filters
+              input_steps += add_variables_steps_for_filters(input_filter)
+            # In()
+            elsif in_filters.any?
+              # With only injections defined, we do not filter out anything, we use the original ctx
+              # and _add_ defaulting for injected variables.
+
+                # Add one row per filter (either {:input} or {Input()}).
+                input_steps += add_variables_steps_for_filters(in_filters)
+            # No In() or {:input}. Use default ctx, which is the original ctxx.
+            else
+              input_steps += [["input.default_input", VariableMapping.method(:default_input_ctx)]]
             end
-
-
-            # With only injections defined, we do not filter out anything, we use the original ctx
-            # and _add_ defaulting for injected variables.
-            if input_filters.any? # :input or :input/:inject
-              # Add one row per filter (either {:input} or {Input()}).
-              input_steps += add_variables_steps_for_filters(input_filters)
-            else # only injections defined
-              input_steps << ["input.default_input", VariableMapping.method(:default_input_ctx)]
-            end
-
 
             # Inject filters are just input filters.
             #
@@ -110,25 +114,24 @@ module Trailblazer
               ["output.init_hash", VariableMapping.method(:initial_aggregate)],
             ]
 
-            # output_filters = []
-            if ! output && output_filters.empty? # no {:output} defined.
-              steps << ["output.default_output", VariableMapping.method(:default_output_ctx)]
-    # TODO: make this just another output_filter(s)
-            end
-
-            # {:output} option
+            # {:output} option.
             if output
-              tuple = DSL.Out(name: ":output", with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
+              tuple         = DSL.Out(name: ":output", with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
+              output_filter = DSL::Tuple.filters_from_tuples([[tuple, output]])
 
-              output_filters << tuple.(output)
-            end
+              steps += add_variables_steps_for_filters(output_filter)
+            # Out() given.
+            elsif output_filters.any?
+              out_filters = DSL::Tuple.filters_from_tuples(output_filters)
 
-
-
-            if output_filters.any? # :input or :input/:inject
               # Add one row per filter (either {:output} or {Output()}).
-              steps += add_variables_steps_for_filters(output_filters)
+              steps += add_variables_steps_for_filters(out_filters)
+            # No Out(), no {:output}.
+            else
+              # TODO: make this just another output_filter(s)
+              steps += [["output.default_output", VariableMapping.method(:default_output_ctx)]]
             end
+
 
 
             steps << ["output.merge_with_original", VariableMapping.method(:merge_with_original)]
@@ -319,8 +322,12 @@ module Trailblazer
             # If a user needs to inject their own private iop step they can create this data structure with desired values here.
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
 
-
             class Tuple < Struct.new(:name, :add_variables_class, :filter_builder, :insert_args)
+              def self.filters_from_tuples(tuples_to_user_filters)
+                tuples_to_user_filters.collect { |tuple, user_filter| tuple.(user_filter) }
+              end
+
+
               # @return [Filter] Filter instance that keeps {name} and {aggregate_step}.
               def call(user_filter)
                 filter         = filter_builder.(user_filter)
@@ -330,6 +337,7 @@ module Trailblazer
               end
             end # TODO: implement {:insert_args}
 
+            # In, Out and Inject are objects instantiated when using the DSL, for instance {In() => [:model]}.
             class In < Tuple; end
             class Out < Tuple; end
 
