@@ -85,13 +85,7 @@ module Trailblazer
             # gets wrapped by {VariableMapping::Input} and called there.
             # API: @filter.([ctx, original_flow_options], **original_circuit_options)
             # input = Trailblazer::Option(->(original_ctx, **) {  })
-            input = Pipe::Input.new(pipe)
-
-            # 1. {} empty input hash
-            # 1. input # dynamic => hash
-            # 2. input_map       => hash
-            # 3. inject          => hash
-            # 4. Input::Scoped()
+            input  = Pipe::Input.new(pipe)
 
             output = output_for(output: output, output_with_outer_ctx: output_with_outer_ctx, output_filters: output_filters)
 
@@ -122,23 +116,16 @@ module Trailblazer
               steps += [["output.default_output", VariableMapping.method(:default_output_ctx)]]
             end
 
-
-
             steps << ["output.merge_with_original", VariableMapping.method(:merge_with_original)]
 
             pipe = Activity::TaskWrap::Pipeline.new(steps)
 
-            # API in VariableMapping::Output:
-            #   output_ctx = @filter.(returned_ctx, [original_ctx, returned_flow_options], **original_circuit_options)
-            # Returns {output_ctx} that is used after taskWrap finished.
-            output = ->(returned_ctx, (original_ctx, returned_flow_options), **original_circuit_options) {
-              wrap_ctx, _ = pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx}, [[original_ctx, returned_flow_options], original_circuit_options])
-
-              wrap_ctx[:aggregate]
-            }
+            Pipe::Output.new(pipe)
           end
 
           # Runtime classes
+          # These objects are created via the DSL, keep all i/o steps in a Pipeline
+          # and run the latter when being `call`ed.
           module Pipe
             class Input
               def initialize(pipe)
@@ -152,6 +139,16 @@ module Trailblazer
               end
             end
 
+            # API in VariableMapping::Output:
+            #   output_ctx = @filter.(returned_ctx, [original_ctx, returned_flow_options], **original_circuit_options)
+            # Returns {output_ctx} that is used after taskWrap finished.
+            class Output < Input
+              def call(returned_ctx, (original_ctx, returned_flow_options), **original_circuit_options)
+                wrap_ctx, _ = @pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx}, [[original_ctx, returned_flow_options], original_circuit_options])
+
+                wrap_ctx[:aggregate]
+              end
+            end
           end
 
 
