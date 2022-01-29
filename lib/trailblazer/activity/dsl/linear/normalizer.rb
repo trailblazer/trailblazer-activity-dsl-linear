@@ -217,10 +217,9 @@ module Trailblazer
 
           # Process {In() => [:model], Inject() => [:current_user], Out() => [:model]}
           def input_output_extensions(ctx, non_symbol_options:, **)
-            input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::In) }#.collect  { |tuple, filter| tuple.(filter) }
-            output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Out) }#.collect { |tuple, filter| tuple.(filter) }
-            inject_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Inject) }#.collect { |tuple, filter| tuple.(filter) }
-
+            input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::In) }
+            output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Out) }
+            inject_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Inject) }
 
             return unless input_exts.any? || output_exts.any? || inject_exts.any?
 
