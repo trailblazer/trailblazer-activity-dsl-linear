@@ -41,12 +41,7 @@ module Trailblazer
           def merge_instructions_from_dsl(input:, output:, output_with_outer_ctx:, inject:, input_filters:, output_filters:, injects:)
 
             inject_filters = DSL::Inject.filters_for_injects(injects) # {Inject() => ...} the pure user input gets translated into AddVariable aggregate steps.
-            # pp inject_filters
-
-            in_filters = DSL::Tuple.filters_from_tuples(input_filters)
-            # puts in_filters.inspect
-
-
+            in_filters     = DSL::Tuple.filters_from_tuples(input_filters)
 
             input_steps = [
               ["input.init_hash", VariableMapping.method(:initial_aggregate)],
@@ -63,8 +58,7 @@ module Trailblazer
               # With only injections defined, we do not filter out anything, we use the original ctx
               # and _add_ defaulting for injected variables.
 
-                # Add one row per filter (either {:input} or {Input()}).
-                input_steps += add_variables_steps_for_filters(in_filters)
+              input_steps += add_variables_steps_for_filters(in_filters)
             # No In() or {:input}. Use default ctx, which is the original ctxx.
             else
               input_steps += [["input.default_input", VariableMapping.method(:default_input_ctx)]]

@@ -898,10 +898,11 @@ require "date"
           step :write,
             # all filters can see the original ctx:
             # input:     [:model],
+            Inject() => {time: ->(ctx, **) { 99 }},
             Input() => [:model],
             Input() => [:current_user],
             # we can still see {:time} here:
-            Input() => ->(ctx, model:, time:, **) { {model: model.to_s + "hello! #{time}"} },
+            Input() => ->(ctx, model:, time:nil, **) { {model: model.to_s + "hello! #{time}"} },
             Out() => ->(ctx, model:, **) { {out: [model, ctx[:incoming]]} }
 
           def write(ctx, model:, current_user:, **)
@@ -911,7 +912,11 @@ require "date"
       end
 
       signal, (ctx, _) = Activity::TaskWrap.invoke(R::Create, [{time: "yesterday", model: Object}, {}])
-      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, [:model, :current_user]]]}}
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, [:model, :current_user, :time]]]}}
+
+    ## {:time} is defaulted by Inject()
+      signal, (ctx, _) = Activity::TaskWrap.invoke(R::Create, [{model: Object}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :out=>[\"Objecthello! \", [\"Objecthello! \", nil, [:model, :current_user, :time]]]}}
     end
 
 
