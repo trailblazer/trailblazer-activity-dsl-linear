@@ -29,7 +29,7 @@ module Trailblazer
         module VariableMapping
           module_function
 
-          Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class)
+          Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class) # FIXME: move to DSL part
 
           # For the input filter we
           #   1. create a separate {Pipeline} instance {pipe}. Depending on the user's options, this might have up to four steps.
@@ -85,11 +85,7 @@ module Trailblazer
             # gets wrapped by {VariableMapping::Input} and called there.
             # API: @filter.([ctx, original_flow_options], **original_circuit_options)
             # input = Trailblazer::Option(->(original_ctx, **) {  })
-            input = ->((ctx, flow_options), **circuit_options) do # This filter is called by {TaskWrap::Input#call} in the {activity} gem.
-              wrap_ctx, _ = pipe.({original_ctx: ctx}, [[ctx, flow_options], circuit_options])
-
-              wrap_ctx[:input_ctx]
-            end
+            input = Pipe::Input.new(pipe)
 
             # 1. {} empty input hash
             # 1. input # dynamic => hash
@@ -142,6 +138,23 @@ module Trailblazer
             }
           end
 
+          # Runtime classes
+          module Pipe
+            class Input
+              def initialize(pipe)
+                @pipe = pipe
+              end
+
+              def call((ctx, flow_options), **circuit_options) # This method is called by {TaskWrap::Input#call} in the {activity} gem.
+                wrap_ctx, _ = @pipe.({original_ctx: ctx}, [[ctx, flow_options], circuit_options])
+
+                wrap_ctx[:input_ctx]
+              end
+            end
+
+          end
+
+
           # Returns array of step rows ("sequence").
           # @param filters [Array] List of {Filter} objects
           def add_variables_steps_for_filters(filters) # FIXME: allow output too!
@@ -173,8 +186,9 @@ module Trailblazer
 # AddVariables: I call something with an Option-interface and run the return value through MergeVariables().
           # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
           class AddVariables
-            def initialize(filter)
-              @filter = filter # The users input/output filter.
+            def initialize(filter, user_filter)
+              @filter      = filter # The users input/output filter.
+              @user_filter = user_filter # this is for introspection.
             end
 
             def call(wrap_ctx, original_args)
@@ -325,7 +339,7 @@ module Trailblazer
               # @return [Filter] Filter instance that keeps {name} and {aggregate_step}.
               def call(user_filter)
                 filter         = filter_builder.(user_filter)
-                aggregate_step = add_variables_class.new(filter)
+                aggregate_step = add_variables_class.new(filter, user_filter)
 
                 VariableMapping::Filter.new(aggregate_step, filter, name, add_variables_class)
               end

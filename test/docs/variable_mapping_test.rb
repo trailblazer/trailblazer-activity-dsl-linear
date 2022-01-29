@@ -897,7 +897,6 @@ require "date"
         class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
           step :write,
             # all filters can see the original ctx:
-            # input:     [:model],
             Inject() => {time: ->(ctx, **) { 99 }},
             Input() => [:model],
             Input() => [:current_user],
@@ -911,12 +910,38 @@ require "date"
         end
       end
 
+
+
       signal, (ctx, _) = Activity::TaskWrap.invoke(R::Create, [{time: "yesterday", model: Object}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, [:model, :current_user, :time]]]}}
 
     ## {:time} is defaulted by Inject()
       signal, (ctx, _) = Activity::TaskWrap.invoke(R::Create, [{model: Object}, {}])
       assert_equal ctx.inspect, %{{:model=>Object, :out=>[\"Objecthello! \", [\"Objecthello! \", nil, [:model, :current_user, :time]]]}}
+
+      activity = R::Create
+      step_id = :write
+
+      task_wrap = R::Create.to_h[:config][:wrap_static]
+
+      task = Trailblazer::Activity::Introspect.Graph(activity).find(step_id).task
+
+      step_wrap = task_wrap[task]
+      index = Trailblazer::Activity::TaskWrap::Pipeline.find_index(step_wrap, "task_wrap.input")
+      _, input = step_wrap.sequence[index] # we also need do to that for {"task_wrap.output"}
+
+
+
+      # puts input.instance_variable_get(:@filter).inspect
+      input_pipe = input.instance_variable_get(:@filter).instance_variable_get(:@pipe)
+      # this is again a {TaskWrap::Pipeline}
+
+      input_pipe.sequence.each do |id, filter|
+        puts "#{id} |  #{filter.is_a?(Trailblazer::Activity::DSL::Linear::VariableMapping::AddVariables) ? filter.instance_variable_get(:@user_filter).inspect : filter }" # we could even grab the source code for callables here!
+      end
+
+
+    ## Inheriting I/O taskWrap filters
     end
 
 
