@@ -630,14 +630,14 @@ require "date"
       assert_equal ctx.inspect, '{:date=>"today", :current_user=>Object, :log=>"Called @ Time.now and \"today\" by Object!", :private=>"[:date, :current_user, :log]"}'
     end
 
-    it "Inject() adds variables to Input() when configured" do
+    it "Inject() adds variables to In() when configured" do
       module TT
         class Create < Trailblazer::Activity::Railway
           step :write,
             Inject() => [:date, :time],
             Inject() => {current_user: ->(ctx, **) { ctx.keys.inspect }},
-            Input() => [:model],
-            Input() => {:something => :thing}
+            In() => [:model],
+            In() => {:something => :thing}
 
           def write(ctx, time: "Time.now", date:, current_user:, **) # {date} has no default configured.
             ctx[:log] = "Called @ #{time} and #{date.inspect} by #{current_user}!"
@@ -647,16 +647,16 @@ require "date"
         end
       end
 
-    ## we can only see variables combined from Inject() and Input() in the step.
+    ## we can only see variables combined from Inject() and In() in the step.
       signal, (ctx, _) = Activity::TaskWrap.invoke(TT::Create, [{date: "today", model: Object, something: 99}, {}])
       assert_equal ctx.inspect, '{:date=>"today", :model=>Object, :something=>99, :log=>"Called @ Time.now and \"today\" by [:date, :model, :something]!", :private=>"[:model, :thing, :date, :current_user, :log]Object"}'
     end
 
-    it "Input() DSL: single {Input() => [:current_user]}" do
+    it "In() DSL: single {In() => [:current_user]}" do
       module RR
         class Create < Trailblazer::Activity::Railway
           step :write,
-            Input() => [:current_user]
+            In() => [:current_user]
 
           def write(ctx, model: 9, current_user:, **)
             ctx[:incoming] = [model, current_user, ctx.keys]
@@ -870,14 +870,14 @@ require "date"
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]]}}
     end
 
-    it "{Input()} with {:input} warns and {:input} overrides everything" do
+    it "{In()} with {:input} warns and {:input} overrides everything" do
       output, err = capture_io {
         module RRRRRRRRRR
           class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
             step :write,
               input:     [:model],
-              Input() => [:current_user],
-              Input() => ->(ctx, **) { raise }
+              In() => [:current_user],
+              In() => ->(ctx, **) { raise }
 
             def write(ctx, model:, **)
               ctx[:incoming] = [model, ctx.keys]
@@ -892,21 +892,34 @@ require "date"
       assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :incoming=>[Object, [:model]]}}
     end
 
-    it "merging multiple input/output steps via Input() DSL" do
+    it "merging multiple input/output steps via In() DSL" do
       module R
         class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
           step :write,
             # all filters can see the original ctx:
             Inject() => {time: ->(ctx, **) { 99 }},
-            Input() => [:model],
-            Input() => [:current_user],
+            In() => [:model],
+            In() => [:current_user],
             # we can still see {:time} here:
-            Input() => ->(ctx, model:, time:nil, **) { {model: model.to_s + "hello! #{time}"} },
+            In() => ->(ctx, model:, time:nil, **) { {model: model.to_s + "hello! #{time}"} },
             Out() => ->(ctx, model:, **) { {out: [model, ctx[:incoming]]} }
 
           def write(ctx, model:, current_user:, **)
             ctx[:incoming] = [model, current_user, ctx.keys]
           end
+        end
+
+      ## Is the taskWrap inherited?
+        class Update < Create
+        end
+
+        # TODO: allow adding/modifying the inherited settings.
+        class Upsert < Update
+          step :write, replace: :write,
+            # inherit: [:variable_mapping],
+          ## this overrides the existing taskWrap
+            In() => [:model, :current_user]
+
         end
       end
 
@@ -942,6 +955,14 @@ require "date"
 
 
     ## Inheriting I/O taskWrap filters
+      ## {:time} is defaulted by Inject()
+      signal, (ctx, _) = Activity::TaskWrap.invoke(R::Update, [{model: Object}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :out=>[\"Objecthello! \", [\"Objecthello! \", nil, [:model, :current_user, :time]]]}}
+
+    ## currently, the In() in Upsert overrides the inherited taskWrap.
+      signal, (ctx, _) = Activity::TaskWrap.invoke(R::Upsert, [{model: Object}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :incoming=>[Object, nil, [:model, :current_user]]}}
+
     end
 
 
