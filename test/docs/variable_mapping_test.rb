@@ -611,7 +611,7 @@ require "date"
       exception = assert_raises do
         signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{time: "yesterday", model: Object}, {}])
       end
-      assert_equal exception.message, %{missing keyword: :date}
+      assert_match /missing keyword: :?date/, exception.message
 
     ## {:time} is passed-through.
     ## {:date} is passed-through.
