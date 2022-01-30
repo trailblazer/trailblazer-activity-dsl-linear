@@ -905,7 +905,7 @@ require "date"
             Out() => ->(ctx, model:, **) { {out: [model, ctx[:incoming]]} }
 
           def write(ctx, model:, current_user:, **)
-            ctx[:incoming] = [model, current_user, ctx.keys]
+            ctx[:incoming] = [model, current_user, ctx.to_h]
           end
         end
 
@@ -926,11 +926,11 @@ require "date"
 
 
       signal, (ctx, _) = Activity::TaskWrap.invoke(R::Create, [{time: "yesterday", model: Object}, {}])
-      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, [:model, :current_user, :time]]]}}
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, {:model=>"Objecthello! yesterday", :current_user=>nil, :time=>"yesterday"}]]}}
 
     ## {:time} is defaulted by Inject()
       signal, (ctx, _) = Activity::TaskWrap.invoke(R::Create, [{model: Object}, {}])
-      assert_equal ctx.inspect, %{{:model=>Object, :out=>[\"Objecthello! \", [\"Objecthello! \", nil, [:model, :current_user, :time]]]}}
+      assert_equal ctx.inspect, %{{:model=>Object, :out=>["Objecthello! ", ["Objecthello! ", nil, {:model=>"Objecthello! ", :current_user=>nil, :time=>99}]]}}
 
       activity = R::Create
       step_id = :write
@@ -957,11 +957,11 @@ require "date"
     ## Inheriting I/O taskWrap filters
       ## {:time} is defaulted by Inject()
       signal, (ctx, _) = Activity::TaskWrap.invoke(R::Update, [{model: Object}, {}])
-      assert_equal ctx.inspect, %{{:model=>Object, :out=>[\"Objecthello! \", [\"Objecthello! \", nil, [:model, :current_user, :time]]]}}
+      assert_equal ctx.inspect, %{{:model=>Object, :out=>[\"Objecthello! \", [\"Objecthello! \", nil, {:model=>"Objecthello! ", :current_user=>nil, :time=>99}]]}}
 
     ## currently, the In() in Upsert overrides the inherited taskWrap.
       signal, (ctx, _) = Activity::TaskWrap.invoke(R::Upsert, [{model: Object}, {}])
-      assert_equal ctx.inspect, %{{:model=>Object, :incoming=>[Object, nil, [:model, :current_user]]}}
+      assert_equal ctx.inspect, %{{:model=>Object, :incoming=>[Object, nil, {:model=>Object, :current_user=>nil}]}}
 
     end
 
