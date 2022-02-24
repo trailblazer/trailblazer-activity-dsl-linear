@@ -36,7 +36,7 @@ module Trailblazer
           end
 
           # @public
-          private def step(*args, &block)
+          def step(*args, &block)
             recompile_activity_for(:step, *args, &block)
           end
 
