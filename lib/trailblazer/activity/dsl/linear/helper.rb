@@ -43,37 +43,36 @@ module Trailblazer
               Id.new(id).freeze
             end
 
-            def Path(track_color: "track_#{rand}", connect_to: nil, before: false, **options, &block)
+            def Path(track_color: "track_#{rand}", connect_to: nil, before: "End.success", **options, &block)
               path      = Activity::Path(track_name: track_color, **options)
               activity  = Class.new(path) { self.instance_exec(&block) }
 
               seq = activity.instance_variable_get(:@state).to_h[:sequence] # TODO: fix @state interface
-              # Strip default ends `Start.default` and `End.success` (if present).
+              # Strip default `Start.default` and `End.success` ends.
               seq = seq[1..-1].reject{ |row| row[3][:stop_event] && row[3][:id] == 'End.success' }
 
               if connect_to
                 seq = connect_for_sequence(seq, connect_to: connect_to)
               end
 
-              # Add the path elements before {End.success}.
-              # Termini (or :stop_event) are to be placed after {End.success}.
               adds = seq.collect do |row|
-                options = row[3]
-
-                # the terminus of the path goes _after_ {End.success} into the "end group".
-                insert_method = options[:stop_event] ? Insert.method(:Append) : Insert.method(:Prepend)
-
-                insert_target = "End.success" # insert before/after
-                insert_target = before if before && connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Helper::Track) # FIXME: this is a bit hacky, of course!
+                row_options = row[3]
 
                 {
                   row:    row,
-                  insert: [insert_method, insert_target]
+                  insert: insert_at(before, **row_options)
                 }
               end
 
               # Connect the Output() => Track(path_track)
               return Track.new(track_color, adds, {})
+            end
+
+            # {Append} or {Prepend} path elements to given {step_id}.
+            # Termini (or :stop_event) are to be added after {End.success}.
+            private def insert_at(step_id, stop_event: false, **)
+              insert_method = stop_event ? Insert.method(:Append) : Insert.method(:Prepend)
+              [insert_method, step_id]
             end
 
             # Connect last row of the {sequence} to the given step via its {Id}
