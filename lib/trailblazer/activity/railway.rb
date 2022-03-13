@@ -2,6 +2,12 @@ module Trailblazer
   # Implementation module that can be passed to `Activity[]`.
   class Activity
     class Railway
+      # Termini
+      module End
+        class Success < Activity::End; end
+        class Failure < Activity::End; end
+      end
+
       module DSL
         Linear = Activity::DSL::Linear
 
@@ -113,6 +119,7 @@ module Trailblazer
           pass:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_pass ),
         )
 
+        # FIXME: use End::Failure for {failure_end}.
         def self.OptionsForState(normalizers: Normalizers, failure_end: Activity::End.new(semantic: :failure), **options)
           options = Path::DSL.OptionsForState(**options).
             merge(normalizers: normalizers, failure_end: failure_end)
