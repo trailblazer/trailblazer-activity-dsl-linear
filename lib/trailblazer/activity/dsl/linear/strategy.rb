@@ -12,7 +12,7 @@ module Trailblazer
           def initialize!(state)
             @state    = state
 
-            recompile_activity!(@state.to_h[:sequence])
+            recompile_activity!(@state.sequence)
           end
 
           def inherited(inheriter)
@@ -22,12 +22,13 @@ module Trailblazer
             inheriter.initialize!(@state.copy)
           end
 
+        # FIXME: move me to {DSL::task_for!}!
           # Called from {#step} and friends.
           def self.task_for!(state, type, task, options={}, &block)
             options = options.merge(dsl_track: type)
 
             # {#update_sequence} is the only way to mutate the state instance.
-            state.update_sequence do |sequence:, normalizers:, normalizer_options:, fields:|
+            state.update_sequence do |sequence:, normalizers:, normalizer_options:, **|
               # Compute the sequence rows.
               options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options.merge(sequence: sequence))
 

@@ -147,12 +147,12 @@ module Trailblazer
       include DSL::Linear::Helper
       extend DSL::Linear::Strategy
 
-      initialize!(Railway::DSL::State.new(**DSL.OptionsForState()))
+      initialize!(Railway::DSL::State.build(**DSL.OptionsForState()))
     end # Railway
 
     def self.Railway(options)
       Class.new(Railway) do
-        initialize!(Railway::DSL::State.new(**Railway::DSL.OptionsForState(**options)))
+        initialize!(Railway::DSL::State.build(**Railway::DSL.OptionsForState(**options)))
       end
     end
   end
