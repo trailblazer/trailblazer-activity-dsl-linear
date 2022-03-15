@@ -1,3 +1,7 @@
+# 0.5.1
+
+* Move `Railway::End::Success|Failure` and `FastTrack::End::FailFast|PassFast` from operation to the dsl gem.
+
 # 0.5.0
 
 * Introduce `:inject` option to pass-through injected variables and to default input variables.

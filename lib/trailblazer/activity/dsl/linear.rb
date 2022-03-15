@@ -1,4 +1,5 @@
 require "trailblazer-activity"
+require "trailblazer/declarative"
 
 class Trailblazer::Activity
   module DSL

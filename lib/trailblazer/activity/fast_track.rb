@@ -2,7 +2,7 @@ module Trailblazer
   class Activity
     def self.FastTrack(options)
       Class.new(FastTrack) do
-        initialize!(Railway::DSL::State.new(**FastTrack::DSL.OptionsForState(**options)))
+        initialize!(Railway::DSL::State.build(**FastTrack::DSL.OptionsForState(**options)))
       end
     end
 
@@ -163,7 +163,7 @@ module Trailblazer
       include Activity::DSL::Linear::Helper
       extend Activity::DSL::Linear::Strategy
 
-      initialize!(Railway::DSL::State.new(**DSL.OptionsForState()))
+      initialize!(Railway::DSL::State.build(**DSL.OptionsForState()))
     end # FastTrack
   end
 end
