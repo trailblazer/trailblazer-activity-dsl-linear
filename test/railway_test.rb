@@ -281,7 +281,7 @@ class RailwayTest < Minitest::Spec
 # {State} tests.
 
   it "provides defaults" do
-    state = Activity::Railway::DSL::State.new(**Activity::Railway::DSL.OptionsForState)
+    state = Activity::Railway::DSL::State.build(**Activity::Railway::DSL.OptionsForState)
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.fail task: implementing.method(:a), id: :a
     seq = state.step task: implementing.method(:g), id: :g
@@ -317,7 +317,7 @@ class RailwayTest < Minitest::Spec
   end
 
   it "allows {Output() => Id()}" do
-    state = Activity::Railway::DSL::State.new(**Activity::Railway::DSL.OptionsForState())
+    state = Activity::Railway::DSL::State.build(**Activity::Railway::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f, Linear.Output(:failure) => Linear.Id(:g)
     seq = state.fail task: implementing.method(:a), id: :a
     seq = state.step task: implementing.method(:g), id: :g
@@ -341,7 +341,7 @@ class RailwayTest < Minitest::Spec
   end
 
   it "allows {Output() => Track()}" do
-    state = Activity::Railway::DSL::State.new(**Activity::Railway::DSL.OptionsForState())
+    state = Activity::Railway::DSL::State.build(**Activity::Railway::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f
     seq = state.fail task: implementing.method(:a), id: :a, Linear.Output(:success) => Linear.Track(:success)
     seq = state.step task: implementing.method(:g), id: :g
@@ -365,7 +365,7 @@ class RailwayTest < Minitest::Spec
   end
 
   it "accepts {:adds}" do
-    state = Activity::Railway::DSL::State.new(**Activity::Railway::DSL.OptionsForState())
+    state = Activity::Railway::DSL::State.build(**Activity::Railway::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f, adds: [
       {row: [:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {id: :g}], insert: [Linear::Insert.method(:Prepend), :f]}]
     seq = state.fail task: implementing.method(:a), id: :a, adds: [

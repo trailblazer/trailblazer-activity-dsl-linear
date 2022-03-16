@@ -12,7 +12,7 @@ module Trailblazer
           def initialize!(state)
             @state    = state
 
-            recompile_activity!(@state.sequence)
+            recompile_activity!(@state.to_h[:sequence])
           end
 
           def inherited(inheriter)
@@ -69,8 +69,9 @@ module Trailblazer
             # DISCUSS: THIS SHOULD BE DONE IN DSL.Path() which is stateful! the block forwarding should be the only thing happening here!
             evaluated_options =
             options.find_all { |k,v| v.is_a?(BlockProxy) }.collect do |output, proxy|
-              shared_options = {step_interface_builder: @state.instance_variable_get(:@normalizer_options)[:step_interface_builder]} # FIXME: how do we know what to pass on and what not?
+              shared_options = {step_interface_builder: @state.to_h[:normalizer_options][:step_interface_builder]} # FIXME: how do we know what to pass on and what not?
 
+              # shared_options = {}
               [output, Linear.Path(**shared_options, **proxy.options, &(proxy.block || block))] # FIXME: the || sucks.
             end
 

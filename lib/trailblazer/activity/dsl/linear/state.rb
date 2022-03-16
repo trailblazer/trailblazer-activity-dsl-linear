@@ -44,22 +44,18 @@ module Trailblazer
             self.class.new(state)
           end
 
-          def sequence
-            @state.get("sequence")
-          end
-
           def to_h
-            raise
-            {sequence: @sequence, normalizers: @normalizer, normalizer_options: @normalizer_options, fields: @fields} # FIXME.
+            {
+              sequence: @state.get("sequence"),
+              normalizers: @state.get("dsl/normalizer"),
+              normalizer_options: @state.get("dsl/normalizer_options"),
+              fields: @state.get("fields")
+            } # DISCUSS: maybe {Declarative::State#to_h} could automatically provide this functionality?
           end
 
           def update_sequence(&block)
             @state.update!("sequence") do |sequence|
-              yield(
-                sequence: sequence,
-                normalizers: @state.get("dsl/normalizer"),
-                normalizer_options: @state.get("dsl/normalizer_options") # FIXME: could we store this with the normalizers?
-              ) # FIXME: define interface for block.
+              yield(**to_h) # FIXME: define interface for block.
             end
           end
 
