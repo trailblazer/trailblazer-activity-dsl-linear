@@ -36,7 +36,7 @@ module Trailblazer
           end
 
           # Called to "inherit" a state.
-          def copy
+          def copy # DISCUSS: this isn't DSL logic
             inherited_fields = @state.copy_fields()
 
             state = Trailblazer::Declarative.State(inherited_fields) # FIXME: identical to State::initialize_state!
@@ -44,7 +44,7 @@ module Trailblazer
             self.class.new(state)
           end
 
-          def to_h
+          def to_h # DISCUSS: this isn't DSL logic
             {
               sequence: @state.get("sequence"),
               normalizers: @state.get("dsl/normalizer"),
