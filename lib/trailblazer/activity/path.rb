@@ -161,9 +161,23 @@ module Trailblazer
         # This can be used later to create faster DSLs where the activity is compiled only once, a la
         #   Path() do  ... end
         class State < Linear::State
-          def step(*args)
+          def step(*args, &block)
+            if args[1].is_a?(Hash)
+              args[1][:block] = block # FIXME: this is all prototyping bullshit of course.
+            end
+
             _seq = Linear::Strategy.task_for!(self, :step, *args) # mutate @state
           end
+
+          def Output(*args, **kws); Linear.Output(*args, **kws) end
+          def End(*args, **kws); Linear.End(*args, **kws) end
+          def Path(**options) # TODO: do we want to allow &block here?
+
+            # FIXME: we're copying normalizer_options here, and not later in the normalizer!
+            Linear::Helper::PathBranch.new(instance_variable_get(:@state).get("dsl/normalizer_options").merge(options)) # picked up by normalizer.
+          end
+
+
         end
 
       end # DSL

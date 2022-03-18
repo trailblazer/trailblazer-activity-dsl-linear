@@ -165,6 +165,14 @@ module Trailblazer
                   _adds      = [add_end(cfg, magnetic_to: end_id, id: end_id)] unless end_exists
 
                   [output_to_id(ctx, output, end_id), _adds]
+                elsif cfg.is_a?(Activity::DSL::Linear::Helper::PathBranch)
+                  # we're the PathBranch that needs the block forwarded.
+
+                  # DISCUSS: use normalizer_options here, move logic in step above
+                  # we're adding a lot of rubbish here from ctx
+                  _track_fixme = Linear.Path(**cfg.options, &ctx[:block])
+
+                  [output_to_track(ctx, output, _track_fixme), _track_fixme.adds]
                 else
                   raise cfg.inspect
                 end

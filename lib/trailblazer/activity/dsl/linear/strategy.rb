@@ -42,8 +42,6 @@ module Trailblazer
           end
 
           private def recompile_activity_for(type, *args, &block)
-            args = forward_block(args, block)
-
             seq  = @state.send(type, *args)
 
             recompile_activity!(seq)
@@ -58,33 +56,6 @@ module Trailblazer
 
             @activity = Activity.new(schema)
           end
-
-          private def forward_block(args, block)
-            options = args[1]
-
-            return args unless options.is_a?(Hash)
-
-              # FIXME: doesn't account {task: <>} and repeats logic from Normalizer.
-
-            # DISCUSS: THIS SHOULD BE DONE IN DSL.Path() which is stateful! the block forwarding should be the only thing happening here!
-            evaluated_options =
-            options.find_all { |k,v| v.is_a?(BlockProxy) }.collect do |output, proxy|
-              shared_options = {step_interface_builder: @state.to_h[:normalizer_options][:step_interface_builder]} # FIXME: how do we know what to pass on and what not?
-
-              # shared_options = {}
-              [output, Linear.Path(**shared_options, **proxy.options, &(proxy.block || block))] # FIXME: the || sucks.
-            end
-
-            evaluated_options = Hash[evaluated_options]
-
-            return args[0], options.merge(evaluated_options)
-          end
-
-          def Path(**options, &block) # syntactically, we can't access the {do ... end} block here.
-            BlockProxy.new(options, block)
-          end
-
-          BlockProxy = Struct.new(:options, :block)
 
           private def merge!(activity)
             old_seq = @state.instance_variable_get(:@sequence) # TODO: fixme

@@ -12,6 +12,7 @@ module Trailblazer
               callable.(*args, &block)
             end
           end
+          PathBranch     = Struct.new(:options)
 
           def self.included(base)
             base.extend ClassMethods
@@ -44,7 +45,7 @@ module Trailblazer
             end
 
             def Path(track_color: "track_#{rand}", connect_to: nil, before: false, **options, &block)
-              path      = Activity::Path(track_name: track_color, **options)
+              path      = Activity::Path(**options, track_name: track_color)
               activity  = Class.new(path) { self.instance_exec(&block) }
 
               seq = activity.instance_variable_get(:@state).to_h[:sequence] # TODO: fix @state interface
