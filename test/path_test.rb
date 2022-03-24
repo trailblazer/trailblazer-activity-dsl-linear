@@ -195,7 +195,7 @@ class PathTest < Minitest::Spec
 
       implementing = self.implementing
       state = Activity::Railway::DSL::State.build(**Activity::Railway::DSL.OptionsForState())
-      state.step(task: implementing.method(:a), id: :a, Linear.Output(:failure) => Linear.Path(end_task: path_end, end_id: "End.roundtrip") do
+      state.step(task: implementing.method(:a), id: :a, Linear.Output(:failure) => state.Path(end_task: path_end, end_id: "End.roundtrip") do
         step task: implementing.method(:f), id: :f
         step task: implementing.method(:g), id: :g
       end
@@ -251,7 +251,7 @@ class PathTest < Minitest::Spec
 
       implementing = self.implementing
 
-      state.step(implementing.method(:a), id: :a, Linear.Output(:success) => Linear.Path(end_task: path_end, end_id: "End.roundtrip", **shared_options) do
+      state.step(implementing.method(:a), id: :a, Linear.Output(:success) => state.Path(end_task: path_end, end_id: "End.roundtrip", **shared_options) do
         step implementing.method(:f), id: :f
       end
       )
