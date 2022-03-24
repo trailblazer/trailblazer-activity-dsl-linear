@@ -170,7 +170,7 @@ module Trailblazer
 
                   # DISCUSS: use normalizer_options here, move logic in step above
                   # we're adding a lot of rubbish here from ctx
-                  _track_fixme = Linear.Path(**cfg.options, &ctx[:block])
+                  _track_fixme = Linear::Helper::Path.path_to_output(block: ctx[:block], **cfg.options)
 
                   [output_to_track(ctx, output, _track_fixme), _track_fixme.adds]
                 else

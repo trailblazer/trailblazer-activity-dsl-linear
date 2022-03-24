@@ -38,11 +38,12 @@ module Trailblazer
 
           # @public
           def step(*args, &block)
+            # Recompiling the activity/sequence is a matter specific to Strategy (Railway etc).
             recompile_activity_for(:step, *args, &block)
           end
 
           private def recompile_activity_for(type, *args, &block)
-            seq  = @state.send(type, *args)
+            seq  = @state.send(type, *args, &block)
 
             recompile_activity!(seq)
           rescue Sequence::IndexError
