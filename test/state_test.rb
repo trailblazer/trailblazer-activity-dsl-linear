@@ -5,7 +5,7 @@ class StateTest < Minitest::Spec
     initial_fields = {}.freeze
 
   # initial is initial
-    state = Trailblazer::Activity::DSL::Linear::State.new(normalizers: {}, initial_sequence: [], fields: initial_fields, **{})
+    state = Trailblazer::Activity::DSL::Linear::State.build(normalizers: {}, initial_sequence: [], fields: initial_fields)
 
     _(state.to_h[:fields]).must_equal initial_fields
 

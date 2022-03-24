@@ -11,11 +11,6 @@ module Trailblazer
         # DISCUSS: why do we have this structure? It doesn't cover "immutable copying", that has to be done by its clients.
         #          also, copy with to_h
         class State # TODO: rename to Dsl
-          # @state = Declarative.State(tuples)
-# +            initialize_state!(
-# +              # "artifact/sequence" =>       [, {copy: Trailblazer::Declarative::State.method(:subclass)}],
-# +              # "dsl/recorded_options" => [Hash.new, {}], # copy # FIXME: we need real definitions here, I guess.
-# +            )
           def self.build(normalizers:, initial_sequence:, fields: {}, **normalizer_options)
             tuples = {
               "sequence" =>       [initial_sequence, {}],
@@ -60,8 +55,9 @@ module Trailblazer
           end
 
           def update_options(fields)
-            raise
-            @fields = fields
+            @state.update!("fields") do |*|
+              fields
+            end
           end
 
           # Compiles and maintains all final normalizers for a specific DSL.
