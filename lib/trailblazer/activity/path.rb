@@ -171,14 +171,13 @@ module Trailblazer
 
           def Output(*args, **kws); Linear.Output(*args, **kws) end
           def End(*args, **kws); Linear.End(*args, **kws) end
-          def Path(**options) # TODO: do we want to allow &block here?
+          def Path(**options, &block)
+            options = options.merge(block: block) if block_given?
 
             # FIXME: we're copying normalizer_options here, and not later in the normalizer!
             Linear::Helper::PathBranch.new(instance_variable_get(:@state).get("dsl/normalizer_options").merge(options)) # picked up by normalizer.
           end
-
-
-        end
+        end # State
 
       end # DSL
 

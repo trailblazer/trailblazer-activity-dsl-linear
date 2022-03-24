@@ -44,37 +44,8 @@ module Trailblazer
               Id.new(id).freeze
             end
 
-            def Path(track_color: "track_#{rand}", connect_to: nil, before: false, **options, &block)
-              path      = Activity::Path(**options, track_name: track_color)
-              activity  = Class.new(path) { self.instance_exec(&block) }
-
-              seq = activity.instance_variable_get(:@state).to_h[:sequence] # TODO: fix @state interface
-              # Strip default ends `Start.default` and `End.success` (if present).
-              seq = seq[1..-1].reject{ |row| row[3][:stop_event] && row[3][:id] == 'End.success' }
-
-              if connect_to
-                seq = connect_for_sequence(seq, connect_to: connect_to)
-              end
-
-              # Add the path elements before {End.success}.
-              # Termini (or :stop_event) are to be placed after {End.success}.
-              adds = seq.collect do |row|
-                options = row[3]
-
-                # the terminus of the path goes _after_ {End.success} into the "end group".
-                insert_method = options[:stop_event] ? Insert.method(:Append) : Insert.method(:Prepend)
-
-                insert_target = "End.success" # insert before/after
-                insert_target = before if before && connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Helper::Track) # FIXME: this is a bit hacky, of course!
-
-                {
-                  row:    row,
-                  insert: [insert_method, insert_target]
-                }
-              end
-
-              # Connect the Output() => Track(path_track)
-              return Track.new(track_color, adds, {})
+            def Path(**options, &block)
+              @state.Path(**options, &block)
             end
 
             # Connect last row of the {sequence} to the given step via its {Id}
