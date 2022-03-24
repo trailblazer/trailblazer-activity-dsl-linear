@@ -59,12 +59,14 @@ module Trailblazer
           end
 
           private def merge!(activity)
-            old_seq = @state.instance_variable_get(:@sequence) # TODO: fixme
-            new_seq = activity.instance_variable_get(:@state).instance_variable_get(:@sequence) # TODO: fix the interfaces
+            old_seq = @state.to_h[:sequence]
+            new_seq = activity.instance_variable_get(:@state).to_h[:sequence] # TODO: fix the {@state} interface.
 
             seq = Linear.Merge(old_seq, new_seq, end_id: "End.success")
 
-            @state.instance_variable_set(:@sequence, seq) # FIXME: hate this so much.
+            # Update the DSL's sequence, then recompile the actual activity.
+            @state.update_sequence { |**| seq }
+            recompile_activity!(seq)
           end
 
           def to_h
