@@ -1,6 +1,7 @@
 # 0.5.1
 
 * Move `Railway::End::Success|Failure` and `FastTrack::End::FailFast|PassFast` from operation to the dsl gem.
+* `Sequence` is now at `activity.instance_variable_get(:@state).to_h[:sequence]`.
 
 # 0.5.0
 

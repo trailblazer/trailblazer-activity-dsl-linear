@@ -881,9 +881,13 @@ ActivityTest::NestedWithThreeTermini
         step implementing.method(:d), id: :d
       end
 
-      process = sub_activity.to_h
+      merge_is_last_activity = Class.new(Activity::Path) do
+        step implementing.method(:c), id: :c
+        merge!(activity)
+      end
 
-    assert_process_for process, :success, %{
+      process = sub_activity
+      assert_process_for process, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
 <*#<Method: #<Module:0x>.c>>
@@ -893,6 +897,18 @@ ActivityTest::NestedWithThreeTermini
 <*#<Method: #<Module:0x>.b>>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.d>>
 <*#<Method: #<Module:0x>.d>>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+
+      assert_process_for merge_is_last_activity.to_h, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
+<*#<Method: #<Module:0x>.c>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+<*#<Method: #<Module:0x>.b>>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
