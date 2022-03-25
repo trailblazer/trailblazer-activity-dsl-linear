@@ -1,9 +1,13 @@
 # 0.6.0
 
+* The `Railway.Path()` helper now simply delegates to `@state.Path()` which returns a `DSL::PathBranch` non-symbol that is then processed by the normalizer (exactly how we do it with `In()`, `Track()` etc. Branching implementation is handled in `helper/path.rb`.
+
 * Use `Trailblazer::Declarative::State` to maintain sequence and other fields. This makes inheritance consistent.
+* `Strategy::State.build` is now the official constructor for a `State` instance.
 * `Sequence` is now at `activity.instance_variable_get(:@state).to_h[:sequence]`.
-* Move `Railway::End::Success|Failure` and `FastTrack::End::FailFast|PassFast` from operation to the dsl gem.
 * Adding composable variable mapping: `In()`, `Inject()` and `Out()`
+  delete add "aggregate"
+* Move `Railway::End::Success|Failure` and `FastTrack::End::FailFast|PassFast` from operation to the dsl gem.
 
 # 0.5.0
 
