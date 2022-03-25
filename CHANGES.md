@@ -1,7 +1,9 @@
-# 0.5.1
+# 0.6.0
 
-* Move `Railway::End::Success|Failure` and `FastTrack::End::FailFast|PassFast` from operation to the dsl gem.
+* Use `Trailblazer::Declarative::State` to maintain sequence and other fields. This makes inheritance consistent.
 * `Sequence` is now at `activity.instance_variable_get(:@state).to_h[:sequence]`.
+* Move `Railway::End::Success|Failure` and `FastTrack::End::FailFast|PassFast` from operation to the dsl gem.
+* Adding composable variable mapping: `In()`, `Inject()` and `Out()`
 
 # 0.5.0
 
