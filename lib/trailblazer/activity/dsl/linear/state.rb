@@ -32,9 +32,7 @@ module Trailblazer
 
           # Called to "inherit" a state.
           def copy # DISCUSS: this isn't DSL logic
-            inherited_fields = @state.copy_fields()
-
-            state = Trailblazer::Declarative.State(inherited_fields) # FIXME: identical to State::initialize_state!
+            state = @state.copy
 
             self.class.new(state)
           end
