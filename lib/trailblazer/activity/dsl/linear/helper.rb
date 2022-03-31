@@ -48,23 +48,6 @@ module Trailblazer
               @state.Path(**options, &block)
             end
 
-            # Connect last row of the {sequence} to the given step via its {Id}
-            # Useful when steps needs to be inserted in between {Start} and {connect Id()}.
-            private def connect_for_sequence(sequence, connect_to:)
-              output, _ = sequence[-1][2][0].(sequence, sequence[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
-
-              # searches = [Search.ById(output, connect_to.value)]
-              searches = [Search.ById(output, connect_to.value)] if connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Helper::Id)
-              searches = [Search.Forward(output, connect_to.color)] if connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Helper::Track) # FIXME: use existing mapping logic!
-
-              row = sequence[-1]
-              row = row[0..1] + [searches] + [row[3]] # FIXME: not mutating an array is so hard: we only want to replace the "searches" element, index 2
-
-              sequence = sequence[0..-2] + [row]
-
-              sequence
-            end
-
             # Computes the {:outputs} options for {activity}.
             def Subprocess(activity, patch: {})
               activity = Patch.customize(activity, options: patch)
