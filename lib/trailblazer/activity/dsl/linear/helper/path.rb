@@ -7,7 +7,7 @@ module Trailblazer
           module Path
             module_function
 
-            def path_to_output(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, **options)
+            def convert_path_to_track(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, **options)
               path      = Activity::Path(**options, track_name: track_color)
               activity  = Class.new(path) { self.instance_exec(&block) }
 

@@ -174,7 +174,7 @@ module Trailblazer
           def Path(**options, &block)
             options = options.merge(block: block) if block_given?
 
-            # FIXME: we're copying normalizer_options here, and not later in the normalizer!
+            # DISCUSS: we're copying normalizer_options here, and not later in the normalizer!
             Linear::Helper::PathBranch.new(@state.get("dsl/normalizer_options").merge(options)) # picked up by normalizer.
           end
         end # State
