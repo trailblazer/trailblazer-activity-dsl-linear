@@ -169,7 +169,7 @@ module Trailblazer
             _seq = Linear::Strategy.task_for!(self, :step, *args) # mutate @state
           end
 
-          def Output(*args, **kws); Linear.Output(*args, **kws) end
+          def Output(*args); Linear.Output(*args) end
           def End(*args, **kws); Linear.End(*args, **kws) end
           def Path(**options, &block)
             options = options.merge(block: block) if block_given?
