@@ -43,6 +43,8 @@ module Trailblazer
               pipeline,
               "path.wirings",
               {
+              "activity.path_macro.forward_block"       => Normalizer.Task(method(:forward_block_for_path_branch)),     # forward the "global" block
+              "activity.path_macro.path_to_track"       => Normalizer.Task(method(:convert_path_to_track)),     # forward the "global" block
               "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
               "activity.input_output_extensions"        => Normalizer.Task(method(:input_output_extensions)),
@@ -144,6 +146,33 @@ module Trailblazer
             ctx[:options] = symbol_options.merge(non_symbol_options: non_symbol_options)
           end
 
+          # Forward the block to the DSL's {PathBranch} instance.
+          #   step ..., Output(:semantic) => Path() do .. end
+          #
+          # Replace a block-expecting {PathBranch} instance with another one that's holding
+          # the global {:block} from {#step}.
+          def forward_block_for_path_branch(ctx, non_symbol_options:, block: false, **)
+            return unless block
+
+            output, path_branch =
+              non_symbol_options.find { |output, cfg| cfg.kind_of?(Linear::Helper::PathBranch) }
+
+            path_branch_with_block = Linear::Helper::PathBranch.new(path_branch.options.merge(block: block)) # DISCUSS: lots of internal knowledge here.
+
+            ctx[:non_symbol_options] = non_symbol_options.merge(output => path_branch_with_block)
+          end
+
+          # Convert all occurrences of Path() to a corresponding {Track}.
+          # The {Track} instance contains all additional {adds} steps.
+          def convert_path_to_track(ctx, non_symbol_options:, block: false, **)
+            new_tracks = non_symbol_options.
+              find_all { |output, cfg| cfg.kind_of?(Linear::Helper::PathBranch) }.
+              collect {  |output, cfg| [output, Linear::Helper::Path.convert_path_to_track(block: ctx[:block], **cfg.options)]  }.
+              to_h
+
+            ctx[:non_symbol_options] = non_symbol_options.merge(new_tracks)
+          end
+
           # Process {Output(:semantic) => target} and make them {:connections}.
           def normalize_connections_from_dsl(ctx, connections:, adds:, non_symbol_options:, **)
             # Find all {Output() => Track()/Id()/End()}
@@ -153,7 +182,7 @@ module Trailblazer
             output_configs.each do |output, cfg|
               new_connections, add =
                 if cfg.is_a?(Activity::DSL::Linear::Track)
-                  [output_to_track(ctx, output, cfg), cfg.adds]
+                  [output_to_track(ctx, output, cfg), cfg.adds] # FIXME: why does Track have a {adds} field? we don't use it anywhere.
                 elsif cfg.is_a?(Activity::DSL::Linear::Id)
                   [output_to_id(ctx, output, cfg.value), []]
                 elsif cfg.is_a?(Activity::End)
@@ -165,14 +194,6 @@ module Trailblazer
                   _adds      = [add_end(cfg, magnetic_to: end_id, id: end_id)] unless end_exists
 
                   [output_to_id(ctx, output, end_id), _adds]
-                elsif cfg.is_a?(Activity::DSL::Linear::Helper::PathBranch)
-                  # we're the PathBranch that needs the block forwarded.
-
-                  # DISCUSS: use normalizer_options here, move logic in step above
-                  # we're adding a lot of rubbish here from ctx
-                  _track_fixme = Linear::Helper::Path.path_to_output(block: ctx[:block], **cfg.options)
-
-                  [output_to_track(ctx, output, _track_fixme), _track_fixme.adds]
                 else
                   raise cfg.inspect
                 end
