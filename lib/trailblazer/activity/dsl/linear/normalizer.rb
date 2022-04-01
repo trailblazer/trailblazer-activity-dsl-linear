@@ -55,8 +55,25 @@ module Trailblazer
             pipeline = TaskWrap::Pipeline.append(
               pipeline,
               nil,
+              ["activity.create_row", Normalizer.Task(method(:create_row))],
+            )
+            pipeline = TaskWrap::Pipeline.append(
+              pipeline,
+              nil,
+              ["activity.create_add", Normalizer.Task(method(:create_add))],
+            )
+            pipeline = TaskWrap::Pipeline.append(
+              pipeline,
+              nil,
+              ["activity.create_adds", Normalizer.Task(method(:create_adds))],
+            ) # FIXME
+
+            pipeline = TaskWrap::Pipeline.append(
+              pipeline,
+              nil,
               ["activity.cleanup_options", method(:cleanup_options)]
             )
+
 
             pipeline
           end
@@ -258,6 +275,23 @@ module Trailblazer
             return parent_connections unless ctx[:outputs]
 
             parent_connections.slice(*ctx[:outputs].keys)
+          end
+
+          def create_row(ctx, task:, wirings:, magnetic_to:, **options)
+            # create_row(task:, wirings:, magnetic_to:, **data)
+            # FIXME: do we have to maintain required args here?
+            # FIXME: how to filter out shit/know what goes into "data" field?
+            row = Sequence.create_row(task: task, magnetic_to: magnetic_to, wirings: wirings, **options)
+
+            ctx[:row] = row
+          end
+
+          def create_add(ctx, row:, sequence_insert:, **)
+            ctx[:add] = {row: row, insert: sequence_insert}
+          end
+
+          def create_adds(ctx, add:, adds:, **)
+            ctx[:adds] = [add] + adds
           end
 
           # TODO: make this extendable!
