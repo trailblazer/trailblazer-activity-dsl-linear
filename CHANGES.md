@@ -1,5 +1,8 @@
 # 0.6.0
 
+* DSL logic: move as much as possible into the normalizer as it's much easier to understand and follow (and debug).
+* We no longer store arbitrary variables from `#step` in the sequence row's data field.
+  Use `variables_for_data: []`. (FIXME: better docs)
 * The `Railway.Path()` helper now simply delegates to `@state.Path()` which returns a `DSL::PathBranch` non-symbol that is then processed by the normalizer (exactly how we do it with `In()`, `Track()` etc. Branching implementation is handled in `helper/path.rb`.
 
 * Use `Trailblazer::Declarative::State` to maintain sequence and other fields. This makes inheritance consistent.

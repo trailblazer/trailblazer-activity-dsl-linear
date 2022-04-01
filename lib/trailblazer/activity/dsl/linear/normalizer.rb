@@ -55,6 +55,11 @@ module Trailblazer
             pipeline = TaskWrap::Pipeline.append(
               pipeline,
               nil,
+              ["activity.compile_data", Normalizer.Task(method(:compile_data))]
+            )
+            pipeline = TaskWrap::Pipeline.append(
+              pipeline,
+              nil,
               ["activity.create_row", Normalizer.Task(method(:create_row))],
             )
             pipeline = TaskWrap::Pipeline.append(
@@ -68,11 +73,6 @@ module Trailblazer
               ["activity.create_adds", Normalizer.Task(method(:create_adds))],
             ) # FIXME
 
-            pipeline = TaskWrap::Pipeline.append(
-              pipeline,
-              nil,
-              ["activity.cleanup_options", method(:cleanup_options)]
-            )
 
 
             pipeline
@@ -277,13 +277,8 @@ module Trailblazer
             parent_connections.slice(*ctx[:outputs].keys)
           end
 
-          def create_row(ctx, task:, wirings:, magnetic_to:, **options)
-            # create_row(task:, wirings:, magnetic_to:, **data)
-            # FIXME: do we have to maintain required args here?
-            # FIXME: how to filter out shit/know what goes into "data" field?
-            row = Sequence.create_row(task: task, magnetic_to: magnetic_to, wirings: wirings, **options)
-
-            ctx[:row] = row
+          def create_row(ctx, task:, wirings:, magnetic_to:, data:, **)
+            ctx[:row] = Sequence.create_row(task: task, magnetic_to: magnetic_to, wirings: wirings, **data)
           end
 
           def create_add(ctx, row:, sequence_insert:, **)
@@ -294,12 +289,11 @@ module Trailblazer
             ctx[:adds] = [add] + adds
           end
 
-          # TODO: make this extendable!
-          def cleanup_options(ctx, flow_options)
-            # new_ctx = ctx.reject { |k, v| [:connections, :outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence].include?(k) }
-            new_ctx = ctx.reject { |k, v| [:outputs, :end_id, :step_interface_builder, :failure_end, :track_name, :sequence, :non_symbol_options].include?(k) }
-
-            return new_ctx, flow_options
+          # TODO: test {:variables_for_data}
+          # DISCUSS: allow injecting more
+          # Compile data that goes into the sequence row.
+          def compile_data(ctx, variables_for_data: [], default_variables_for_data: [:id, :dsl_track, :connections, :extensions, :stop_event], **)
+            ctx[:data] = (default_variables_for_data + variables_for_data).collect { |key| [key, ctx[key]] }.to_h
           end
         end
 
