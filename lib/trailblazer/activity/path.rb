@@ -169,7 +169,11 @@ module Trailblazer
             _seq = Linear::Strategy.task_for!(self, :step, *args) # mutate @state
           end
 
+          # TODO: how to implement "macro forwarding" across all strategies and states? also, keep in mind `Contract::Validate()` etc
+          # FIXME: redundancy
           def Output(*args); Linear.Output(*args) end
+          def Id(*args); Linear.Id(*args) end
+          def Subprocess(*args, **kws); Linear.Subprocess(*args, **kws) end
           def End(*args, **kws); Linear.End(*args, **kws) end
           def Path(**options, &block)
             options = options.merge(block: block) if block_given?
