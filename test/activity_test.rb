@@ -485,7 +485,7 @@ class ActivityTest < Minitest::Spec
 
     activity = Class.new(Activity::Railway) do
       step task: implementing.method(:f), id: :f
-      pass task: implementing.method(:c), id: :c
+      pass task: implementing.method(:c), id: :c, additional: 9 # FIXME: this is not in {data}
       fail task: implementing.method(:b), id: :b
     end
 
@@ -495,9 +495,9 @@ class ActivityTest < Minitest::Spec
     data2 = activity.to_h[:nodes][2][:data]
     data3 = activity.to_h[:nodes][3][:data]
 
-    assert_equal data1.keys, [:id, :dsl_track, :connections]
-    data2.keys.must_equal [:id, :dsl_track, :connections]
-    data3.keys.must_equal [:id, :dsl_track, :connections]
+    assert_equal data1.keys, [:id, :dsl_track, :connections, :extensions, :stop_event]
+    data2.keys.must_equal [:id, :dsl_track, :connections, :extensions, :stop_event]
+    data3.keys.must_equal [:id, :dsl_track, :connections, :extensions, :stop_event]
 
     [data1[:id], data1[:dsl_track]].must_equal [:f, :step]
     renderer.(data1[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :success]]]}

@@ -25,6 +25,7 @@ module Trailblazer
         # FIXME: move me to {DSL::task_for!}!
           # Called from {#step} and friends.
           def self.task_for!(state, type, task, options={}, &block)
+            # raise
             options = options.merge(dsl_track: type)
 
             # {#update_sequence} is the only way to mutate the state instance.
