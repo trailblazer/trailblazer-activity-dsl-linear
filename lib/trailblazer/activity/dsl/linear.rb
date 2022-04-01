@@ -23,13 +23,15 @@ class Trailblazer::Activity
         end
 
         # @returns Sequence New sequence instance
-        # TODO: name it {apply_adds or something}
+        # @private
         def self.insert_row(sequence, row:, insert:)
           insert_function, *args = insert
 
           insert_function.(sequence, [row], *args)
         end
 
+        # TODO: make this the only public method of Sequence.
+        # Inserts one or more {Add} into {sequence}.
         def self.apply_adds(sequence, adds)
           adds.each do |add|
             sequence = insert_row(sequence, **add)
@@ -169,11 +171,8 @@ class Trailblazer::Activity
         # Insert the task into the sequence using the {sequence_insert} strategy.
         # @return Sequence sequence after applied insertion
 # FIXME: DSL for strategies
-        def insert_task(sequence, sequence_insert:, **options)
-          new_row = Sequence.create_row(**options)
-
-          # {sequence_insert} is usually a function such as {Linear::Insert::Append} and its arguments.
-          _seq = Sequence.insert_row(sequence, row: new_row, insert: sequence_insert)
+        def insert_task(sequence, **options)
+          _seq = apply_adds_from_dsl(sequence, **options, adds: [])
         end
 
         # Add one or several rows to the {sequence}.
@@ -181,8 +180,9 @@ class Trailblazer::Activity
         def apply_adds_from_dsl(sequence, sequence_insert:, adds:, **options)
           # This is the ADDS for the actual task.
           # create_row(task:, id:, wirings:, magnetic_to: )
+          row = Sequence.create_row(**options)
 
-          sequence_add = {row: Sequence.create_row(**options), insert: sequence_insert} # Linear::Insert.method(:Prepend), end_id
+          sequence_add = {row: row, insert: sequence_insert} # Linear::Insert.method(:Prepend), end_id
           # sequence_add, sequence_add, ... == sequence_apply
 
           Sequence.apply_adds(sequence, [sequence_add] + adds)
