@@ -4,7 +4,42 @@ module Trailblazer
       module Linear
         module Helper
           # Normalizer logic for {Path() do end}.
+          #
+          # TODO: it would be cool to be able to connect an (empty) path to specific termini,
+          #       this would work if we could add multiple magnetic_to.
           module Path
+            # Normalizer steps to handle Path() macro.
+            module Normalizer
+              module_function
+              # Forward the block to the DSL's {PathBranch} instance.
+              #   step ..., Output(:semantic) => Path() do .. end
+              #
+              # Replace a block-expecting {PathBranch} instance with another one that's holding
+              # the global {:block} from {#step}.
+              def forward_block_for_path_branch(ctx, non_symbol_options:, block: false, **)
+                return unless block
+
+                output, path_branch =
+                  non_symbol_options.find { |output, cfg| cfg.kind_of?(Linear::Helper::PathBranch) }
+
+                path_branch_with_block = Linear::Helper::PathBranch.new(path_branch.options.merge(block: block)) # DISCUSS: lots of internal knowledge here.
+
+                ctx[:non_symbol_options] = non_symbol_options.merge(output => path_branch_with_block)
+              end
+
+              # Convert all occurrences of Path() to a corresponding {Track}.
+              # The {Track} instance contains all additional {adds} steps and
+              # is picked up in {Normalizer.normalize_connections_from_dsl}.
+              def convert_paths_to_tracks(ctx, non_symbol_options:, block: false, **)
+                new_tracks = non_symbol_options.
+                  find_all { |output, cfg| cfg.kind_of?(Linear::Helper::PathBranch) }.
+                  collect {  |output, cfg| [output, Path.convert_path_to_track(block: ctx[:block], **cfg.options)]  }.
+                  to_h
+
+                ctx[:non_symbol_options] = non_symbol_options.merge(new_tracks)
+              end
+            end # Normalizer
+
             module_function
 
             def convert_path_to_track(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, **options)

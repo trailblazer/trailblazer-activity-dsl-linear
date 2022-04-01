@@ -189,6 +189,7 @@ class Trailblazer::Activity
 end
 
 require "trailblazer/activity/dsl/linear/normalizer"
+require "trailblazer/activity/dsl/linear/helper/path"
 require "trailblazer/activity/dsl/linear/state"
 require "trailblazer/activity/dsl/linear/helper"
 require "trailblazer/activity/dsl/linear/strategy"
@@ -197,4 +198,3 @@ require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"
 require "trailblazer/activity/dsl/linear/variable_mapping"
-require "trailblazer/activity/dsl/linear/helper/path"

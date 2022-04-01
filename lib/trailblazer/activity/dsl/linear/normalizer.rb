@@ -43,8 +43,8 @@ module Trailblazer
               pipeline,
               "path.wirings",
               {
-              "activity.path_macro.forward_block"       => Normalizer.Task(PathBranch.method(:forward_block_for_path_branch)),     # forward the "global" block
-              "activity.path_macro.path_to_track"       => Normalizer.Task(PathBranch.method(:convert_path_to_track)),
+              "activity.path_helper.forward_block"       => Normalizer.Task(Helper::Path::Normalizer.method(:forward_block_for_path_branch)),     # forward the "global" block
+              "activity.path_helper.path_to_track"       => Normalizer.Task(Helper::Path::Normalizer.method(:convert_paths_to_tracks)),
               "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
               "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
               "activity.input_output_extensions"        => Normalizer.Task(method(:input_output_extensions)),
@@ -268,38 +268,6 @@ module Trailblazer
 
             return new_ctx, flow_options
           end
-
-          # Code for branching out via the {Path() do .. end} DSL.
-          module PathBranch
-            module_function
-            # Forward the block to the DSL's {PathBranch} instance.
-            #   step ..., Output(:semantic) => Path() do .. end
-            #
-            # Replace a block-expecting {PathBranch} instance with another one that's holding
-            # the global {:block} from {#step}.
-            def forward_block_for_path_branch(ctx, non_symbol_options:, block: false, **)
-              return unless block
-
-              output, path_branch =
-                non_symbol_options.find { |output, cfg| cfg.kind_of?(Linear::Helper::PathBranch) }
-
-              path_branch_with_block = Linear::Helper::PathBranch.new(path_branch.options.merge(block: block)) # DISCUSS: lots of internal knowledge here.
-
-              ctx[:non_symbol_options] = non_symbol_options.merge(output => path_branch_with_block)
-            end
-
-            # Convert all occurrences of Path() to a corresponding {Track}.
-            # The {Track} instance contains all additional {adds} steps.
-            def convert_path_to_track(ctx, non_symbol_options:, block: false, **)
-              new_tracks = non_symbol_options.
-                find_all { |output, cfg| cfg.kind_of?(Linear::Helper::PathBranch) }.
-                collect {  |output, cfg| [output, Linear::Helper::Path.convert_path_to_track(block: ctx[:block], **cfg.options)]  }.
-                to_h
-
-              ctx[:non_symbol_options] = non_symbol_options.merge(new_tracks)
-            end
-          end
-
         end
 
       end # Normalizer
