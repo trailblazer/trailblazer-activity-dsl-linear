@@ -55,6 +55,8 @@ class Trailblazer::Activity
       end
 
       # Sequence
+      # Search strategies are part of the {wirings}, they find the next step
+      # for an output.
       module Search
         module_function
 
@@ -105,7 +107,7 @@ class Trailblazer::Activity
       end # Search
 
       # Sequence
-      # Functions to mutate the Sequence by inserting, replacing, or deleting tasks.
+      # Functions to mutate the Sequence by inserting, replacing, or deleting a row.
       # These functions are called in {insert_task}
       module Insert
         module_function
@@ -178,9 +180,13 @@ class Trailblazer::Activity
         # This is usually called from DSL methods such as {step}.
         def apply_adds_from_dsl(sequence, sequence_insert:, adds:, **options)
           # This is the ADDS for the actual task.
-          task_add = {row: Sequence.create_row(**options), insert: sequence_insert} # Linear::Insert.method(:Prepend), end_id
+          puts "@@@@@>>> #{options.inspect}"
+          # create_row(task:, id:, wirings:, magnetic_to: )
 
-          Sequence.apply_adds(sequence, [task_add] + adds)
+          sequence_add = {row: Sequence.create_row(**options), insert: sequence_insert} # Linear::Insert.method(:Prepend), end_id
+          # sequence_add, sequence_add, ... == sequence_apply
+
+          Sequence.apply_adds(sequence, [sequence_add] + adds)
         end
       end # DSL
 
