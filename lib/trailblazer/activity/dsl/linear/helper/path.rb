@@ -43,10 +43,12 @@ module Trailblazer
             module_function
 
             def convert_path_to_track(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, **options)
-              path      = Activity::Path(**options, track_name: track_color)
-              activity  = Class.new(path) { self.instance_exec(&block) }
+              # DISCUSS: should we inherit from self here and erase sequence?
+              #   if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.
+              path_state = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState(**options, track_name: track_color))
+              path_state.instance_exec(&block)
 
-              seq = activity.instance_variable_get(:@state).to_h[:sequence] # TODO: fix @state interface
+              seq = path_state.to_h[:sequence]
               # Strip default ends `Start.default` and `End.success` (if present).
               seq = seq[1..-1].reject{ |row| row[3][:stop_event] && row[3][:id] == 'End.success' }
 
