@@ -30,21 +30,6 @@ module Trailblazer
           _sequence     = Linear::Sequence[start_event]
         end
 
-        # DISCUSS: still not sure this should sit here.
-        # Pseudo-DSL that prepends {steps} to {sequence}.
-        def prepend_to_path(sequence, steps, insertion_method=Linear::Insert.method(:Prepend), insert_id="End.success") # FIXME: where do we need you?
-          new_rows = steps.collect do |id, task|
-            Linear::Sequence.create_row(
-              task:         task,
-              magnetic_to:  :success,
-              wirings:      [Linear::Search::Forward(unary_outputs[:success], :success)],
-              id:           id,
-            )
-          end
-
-          insertion_method.(sequence, new_rows, insert_id)
-        end
-
         def unary_outputs
           {success: Activity::Output(Activity::Right, :success)}
         end
