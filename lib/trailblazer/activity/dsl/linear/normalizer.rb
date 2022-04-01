@@ -163,7 +163,7 @@ module Trailblazer
                   end_id     = Linear.end_id(cfg)
                   end_exists = Insert.find_index(ctx[:sequence], end_id)
 
-                  _adds = end_exists ? [add_end(cfg, magnetic_to: end_id, id: end_id)] : []
+                  _adds = end_exists ? [] : [add_end(cfg, magnetic_to: end_id, id: end_id)]
 
                   [output_to_id(ctx, output, end_id), _adds]
                 else
