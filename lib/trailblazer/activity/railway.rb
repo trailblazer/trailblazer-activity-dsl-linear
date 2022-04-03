@@ -105,11 +105,11 @@ module Trailblazer
 
         class State < Path::DSL::State
           def fail(*args)
-            _seq = Linear::Strategy.task_for!(self, :fail, *args) # mutate @state
+            task_for!(:fail, *args) # mutate @state
           end
 
           def pass(*args)
-            _seq = Linear::Strategy.task_for!(self, :pass, *args) # mutate @state
+            task_for!(:pass, *args) # mutate @state
           end
         end # Instance
 

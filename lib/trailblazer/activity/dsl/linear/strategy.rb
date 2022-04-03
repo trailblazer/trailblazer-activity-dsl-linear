@@ -22,29 +22,15 @@ module Trailblazer
             inheriter.initialize!(@state.copy)
           end
 
-        # FIXME: move me to {DSL::task_for!}!
-          # Called from {#step} and friends.
-          def self.task_for!(state, type, task, options={}, &block)
-            # raise
-            options = options.merge(dsl_track: type)
-
-            # {#update_sequence} is the only way to mutate the state instance.
-            state.update_sequence do |sequence:, normalizers:, normalizer_options:, **|
-              # Compute the sequence rows.
-              options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options.merge(sequence: sequence))
-
-              sequence = Linear::Sequence.apply_adds(sequence, options[:adds])
-            end
-          end
-
           # @public
           def step(*args, &block)
+            # We forward `step` to the Dsl (State) object.
             # Recompiling the activity/sequence is a matter specific to Strategy (Railway etc).
             recompile_activity_for(:step, *args, &block)
           end
 
           private def recompile_activity_for(type, *args, &block)
-            seq  = @state.send(type, *args, &block)
+            seq  = @state.send(type, *args, &block) # TODO: calls task_for!
 
             recompile_activity!(seq)
           rescue Sequence::IndexError
@@ -55,7 +41,6 @@ module Trailblazer
 
           private def recompile_activity!(seq)
             schema    = Compiler.(seq)
-
             @activity = Activity.new(schema)
           end
 

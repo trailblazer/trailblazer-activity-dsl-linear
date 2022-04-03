@@ -46,6 +46,7 @@ module Trailblazer
             } # DISCUSS: maybe {Declarative::State#to_h} could automatically provide this functionality?
           end
 
+          # TODO: rename to {#update_sequence!}.
           def update_sequence(&block)
             @state.update!("sequence") do |sequence|
               yield(**to_h) # FIXME: define interface for block.
@@ -55,6 +56,20 @@ module Trailblazer
           def update_options(fields)
             @state.update!("fields") do |*|
               fields
+            end
+          end
+
+                  # FIXME: move me to {DSL::task_for!}!
+          # Called from {#step} and friends.
+          def task_for!(type, task, options={}, &block)
+            options = options.merge(dsl_track: type)
+
+            # {#update_sequence} is the only way to mutate the state instance.
+            update_sequence do |sequence:, normalizers:, normalizer_options:, **|
+              # Compute the sequence rows.
+              step_options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options.merge(sequence: sequence))
+
+              _sequence = Linear::Sequence.apply_adds(sequence, step_options[:adds])
             end
           end
 
