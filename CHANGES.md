@@ -1,8 +1,14 @@
-# 0.6.0
+# 1.0.0
 
 * DSL logic: move as much as possible into the normalizer as it's much easier to understand and follow (and debug).
-* We no longer store arbitrary variables from `#step` in the sequence row's data field.
-  Use `variables_for_data: []`. (FIXME: better docs)
+* We no longer store arbitrary variables from `#step` in the sequence row's {data} field.
+  Use the `DataVariable` helper to mark variables for storage in {data}.
+
+  ```ruby
+  step :find_model,
+    model_class: Song,
+    Trailblazer::Activity::DSL::Linear::Helper.DataVariable() => :model_class
+  ```
 * The `Railway.Path()` helper now simply delegates to `@state.Path()` which returns a `DSL::PathBranch` non-symbol that is then processed by the normalizer (exactly how we do it with `In()`, `Track()` etc. Branching implementation is handled in `helper/path.rb`.
 
 * Use `Trailblazer::Declarative::State` to maintain sequence and other fields. This makes inheritance consistent.
@@ -11,6 +17,7 @@
 * Adding composable variable mapping: `In()`, `Inject()` and `Out()`
   delete add "aggregate"
 * Move `Railway::End::Success|Failure` and `FastTrack::End::FailFast|PassFast` from operation to the dsl gem.
+* Remove `Helper.normalize`.
 
 # 0.5.0
 

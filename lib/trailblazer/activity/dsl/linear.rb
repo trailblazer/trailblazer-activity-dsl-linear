@@ -186,10 +186,10 @@ class Trailblazer::Activity
   end
 end
 
+require "trailblazer/activity/dsl/linear/helper"
 require "trailblazer/activity/dsl/linear/normalizer"
 require "trailblazer/activity/dsl/linear/helper/path"
 require "trailblazer/activity/dsl/linear/state"
-require "trailblazer/activity/dsl/linear/helper"
 require "trailblazer/activity/dsl/linear/strategy"
 require "trailblazer/activity/dsl/linear/compiler"
 require "trailblazer/activity/path"

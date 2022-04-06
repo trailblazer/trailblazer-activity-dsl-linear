@@ -289,10 +289,11 @@ module Trailblazer
             ctx[:adds] = [add] + adds
           end
 
-          # TODO: test {:variables_for_data}
-          # DISCUSS: allow injecting more
+          # TODO: document DataVariable() => :name
           # Compile data that goes into the sequence row.
-          def compile_data(ctx, variables_for_data: [], default_variables_for_data: [:id, :dsl_track, :connections, :extensions, :stop_event], **)
+          def compile_data(ctx, default_variables_for_data: [:id, :dsl_track, :connections, :extensions, :stop_event], non_symbol_options:, **)
+            variables_for_data = non_symbol_options.find_all { |k,v| k.instance_of?(Helper::DataVariableName) }.collect { |k,v| Array(v) }.flatten
+
             ctx[:data] = (default_variables_for_data + variables_for_data).collect { |key| [key, ctx[key]] }.to_h
           end
         end
