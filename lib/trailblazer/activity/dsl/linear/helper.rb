@@ -96,12 +96,6 @@ module Trailblazer
                 patched_activity
               end
             end
-
-            def normalize(options, local_keys) # TODO: test me.
-              locals  = options.reject { |key, value| ! local_keys.include?(key) }
-              foreign = options.reject { |key, value| local_keys.include?(key) }
-              return foreign, locals
-            end
           end
         end # Helper
 
