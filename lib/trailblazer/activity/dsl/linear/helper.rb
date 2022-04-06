@@ -95,7 +95,13 @@ module Trailblazer
                 patched_activity.class_exec(&patch)
                 patched_activity
               end
-            end
+            end # Patch
+          end
+
+          DataVariableName = Class.new
+
+          def self.DataVariable
+            DataVariableName.new
           end
         end # Helper
 

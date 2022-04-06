@@ -485,8 +485,13 @@ class ActivityTest < Minitest::Spec
 
     activity = Class.new(Activity::Railway) do
       step task: implementing.method(:f), id: :f
-      pass task: implementing.method(:c), id: :c, additional: 9 # FIXME: this is not in {data}
-      fail task: implementing.method(:b), id: :b
+      pass task: implementing.method(:c), id: :c,
+        additional: 9, # FIXME: this is not in {data}
+        mode: [:read, :write], # but this is.
+        Trailblazer::Activity::DSL::Linear::Helper.DataVariable() => :mode
+      fail task: implementing.method(:b), id: :b,
+        level: 9,
+        Trailblazer::Activity::DSL::Linear::Helper.DataVariable() => [:status, :level]
     end
 
     renderer = ->(connections) { connections.collect { |semantic, (search_strategy, color)| [semantic, [T.render_task(search_strategy), color]] } }
@@ -496,8 +501,12 @@ class ActivityTest < Minitest::Spec
     data3 = activity.to_h[:nodes][3][:data]
 
     assert_equal data1.keys, [:id, :dsl_track, :connections, :extensions, :stop_event]
-    data2.keys.must_equal [:id, :dsl_track, :connections, :extensions, :stop_event]
-    data3.keys.must_equal [:id, :dsl_track, :connections, :extensions, :stop_event]
+    data2.keys.must_equal [:id, :dsl_track, :connections, :extensions, :stop_event, :mode]
+    data3.keys.must_equal [:id, :dsl_track, :connections, :extensions, :stop_event, :status, :level]
+
+    assert_equal data2[:mode].inspect, %{[:read, :write]}
+    assert_equal data3[:status].inspect, %{nil}
+    assert_equal data3[:level].inspect, %{9}
 
     [data1[:id], data1[:dsl_track]].must_equal [:f, :step]
     renderer.(data1[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Search.Forward>\", :success]]]}
