@@ -10,7 +10,7 @@ class StateTest < Minitest::Spec
     _(state.to_h[:fields]).must_equal initial_fields
 
   # write
-    state.update_options(a: "yo")
+    state.update_options!(a: "yo")
 
     _(initial_fields.inspect).must_equal %{{}}
     _(state.to_h[:fields].inspect).must_equal %{{:a=>\"yo\"}}
