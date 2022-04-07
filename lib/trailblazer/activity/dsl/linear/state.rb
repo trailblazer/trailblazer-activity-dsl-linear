@@ -47,6 +47,7 @@ module Trailblazer
           end
 
           # TODO: rename to {#update_sequence!}.
+          # DISCUSS: do we want this public?
           def update_sequence(&block)
             @state.update!("sequence") do |sequence|
               yield(**to_h) # FIXME: define interface for block.
@@ -59,9 +60,9 @@ module Trailblazer
             end
           end
 
-                  # FIXME: move me to {DSL::task_for!}!
-          # Called from {#step} and friends.
-          def task_for!(type, task, options={}, &block)
+          # Called from {#step} and friends in the {Strategy} subclass.
+          # Used to be named {Strategy.task_for!}.
+          def update_sequence_for!(type, task, options={}, &block)
             options = options.merge(dsl_track: type)
 
             # {#update_sequence} is the only way to mutate the state instance.
