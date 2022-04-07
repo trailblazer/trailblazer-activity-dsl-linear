@@ -1,8 +1,8 @@
 # 1.0.0
 
 * DSL logic: move as much as possible into the normalizer as it's much easier to understand and follow (and debug).
-* We no longer store arbitrary variables from `#step` in the sequence row's {data} field.
-  Use the `DataVariable` helper to mark variables for storage in {data}.
+* We no longer store arbitrary variables from `#step` in the sequence row's `data` field.
+  Use the `DataVariable` helper to mark variables for storage in `data`.
 
   ```ruby
   step :find_model,
@@ -13,10 +13,12 @@
 
 * Use `Trailblazer::Declarative::State` to maintain sequence and other fields. This makes inheritance consistent.
 * `Strategy::State.build` is now the official constructor for a `State` instance.
+* Moved and renamed `Strategy.task_for!` to `State.update_sequence_for!`.
 * `Sequence` is now at `activity.instance_variable_get(:@state).to_h[:sequence]`.
 * Adding composable variable mapping: `In()`, `Inject()` and `Out()`
   delete add "aggregate"
 * Move `Railway::End::Success|Failure` and `FastTrack::End::FailFast|PassFast` from operation to the dsl gem.
+
 * Remove `Helper.normalize`.
 
 # 0.5.0

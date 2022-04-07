@@ -105,11 +105,11 @@ module Trailblazer
 
         class State < Path::DSL::State
           def fail(*args)
-            task_for!(:fail, *args) # mutate @state
+            update_sequence_for!(:fail, *args) # mutate @state
           end
 
           def pass(*args)
-            task_for!(:pass, *args) # mutate @state
+            update_sequence_for!(:pass, *args) # mutate @state
           end
         end # Instance
 

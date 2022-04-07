@@ -151,7 +151,7 @@ module Trailblazer
               args[1][:block] = block # FIXME: this is all prototyping bullshit of course.
             end
 
-            task_for!(:step, *args) # mutate @state
+            update_sequence_for!(:step, *args) # mutate @state
           end
 
           # TODO: how to implement "macro forwarding" across all strategies and states? also, keep in mind `Contract::Validate()` etc
