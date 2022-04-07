@@ -51,7 +51,8 @@ module Trailblazer
             seq = Linear.Merge(old_seq, new_seq, end_id: "End.success")
 
             # Update the DSL's sequence, then recompile the actual activity.
-            @state.update_sequence { |**| seq }
+            @state.update_sequence! { |**| seq }
+
             recompile_activity!(seq)
           end
 

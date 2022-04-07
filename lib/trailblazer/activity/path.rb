@@ -89,9 +89,19 @@ module Trailblazer
           ctx[:magnetic_to] = ctx.key?(:magnetic_to) ? ctx[:magnetic_to] : track_name # FIXME: can we be magnetic_to {nil}?
         end
 
+        # This is slow and should be done only once at compile-time,
+        # DISCUSS: maybe make this a function?
+        # These are the normalizers for an {Activity}, to be injected into a State.
+        Normalizers = Linear::State::Normalizer.new(
+          step:  Linear::Normalizer.activity_normalizer(Path::DSL.normalizer), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
+        )
+
+        # pp Normalizers
+
+      # DISCUSS: following methods are not part of Normalizer
         # Returns an initial two-step sequence with {Start.default > End.success}.
         def initial_sequence(track_name:, end_task:, end_id:)
-          # TODO: this could be an Activity itself but maybe a bit too much for now.
+          # DISCUSS: this could be an Activity itself but maybe a bit too much for now.
           sequence = start_sequence(track_name: track_name)
           sequence = append_end(sequence, task: end_task, magnetic_to: track_name, id: end_id, append_to: "Start.default")
         end
@@ -118,14 +128,6 @@ module Trailblazer
            }
         end
 
-        # This is slow and should be done only once at compile-time,
-        # DISCUSS: maybe make this a function?
-        # These are the normalizers for an {Activity}, to be injected into a State.
-        Normalizers = Linear::State::Normalizer.new(
-          step:  Linear::Normalizer.activity_normalizer(Path::DSL.normalizer), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
-        )
-
-        # pp Normalizers
 
         def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
           initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id) # DISCUSS: the standard initial_seq could be cached.
