@@ -7,6 +7,53 @@ module Trailblazer
         #
         # They're usually invoked from {Strategy#task_for}, which is called from {Path#step}, {Railway#pass}, etc.
         module Normalizer
+          module Terminus # FIXME: move me!
+            module_function
+
+            def Normalizer
+              normalizer_steps =
+                {
+                "activity.normalize_step_interface"       => Normalizer.Task(Normalizer.method(:normalize_step_interface)),      # first
+                "activity.normalize_for_macro"            => Normalizer.Task(Normalizer.method(:merge_user_options)),
+                "activity.normalize_normalizer_options"   => Normalizer.Task(Normalizer.method(:merge_normalizer_options)),
+                "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),
+                "activity.normalize_context"              => Normalizer.method(:normalize_context),
+                # "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
+                "terminus.append_end"                     => Normalizer.Task(Terminus.method(:append_end)),
+
+                "activity.compile_data" => Normalizer.Task(Normalizer.method(:compile_data)), # FIXME
+                "activity.create_row" => Normalizer.Task(Normalizer.method(:create_row)),
+                "activity.create_add" => Normalizer.Task(Normalizer.method(:create_add)),
+                "activity.create_adds" => Normalizer.Task(Normalizer.method(:create_adds)),
+                }
+
+
+              TaskWrap::Pipeline.new(normalizer_steps.to_a)
+            end
+
+            # @private
+            def append_end(ctx, task:, magnetic_to:, id:, append_to: "End.success", **)
+
+              end_args = {sequence_insert: [Linear::Insert.method(:Append), append_to], stop_event: true}
+
+              ctx.merge!(
+                {
+                  task:         task,
+                  magnetic_to:  magnetic_to,
+                  id:           id,
+                  wirings:      [
+                    Linear::Search::Noop(
+                      Activity::Output.new(task, task.to_h[:semantic]), # DISCUSS: do we really want to transport the semantic "in" the object?
+                      # magnetic_to
+                    )],
+
+                  adds: [],
+                  **end_args
+                }
+              )
+            end
+          end
+
           module_function
 
           # Wrap {task} with {Trailblazer::Option} and execute it with kw args in {#call}.
@@ -124,9 +171,9 @@ module Trailblazer
           end
 
           # make ctx[:options] the actual ctx
-          def merge_user_options(ctx, options:, **)
+          def merge_user_options(ctx, options:, user_options:, **)
             # {options} are either a <#task> or {} from macro
-            ctx[:options] = options.merge(ctx[:user_options]) # Note that the user options are merged over the macro options.
+            ctx[:options] = options.merge(user_options) # Note that the user options are merged over the macro options.
           end
 
           # {:normalizer_options} such as {:track_name} get overridden by user/macro.
@@ -166,7 +213,7 @@ module Trailblazer
           end
 
           # Process {Output(:semantic) => target} and make them {:connections}.
-          def normalize_connections_from_dsl(ctx, connections:, adds:, non_symbol_options:, **)
+          def normalize_connections_from_dsl(ctx, connections:, adds:, non_symbol_options:, sequence:, normalizers:, **)
             # Find all {Output() => Track()/Id()/End()}
             output_configs = non_symbol_options.find_all{ |k,v| k.kind_of?(Activity::DSL::Linear::OutputSemantic) }
             return unless output_configs.any?
@@ -182,7 +229,7 @@ module Trailblazer
                   end_id     = Linear.end_id(cfg)
                   end_exists = Insert.find_index(ctx[:sequence], end_id)
 
-                  _adds = end_exists ? [] : [add_end(cfg, magnetic_to: end_id, id: end_id)]
+                  _adds = end_exists ? [] : [add_terminus(cfg, magnetic_to: end_id, id: end_id, sequence: sequence, normalizers: normalizers)]
 
                   [output_to_id(ctx, output, end_id), _adds]
                 else
@@ -207,16 +254,12 @@ module Trailblazer
             {output.value => [Linear::Search.method(:ById), target]}
           end
 
-          # {#insert_task} options to add another end.
-          def add_end(end_event, magnetic_to:, id:)
+          # Returns ADDS for the new terminus.
+          def add_terminus(end_event, magnetic_to:, id:, sequence:, normalizers:)
 
-            options = Path::DSL.append_end_options(task: end_event, magnetic_to: magnetic_to, id: id)
-            row     = Linear::Sequence.create_row(**options)
+            step_options = Linear::State.invoke_normalizer_for(:terminus, end_event, {magnetic_to: magnetic_to, id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
 
-            {
-              row:    row,
-              insert: row[3][:sequence_insert]
-            }
+            step_options[:adds][0]
           end
 
           # Output(Signal, :semantic) => Id()

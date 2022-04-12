@@ -168,17 +168,8 @@ class Trailblazer::Activity
       module DSL
         module_function
 
-        # Insert the task into the sequence using the {sequence_insert} strategy.
-        # @return Sequence sequence after applied insertion
-# FIXME: DSL for strategies
-# FIXME: remove {#insert_task}
-        def insert_task(sequence, sequence_insert:, **options)
-          row = Sequence.create_row(**options)
-
-          sequence_add = {row: row, insert: sequence_insert} # Linear::Insert.method(:Prepend), end_id
-          # sequence_add, sequence_add, ... == sequence_apply
-
-          Sequence.apply_adds(sequence, [sequence_add])
+        def append_terminus(sequence, task, normalizers:, **options)
+          _sequence = State.update_sequence_for(:terminus, task, options, normalizers: normalizers, normalizer_options: {}, sequence: sequence)
         end
       end # DSL
 

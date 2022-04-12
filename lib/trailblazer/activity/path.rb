@@ -94,6 +94,7 @@ module Trailblazer
         # These are the normalizers for an {Activity}, to be injected into a State.
         Normalizers = Linear::State::Normalizer.new(
           step:  Linear::Normalizer.activity_normalizer(Path::DSL.normalizer), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
+          terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
         # pp Normalizers
@@ -101,33 +102,9 @@ module Trailblazer
       # DISCUSS: following methods are not part of Normalizer
         # Returns an initial two-step sequence with {Start.default > End.success}.
         def initial_sequence(track_name:, end_task:, end_id:)
-          # DISCUSS: this could be an Activity itself but maybe a bit too much for now.
           sequence = start_sequence(track_name: track_name)
-          sequence = append_end(sequence, task: end_task, magnetic_to: track_name, id: end_id, append_to: "Start.default")
+          sequence = Linear::DSL.append_terminus(sequence, end_task, id: end_id, magnetic_to: track_name, normalizers: Normalizers, append_to: "Start.default")
         end
-
-        def append_end(sequence, **options)
-          sequence = Linear::DSL.insert_task(sequence, **append_end_options(**options))
-        end
-
-        def append_end_options(task:, magnetic_to:, id:, append_to: "End.success")
-          end_args = {sequence_insert: [Linear::Insert.method(:Append), append_to], stop_event: true}
-
-          {
-            task:         task,
-            magnetic_to:  magnetic_to,
-            id:           id,
-            wirings:      [
-              Linear::Search::Noop(
-                Activity::Output.new(task, task.to_h[:semantic]), # DISCUSS: do we really want to transport the semantic "in" the object?
-                # magnetic_to
-              )],
-            # outputs:      {magnetic_to => },
-            # connections:  {magnetic_to => [Linear::Search.method(:Noop)]},
-            **end_args
-           }
-        end
-
 
         def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
           initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id) # DISCUSS: the standard initial_seq could be cached.

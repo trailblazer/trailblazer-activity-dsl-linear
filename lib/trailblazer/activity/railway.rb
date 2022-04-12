@@ -99,8 +99,7 @@ module Trailblazer
         end
 
         def initial_sequence(failure_end:, initial_sequence:, **path_options)
-          # TODO: this could be an Activity itself but maybe a bit too much for now.
-          _seq = Path::DSL.append_end(initial_sequence, task: failure_end, magnetic_to: :failure, id: "End.failure")
+          _seq = Linear::DSL.append_terminus(initial_sequence, failure_end, magnetic_to: :failure, id: "End.failure", normalizers: Normalizers)
         end
 
         class State < Path::DSL::State
@@ -117,6 +116,7 @@ module Trailblazer
           step:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
           fail:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_fail ),
           pass:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_pass ),
+          terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
         # FIXME: use End::Failure for {failure_end}.
