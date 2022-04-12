@@ -10,12 +10,6 @@ module Trailblazer
     class FastTrack
       Linear = Activity::DSL::Linear
 
-      # Termini
-      module End
-        class FailFast < Railway::End::Failure; end
-        class PassFast < Railway::End::Success; end
-      end
-
       # Signals
       FailFast = Class.new(Signal)
       PassFast = Class.new(Signal)
