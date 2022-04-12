@@ -17,7 +17,6 @@
 * `Sequence` is now at `activity.instance_variable_get(:@state).to_h[:sequence]`.
 * Adding composable variable mapping: `In()`, `Inject()` and `Out()`
   delete add "aggregate"
-* Move `Railway::End::Success|Failure` and `FastTrack::End::FailFast|PassFast` from operation to the dsl gem.
 * Rename `State.update_sequence` to `State.update_sequence!`.
 * Rename `State.update_options` to `State.update_options!`.
 * Remove `Helper.normalize`.
