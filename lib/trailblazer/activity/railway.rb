@@ -13,17 +13,26 @@ module Trailblazer
 
         module_function
 
-        def normalizer
-          step_options(Activity::Path::DSL.normalizer)
+        def Normalizer
+          path_normalizer =  Path::DSL.Normalizer()
+
+          TaskWrap::Pipeline.prepend(
+            path_normalizer,
+            "activity.wirings",
+            {
+              "railway.outputs"     => Linear::Normalizer.Task(method(:normalize_path_outputs)),
+              "railway.connections" => Linear::Normalizer.Task(method(:normalize_path_connections)),
+            },
+          )
         end
 
-        # Change some parts of the "normal" {normalizer} pipeline.
-        # TODO: make this easier, even at this step.
-
-        def normalizer_for_fail
+        # Change some parts of the step-{Normalizer} pipeline.
+        # We're bound to using a very primitive Pipeline API, remember, we don't have
+        # a DSL at this point!
+        def NormalizerForFail
           pipeline = TaskWrap::Pipeline.prepend(
-            normalizer,
-            "path.wirings",
+            Normalizer(),
+            "activity.wirings",
             {
               "railway.magnetic_to.fail" => Linear::Normalizer.Task(Fail.method(:merge_magnetic_to)),
             }
@@ -39,11 +48,11 @@ module Trailblazer
           )
         end
 
-        def normalizer_for_pass
+        def NormalizerForPass
           pipeline = TaskWrap::Pipeline.insert_after(
-            normalizer,
+            Normalizer(),
             "path.connections",
-            ["railway.connections.pass.failure_to_success", Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))],
+            ["railway.connections.pass.failure_to_success", Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))]
           )
         end
 
@@ -67,18 +76,6 @@ module Trailblazer
           end
         end
 
-        # Add {Railway} steps to normalizer path.
-        def step_options(pipeline)
-          TaskWrap::Pipeline.prepend(
-            pipeline,
-            "path.wirings",
-            {
-              "railway.outputs"     => Linear::Normalizer.Task(method(:normalize_path_outputs)),
-              "railway.connections" => Linear::Normalizer.Task(method(:normalize_path_connections)),
-            },
-          )
-        end
-
         # Add {:failure} output to {:outputs}.
         # TODO: assert that failure_outputs doesn't override existing {:outputs}
         def normalize_path_outputs(ctx, outputs:, **)
@@ -94,6 +91,7 @@ module Trailblazer
         def failure_outputs
           {failure: Activity::Output(Activity::Left, :failure)}
         end
+
         def failure_connections
           {failure: [Linear::Search.method(:Forward), :failure]}
         end
@@ -113,9 +111,9 @@ module Trailblazer
         end # Instance
 
         Normalizers = Linear::State::Normalizer.new(
-          step:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
-          fail:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_fail ),
-          pass:  Linear::Normalizer.activity_normalizer( Railway::DSL.normalizer_for_pass ),
+          step:  Railway::DSL.Normalizer(),
+          fail:  Railway::DSL.NormalizerForFail(),
+          pass:  Railway::DSL.NormalizerForPass(),
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
@@ -131,7 +129,6 @@ module Trailblazer
             initial_sequence: initial_sequence,
           }
         end
-
       end # DSL
 
       class << self

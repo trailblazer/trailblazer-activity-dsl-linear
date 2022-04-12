@@ -8,20 +8,19 @@ module Trailblazer
 
         module_function
 
-        def normalizer
-          TaskWrap::Pipeline.new(normalizer_steps.to_a)
-        end
+        def Normalizer
+          dsl_normalizer = Linear::Normalizer.Normalizer()
 
-        # Return {Path::Normalizer} sequence.
-        private def normalizer_steps
-          {
-            "path.outputs"                => Linear::Normalizer.Task(method(:merge_path_outputs)),
-            "path.connections"            => Linear::Normalizer.Task(method(:merge_path_connections)),
-            "path.sequence_insert"        => Linear::Normalizer.Task(method(:normalize_sequence_insert)),
-            "path.normalize_duplications" => Linear::Normalizer.Task(method(:normalize_duplications)),
-            "path.magnetic_to"            => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
-            "path.wirings"                => Linear::Normalizer.Task(Linear::Normalizer.method(:compile_wirings)),
-          }
+          TaskWrap::Pipeline.prepend(
+            dsl_normalizer,
+            # "activity.wirings",
+            "activity.normalize_outputs_from_dsl",
+            {
+              "path.outputs"                => Linear::Normalizer.Task(method(:merge_path_outputs)),
+              "path.connections"            => Linear::Normalizer.Task(method(:merge_path_connections)),
+              "path.magnetic_to"            => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
+            }
+          )
         end
 
         def start_sequence(track_name:)
@@ -46,45 +45,6 @@ module Trailblazer
           ctx[:connections] = connections || unary_connections(track_name: track_name)
         end
 
-        # Processes {:before,:after,:replace,:delete} options and
-        # defaults to {before: "End.success"} which, yeah.
-        def normalize_sequence_insert(ctx, end_id:, **)
-          insertion = ctx.keys & sequence_insert_options.keys
-          insertion = insertion[0]   || :before
-          target    = ctx[insertion] || end_id
-
-          insertion_method = sequence_insert_options[insertion]
-
-          ctx[:sequence_insert] = [Linear::Insert.method(insertion_method), target]
-        end
-
-        # @private
-        def sequence_insert_options
-          {
-            :before  => :Prepend,
-            :after   => :Append,
-            :replace => :Replace,
-            :delete  => :Delete,
-          }
-        end
-
-        def normalize_duplications(ctx, replace: false, **)
-          return if replace
-
-          raise_on_duplicate_id(ctx, **ctx)
-          clone_duplicate_activity(ctx, **ctx) # DISCUSS: mutates {ctx}.
-        end
-
-        def raise_on_duplicate_id(ctx, id:, sequence:, **)
-          raise "ID #{id} is already taken. Please specify an `:id`." if sequence.find { |row| row[3][:id] == id }
-        end
-
-        def clone_duplicate_activity(ctx, task:, sequence:, **)
-          return unless task.is_a?(Class)
-
-          ctx[:task] = task.clone if sequence.find { |row| row[1] == task }
-        end
-
         def normalize_magnetic_to(ctx, track_name:, **) # TODO: merge with Railway.merge_magnetic_to
           ctx[:magnetic_to] = ctx.key?(:magnetic_to) ? ctx[:magnetic_to] : track_name # FIXME: can we be magnetic_to {nil}?
         end
@@ -93,7 +53,7 @@ module Trailblazer
         # DISCUSS: maybe make this a function?
         # These are the normalizers for an {Activity}, to be injected into a State.
         Normalizers = Linear::State::Normalizer.new(
-          step:  Linear::Normalizer.activity_normalizer(Path::DSL.normalizer), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
+          step:     Normalizer(), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
