@@ -69,59 +69,45 @@ module Trailblazer
             Normalizer::Task.new(Trailblazer::Option(user_proc), user_proc)
           end
 
+          def ActivityNormalizer()
+
+          end
+
           #   activity_normalizer.([{options:, user_options:, normalizer_options: }])
-          def activity_normalizer(pipeline)
-            pipeline = TaskWrap::Pipeline.prepend(
-              pipeline,
-              nil, # this means, put it to the beginning.
+          # The generic normalizer not tied to `step` or friends.
+          def Normalizer#(pipeline)
+            pipeline = TaskWrap::Pipeline.new(
               {
-              "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)),      # first
-              "activity.normalize_for_macro"            => Normalizer.Task(method(:merge_user_options)),
-              "activity.normalize_normalizer_options"   => Normalizer.Task(method(:merge_normalizer_options)),
-              "activity.normalize_non_symbol_options"   => Normalizer.Task(method(:normalize_non_symbol_options)),
-              "activity.normalize_context"              => method(:normalize_context),
-              "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
-              "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)),
-              "activity.wrap_task_with_step_interface"  => Normalizer.Task(method(:wrap_task_with_step_interface)), # last
-              "activity.inherit_option"                 => Normalizer.Task(method(:inherit_option)),
-              },
-            )
+                "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)),      # first
+                "activity.normalize_for_macro"            => Normalizer.Task(method(:merge_user_options)),
+                "activity.normalize_normalizer_options"   => Normalizer.Task(method(:merge_normalizer_options)),
+                "activity.normalize_non_symbol_options"   => Normalizer.Task(method(:normalize_non_symbol_options)),
+                "activity.normalize_context"              => method(:normalize_context),
+                "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
+                "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)),
+                "activity.wrap_task_with_step_interface"  => Normalizer.Task(method(:wrap_task_with_step_interface)),
 
-            pipeline = TaskWrap::Pipeline.prepend(
-              pipeline,
-              "path.wirings",
-              {
-              "activity.path_helper.forward_block"       => Normalizer.Task(Helper::Path::Normalizer.method(:forward_block_for_path_branch)),     # forward the "global" block
-              "activity.path_helper.path_to_track"       => Normalizer.Task(Helper::Path::Normalizer.method(:convert_paths_to_tracks)),
-              "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
-              "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
-              "activity.input_output_extensions"        => Normalizer.Task(method(:input_output_extensions)),
-              "activity.input_output_dsl"               => Normalizer.Task(method(:input_output_dsl)),
-              },
-            )
+                "activity.inherit_option"                 => Normalizer.Task(method(:inherit_option)),
+                "activity.sequence_insert"                => Normalizer.Task(method(:normalize_sequence_insert)),
+                "activity.normalize_duplications"         => Normalizer.Task(method(:normalize_duplications)),
 
-            pipeline = TaskWrap::Pipeline.append(
-              pipeline,
-              nil,
-              ["activity.compile_data", Normalizer.Task(method(:compile_data))]
-            )
-            pipeline = TaskWrap::Pipeline.append(
-              pipeline,
-              nil,
-              ["activity.create_row", Normalizer.Task(method(:create_row))],
-            )
-            pipeline = TaskWrap::Pipeline.append(
-              pipeline,
-              nil,
-              ["activity.create_add", Normalizer.Task(method(:create_add))],
-            )
-            pipeline = TaskWrap::Pipeline.append(
-              pipeline,
-              nil,
-              ["activity.create_adds", Normalizer.Task(method(:create_adds))],
-            ) # FIXME
+                "activity.path_helper.forward_block"       => Normalizer.Task(Helper::Path::Normalizer.method(:forward_block_for_path_branch)),     # forward the "global" block
+                "activity.path_helper.path_to_track"       => Normalizer.Task(Helper::Path::Normalizer.method(:convert_paths_to_tracks)),
+                "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
+                "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
+                "activity.input_output_extensions"        => Normalizer.Task(method(:input_output_extensions)),
+                "activity.input_output_dsl"               => Normalizer.Task(method(:input_output_dsl)),
 
 
+                "activity.wirings"                            => Normalizer.Task(method(:compile_wirings)),
+
+                # TODO: make this a "Subprocess":
+                "activity.compile_data" => Normalizer.Task(method(:compile_data)),
+                "activity.create_row" => Normalizer.Task(method(:create_row)),
+                "activity.create_add" => Normalizer.Task(method(:create_add)),
+                "activity.create_adds" => Normalizer.Task(method(:create_adds)),
+              }.to_a
+            )
 
             pipeline
           end
@@ -199,6 +185,48 @@ module Trailblazer
                 )
               end
           end
+
+          # Processes {:before,:after,:replace,:delete} options and
+          # defaults to {before: "End.success"} which, yeah.
+          def normalize_sequence_insert(ctx, end_id:, **)
+            insertion = ctx.keys & sequence_insert_options.keys
+            insertion = insertion[0]   || :before
+            target    = ctx[insertion] || end_id
+
+            insertion_method = sequence_insert_options[insertion]
+
+            ctx[:sequence_insert] = [Linear::Insert.method(insertion_method), target]
+          end
+
+          # @private
+          def sequence_insert_options
+            {
+              :before  => :Prepend,
+              :after   => :Append,
+              :replace => :Replace,
+              :delete  => :Delete,
+            }
+          end
+
+          def normalize_duplications(ctx, replace: false, **)
+            return if replace
+
+            raise_on_duplicate_id(ctx, **ctx)
+            clone_duplicate_activity(ctx, **ctx) # DISCUSS: mutates {ctx}.
+          end
+
+          # @private
+          def raise_on_duplicate_id(ctx, id:, sequence:, **)
+            raise "ID #{id} is already taken. Please specify an `:id`." if sequence.find { |row| row[3][:id] == id }
+          end
+
+          # @private
+          def clone_duplicate_activity(ctx, task:, sequence:, **)
+            return unless task.is_a?(Class)
+
+            ctx[:task] = task.clone if sequence.find { |row| row[1] == task }
+          end
+
 
           # Move DSL user options such as {Output(:success) => Track(:found)} to
           # a new key {options[:non_symbol_options]}.

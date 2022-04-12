@@ -23,16 +23,25 @@ module Trailblazer
       module DSL
         module_function
 
-        def normalizer
-          step_options(Trailblazer::Activity::Railway::DSL.normalizer)
+        def Normalizer(base_normalizer=Trailblazer::Activity::Railway::DSL.Normalizer())
+          TaskWrap::Pipeline.prepend(
+            base_normalizer,
+            "activity.wirings",
+
+            {
+              "fast_track.pass_fast_option"  => Linear::Normalizer.Task(method(:pass_fast_option)),
+              "fast_track.fail_fast_option"  => Linear::Normalizer.Task(method(:fail_fast_option)),
+              "fast_track.fast_track_option" => Linear::Normalizer.Task(method(:fast_track_option)),
+            }
+          )
         end
 
-        def normalizer_for_fail
-          pipeline = step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_fail)
+        def NormalizerForFail
+          pipeline = Normalizer(Railway::DSL.NormalizerForFail())
 
           TaskWrap::Pipeline.prepend(
             pipeline,
-            "path.wirings",
+            "activity.wirings",
 
             {
               "fast_track.fail_fast_option_for_fail"  => Linear::Normalizer.Task(method(:fail_fast_option_for_fail)),
@@ -40,28 +49,15 @@ module Trailblazer
           )
         end
 
-        def normalizer_for_pass
-          pipeline = step_options(Trailblazer::Activity::Railway::DSL.normalizer_for_pass)
+        def NormalizerForPass
+          pipeline = Normalizer(Railway::DSL.NormalizerForPass())
 
           TaskWrap::Pipeline.prepend(
             pipeline,
-            "path.wirings",
+            "activity.wirings",
 
             {
               "fast_track.pass_fast_option_for_pass"  => Linear::Normalizer.Task(method(:pass_fast_option_for_pass)),
-            }
-          )
-        end
-
-        def step_options(pipeline)
-          TaskWrap::Pipeline.prepend(
-            pipeline,
-            "path.wirings",
-
-            {
-              "fast_track.pass_fast_option"  => Linear::Normalizer.Task(method(:pass_fast_option)),
-              "fast_track.fail_fast_option"  => Linear::Normalizer.Task(method(:fail_fast_option)),
-              "fast_track.fast_track_option" => Linear::Normalizer.Task(method(:fast_track_option)),
             }
           )
         end
@@ -132,9 +128,9 @@ module Trailblazer
         # DISCUSS: maybe make this a function?
         # These are the normalizers for an {Activity}, to be injected into a State.
         Normalizers = Linear::State::Normalizer.new(
-          step: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
-          fail: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer_for_fail ),
-          pass: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer_for_pass ),
+          step: FastTrack::DSL.Normalizer(),
+          fail: FastTrack::DSL.NormalizerForFail(),
+          pass: FastTrack::DSL.NormalizerForPass(),
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
