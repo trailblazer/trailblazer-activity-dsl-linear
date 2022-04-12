@@ -21,6 +21,8 @@
 * Rename `State.update_sequence` to `State.update_sequence!`.
 * Rename `State.update_options` to `State.update_options!`.
 * Remove `Helper.normalize`.
+* Remove `Linear::DSL.insert_task`. The canonical way to add steps is using the ADDS interface going through a normalizer.
+  This is why there's a normalizer for `end` (or "terminus") now for consistency.
 
 # 0.5.0
 

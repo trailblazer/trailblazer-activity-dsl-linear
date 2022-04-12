@@ -62,15 +62,27 @@ module Trailblazer
           # Called from {#step} and friends in the {Strategy} subclass.
           # Used to be named {Strategy.task_for!}.
           def update_sequence_for!(type, task, options={}, &block)
-            options = options.merge(dsl_track: type)
-
             # {#update_sequence!} is the only way to mutate the state instance.
             update_sequence! do |sequence:, normalizers:, normalizer_options:, **|
               # Compute the sequence rows.
-              step_options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options.merge(sequence: sequence))
-
-              _sequence = Linear::Sequence.apply_adds(sequence, step_options[:adds])
+              self.class.update_sequence_for(type, task, options, normalizers: normalizers, normalizer_options: normalizer_options, sequence: sequence)
             end
+          end
+
+          # Run a specific normalizer (e.g. for `#step`), apply the adds to the sequence and return the latter.
+          # DISCUSS: where does this method belong? Sequence + Normalizers?
+          def self.update_sequence_for(type, task, options, sequence:, **kws)
+            step_options = invoke_normalizer_for(type, task, options, sequence: sequence, **kws)
+
+            _sequence = Linear::Sequence.apply_adds(sequence, step_options[:adds])
+          end
+          def self.invoke_normalizer_for(type, task, options, normalizers:, normalizer_options:, sequence:)
+            options = options.merge(
+              dsl_track: type,
+              normalizers: normalizers # DISCUSS: do we need you?
+            )
+
+            _step_options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options.merge(sequence: sequence))
           end
 
           # Compiles and maintains all final normalizers for a specific DSL.

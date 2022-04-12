@@ -121,11 +121,11 @@ module Trailblazer
           ctx
         end
 
-        def initial_sequence(initial_sequence:, fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **_o)
+        def initial_sequence(initial_sequence:, fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **)
           sequence = initial_sequence
 
-          sequence = Path::DSL.append_end(sequence, task: fail_fast_end, magnetic_to: :fail_fast, id: "End.fail_fast")
-          sequence = Path::DSL.append_end(sequence, task: pass_fast_end, magnetic_to: :pass_fast, id: "End.pass_fast")
+          sequence = Linear::DSL.append_terminus(sequence, fail_fast_end, magnetic_to: :fail_fast, id: "End.fail_fast", normalizers: Normalizers)
+          sequence = Linear::DSL.append_terminus(sequence, pass_fast_end, magnetic_to: :pass_fast, id: "End.pass_fast", normalizers: Normalizers)
         end
 
         # This is slow and should be done only once at compile-time,
@@ -135,6 +135,7 @@ module Trailblazer
           step: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer ), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
           fail: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer_for_fail ),
           pass: Linear::Normalizer.activity_normalizer( FastTrack::DSL.normalizer_for_pass ),
+          terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
         def self.OptionsForState(normalizers: Normalizers, **options)
