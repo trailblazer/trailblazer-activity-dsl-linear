@@ -27,7 +27,6 @@ module Trailblazer
                 "activity.create_adds" => Normalizer.Task(Normalizer.method(:create_adds)),
                 }
 
-
               TaskWrap::Pipeline.new(normalizer_steps.to_a)
             end
 
@@ -229,7 +228,7 @@ module Trailblazer
                   end_id     = Linear.end_id(cfg)
                   end_exists = Insert.find_index(ctx[:sequence], end_id)
 
-                  _adds = end_exists ? [] : [add_terminus(cfg, magnetic_to: end_id, id: end_id, sequence: sequence, normalizers: normalizers)]
+                  _adds = end_exists ? [] : add_terminus(cfg, magnetic_to: end_id, id: end_id, sequence: sequence, normalizers: normalizers)
 
                   [output_to_id(ctx, output, end_id), _adds]
                 else
@@ -256,10 +255,9 @@ module Trailblazer
 
           # Returns ADDS for the new terminus.
           def add_terminus(end_event, magnetic_to:, id:, sequence:, normalizers:)
-
             step_options = Linear::State.invoke_normalizer_for(:terminus, end_event, {magnetic_to: magnetic_to, id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
 
-            step_options[:adds][0]
+            step_options[:adds]
           end
 
           # Output(Signal, :semantic) => Id()
