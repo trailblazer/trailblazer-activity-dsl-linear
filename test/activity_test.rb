@@ -1437,7 +1437,7 @@ ActivityTest::NestedWithThreeTermini
       # green:End.green
 
     # we want to connect an Output to the {green} path.
-    # The problem is, the path is positioned in the sequence.
+    # The problem is, the path is positioned prior to {:d} in the sequence.
       step :d, Output(:failure) => Track(:green, wrap_around: true)
 
       include T.def_steps(:c, :d)
@@ -1484,6 +1484,52 @@ ActivityTest::NestedWithThreeTermini
 #<End/:success>
 
 #<End/:with_cc>
+
+#<End/:failure>
+}
+  end
+
+  it "#terminus allows adding end events" do
+    activity = Class.new(Activity::Railway) do
+      terminus :not_found #@ id, magnetic_to computed automatically
+
+      terminus :found,    magnetic_to: :shipment_found #@ id computed automatically
+      terminus :found_it, magnetic_to: :shipment_found_it, id: "End.found_it!" #@ all options provided explicitly # TODO: test if ID worked
+    end
+
+    with_steps = Class.new(activity) do
+      step :a,
+        Output(:failure) => Track(:not_found),
+        Output(:success) => Track(:shipment_found)
+    end
+
+    assert_process_for activity, :success, :found_it, :found, :not_found, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:found_it>
+
+#<End/:found>
+
+#<End/:not_found>
+
+#<End/:failure>
+}
+
+    assert_process_for with_steps, :success, :found_it, :found, :not_found, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Left} => #<End/:not_found>
+ {Trailblazer::Activity::Right} => #<End/:found>
+#<End/:success>
+
+#<End/:found_it>
+
+#<End/:found>
+
+#<End/:not_found>
 
 #<End/:failure>
 }

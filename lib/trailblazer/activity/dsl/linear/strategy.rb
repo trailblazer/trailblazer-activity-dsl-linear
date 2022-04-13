@@ -10,7 +10,7 @@ module Trailblazer
         #   maintains the {state} with {seq} and normalizer options
         module Strategy
           def initialize!(state)
-            @state    = state
+            @state = state
 
             recompile_activity!(@state.to_h[:sequence])
           end
@@ -23,14 +23,13 @@ module Trailblazer
           end
 
           # @public
-          def step(*args, &block)
             # We forward `step` to the Dsl (State) object.
             # Recompiling the activity/sequence is a matter specific to Strategy (Railway etc).
-            recompile_activity_for(:step, *args, &block)
-          end
+          def step(*args, &block);       recompile_activity_for(:step, *args, &block); end
+          def terminus(name, **options); recompile_activity_for(:terminus, name, **options); end
 
-          private def recompile_activity_for(type, *args, &block)
-            seq  = @state.send(type, *args, &block) # TODO: calls task_for!
+          private def recompile_activity_for(type, *args, **options, &block)
+            seq = @state.send(type, *args, **options, &block)
 
             recompile_activity!(seq)
           rescue Sequence::IndexError
