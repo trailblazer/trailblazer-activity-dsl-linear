@@ -6,7 +6,7 @@ module Trailblazer
       end
     end
 
-    # Implementation module that can be passed to `Activity()`.
+    # Implementation of the "FastTrack" layout that is also used for `Operation`.
     class FastTrack
       Linear = Activity::DSL::Linear
 
