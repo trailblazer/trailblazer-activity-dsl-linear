@@ -76,6 +76,7 @@ module Trailblazer
 
             _sequence = Linear::Sequence.apply_adds(sequence, step_options[:adds])
           end
+
           def self.invoke_normalizer_for(type, task, options, normalizers:, normalizer_options:, sequence:)
             options = options.merge(
               dsl_track: type,
