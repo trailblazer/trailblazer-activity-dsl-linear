@@ -164,15 +164,6 @@ class Trailblazer::Activity
 
         seq[1..cut_off_index-1]
       end
-
-      module DSL
-        module_function
-
-        def append_terminus(sequence, task, normalizers:, **options)
-          _sequence = State.update_sequence_for(:terminus, task, options, normalizers: normalizers, normalizer_options: {}, sequence: sequence)
-        end
-      end # DSL
-
     end
   end
 end

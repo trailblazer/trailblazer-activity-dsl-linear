@@ -91,7 +91,7 @@ module Trailblazer
         end
 
         def initial_sequence(failure_end:, initial_sequence:, **path_options)
-          _seq = Linear::DSL.append_terminus(initial_sequence, failure_end, magnetic_to: :failure, id: "End.failure", normalizers: Normalizers)
+          _seq = Path::DSL.append_terminus(initial_sequence, failure_end, magnetic_to: :failure, id: "End.failure", normalizers: Normalizers)
         end
 
         class State < Path::DSL::State
