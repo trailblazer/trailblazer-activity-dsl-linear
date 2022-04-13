@@ -94,6 +94,10 @@ module Trailblazer
             update_sequence_for!(:step, *args) # mutate @state
           end
 
+          def terminus(name, **options)
+            update_sequence_for!(:terminus, name, **options)
+          end
+
           # TODO: how to implement "macro forwarding" across all strategies and states? also, keep in mind `Contract::Validate()` etc
           # FIXME: redundancy
           def Output(*args); Linear.Output(*args) end

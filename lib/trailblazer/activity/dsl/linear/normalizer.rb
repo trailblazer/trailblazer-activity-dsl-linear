@@ -3,11 +3,14 @@ module Trailblazer
     module DSL
       module Linear
         # Normalizers are linear activities that process and normalize the options from a specific DSL call,
-        # such as `#step` or `#pass`. A called normalizer produces an options hash.
+        # such as `#step` or `#pass`. All defaulting should happen through the normalizer. An invoked
+        # normalizer produces an options hash that has to contain an [:adds] key with a ADDS structure usable
+        # for {Sequence.apply_adds}.
         #
-        # They're usually invoked from {Strategy#task_for}, which is called from {Path#step}, {Railway#pass}, etc.
+        # They're usually invoked from {Strategy#invoke_normalizer_for!}, which is called from {Path#step},
+        # {Railway#pass}, etc.
         module Normalizer
-          module Terminus # FIXME: move me!
+          module Terminus # DISCUSS: move me?
             module_function
 
             def Normalizer
@@ -18,7 +21,9 @@ module Trailblazer
                 "activity.normalize_normalizer_options"   => Normalizer.Task(Normalizer.method(:merge_normalizer_options)),
                 "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),
                 "activity.normalize_context"              => Normalizer.method(:normalize_context),
-                # "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
+                "activity.normalize_id"                   => Normalizer.Task(Normalizer.method(:normalize_id)),
+                "terminus.normalize_task"          => Normalizer.Task(Terminus.method(:normalize_task)),
+                "terminus.normalize_magnetic_to"          => Normalizer.Task(Terminus.method(:normalize_magnetic_to)),
                 "terminus.append_end"                     => Normalizer.Task(Terminus.method(:append_end)),
 
                 "activity.compile_data" => Normalizer.Task(Normalizer.method(:compile_data)), # FIXME
@@ -31,23 +36,53 @@ module Trailblazer
             end
 
             # @private
-            def append_end(ctx, task:, magnetic_to:, id:, append_to: "End.success", **)
+            # Set {:task} and {:semantic}.
+            def normalize_task(ctx, task:, **)
+              if task.kind_of?(Activity::End) # DISCUSS: do we want this check?
+                ctx = _normalize_task_for_end_event(ctx, **ctx)
+              else
+                # When used such as {terminus :found}, create the end event automatically.
+                ctx = _normalize_task_for_symbol(ctx, **ctx)
+              end
+            end
 
-              end_args = {sequence_insert: [Linear::Insert.method(:Append), append_to], stop_event: true}
+            def _normalize_task_for_end_event(ctx, task:, **) # you cannot override using {:semantic}
+              ctx.merge!(
+                semantic: task.to_h[:semantic]
+              )
+            end
+
+            def _normalize_task_for_symbol(ctx, task:, semantic: task, **)
+              ctx.merge!(
+                task:     Linear.End(semantic),
+                semantic: semantic,
+              )
+            end
+
+            # @private
+            def normalize_magnetic_to(ctx, magnetic_to: nil, semantic:, **)
+              return if magnetic_to
+              ctx.merge!(magnetic_to: semantic)
+            end
+
+            # @private
+            def append_end(ctx, task:, semantic:, append_to: "End.success", **)
+              terminus_args = {
+                sequence_insert: [Linear::Insert.method(:Append), append_to],
+                stop_event:      true
+              }
 
               ctx.merge!(
                 {
-                  task:         task,
-                  magnetic_to:  magnetic_to,
-                  id:           id,
+                  # task:         task,
+                  # magnetic_to:  magnetic_to,
+                  # id:           id,
                   wirings:      [
                     Linear::Search::Noop(
-                      Activity::Output.new(task, task.to_h[:semantic]), # DISCUSS: do we really want to transport the semantic "in" the object?
-                      # magnetic_to
+                      Activity::Output.new(task, semantic), # DISCUSS: do we really want to transport the semantic "in" the object?
                     )],
-
                   adds: [],
-                  **end_args
+                  **terminus_args
                 }
               )
             end
@@ -67,10 +102,6 @@ module Trailblazer
 
           def Task(user_proc)
             Normalizer::Task.new(Trailblazer::Option(user_proc), user_proc)
-          end
-
-          def ActivityNormalizer()
-
           end
 
           #   activity_normalizer.([{options:, user_options:, normalizer_options: }])
@@ -256,7 +287,7 @@ module Trailblazer
                   end_id     = Linear.end_id(cfg)
                   end_exists = Insert.find_index(ctx[:sequence], end_id)
 
-                  _adds = end_exists ? [] : add_terminus(cfg, magnetic_to: end_id, id: end_id, sequence: sequence, normalizers: normalizers)
+                  _adds = end_exists ? [] : add_terminus(cfg, id: end_id, sequence: sequence, normalizers: normalizers)
 
                   [output_to_id(ctx, output, end_id), _adds]
                 else
@@ -282,8 +313,8 @@ module Trailblazer
           end
 
           # Returns ADDS for the new terminus.
-          def add_terminus(end_event, magnetic_to:, id:, sequence:, normalizers:)
-            step_options = Linear::State.invoke_normalizer_for(:terminus, end_event, {magnetic_to: magnetic_to, id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
+          def add_terminus(end_event, id:, sequence:, normalizers:)
+            step_options = Linear::State.invoke_normalizer_for(:terminus, end_event, {id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
 
             step_options[:adds]
           end
