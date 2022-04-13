@@ -91,12 +91,10 @@ module Trailblazer
         # This can be used later to create faster DSLs where the activity is compiled only once, a la
         #   Path() do  ... end
         class State < Linear::State
-          def step(*args, &block)
-            if args[1].is_a?(Hash)
-              args[1][:block] = block # FIXME: this is all prototyping bullshit of course.
-            end
+          def step(*args, **options, &block)
+            options.merge!(block: block)
 
-            update_sequence_for!(:step, *args) # mutate @state
+            update_sequence_for!(:step, *args, **options) # mutate @state
           end
 
           def terminus(name, **options)
