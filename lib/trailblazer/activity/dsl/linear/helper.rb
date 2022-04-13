@@ -32,8 +32,8 @@ module Trailblazer
               Activity.End(semantic)
             end
 
-            def end_id(_end)
-              "End.#{_end.to_h[:semantic]}" # TODO: use everywhere
+            def end_id(semantic:, **)
+              "End.#{semantic}" # TODO: use everywhere
             end
 
             def Track(color, wrap_around: false)

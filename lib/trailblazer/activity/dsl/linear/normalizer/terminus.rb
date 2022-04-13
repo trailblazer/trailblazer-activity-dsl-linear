@@ -15,8 +15,8 @@ module Trailblazer
                 "activity.normalize_normalizer_options"   => Normalizer.Task(Normalizer.method(:merge_normalizer_options)),
                 "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),
                 "activity.normalize_context"              => Normalizer.method(:normalize_context),
-                "activity.normalize_id"                   => Normalizer.Task(Normalizer.method(:normalize_id)),
                 "terminus.normalize_task"          => Normalizer.Task(Terminus.method(:normalize_task)),
+                "terminus.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
                 "terminus.normalize_magnetic_to"          => Normalizer.Task(Terminus.method(:normalize_magnetic_to)),
                 "terminus.append_end"                     => Normalizer.Task(Terminus.method(:append_end)),
 
@@ -27,6 +27,13 @@ module Trailblazer
                 }
 
               TaskWrap::Pipeline.new(normalizer_steps.to_a)
+            end
+
+            # @private
+            def normalize_id(ctx, id: nil, semantic:, **)
+              ctx.merge!(
+                id: id || Linear.end_id(semantic: semantic)
+              )
             end
 
             # @private
@@ -67,14 +74,13 @@ module Trailblazer
               }
 
               ctx.merge!(
-                {
-                  wirings:      [
-                    Linear::Search::Noop(
-                      Activity::Output.new(task, semantic), # DISCUSS: do we really want to transport the semantic "in" the object?
-                    )],
-                  adds: [],
-                  **terminus_args
-                }
+                wirings: [
+                  Linear::Search::Noop(
+                    Activity::Output.new(task, semantic), # DISCUSS: do we really want to transport the semantic "in" the object?
+                  )
+                ],
+                adds: [],
+                **terminus_args
               )
             end
           end # Terminus

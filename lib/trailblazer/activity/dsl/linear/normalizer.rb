@@ -206,7 +206,7 @@ module Trailblazer
                 elsif cfg.is_a?(Activity::DSL::Linear::Id)
                   [output_to_id(ctx, output, cfg.value), []]
                 elsif cfg.is_a?(Activity::End)
-                  end_id     = Linear.end_id(cfg)
+                  end_id     = Linear.end_id(**cfg.to_h)
                   end_exists = Insert.find_index(ctx[:sequence], end_id)
 
                   _adds = end_exists ? [] : add_terminus(cfg, id: end_id, sequence: sequence, normalizers: normalizers)
