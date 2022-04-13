@@ -9,6 +9,7 @@ module Trailblazer
         module_function
 
         def Normalizer
+          # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
           dsl_normalizer = Linear::Normalizer.Normalizer()
 
           TaskWrap::Pipeline.prepend(
@@ -21,12 +22,6 @@ module Trailblazer
               "path.magnetic_to"            => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
             }
           )
-        end
-
-        def start_sequence(track_name:)
-          start_default = Activity::Start.new(semantic: :default)
-          start_event   = Linear::Sequence.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
-          _sequence     = Linear::Sequence[start_event]
         end
 
         def unary_outputs
@@ -60,14 +55,20 @@ module Trailblazer
         # pp Normalizers
 
       # DISCUSS: following methods are not part of Normalizer
+        def start_sequence(track_name:)
+          start_default = Activity::Start.new(semantic: :default)
+          start_event   = Linear::Sequence.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
+          _sequence     = Linear::Sequence[start_event]
+        end
+
         # Returns an initial two-step sequence with {Start.default > End.success}.
         def initial_sequence(track_name:, end_task:, end_id:)
           sequence = start_sequence(track_name: track_name)
           sequence = Linear::DSL.append_terminus(sequence, end_task, id: end_id, magnetic_to: track_name, normalizers: Normalizers, append_to: "Start.default")
         end
 
-        def self.OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
-          initial_sequence = Path::DSL.initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id) # DISCUSS: the standard initial_seq could be cached.
+        def OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
+          initial_sequence = initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id) # DISCUSS: the standard initial_seq could be cached.
 
           {
             normalizers:      normalizers,
