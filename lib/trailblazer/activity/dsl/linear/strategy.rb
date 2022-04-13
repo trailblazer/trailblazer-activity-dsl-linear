@@ -29,9 +29,15 @@ module Trailblazer
           def terminus(name, **options); recompile_activity_for(:terminus, name, **options); end
 
           private def recompile_activity_for(type, *args, **options, &block)
-            seq = @state.send(type, *args, **options, &block)
+            seq = apply_step_on_state!(type, *args, **options, &block)
 
             recompile_activity!(seq)
+          end
+
+          # TODO: make {rescue} optional, only in dev mode.
+          private def apply_step_on_state!(type, *args, **options, &block)
+            # Simply call {@state.step} with all the beautiful args.
+            seq = @state.send(type, *args, **options, &block)
           rescue Sequence::IndexError
             # re-raise this exception with activity class prepended
             # to the message this time.
