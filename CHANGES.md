@@ -10,7 +10,7 @@
     Trailblazer::Activity::DSL::Linear::Helper.DataVariable() => :model_class
   ```
 * The `Railway.Path()` helper now simply delegates to `@state.Path()` which returns a `DSL::PathBranch` non-symbol that is then processed by the normalizer (exactly how we do it with `In()`, `Track()` etc. Branching implementation is handled in `helper/path.rb`.
-
+* Add `Strategy.terminus` to add end events.
 * Use `Trailblazer::Declarative::State` to maintain sequence and other fields. This makes inheritance consistent.
 * `Strategy::State.build` is now the official constructor for a `State` instance.
 * Moved and renamed `Strategy.task_for!` to `State.update_sequence_for!`.
