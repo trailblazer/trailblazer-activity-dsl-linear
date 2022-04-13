@@ -114,8 +114,8 @@ module Trailblazer
         def initial_sequence(initial_sequence:, fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **)
           sequence = initial_sequence
 
-          sequence = Linear::DSL.append_terminus(sequence, fail_fast_end, magnetic_to: :fail_fast, id: "End.fail_fast", normalizers: Normalizers)
-          sequence = Linear::DSL.append_terminus(sequence, pass_fast_end, magnetic_to: :pass_fast, id: "End.pass_fast", normalizers: Normalizers)
+          sequence = Path::DSL.append_terminus(sequence, fail_fast_end, magnetic_to: :fail_fast, id: "End.fail_fast", normalizers: Normalizers)
+          sequence = Path::DSL.append_terminus(sequence, pass_fast_end, magnetic_to: :pass_fast, id: "End.pass_fast", normalizers: Normalizers)
         end
 
         # This is slow and should be done only once at compile-time,

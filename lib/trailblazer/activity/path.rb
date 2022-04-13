@@ -55,6 +55,11 @@ module Trailblazer
         # pp Normalizers
 
       # DISCUSS: following methods are not part of Normalizer
+
+        def append_terminus(sequence, task, normalizers:, **options)
+          _sequence = State.update_sequence_for(:terminus, task, options, normalizers: normalizers, normalizer_options: {}, sequence: sequence)
+        end
+
         def start_sequence(track_name:)
           start_default = Activity::Start.new(semantic: :default)
           start_event   = Linear::Sequence.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
@@ -64,7 +69,7 @@ module Trailblazer
         # Returns an initial two-step sequence with {Start.default > End.success}.
         def initial_sequence(track_name:, end_task:, end_id:)
           sequence = start_sequence(track_name: track_name)
-          sequence = Linear::DSL.append_terminus(sequence, end_task, id: end_id, magnetic_to: track_name, normalizers: Normalizers, append_to: "Start.default")
+          sequence = append_terminus(sequence, end_task, id: end_id, magnetic_to: track_name, normalizers: Normalizers, append_to: "Start.default")
         end
 
         def OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
