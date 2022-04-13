@@ -1497,6 +1497,11 @@ ActivityTest::NestedWithThreeTermini
       terminus :found_it, magnetic_to: :shipment_found_it, id: "End.found_it!" #@ all options provided explicitly # TODO: test if ID worked
     end
 
+    #@ IDs are automatically computed in case of no {:id} option.
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.not_found").data.inspect, %{{:id=>\"End.not_found\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found_it!").data.inspect, %{{:id=>\"End.found_it!\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found").data.inspect, %{{:id=>\"End.found\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
+
     with_steps = Class.new(activity) do
       step :a,
         Output(:failure) => Track(:not_found),
