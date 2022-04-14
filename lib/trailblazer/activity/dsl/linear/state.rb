@@ -79,10 +79,10 @@ module Trailblazer
 
           def self.invoke_normalizer_for(type, task, options, normalizers:, normalizer_options:, sequence:, &block)
             options = options.merge(
-              dsl_track: type,
+              dsl_track:   type,
+              block:       block,
               normalizers: normalizers # DISCUSS: do we need you?
             )
-            options = options.merge(block: block)
 
             _step_options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options.merge(sequence: sequence))
           end
