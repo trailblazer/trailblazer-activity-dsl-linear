@@ -25,8 +25,8 @@ module Trailblazer
           # @public
             # We forward `step` to the Dsl (State) object.
             # Recompiling the activity/sequence is a matter specific to Strategy (Railway etc).
-          def step(*args, &block);       recompile_activity_for(:step, *args, &block); end
-          def terminus(*args); recompile_activity_for(:terminus, *args); end
+          def step(*args, &block); recompile_activity_for(:step, *args, &block); end
+          def terminus(*args);     recompile_activity_for(:terminus, *args); end
 
           private def recompile_activity_for(type, *args, &block)
             seq = apply_step_on_state!(type, *args, &block)

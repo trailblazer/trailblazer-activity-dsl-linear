@@ -8,13 +8,15 @@ module Trailblazer
 
     # Implementation of the "FastTrack" layout that is also used for `Operation`.
     class FastTrack
-      Linear = Activity::DSL::Linear
+      extend Activity::DSL::Linear::Strategy
 
       # Signals
       FailFast = Class.new(Signal)
       PassFast = Class.new(Signal)
 
       module DSL
+        Linear = Activity::DSL::Linear
+
         module_function
 
         def Normalizer(base_normalizer=Trailblazer::Activity::Railway::DSL.Normalizer())
@@ -152,7 +154,6 @@ module Trailblazer
       end
 
       include Activity::DSL::Linear::Helper
-      extend Activity::DSL::Linear::Strategy
 
       initialize!(Railway::DSL::State.build(**DSL.OptionsForState()))
     end # FastTrack
