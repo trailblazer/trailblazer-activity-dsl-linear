@@ -25,19 +25,19 @@ module Trailblazer
           # @public
             # We forward `step` to the Dsl (State) object.
             # Recompiling the activity/sequence is a matter specific to Strategy (Railway etc).
-          def step(*args, **options, &block); recompile_activity_for(:step, *args, **options, &block); end
-          def terminus(name, **options);      recompile_activity_for(:terminus, name, **options); end
+          def step(*args, &block);       recompile_activity_for(:step, *args, &block); end
+          def terminus(*args); recompile_activity_for(:terminus, *args); end
 
-          private def recompile_activity_for(type, *args, **options, &block)
-            seq = apply_step_on_state!(type, *args, **options, &block)
+          private def recompile_activity_for(type, *args, &block)
+            seq = apply_step_on_state!(type, *args, &block)
 
             recompile_activity!(seq)
           end
 
           # TODO: make {rescue} optional, only in dev mode.
-          private def apply_step_on_state!(type, *args, **options, &block)
+          private def apply_step_on_state!(type, *args, &block)
             # Simply call {@state.step} with all the beautiful args.
-            seq = @state.send(type, *args, **options, &block)
+            seq = @state.send(type, *args, &block)
           rescue Sequence::IndexError
             # re-raise this exception with activity class prepended
             # to the message this time.

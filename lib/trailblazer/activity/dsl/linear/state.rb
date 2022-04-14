@@ -61,27 +61,28 @@ module Trailblazer
 
           # Called from {#step} and friends in the {Strategy} subclass.
           # Used to be named {Strategy.task_for!}.
-          def update_sequence_for!(type, task, options={}, &block)
+          def update_sequence_for!(type, *args, &block)
             # {#update_sequence!} is the only way to mutate the state instance.
             update_sequence! do |sequence:, normalizers:, normalizer_options:, **|
               # Compute the sequence rows.
-              self.class.update_sequence_for(type, task, options, normalizers: normalizers, normalizer_options: normalizer_options, sequence: sequence)
+              self.class.update_sequence_for(type, *args, normalizers: normalizers, normalizer_options: normalizer_options, sequence: sequence, &block)
             end
           end
 
           # Run a specific normalizer (e.g. for `#step`), apply the adds to the sequence and return the latter.
           # DISCUSS: where does this method belong? Sequence + Normalizers?
-          def self.update_sequence_for(type, task, options, sequence:, **kws)
-            step_options = invoke_normalizer_for(type, task, options, sequence: sequence, **kws)
+          def self.update_sequence_for(type, task, options={}, sequence:, **kws, &block)
+            step_options = invoke_normalizer_for(type, task, options, sequence: sequence, **kws, &block)
 
             _sequence = Linear::Sequence.apply_adds(sequence, step_options[:adds])
           end
 
-          def self.invoke_normalizer_for(type, task, options, normalizers:, normalizer_options:, sequence:)
+          def self.invoke_normalizer_for(type, task, options, normalizers:, normalizer_options:, sequence:, &block)
             options = options.merge(
               dsl_track: type,
               normalizers: normalizers # DISCUSS: do we need you?
             )
+            options = options.merge(block: block)
 
             _step_options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options.merge(sequence: sequence))
           end

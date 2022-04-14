@@ -2,6 +2,8 @@ module Trailblazer
   class Activity
     # {Strategy} that helps building simple linear activities.
     class Path
+      extend DSL::Linear::Strategy
+
       # Functions that help creating a path-specific sequence.
       module DSL
         Linear = Activity::DSL::Linear
@@ -91,14 +93,12 @@ module Trailblazer
         # This can be used later to create faster DSLs where the activity is compiled only once, a la
         #   Path() do  ... end
         class State < Linear::State
-          def step(*args, **options, &block)
-            options.merge!(block: block)
-
-            update_sequence_for!(:step, *args, **options) # mutate @state
+          def step(*args, &block)
+            update_sequence_for!(:step, *args, &block) # mutate @state
           end
 
-          def terminus(name, **options)
-            update_sequence_for!(:terminus, name, **options)
+          def terminus(*args)
+            update_sequence_for!(:terminus, *args)
           end
 
           # TODO: how to implement "macro forwarding" across all strategies and states? also, keep in mind `Contract::Validate()` etc
@@ -118,7 +118,6 @@ module Trailblazer
       end # DSL
 
       include DSL::Linear::Helper
-      extend DSL::Linear::Strategy
 
       initialize!(Path::DSL::State.build(**DSL.OptionsForState()))
     end # Path

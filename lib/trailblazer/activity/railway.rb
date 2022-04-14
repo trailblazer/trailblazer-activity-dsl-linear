@@ -95,7 +95,7 @@ module Trailblazer
         end
 
         class State < Path::DSL::State
-          def fail(*args)
+          def fail(*args) # TODO: block
             update_sequence_for!(:fail, *args) # mutate @state
           end
 
