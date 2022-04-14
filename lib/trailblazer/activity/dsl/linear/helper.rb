@@ -14,10 +14,6 @@ module Trailblazer
           end
           PathBranch     = Struct.new(:options)
 
-          def self.included(base)
-            base.extend ClassMethods
-          end
-
           # Shortcut functions for the DSL.
           module ClassMethods
             #   Output( Left, :failure )
@@ -96,7 +92,7 @@ module Trailblazer
                 patched_activity
               end
             end # Patch
-          end
+          end # ClassMethods
 
           DataVariableName = Class.new
 
@@ -104,8 +100,6 @@ module Trailblazer
             DataVariableName.new
           end
         end # Helper
-
-        include Helper # Introduce Helper constants in DSL::Linear scope
       end # Linear
     end # DSL
   end # Activity

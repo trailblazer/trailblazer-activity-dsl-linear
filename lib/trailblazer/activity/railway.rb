@@ -136,8 +136,6 @@ module Trailblazer
         end
       end
 
-      include DSL::Linear::Helper
-
       initialize!(Railway::DSL::State.build(**DSL.OptionsForState()))
     end # Railway
 

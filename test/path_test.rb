@@ -92,7 +92,7 @@ class PathTest < Minitest::Spec
   it "accepts {Output() => Id()}" do
     state = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f
-    seq = state.step task: implementing.method(:g), id: :g, Linear.Output(:success) => Linear.Id(:f)
+    seq = state.step task: implementing.method(:g), id: :g, state.Output(:success) => state.Id(:f)
     seq = state.step task: implementing.method(:a), id: :a
 
     assert_process seq, :success, %{
@@ -195,13 +195,13 @@ class PathTest < Minitest::Spec
 
       implementing = self.implementing
       state = Activity::Railway::DSL::State.build(**Activity::Railway::DSL.OptionsForState())
-      state.step(task: implementing.method(:a), id: :a, Linear.Output(:failure) => state.Path(end_task: path_end, end_id: "End.roundtrip") do
+      state.step(task: implementing.method(:a), id: :a, state.Output(:failure) => state.Path(end_task: path_end, end_id: "End.roundtrip") do
         step task: implementing.method(:f), id: :f
         step task: implementing.method(:g), id: :g
       end
       )
-      state.step task: implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
-      state.step task: implementing.method(:c), id: :c, Linear.Output(:success) => Linear.End(:new)
+      state.step task: implementing.method(:b), id: :b, state.Output(:success) => state.Id(:a)
+      state.step task: implementing.method(:c), id: :c, state.Output(:success) => state.End(:new)
       seq = state.fail task: implementing.method(:d), id: :d#, Linear.Output(:success) => Linear.End(:new)
 
 
@@ -251,11 +251,11 @@ class PathTest < Minitest::Spec
 
       implementing = self.implementing
 
-      state.step(implementing.method(:a), id: :a, Linear.Output(:success) => state.Path(end_task: path_end, end_id: "End.roundtrip", **shared_options) do
+      state.step(implementing.method(:a), id: :a, state.Output(:success) => state.Path(end_task: path_end, end_id: "End.roundtrip", **shared_options) do
         step implementing.method(:f), id: :f
       end
       )
-      seq = state.step implementing.method(:b), id: :b, Linear.Output(:success) => Linear.Id(:a)
+      seq = state.step implementing.method(:b), id: :b, state.Output(:success) => state.Id(:a)
 
 
       process = assert_process seq, :success, :roundtrip, %{

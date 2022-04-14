@@ -318,7 +318,7 @@ class RailwayTest < Minitest::Spec
 
   it "allows {Output() => Id()}" do
     state = Activity::Railway::DSL::State.build(**Activity::Railway::DSL.OptionsForState())
-    seq = state.step task: implementing.method(:f), id: :f, Linear.Output(:failure) => Linear.Id(:g)
+    seq = state.step task: implementing.method(:f), id: :f, state.Output(:failure) => state.Id(:g)
     seq = state.fail task: implementing.method(:a), id: :a
     seq = state.step task: implementing.method(:g), id: :g
 
@@ -343,7 +343,7 @@ class RailwayTest < Minitest::Spec
   it "allows {Output() => Track()}" do
     state = Activity::Railway::DSL::State.build(**Activity::Railway::DSL.OptionsForState())
     seq = state.step task: implementing.method(:f), id: :f
-    seq = state.fail task: implementing.method(:a), id: :a, Linear.Output(:success) => Linear.Track(:success)
+    seq = state.fail task: implementing.method(:a), id: :a, state.Output(:success) => state.Track(:success)
     seq = state.step task: implementing.method(:g), id: :g
 
     assert_process seq, :success, :failure, %{
