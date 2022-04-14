@@ -102,12 +102,8 @@ module Trailblazer
           end
 
           # TODO: how to implement "macro forwarding" across all strategies and states? also, keep in mind `Contract::Validate()` etc
-          # FIXME: redundancy
-          def Output(*args); Linear::Strategy.Output(*args) end
-          def Id(*args); Linear::Strategy.Id(*args) end
-          def Subprocess(*args); Linear::Strategy.Subprocess(*args) end
-          def End(*args); Linear::Strategy.End(*args) end
-          def Track(*args); Linear::Strategy.Track(*args) end
+          include Linear::Helper::ClassMethods # Subprocess() and friends.
+
           def Path(**options, &block)
             options = options.merge(block: block) if block_given?
 
