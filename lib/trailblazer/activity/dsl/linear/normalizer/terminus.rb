@@ -32,7 +32,7 @@ module Trailblazer
             # @private
             def normalize_id(ctx, id: nil, semantic:, **)
               ctx.merge!(
-                id: id || Linear.end_id(semantic: semantic)
+                id: id || Strategy.end_id(semantic: semantic)
               )
             end
 
@@ -55,7 +55,7 @@ module Trailblazer
 
             def _normalize_task_for_symbol(ctx, task:, semantic: task, **)
               ctx.merge!(
-                task:     Linear.End(semantic),
+                task:     Strategy.End(semantic),
                 semantic: semantic,
               )
             end

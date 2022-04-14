@@ -153,8 +153,6 @@ module Trailblazer
         end
       end
 
-      include Activity::DSL::Linear::Helper
-
       initialize!(Railway::DSL::State.build(**DSL.OptionsForState()))
     end # FastTrack
   end

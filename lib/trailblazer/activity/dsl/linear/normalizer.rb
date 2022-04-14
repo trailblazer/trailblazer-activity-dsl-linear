@@ -195,18 +195,18 @@ module Trailblazer
           # Process {Output(:semantic) => target} and make them {:connections}.
           def normalize_connections_from_dsl(ctx, connections:, adds:, non_symbol_options:, sequence:, normalizers:, **)
             # Find all {Output() => Track()/Id()/End()}
-            output_configs = non_symbol_options.find_all{ |k,v| k.kind_of?(Activity::DSL::Linear::OutputSemantic) }
+            output_configs = non_symbol_options.find_all{ |k,v| k.kind_of?(Activity::DSL::Linear::Helper::OutputSemantic) }
             return unless output_configs.any?
 
             # DISCUSS: how could we add another magnetic_to to an end?
             output_configs.each do |output, cfg|
               new_connections, add =
-                if cfg.is_a?(Activity::DSL::Linear::Track)
+                if cfg.is_a?(Activity::DSL::Linear::Helper::Track)
                   [output_to_track(ctx, output, cfg), cfg.adds] # FIXME: why does Track have a {adds} field? we don't use it anywhere.
-                elsif cfg.is_a?(Activity::DSL::Linear::Id)
+                elsif cfg.is_a?(Activity::DSL::Linear::Helper::Id)
                   [output_to_id(ctx, output, cfg.value), []]
                 elsif cfg.is_a?(Activity::End)
-                  end_id     = Linear.end_id(**cfg.to_h)
+                  end_id     = Activity::Railway.end_id(**cfg.to_h)
                   end_exists = Insert.find_index(ctx[:sequence], end_id)
 
                   _adds = end_exists ? [] : add_terminus(cfg, id: end_id, sequence: sequence, normalizers: normalizers)
@@ -250,7 +250,7 @@ module Trailblazer
 
             output_configs.collect do |output, cfg| # {cfg} = Track(:success)
               outputs     = outputs.merge(output.semantic => output)
-              dsl_options = dsl_options.merge(Linear.Output(output.semantic) => cfg)
+              dsl_options = dsl_options.merge(Linear::Strategy.Output(output.semantic) => cfg)
             end
 
             ctx[:outputs]            = outputs
