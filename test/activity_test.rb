@@ -1144,7 +1144,13 @@ ActivityTest::NestedWithThreeTermini
 
     actual_activity = activity.instance_variable_get(:@activity)
     _(actual_activity.class).must_equal Trailblazer::Activity
-    _(activity.to_h[:activity]).must_equal actual_activity
+
+    hsh = activity.to_h
+
+    assert_equal hsh.keys.inspect, %{:circuit, :outputs, :nodes, :config, :activity, :sequence}
+    assert_equal hsh[:activity], actual_activity
+    assert_equal hsh[:sequence].class, Trailblazer::Activity::DSL::Linear::Sequence
+    assert_equal hsh[:sequence].size, 3
   end
 
   it "{Path()} without block just adds one {End.green} terminus" do

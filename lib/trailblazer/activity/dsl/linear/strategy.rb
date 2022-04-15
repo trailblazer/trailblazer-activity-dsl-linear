@@ -54,7 +54,7 @@ module Trailblazer
 
           private def merge!(activity)
             old_seq = @state.to_h[:sequence]
-            new_seq = activity.instance_variable_get(:@state).to_h[:sequence] # TODO: fix the {@state} interface.
+            new_seq = activity.to_h[:sequence]
 
             seq = Linear.Merge(old_seq, new_seq, end_id: "End.success")
 
@@ -64,8 +64,12 @@ module Trailblazer
             recompile_activity!(seq)
           end
 
+          # Mainly used for introspection.
           def to_h
-            @activity.to_h.to_h.merge(activity: @activity)
+            @activity.to_h.to_h.merge(
+              activity: @activity,
+              sequence: @state.to_h[:sequence],
+            )
           end
 
           # Injects {:exec_context} so that {:instance_method}s work.

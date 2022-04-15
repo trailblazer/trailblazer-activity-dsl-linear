@@ -15,7 +15,7 @@
 * Use `Trailblazer::Declarative::State` to maintain sequence and other fields. This makes inheritance consistent.
 * `Strategy::State.build` is now the official constructor for a `State` instance.
 * Moved and renamed `Strategy.task_for!` to `State.update_sequence_for!`.
-* `Sequence` is now at `activity.instance_variable_get(:@state).to_h[:sequence]`.
+* `Sequence` is now readable via `#to_h`: `Strategy.to_h[:sequence]`.
 * Adding composable variable mapping: `In()`, `Inject()` and `Out()`
   delete add "aggregate"
 * Rename `State.update_sequence` to `State.update_sequence!`.
