@@ -56,7 +56,7 @@ module Trailblazer
 
         # pp Normalizers
 
-      # DISCUSS: following methods are not part of Normalizer
+        # DISCUSS: following methods are not part of Normalizer
 
         def append_terminus(sequence, task, normalizers:, **options)
           _sequence = State.update_sequence_for(:terminus, task, options, normalizers: normalizers, normalizer_options: {}, sequence: sequence)
@@ -101,17 +101,15 @@ module Trailblazer
             update_sequence_for!(:terminus, *args)
           end
 
-          # TODO: how to implement "macro forwarding" across all strategies and states? also, keep in mind `Contract::Validate()` etc
-          include Linear::Helper::ClassMethods # Subprocess() and friends.
+          include Linear::Helper # Subprocess(), Output(), {Contract::Build()} and friends.
 
           def Path(**options, &block)
             options = options.merge(block: block) if block_given?
 
             # DISCUSS: we're copying normalizer_options here, and not later in the normalizer!
-            Linear::Helper::PathBranch.new(@state.get("dsl/normalizer_options").merge(options)) # picked up by normalizer.
+            Linear::PathBranch.new(@state.get("dsl/normalizer_options").merge(options)) # picked up by normalizer.
           end
         end # State
-
       end # DSL
 
       initialize!(Path::DSL::State.build(**DSL.OptionsForState()))

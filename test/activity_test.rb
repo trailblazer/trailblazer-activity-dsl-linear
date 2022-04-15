@@ -488,10 +488,10 @@ class ActivityTest < Minitest::Spec
       pass task: implementing.method(:c), id: :c,
         additional: 9, # FIXME: this is not in {data}
         mode: [:read, :write], # but this is.
-        Trailblazer::Activity::DSL::Linear::Helper.DataVariable() => :mode
+        DataVariable() => :mode
       fail task: implementing.method(:b), id: :b,
         level: 9,
-        Trailblazer::Activity::DSL::Linear::Helper.DataVariable() => [:status, :level]
+        DataVariable() => [:status, :level]
     end
 
     renderer = ->(connections) { connections.collect { |semantic, (search_strategy, color)| [semantic, [T.render_task(search_strategy), color]] } }
