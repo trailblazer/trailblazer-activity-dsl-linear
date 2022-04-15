@@ -1147,7 +1147,7 @@ ActivityTest::NestedWithThreeTermini
 
     hsh = activity.to_h
 
-    assert_equal hsh.keys.inspect, %{:circuit, :outputs, :nodes, :config, :activity, :sequence}
+    assert_equal hsh.keys.inspect, %{[:circuit, :outputs, :nodes, :config, :activity, :sequence]}
     assert_equal hsh[:activity], actual_activity
     assert_equal hsh[:sequence].class, Trailblazer::Activity::DSL::Linear::Sequence
     assert_equal hsh[:sequence].size, 3

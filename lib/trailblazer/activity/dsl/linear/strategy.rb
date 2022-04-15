@@ -9,8 +9,8 @@ module Trailblazer
         #   provides run-time {call}
         #   maintains the {state} with {seq} and normalizer options
         module Strategy
-          extend Linear::Helper::ClassMethods # {Subprocess()} and friends. creates shortcuts to Strategy.Output
-          include Linear::Helper::ClassMethods
+          extend Linear::Helper::ClassMethods   # {Subprocess()} and friends. creates shortcuts to {Strategy.Output} etc.
+          include Linear::Helper::ClassMethods  # This makes sure Path, Railway and FastTrack have those shortcuts "inherited".
 
           def initialize!(state)
             @state = state
