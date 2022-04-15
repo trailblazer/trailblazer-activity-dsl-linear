@@ -45,8 +45,8 @@ module Trailblazer
             Id.new(id).freeze
           end
 
-          def Path(*args, &block)
-            @state.Path(*args, &block)
+          def Path(**kws, &block)
+            @state.Path(**kws, &block)
           end
 
           # Computes the {:outputs} options for {activity}.
@@ -59,9 +59,9 @@ module Trailblazer
             }
           end
 
-          def In(*args);     VariableMapping::DSL::In(*args); end
-          def Out(*args);    VariableMapping::DSL::Out(*args); end
-          def Inject(*args); VariableMapping::DSL::Inject(*args); end
+          def In(**kws);     VariableMapping::DSL::In(**kws); end
+          def Out(**kws);    VariableMapping::DSL::Out(**kws); end
+          def Inject(**kws); VariableMapping::DSL::Inject(**kws); end
 
           def DataVariable
             DataVariableName.new
