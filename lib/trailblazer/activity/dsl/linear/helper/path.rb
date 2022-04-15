@@ -20,9 +20,9 @@ module Trailblazer
                 return unless block
 
                 output, path_branch =
-                  non_symbol_options.find { |output, cfg| cfg.kind_of?(Linear::Helper::PathBranch) }
+                  non_symbol_options.find { |output, cfg| cfg.kind_of?(Linear::PathBranch) }
 
-                path_branch_with_block = Linear::Helper::PathBranch.new(path_branch.options.merge(block: block)) # DISCUSS: lots of internal knowledge here.
+                path_branch_with_block = Linear::PathBranch.new(path_branch.options.merge(block: block)) # DISCUSS: lots of internal knowledge here.
 
                 ctx[:non_symbol_options] = non_symbol_options.merge(output => path_branch_with_block)
               end
@@ -32,7 +32,7 @@ module Trailblazer
               # is picked up in {Normalizer.normalize_connections_from_dsl}.
               def convert_paths_to_tracks(ctx, non_symbol_options:, block: false, **)
                 new_tracks = non_symbol_options.
-                  find_all { |output, cfg| cfg.kind_of?(Linear::Helper::PathBranch) }.
+                  find_all { |output, cfg| cfg.kind_of?(Linear::PathBranch) }.
                   collect {  |output, cfg| [output, Path.convert_path_to_track(block: ctx[:block], **cfg.options)]  }.
                   to_h
 
@@ -65,7 +65,7 @@ module Trailblazer
                 insert_method = options[:stop_event] ? Insert.method(:Append) : Insert.method(:Prepend)
 
                 insert_target = "End.success" # insert before/after
-                insert_target = before if before && connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Helper::Track) # FIXME: this is a bit hacky, of course!
+                insert_target = before if before && connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Track) # FIXME: this is a bit hacky, of course!
 
                 {
                   row:    row,
@@ -74,7 +74,7 @@ module Trailblazer
               end
 
               # Connect the Output() => Track(path_track)
-              return Linear::Helper::Track.new(track_color, adds, {})
+              return Linear::Track.new(track_color, adds, {})
             end
 
             # Connect last row of the {sequence} to the given step via its {Id}
@@ -83,8 +83,8 @@ module Trailblazer
               output, _ = sequence[-1][2][0].(sequence, sequence[-1]) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
 
               # searches = [Search.ById(output, connect_to.value)]
-              searches = [Search.ById(output, connect_to.value)] if connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Helper::Id)
-              searches = [Search.Forward(output, connect_to.color)] if connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Helper::Track) # FIXME: use existing mapping logic!
+              searches = [Search.ById(output, connect_to.value)] if connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Id)
+              searches = [Search.Forward(output, connect_to.color)] if connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Track) # FIXME: use existing mapping logic!
 
               row = sequence[-1]
               row = row[0..1] + [searches] + [row[3]] # FIXME: not mutating an array is so hard: we only want to replace the "searches" element, index 2

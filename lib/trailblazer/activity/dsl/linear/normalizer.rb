@@ -195,15 +195,15 @@ module Trailblazer
           # Process {Output(:semantic) => target} and make them {:connections}.
           def normalize_connections_from_dsl(ctx, connections:, adds:, non_symbol_options:, sequence:, normalizers:, **)
             # Find all {Output() => Track()/Id()/End()}
-            output_configs = non_symbol_options.find_all{ |k,v| k.kind_of?(Activity::DSL::Linear::Helper::OutputSemantic) }
+            output_configs = non_symbol_options.find_all{ |k,v| k.kind_of?(Linear::OutputSemantic) }
             return unless output_configs.any?
 
             # DISCUSS: how could we add another magnetic_to to an end?
             output_configs.each do |output, cfg|
               new_connections, add =
-                if cfg.is_a?(Activity::DSL::Linear::Helper::Track)
+                if cfg.is_a?(Linear::Track)
                   [output_to_track(ctx, output, cfg), cfg.adds] # FIXME: why does Track have a {adds} field? we don't use it anywhere.
-                elsif cfg.is_a?(Activity::DSL::Linear::Helper::Id)
+                elsif cfg.is_a?(Linear::Id)
                   [output_to_id(ctx, output, cfg.value), []]
                 elsif cfg.is_a?(Activity::End)
                   end_id     = Activity::Railway.end_id(**cfg.to_h)
@@ -316,7 +316,7 @@ module Trailblazer
           # TODO: document DataVariable() => :name
           # Compile data that goes into the sequence row.
           def compile_data(ctx, default_variables_for_data: [:id, :dsl_track, :connections, :extensions, :stop_event], non_symbol_options:, **)
-            variables_for_data = non_symbol_options.find_all { |k,v| k.instance_of?(Helper::DataVariableName) }.collect { |k,v| Array(v) }.flatten
+            variables_for_data = non_symbol_options.find_all { |k,v| k.instance_of?(Linear::DataVariableName) }.collect { |k,v| Array(v) }.flatten
 
             ctx[:data] = (default_variables_for_data + variables_for_data).collect { |key| [key, ctx[key]] }.to_h
           end
