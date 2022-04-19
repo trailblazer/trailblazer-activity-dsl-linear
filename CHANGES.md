@@ -24,8 +24,10 @@
 * Remove `Linear::DSL.insert_task`. The canonical way to add steps is using the ADDS interface going through a normalizer.
   This is why there's a normalizer for `end` (or "terminus") now for consistency.
 * In Normalizer, `path.wirings` is now `activity.wirings`.
-* Remove `Helper::ClassMethods`, `Helper` is now the namespace to mix in your own macros (and ours, like `Output()`).
+* Remove `Helper::ClassMethods`, `Helper` is now the namespace to mix in your own functions (and ours, like `Output()`).
+* Introduce `Helper::Constants` for namespaced macros such as `Policy::Pundit()`.
 * Move DSL structures like `OutputSemantic` to `Linear` namespace.
+* Make `Strategy` a class. It makes constant management much simpler to understand.
 
 # 0.5.0
 

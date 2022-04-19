@@ -1,9 +1,7 @@
 module Trailblazer
   class Activity
     # {Strategy} that helps building simple linear activities.
-    class Path
-      extend DSL::Linear::Strategy
-
+    class Path < DSL::Linear::Strategy
       # Functions that help creating a path-specific sequence.
       module DSL
         Linear = Activity::DSL::Linear
@@ -101,7 +99,8 @@ module Trailblazer
             update_sequence_for!(:terminus, *args)
           end
 
-          include Linear::Helper # Subprocess(), Output(), {Contract::Build()} and friends.
+          include Linear::Helper # Subprocess(), Output(), ...
+          include Linear::Helper::Constants # FIXME: test me! # {Contract::Build()} and friends.
 
           def Path(**options, &block)
             options = options.merge(block: block) if block_given?

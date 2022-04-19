@@ -21,6 +21,10 @@ module Trailblazer
         # Those are included in {Strategy} so they're available to all Strategy users such
         # as {Railway} or {Operation}.
         module Helper
+          # This is the namespace container for {Contract::}, {Policy::} and friends.
+          module Constants
+          end
+
           #   Output( Left, :failure )
           #   Output( :failure ) #=> Output::Semantic
           def Output(signal, semantic=nil)

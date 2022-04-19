@@ -7,8 +7,7 @@ module Trailblazer
     end
 
     # Implementation of the "FastTrack" layout that is also used for `Operation`.
-    class FastTrack
-      extend Activity::DSL::Linear::Strategy
+    class FastTrack < Activity::DSL::Linear::Strategy
 
       # Signals
       FailFast = Class.new(Signal)

@@ -1,8 +1,7 @@
 module Trailblazer
   # Implementation module that can be passed to `Activity[]`.
   class Activity
-    class Railway
-      extend DSL::Linear::Strategy
+    class Railway < DSL::Linear::Strategy
 
       module DSL
         Linear = Activity::DSL::Linear
