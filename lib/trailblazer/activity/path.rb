@@ -60,10 +60,9 @@ module Trailblazer
           _sequence = State.update_sequence_for(:terminus, task, options, normalizers: normalizers, normalizer_options: {}, sequence: sequence)
         end
 
+        # @private
         def start_sequence(track_name:)
-          start_default = Activity::Start.new(semantic: :default)
-          start_event   = Linear::Sequence.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
-          _sequence     = Linear::Sequence[start_event]
+          Linear::Strategy::DSL.start_sequence(wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
         end
 
         # Returns an initial two-step sequence with {Start.default > End.success}.
