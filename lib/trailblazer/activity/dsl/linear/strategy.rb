@@ -56,7 +56,7 @@ module Trailblazer
               @activity = Activity.new(schema)
             end
 
-            private def merge!(activity)
+            def merge!(activity)
               old_seq = @state.to_h[:sequence]
               new_seq = activity.to_h[:sequence]
 
@@ -101,7 +101,7 @@ module Trailblazer
             end
           end # DSL
 
-          initialize!(Linear::State.build(normalizers: {}, initial_sequence: DSL.start_sequence)) # build an empty State instance that can be copied and recompiled..
+          initialize!(Linear::State.build(normalizers: {}, initial_sequence: DSL.start_sequence)) # build an empty State instance that can be copied and recompiled.
         end # Strategy
       end
     end
