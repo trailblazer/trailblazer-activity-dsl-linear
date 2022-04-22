@@ -46,13 +46,14 @@ module Trailblazer
             } # DISCUSS: maybe {Declarative::State#to_h} could automatically provide this functionality?
           end
 
-          # DISCUSS: do we want this public?
+          # @private
           def update_sequence!(&block)
             @state.update!("sequence") do |sequence|
               yield(**to_h) # FIXME: define interface for block.
             end
           end
 
+          # FIXME: move me to Strategy
           def update_options!(fields)
             @state.update!("fields") do |*|
               fields
@@ -61,6 +62,7 @@ module Trailblazer
 
           # Called from {#step} and friends in the {Strategy} subclass.
           # Used to be named {Strategy.task_for!}.
+          # Top-level entry point for "adding a step".
           def update_sequence_for!(type, *args, &block)
             # {#update_sequence!} is the only way to mutate the state instance.
             update_sequence! do |sequence:, normalizers:, normalizer_options:, **|
