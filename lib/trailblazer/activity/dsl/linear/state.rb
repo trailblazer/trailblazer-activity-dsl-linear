@@ -21,7 +21,7 @@ module Trailblazer
 
             state = Trailblazer::Declarative.State(tuples)
 
-            new(state)
+            return new(state), initial_sequence
           end
 
             # remembers how to call normalizers (e.g. track_color), TaskBuilder

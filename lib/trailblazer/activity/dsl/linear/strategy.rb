@@ -19,7 +19,7 @@ module Trailblazer
             def initialize!(state)
               @state = state
 
-              recompile_activity!(@state.to_h[:sequence])
+              # recompile_activity!(@state.to_h[:sequence])
             end
 
             def inherited(inheriter)
@@ -36,25 +36,39 @@ module Trailblazer
             def terminus(*args);     recompile_activity_for(:terminus, *args); end
 
             private def recompile_activity_for(type, *args, &block)
-              seq = apply_step_on_state!(type, *args, &block)
+              sequencer, sequence = apply_step_on_state!(type, *args, &block)
 
-              recompile_activity!(seq)
+              recompile!(sequencer, sequence) # FIXME: update sequence and @activity
             end
 
             # TODO: make {rescue} optional, only in dev mode.
             private def apply_step_on_state!(type, *args, &block)
               # Simply call {@state.step} with all the beautiful args.
-              seq = @state.send(type, *args, &block)
+              sequencer = @state.get(:sequencer)
+
+              sequence  = sequencer.send(type, *args, &block) # sequencer gets mutated.
+
+              return sequencer, sequence
             rescue Sequence::IndexError
               # re-raise this exception with activity class prepended
               # to the message this time.
               raise $!, "#{self}:#{$!.message}"
             end
 
-            private def recompile_activity!(seq)
-              schema    = Compiler.(seq)
-              @activity = Activity.new(schema)
+            private def recompile_activity(sequence)
+              schema = Compiler.(sequence)
+              Activity.new(schema)
             end
+
+            # DISCUSS: this should be the only way to "update" anything on state.
+            def recompile!(sequencer, sequence)
+              activity = recompile_activity(sequence)
+
+              @state.update!(:sequencer) { |*| sequencer }
+              @state.update!(:sequence) { |*| sequence }
+              @state.update!(:activity) { |*| activity }
+            end
+
 
             def merge!(activity)
               old_seq = @state.to_h[:sequence]
@@ -70,16 +84,20 @@ module Trailblazer
 
             # Mainly used for introspection.
             def to_h
-              @activity.to_h.to_h.merge(
-                activity: @activity,
-                sequence: @state.to_h[:sequence],
+              activity = @state.get(:activity)
+
+              activity.to_h.to_h.merge(
+                activity: activity,
+                sequence: @state.get(:sequence),
               )
             end
 
             # @Runtime
             # Injects {:exec_context} so that {:instance_method}s work.
             def call(args, **circuit_options)
-              @activity.(
+              activity = @state.get(:activity)
+
+              activity.(
                 args,
                 **circuit_options.merge(exec_context: new)
               )
@@ -101,7 +119,30 @@ module Trailblazer
             end
           end # DSL
 
-          initialize!(Linear::State.build(normalizers: {}, initial_sequence: DSL.start_sequence)) # build an empty State instance that can be copied and recompiled.
+          # TODO: rename to recompile_for_strategy! or something.
+          # DISCUSS: only used in Path and friends.
+          def self.recompile_for_state!(state_class, options_for_state)
+            sequencer, sequence = state_class.build(**options_for_state)
+            # return sequencer, sequence
+            recompile!(sequencer, sequence)
+          end
+
+          # FIXME: move to State#dup
+          def self.copy(value, **) # DISCUSS: should that be here?
+            value.copy
+          end
+
+          sequencer, sequence = Linear::State.build(normalizers: {}, initial_sequence: DSL.start_sequence)
+          activity = recompile_activity(sequence) # sets @activity. this is only for faster access in #call.
+
+          state = Declarative::State(
+            sequencer: [sequencer, copy: method(:copy)], # when inherited, call sequencer.copy
+            sequence:  [sequence, {}], # when inherited, call #dup # DISCUSS: do we want to keep this here?
+            activity:  [activity, {}], # when inherited, call #dup
+            fields:    [Hash.new, {}],
+          )
+
+          initialize!(state) # build an empty State instance that can be copied and recompiled.
         end # Strategy
       end
     end

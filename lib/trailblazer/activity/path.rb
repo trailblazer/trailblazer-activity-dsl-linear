@@ -110,12 +110,14 @@ module Trailblazer
         end # State
       end # DSL
 
-      initialize!(Path::DSL::State.build(**DSL.OptionsForState()))
+      recompile_for_state!(Path::DSL::State, DSL.OptionsForState())
     end # Path
 
     def self.Path(**options)
       Class.new(Path) do
-        initialize!(Path::DSL::State.build(**Path::DSL.OptionsForState(**options)))
+        recompile_for_state!(Path::DSL::State, **Path::DSL.OptionsForState(**options))
+        # state, _ = .build(**Path::DSL.OptionsForState(**options))
+        # initialize!(state)
       end
     end
   end

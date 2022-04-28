@@ -599,7 +599,7 @@ class ActivityTest < Minitest::Spec
     end
 
     process = activity.to_h
-
+raise process.inspect
     assert_process_for process, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
@@ -609,7 +609,7 @@ class ActivityTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
-
+raise copy.to_h.inspect
     assert_process_for copy.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
@@ -1142,13 +1142,13 @@ ActivityTest::NestedWithThreeTermini
       step :a
     end
 
-    actual_activity = activity.instance_variable_get(:@activity)
-    _(actual_activity.class).must_equal Trailblazer::Activity
+    # actual_activity = activity.instance_variable_get(:@activity)
+    # _(actual_activity.class).must_equal Trailblazer::Activity
 
     hsh = activity.to_h
 
     assert_equal hsh.keys.inspect, %{[:circuit, :outputs, :nodes, :config, :activity, :sequence]}
-    assert_equal hsh[:activity], actual_activity
+    assert_equal hsh[:activity].class, Trailblazer::Activity
     assert_equal hsh[:sequence].class, Trailblazer::Activity::DSL::Linear::Sequence
     assert_equal hsh[:sequence].size, 3
   end

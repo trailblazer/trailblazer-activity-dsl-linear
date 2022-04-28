@@ -135,7 +135,7 @@ module Trailblazer
         end
       end
 
-      initialize!(Railway::DSL::State.build(**DSL.OptionsForState()))
+      recompile_for_state!(Railway::DSL::State, DSL.OptionsForState())
     end # Railway
 
     def self.Railway(options)
