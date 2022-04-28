@@ -50,7 +50,7 @@ module Trailblazer
           end
 
           def Path(**kws, &block)
-            @state.Path(**kws, &block)
+            @state.get(:sequencer).Path(**kws, &block) # DISCUSS: do we like this?
           end
 
           # Computes the {:outputs} options for {activity}.
