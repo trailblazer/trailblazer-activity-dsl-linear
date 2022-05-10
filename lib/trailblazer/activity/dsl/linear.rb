@@ -12,32 +12,21 @@ class Trailblazer::Activity
       # {Sequence} consists of rows.
       # {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
       class Sequence < Array
+        # Row interface is part of the ADDs specification.
+        class Row < Array
+          def id
+            self[3][:id]
+          end
+        end
+
         # Return {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
         def self.create_row(task:, magnetic_to:, wirings:, **options)
-          [
+          Row[
             magnetic_to,
             task,
             wirings,
             options # {id: "Start.success"}
           ]
-        end
-
-        # @returns Sequence New sequence instance
-        # @private
-        def self.insert_row(sequence, row:, insert:)
-          insert_function, *args = insert
-
-          insert_function.(sequence, [row], *args)
-        end
-
-        # TODO: make this the only public method of Sequence.
-        # Inserts one or more {Add} into {sequence}.
-        def self.apply_adds(sequence, adds)
-          adds.each do |add|
-            sequence = insert_row(sequence, **add)
-          end
-
-          sequence
         end
 
         class IndexError < IndexError
@@ -95,7 +84,7 @@ class Trailblazer::Activity
         # Find the seq_row with {id} and connect the current node to it.
         def ById(output, id)
           ->(sequence, me) do
-            index          = Insert.find_index(sequence, id) or return output, sequence[0] # FIXME # or raise "Couldn't find {#{id}}"
+            index          = Activity::Adds::Insert.find_index(sequence, id) or return output, sequence[0] # FIXME # or raise "Couldn't find {#{id}}"
             target_seq_row = sequence[index]
 
             return output, target_seq_row
@@ -108,49 +97,13 @@ class Trailblazer::Activity
         end
       end # Search
 
-      # Sequence
-      # Functions to mutate the Sequence by inserting, replacing, or deleting a row.
-      # These functions are called in {insert_task}
+      # TODO: remove this deprecation for 1.1.
       module Insert
-        module_function
+        def self.method(name)
+          warn "[Trailblazer] Using `Trailblazer::Activity::DSL::Linear::Insert.method(:#{name})` is deprecated.
+  Please use `Trailblazer::Activity::Adds::Insert.method(:#{name})`."
 
-        # Append {new_row} after {insert_id}.
-        def Append(sequence, new_rows, insert_id)
-          index, sequence = find(sequence, insert_id)
-
-          sequence.insert(index+1, *new_rows)
-        end
-
-        # Insert {new_rows} before {insert_id}.
-        def Prepend(sequence, new_rows, insert_id)
-          index, sequence = find(sequence, insert_id)
-
-          sequence.insert(index, *new_rows)
-        end
-
-        def Replace(sequence, new_rows, insert_id)
-          index, sequence = find(sequence, insert_id)
-
-          sequence[index], _ = *new_rows # TODO: replace and insert remaining, if any.
-          sequence
-        end
-
-        def Delete(sequence, _, insert_id)
-          index, sequence = find(sequence, insert_id)
-
-          sequence.delete(sequence[index])
-          sequence
-        end
-
-        # @private
-        def find_index(sequence, insert_id)
-          sequence.find_index { |seq_row| seq_row[3][:id] == insert_id } # TODO: optimize id location!
-        end
-
-        def find(sequence, insert_id)
-          index = find_index(sequence, insert_id) or raise Sequence::IndexError.new(sequence, insert_id)
-
-          return index, sequence.clone # Ruby doesn't have an easy way to avoid mutating arrays :(
+          Trailblazer::Activity::Adds::Insert.method(name)
         end
       end
 

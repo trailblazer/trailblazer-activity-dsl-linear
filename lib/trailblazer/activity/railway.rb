@@ -44,10 +44,11 @@ module Trailblazer
         end
 
         def NormalizerForPass
-          pipeline = TaskWrap::Pipeline.insert_after(
+          pipeline = TaskWrap::Pipeline.prepend(
             Normalizer(),
-            "path.connections",
-            ["railway.connections.pass.failure_to_success", Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))]
+            "activity.normalize_outputs_from_dsl",
+            # "path.connections",
+            {"railway.connections.pass.failure_to_success" => Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))}.to_a
           )
         end
 

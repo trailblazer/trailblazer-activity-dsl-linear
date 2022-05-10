@@ -28,6 +28,8 @@
 * Introduce `Helper::Constants` for namespaced macros such as `Policy::Pundit()`.
 * Move DSL structures like `OutputSemantic` to `Linear` namespace.
 * Make `Strategy` a class. It makes constant management much simpler to understand.
+* Move `Insert` to `trailblazer-activity` gem.
+* We now need `Sequence::Row` instances in `Sequence` to adhere to the Adds specification.
 
 # 0.5.0
 

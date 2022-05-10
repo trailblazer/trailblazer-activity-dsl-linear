@@ -59,7 +59,8 @@ module Trailblazer
                 "activity.create_row" => Normalizer.Task(method(:create_row)),
                 "activity.create_add" => Normalizer.Task(method(:create_add)),
                 "activity.create_adds" => Normalizer.Task(method(:create_adds)),
-              }.to_a
+              }.
+                collect { |id, task| TaskWrap::Pipeline.Row(id, task) }
             )
 
             pipeline
@@ -148,7 +149,7 @@ module Trailblazer
 
             insertion_method = sequence_insert_options[insertion]
 
-            ctx[:sequence_insert] = [Linear::Insert.method(insertion_method), target]
+            ctx[:sequence_insert] = [Activity::Adds::Insert.method(insertion_method), target]
           end
 
           # @private
@@ -207,7 +208,7 @@ module Trailblazer
                   [output_to_id(ctx, output, cfg.value), []]
                 elsif cfg.is_a?(Activity::End)
                   end_id     = Activity::Railway.end_id(**cfg.to_h)
-                  end_exists = Insert.find_index(ctx[:sequence], end_id)
+                  end_exists = Activity::Adds::Insert.find_index(ctx[:sequence], end_id)
 
                   _adds = end_exists ? [] : add_terminus(cfg, id: end_id, sequence: sequence, normalizers: normalizers)
 
@@ -287,7 +288,7 @@ module Trailblazer
           def inherit_option(ctx, inherit: false, sequence:, id:, extensions: [], **)
             return unless inherit
 
-            index = Linear::Insert.find_index(sequence, id)
+            index = Activity::Adds::Insert.find_index(sequence, id)
             row   = sequence[index] # from this row we're inheriting options.
 
             ctx[:connections] = get_inheritable_connections(ctx, row[3][:connections])

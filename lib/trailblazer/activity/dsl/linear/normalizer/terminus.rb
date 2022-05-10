@@ -69,7 +69,7 @@ module Trailblazer
             # @private
             def append_end(ctx, task:, semantic:, append_to: "End.success", **)
               terminus_args = {
-                sequence_insert: [Linear::Insert.method(:Append), append_to],
+                sequence_insert: [Activity::Adds::Insert.method(:Append), append_to],
                 stop_event:      true
               }
 

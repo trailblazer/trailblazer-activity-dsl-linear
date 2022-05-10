@@ -409,7 +409,10 @@ class ActivityTest < Minitest::Spec
     describe "{:extensions}" do
       let(:merge) do
         merge = [
-          [Trailblazer::Activity::TaskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
+          {
+            insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"],
+            row:    Trailblazer::Activity::TaskWrap::Pipeline.Row("user.add_1", method(:add_1))
+          },
         ]
       end
 
@@ -549,6 +552,7 @@ class ActivityTest < Minitest::Spec
 
   let(:taskWrap) { Trailblazer::Activity::TaskWrap }
 
+  #@ When inheriting and changing we don't bleed into associated classes.
   it "inheritance copies {config}" do
     merge = [
       [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
@@ -563,10 +567,10 @@ class ActivityTest < Minitest::Spec
 
     sub = Class.new(activity)
 
-  # {Schema.config} is *copied* to the subclass and not identical
-    refute_equal activity.to_h[:config], sub.to_h[:config]
+  # {Schema.config} is not *copied* to the subclass identical.
+    assert_equal activity.to_h[:config], sub.to_h[:config]
   # Likewise, important fields like {wrap_static} are copied.
-    refute_equal activity.to_h[:config][:wrap_static], sub.to_h[:config][:wrap_static]
+    assert_equal activity.to_h[:config][:wrap_static], sub.to_h[:config][:wrap_static]
 
     signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
@@ -575,6 +579,17 @@ class ActivityTest < Minitest::Spec
     signal, (ctx, _) = Activity::TaskWrap.invoke(sub, [{seq: []}, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:seq=>[1, :a]}}
+
+  #@ When changing subclass, superclass doesn't change
+
+    sub.step :a, extensions: [], replace: :a
+
+    #= values in {config} are different now.
+    refute_equal activity.to_h[:config], sub.to_h[:config]
+    refute_equal activity.to_h[:config][:wrap_static], sub.to_h[:config][:wrap_static]
+
+    puts activity.to_h[:config][:wrap_static]
+    puts sub.to_h[:config][:wrap_static]
   end
 
   it "allows inheritance / INSERTION options" do

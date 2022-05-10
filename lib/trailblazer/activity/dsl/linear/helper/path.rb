@@ -50,7 +50,7 @@ module Trailblazer
 
               seq = path_state.to_h[:sequence]
               # Strip default ends `Start.default` and `End.success` (if present).
-              seq = seq[1..-1].reject{ |row| row[3][:stop_event] && row[3][:id] == 'End.success' }
+              seq = seq[1..-1].reject{ |row| row[3][:stop_event] && row.id == 'End.success' }
 
               if connect_to
                 seq = connect_for_sequence(seq, connect_to: connect_to)
@@ -62,7 +62,7 @@ module Trailblazer
                 options = row[3]
 
                 # the terminus of the path goes _after_ {End.success} into the "end group".
-                insert_method = options[:stop_event] ? Insert.method(:Append) : Insert.method(:Prepend)
+                insert_method = options[:stop_event] ? Activity::Adds::Insert.method(:Append) : Activity::Adds::Insert.method(:Prepend)
 
                 insert_target = "End.success" # insert before/after
                 insert_target = before if before && connect_to.instance_of?(Trailblazer::Activity::DSL::Linear::Track) # FIXME: this is a bit hacky, of course!
@@ -88,6 +88,7 @@ module Trailblazer
 
               row = sequence[-1]
               row = row[0..1] + [searches] + [row[3]] # FIXME: not mutating an array is so hard: we only want to replace the "searches" element, index 2
+              row = Sequence::Row[*row]
 
               sequence = sequence[0..-2] + [row]
 
