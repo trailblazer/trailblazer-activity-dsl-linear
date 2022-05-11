@@ -1060,34 +1060,6 @@ ActivityTest::NestedWithThreeTermini
     end
   end
 
-  it "provides {DSL} instance that doesn't compile the activity" do
-    path = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState())
-
-    implementing = self.implementing
-    # The DSL::Instance instance is the only mutable object.
-    path.instance_exec do
-      step implementing.method(:c), Activity::Path.Output("New", :new) => Activity::Path.End(:new)
-      step implementing.method(:d)
-    end
-
-    sequence = path.to_h[:sequence]
-
-    schema = Activity::DSL::Linear::Compiler.(sequence)
-
-    assert_process_for schema, :success, :new, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
-<*#<Method: #<Module:0x>.c>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.d>>
- {New} => #<End/:new>
-<*#<Method: #<Module:0x>.d>>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-
-#<End/:new>
-}
-  end
-
   it "allows {:instance} methods" do
     implementing = self.implementing
 

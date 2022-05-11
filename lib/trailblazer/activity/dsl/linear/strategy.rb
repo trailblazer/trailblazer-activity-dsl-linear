@@ -18,15 +18,13 @@ module Trailblazer
           class << self
             def initialize!(state)
               @state = state
-
-              # recompile_activity!(@state.to_h[:sequence])
             end
 
             def inherited(inheriter)
               super
 
-              # inherits the {@sequence}, and options.
-              inheriter.initialize!(@state.copy) # FIXME: technically you don't have to recompute anything here, everything can be copied and @activity set.
+              # Inherits the {State:sequencer} and other options without recomputing anything.
+              inheriter.initialize!(@state.copy)
             end
 
             # @public
@@ -36,17 +34,17 @@ module Trailblazer
             def terminus(*args);     recompile_activity_for(:terminus, *args); end
 
             private def recompile_activity_for(type, *args, &block)
-              sequencer, sequence = apply_step_on_state!(type, *args, &block)
+              sequencer, sequence = apply_step_on_sequencer!(type, *args, &block)
 
               recompile!(sequencer, sequence) # FIXME: update sequence and @activity
             end
 
             # TODO: make {rescue} optional, only in dev mode.
-            private def apply_step_on_state!(type, *args, &block)
+            private def apply_step_on_sequencer!(type, *args, &block)
               # Simply call {@state.step} with all the beautiful args.
               sequencer = @state.get(:sequencer)
 
-              sequence  = sequencer.send(type, *args, &block) # sequencer gets mutated.
+              sequence  = sequencer.send(type, *args, &block) # sequencer gets mutated. # FIXME: why can't this just return a new sequencer/sequence tuple?
 
               return sequencer, sequence
             rescue Sequence::IndexError
@@ -67,6 +65,14 @@ module Trailblazer
               @state.update!(:sequencer) { |*| sequencer }
               @state.update!(:sequence) { |*| sequence }
               @state.update!(:activity) { |*| activity }
+            end
+
+                      # TODO: rename to recompile_for_strategy! or something.
+            # DISCUSS: only used in Path and friends.
+            def recompile_for_state!(sequencer_class, options_for_sequencer)
+              sequencer, sequence = sequencer_class.build(**options_for_sequencer)
+              # return sequencer, sequence
+              recompile!(sequencer, sequence) # DISCUSS: needs @state
             end
 
 
@@ -119,30 +125,23 @@ module Trailblazer
             end
           end # DSL
 
-          # TODO: rename to recompile_for_strategy! or something.
-          # DISCUSS: only used in Path and friends.
-          def self.recompile_for_state!(state_class, options_for_state)
-            sequencer, sequence = state_class.build(**options_for_state)
-            # return sequencer, sequence
-            recompile!(sequencer, sequence)
-          end
-
           # FIXME: move to State#dup
           def self.copy(value, **) # DISCUSS: should that be here?
             value.copy
           end
 
-          sequencer, sequence = Linear::State.build(normalizers: {}, initial_sequence: DSL.start_sequence)
-          activity = recompile_activity(sequence) # sets @activity. this is only for faster access in #call.
-
           state = Declarative::State(
-            sequencer: [sequencer, copy: method(:copy)], # when inherited, call sequencer.copy
-            sequence:  [sequence, {}], # when inherited, call #dup # DISCUSS: do we want to keep this here?
-            activity:  [activity, {}], # when inherited, call #dup
+            sequencer: [nil, copy: method(:copy)], # when inherited, call sequencer.copy
+            sequence:  [nil, {}], # when inherited, call #dup # DISCUSS: do we want to keep this here?
+            activity:  [nil, {}], # when inherited, call #dup
             fields:    [Hash.new, {}],
           )
 
           initialize!(state) # build an empty State instance that can be copied and recompiled.
+          # override :sequencer, :sequence, :activity
+          # This is done in every subclass.
+          recompile_for_state!(Linear::State, normalizers: {}, initial_sequence: DSL.start_sequence)
+
         end # Strategy
       end
     end

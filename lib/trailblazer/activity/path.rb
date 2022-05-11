@@ -105,7 +105,7 @@ module Trailblazer
             options = options.merge(block: block) if block_given?
 
             # DISCUSS: we're copying normalizer_options here, and not later in the normalizer!
-            Linear::PathBranch.new(@state.get("dsl/normalizer_options").merge(options)) # picked up by normalizer.
+            Linear::PathBranch.new(@state.get(:normalizer_options).merge(options)) # picked up by normalizer.
           end
         end # State
       end # DSL

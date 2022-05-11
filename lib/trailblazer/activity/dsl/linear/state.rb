@@ -10,13 +10,24 @@ module Trailblazer
         #
         # DISCUSS: why do we have this structure? It doesn't cover "immutable copying", that has to be done by its clients.
         #          also, copy with to_h
+        #
+        # * All public DSL methods on Sequencer return the updated sequence.
         class State # TODO: rename to Dsl
+
+
+          # Sequencer
+                                          # "state"/configuration object
+          # def call(method, kws, block, sequence:, normalizers:, initial_sequence: ...)
+
+          # end
+
+
+
           def self.build(normalizers:, initial_sequence:, fields: {}, **normalizer_options)
             tuples = {
-              "sequence" =>       [initial_sequence, {}],
-              "dsl/normalizer" =>          [normalizers, {}],  # copy on inherit
-              "dsl/normalizer_options" => [normalizer_options, {}], # copy on inherit
-              "fields" => [fields, {}],
+              :sequence =>               [initial_sequence, {}],
+              :normalizer =>         [normalizers, {}],  # copy on inherit
+              :normalizer_options => [normalizer_options, {}], # copy on inherit
             }
 
             state = Trailblazer::Declarative.State(tuples)
@@ -26,6 +37,7 @@ module Trailblazer
 
             # remembers how to call normalizers (e.g. track_color), TaskBuilder
             # remembers sequence
+          # @private
           def initialize(state)
             @state = state
           end
@@ -39,24 +51,16 @@ module Trailblazer
 
           def to_h # DISCUSS: this isn't DSL logic
             {
-              sequence: @state.get("sequence"),
-              normalizers: @state.get("dsl/normalizer"),
-              normalizer_options: @state.get("dsl/normalizer_options"),
-              fields: @state.get("fields")
-            } # DISCUSS: maybe {Declarative::State#to_h} could automatically provide this functionality?
+              sequence:           @state.get(:sequence),
+              normalizers:        @state.get(:normalizer),
+              normalizer_options: @state.get(:normalizer_options),
+            } # FIXME: maybe {Declarative::State#to_h} could automatically provide this functionality?
           end
 
           # @private
           def update_sequence!(&block)
-            @state.update!("sequence") do |sequence|
+            @state.update!(:sequence) do |sequence|
               yield(**to_h) # FIXME: define interface for block.
-            end
-          end
-
-          # FIXME: move me to Strategy
-          def update_options!(fields)
-            @state.update!("fields") do |*|
-              fields
             end
           end
 
