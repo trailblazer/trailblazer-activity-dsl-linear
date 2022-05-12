@@ -34,19 +34,23 @@ module Trailblazer
             def terminus(*args);     recompile_activity_for(:terminus, *args); end
 
             private def recompile_activity_for(type, *args, &block)
-              sequencer, sequence = apply_step_on_sequencer!(type, *args, &block)
+              sequence = apply_step_on_sequencer(type, *args, &block)
 
-              recompile!(sequencer, sequence) # FIXME: update sequence and @activity
+              recompile!(sequence)
             end
 
             # TODO: make {rescue} optional, only in dev mode.
-            private def apply_step_on_sequencer!(type, *args, &block)
-              # Simply call {@state.step} with all the beautiful args.
-              sequencer = @state.get(:sequencer)
+            # @return Sequence
+            private def apply_step_on_sequencer(type, arg, options={}, &block)
+              return Sequencer.(type, arg, options,
 
-              sequence  = sequencer.send(type, *args, &block) # sequencer gets mutated. # FIXME: why can't this just return a new sequencer/sequence tuple?
+                sequence:           @state.get(:sequence),
+                normalizer_options: @state.get(:normalizer_options),
+                normalizers:        @state.get(:normalizers),
 
-              return sequencer, sequence
+                 &block
+              )
+
             rescue Sequence::IndexError
               # re-raise this exception with activity class prepended
               # to the message this time.
@@ -59,22 +63,12 @@ module Trailblazer
             end
 
             # DISCUSS: this should be the only way to "update" anything on state.
-            def recompile!(sequencer, sequence)
+            def recompile!(sequence)
               activity = recompile_activity(sequence)
 
-              @state.update!(:sequencer) { |*| sequencer }
               @state.update!(:sequence) { |*| sequence }
               @state.update!(:activity) { |*| activity }
             end
-
-                      # TODO: rename to recompile_for_strategy! or something.
-            # DISCUSS: only used in Path and friends.
-            def recompile_for_state!(sequencer_class, options_for_sequencer)
-              sequencer, sequence = sequencer_class.build(**options_for_sequencer)
-              # return sequencer, sequence
-              recompile!(sequencer, sequence) # DISCUSS: needs @state
-            end
-
 
             def merge!(activity)
               old_seq = @state.to_h[:sequence]
@@ -131,16 +125,23 @@ module Trailblazer
           end
 
           state = Declarative::State(
-            sequencer: [nil, copy: method(:copy)], # when inherited, call sequencer.copy
-            sequence:  [nil, {}], # when inherited, call #dup # DISCUSS: do we want to keep this here?
+            # sequencer: [nil, copy: method(:copy)], # when inherited, call sequencer.copy
+            normalizers: [nil, {}],        # immutable
+            normalizer_options: [nil, {}], # immutable
+
+            sequence:  [nil, {}], # when inherited, call #dup
             activity:  [nil, {}], # when inherited, call #dup
+
             fields:    [Hash.new, {}],
           )
 
           initialize!(state) # build an empty State instance that can be copied and recompiled.
           # override :sequencer, :sequence, :activity
           # This is done in every subclass.
-          recompile_for_state!(Linear::State, normalizers: {}, initial_sequence: DSL.start_sequence)
+
+
+          # recompile_for_state!(Linear::State, normalizers: {}, sequence: DSL.start_sequence, normalizer_options: {})
+          recompile!(DSL.start_sequence)
 
         end # Strategy
       end

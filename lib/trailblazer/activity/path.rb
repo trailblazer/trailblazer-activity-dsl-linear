@@ -57,7 +57,7 @@ module Trailblazer
         # DISCUSS: following methods are not part of Normalizer
 
         def append_terminus(sequence, task, normalizers:, **options)
-          _sequence = State.update_sequence_for(:terminus, task, options, normalizers: normalizers, normalizer_options: {}, sequence: sequence)
+          _sequence = Linear::Sequencer.update_sequence_for(:terminus, task, options, normalizers: normalizers, normalizer_options: {}, sequence: sequence)
         end
 
         # @private
@@ -71,18 +71,19 @@ module Trailblazer
           sequence = append_terminus(sequence, end_task, id: end_id, magnetic_to: track_name, normalizers: Normalizers, append_to: "Start.default")
         end
 
-        def OptionsForState(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
-          initial_sequence = initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id) # DISCUSS: the standard initial_seq could be cached.
+        def OptionsForSequencer(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
+          initial_sequence = initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id)
 
           {
-            normalizers:      normalizers,
-            initial_sequence: initial_sequence,
-
-            track_name:             track_name,
-            end_id:                 end_id,
-            step_interface_builder: Activity::TaskBuilder.method(:Binary), # DISCUSS: this is currently the only option we want to pass on in Path() ?
-            adds:                   [],
-            **options
+            normalizers:        normalizers,
+            sequence:           initial_sequence,
+            normalizer_options: {
+              track_name:             track_name,
+              end_id:                 end_id,
+              step_interface_builder: Activity::TaskBuilder.method(:Binary), # DISCUSS: this is currently the only option we want to pass on in Path() ?
+              adds:                   [], # DISCUSS: needed?
+              **options
+            }
           }
         end
 
@@ -110,7 +111,13 @@ module Trailblazer
         end # State
       end # DSL
 
-      recompile_for_state!(Path::DSL::State, DSL.OptionsForState())
+      options = DSL.OptionsForSequencer()
+      @state.update!(:normalizers)        { options[:normalizers] }        # immutable
+      @state.update!(:normalizer_options) { options[:normalizer_options] } # immutable
+
+      recompile!(options[:sequence])
+
+      # recompile_for_state!(Path::DSL::State, DSL.OptionsForSequencer())
     end # Path
 
     def self.Path(**options)

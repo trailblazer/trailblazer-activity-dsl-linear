@@ -3,6 +3,31 @@ require "test_helper"
 class PathTest < Minitest::Spec
   Implementing = T.def_tasks(:a, :b, :c, :d, :f, :g)
 
+  it "empty Path subclass" do
+    path = Class.new(Activity::Path) do
+    end
+
+    assert_circuit path, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+  end
+
+  it "Path exposes {#step}" do
+    path = Class.new(Activity::Path) do
+      step :a
+    end
+
+    assert_circuit path, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+  end
+
   it "exposes {#call}" do
     activity = Class.new(Activity::Path) do
       step Implementing.method(:a), id: :a

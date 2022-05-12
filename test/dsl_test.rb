@@ -1,15 +1,13 @@
 require "test_helper"
 
 class DslTest < Minitest::Spec
-  def assert_sequence(sequence, *args)
-    assert_process_for Activity::DSL::Linear::Compiler.(sequence), *args
-  end
+
 
   Imp = T.def_tasks(:a, :b, :c, :d, :f, :g)
 
   it "API specification, return values" do
   #@ {#build} returns the initial sequence
-    path, sequence = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState())
+    path, sequence = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForSequencer())
 
     assert_sequence sequence, :success, %{
 #<Start/:default>
