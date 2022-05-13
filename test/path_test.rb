@@ -12,10 +12,13 @@ class PathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
+
+    assert_call path
   end
 
   it "Path exposes {#step}" do
     path = Class.new(Activity::Path) do
+      include Implementing
       step :a
     end
 
@@ -26,41 +29,14 @@ class PathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
-  end
 
-  it "exposes {#call}" do
-    activity = Class.new(Activity::Path) do
-      step Implementing.method(:a), id: :a
-      step Implementing.method(:b)
-    end
-
-    assert_process_for activity.to_h, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: PathTest::Implementing.a>>
-<*#<Method: PathTest::Implementing.a>>
- {Trailblazer::Activity::Right} => <*#<Method: PathTest::Implementing.b>>
-<*#<Method: PathTest::Implementing.b>>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
-
-    # Call without taskWrap!
-    signal, (ctx, _) = activity.([{seq: []}, {}])
-
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:seq=>[:a, :b]}}
+    assert_call path, seq: "[:a]"
   end
 
 
-  it "#initial_sequence" do
-    seq = Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success")
 
-    _(Cct(compile_process(seq))).must_equal %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
-  end
+
+
 
   it "provides defaults" do
     state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState)

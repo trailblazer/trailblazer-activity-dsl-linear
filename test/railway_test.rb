@@ -1,59 +1,56 @@
 require "test_helper"
 
 class RailwayTest < Minitest::Spec
-  it "#initial_sequence" do
-    seq = Trailblazer::Activity::Railway::DSL.initial_sequence(
-      # options for Railway
-      failure_end: Class.new(Activity::End).new(semantic: :ready),
-      # options going to Path.initial_sequence
+  Implementing = T.def_steps(:a, :b, :c, :d, :e, :f, :g)
 
-      initial_sequence: Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"),
-    )
+  it "empty subclass" do
+    path = Class.new(Activity::Railway) do
+    end
 
-    _(Cct(compile_process(seq))).must_equal %{
+    assert_circuit path, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
-#<#<Class:0x>/:ready>
+#<End/:failure>
 }
+
+    assert_call path
   end
 
-  describe "Activity::Railway" do
 
-    it "provides defaults" do
-      implementing = self.implementing
+  it "generic DSL" do
+    activity = Class.new(Activity::Railway) do
+      include Implementing
+      step :a
+      fail :b
+      step :c
+      pass :d
+      fail :e
+      step :f
+    end
 
-      activity = Class.new(Activity::Railway) do
-        step task: implementing.method(:f), id: :f
-        fail task: implementing.method(:a), id: :a
-        step task: implementing.method(:g), id: :g
-        step task: implementing.method(:c), id: :c
-        fail task: implementing.method(:b), id: :b
-        step task: implementing.method(:d), id: :d
-      end
+    process = activity.to_h
 
-      process = activity.to_h
-
-      assert_process_for process, :success, :failure, %{
+    assert_circuit process, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.a>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
-#<Method: #<Module:0x>.a>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.g>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
-#<Method: #<Module:0x>.c>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.d>
-#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Left} => <*b>
+ {Trailblazer::Activity::Right} => <*c>
+<*b>
+ {Trailblazer::Activity::Left} => <*e>
+ {Trailblazer::Activity::Right} => <*e>
+<*c>
+ {Trailblazer::Activity::Left} => <*e>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
+ {Trailblazer::Activity::Left} => <*f>
+ {Trailblazer::Activity::Right} => <*f>
+<*e>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
-#<Method: #<Module:0x>.d>
+<*f>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
@@ -61,24 +58,29 @@ class RailwayTest < Minitest::Spec
 #<End/:failure>
 }
 
-  # right track
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
+#@ stay on right track
+    assert_call activity, seq: "[:a, :c, :d, :f]"
 
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-      _(ctx.inspect).must_equal     %{{:seq=>[:f, :g, :c, :d]}}
+#@ {:a} fails
+    assert_call activity, terminus: :failure, seq: "[:a, :b, :e]", a: false
 
-  # left track
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: Activity::Left}])
+#@ {:b} fails
+    assert_call activity, terminus: :failure, seq: "[:a, :b, :e]", a: false, b: false
 
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      _(ctx.inspect).must_equal     %{{:seq=>[:f, :a, :b], :f=>Trailblazer::Activity::Left}}
+#@ {:c} fails
+    assert_call activity, terminus: :failure, seq: "[:a, :c, :e]", c: false
 
-  # left track
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], g: Activity::Left}])
+#@ {:d} fails
+    assert_call activity, seq: "[:a, :c, :d, :f]", d: false
 
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      _(ctx.inspect).must_equal     %{{:seq=>[:f, :g, :b], :g=>Trailblazer::Activity::Left}}
-    end
+#@ {:e} fails
+    assert_call activity, terminus: :failure, seq: "[:a, :c, :e]", c: false, e: false
+
+#@ {:f} fails
+    assert_call activity, terminus: :failure, seq: "[:a, :c, :d, :f]", f: false
+  end
+
+  describe "Activity::Railway" do
 
     it "allows {Output() => Track/Id}" do
       implementing = self.implementing
