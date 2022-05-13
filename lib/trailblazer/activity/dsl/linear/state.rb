@@ -4,7 +4,7 @@ module Trailblazer
       module Linear
         module Sequencer
           # @return Sequence
-          def self.call(method, argument, options, **kws, &block) # FIXME: WHAT DO WE DO WITH **kws, e.g. {:initial_sequence}
+          def self.call(method, argument, options, **kws, &block)
             update_sequence_for(method, argument, options, **kws, &block)
           end
 
@@ -41,61 +41,6 @@ module Trailblazer
         # * All public DSL methods on Sequencer return the updated sequence.
         class State # TODO: rename to Sequencer::Builder
 
-
-
-
-
-          def self.build(normalizers:, sequence:, fields: {}, normalizer_options:)
-            tuples = {
-              :sequence =>               [sequence, {}],
-              :normalizer =>         [normalizers, {}],  # copy on inherit
-              :normalizer_options => [normalizer_options, {}], # copy on inherit
-            }
-
-            state = Trailblazer::Declarative.State(tuples)
-
-            return new(state), sequence
-          end
-
-            # remembers how to call normalizers (e.g. track_color), TaskBuilder
-            # remembers sequence
-          # @private
-          def initialize(state)
-            @state = state
-          end
-
-          # Called to "inherit" a state.
-          def copy # DISCUSS: this isn't DSL logic
-            state = @state.copy
-
-            self.class.new(state)
-          end
-
-          def to_h # DISCUSS: this isn't DSL logic
-            {
-              sequence:           @state.get(:sequence),
-              normalizers:        @state.get(:normalizer),
-              normalizer_options: @state.get(:normalizer_options),
-            } # FIXME: maybe {Declarative::State#to_h} could automatically provide this functionality?
-          end
-
-          # @private
-          def update_sequence!(&block)
-            @state.update!(:sequence) do |sequence|
-              yield(**to_h) # FIXME: define interface for block.
-            end
-          end
-
-          # Called from {#step} and friends in the {Strategy} subclass.
-          # Used to be named {Strategy.task_for!}.
-          # Top-level entry point for "adding a step".
-          def update_sequence_for!(type, *args, &block)
-            # {#update_sequence!} is the only way to mutate the state instance.
-            update_sequence! do |sequence:, normalizers:, normalizer_options:, **|
-              # Compute the sequence rows.
-              Sequencer.update_sequence_for(type, *args, normalizers: normalizers, normalizer_options: normalizer_options, sequence: sequence, &block)
-            end
-          end
 
           # Compiles and maintains all final normalizers for a specific DSL.
           class Normalizer

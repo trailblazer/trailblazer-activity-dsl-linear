@@ -87,28 +87,13 @@ module Trailblazer
           }
         end
 
-        # Implements the actual API ({#step} and friends).
-        # This can be used later to create faster DSLs where the activity is compiled only once, a la
-        #   Path() do  ... end
-        class State < Linear::State
-          def step(*args, &block)
-            update_sequence_for!(:step, *args, &block) # mutate @state
-          end
-
-          def terminus(*args)
-            update_sequence_for!(:terminus, *args)
-          end
-
-          include Linear::Helper # Subprocess(), Output(), ...
-          include Linear::Helper::Constants # FIXME: test me! # {Contract::Build()} and friends.
-
+# FIXME
           def Path(**options, &block)
             options = options.merge(block: block) if block_given?
 
             # DISCUSS: we're copying normalizer_options here, and not later in the normalizer!
             Linear::PathBranch.new(@state.get(:normalizer_options).merge(options)) # picked up by normalizer.
           end
-        end # State
       end # DSL
 
       options = DSL.OptionsForSequencer()
@@ -116,8 +101,6 @@ module Trailblazer
       @state.update!(:normalizer_options) { options[:normalizer_options] } # immutable
 
       recompile!(options[:sequence])
-
-      # recompile_for_state!(Path::DSL::State, DSL.OptionsForSequencer())
     end # Path
 
     def self.Path(**options)

@@ -1,5 +1,4 @@
 module Trailblazer
-  # Implementation module that can be passed to `Activity[]`.
   class Activity
     class Railway < DSL::Linear::Strategy
 
@@ -92,19 +91,9 @@ module Trailblazer
           {failure: [Linear::Search.method(:Forward), :failure]}
         end
 
-        def initial_sequence(failure_end:, initial_sequence:, **path_options)
-          _seq = Path::DSL.append_terminus(initial_sequence, failure_end, magnetic_to: :failure, id: "End.failure", normalizers: Normalizers)
+        def initial_sequence(failure_end:, sequence:, **path_options)
+          _seq = Path::DSL.append_terminus(sequence, failure_end, magnetic_to: :failure, id: "End.failure", normalizers: Normalizers)
         end
-
-        class State < Path::DSL::State
-          def fail(*args) # TODO: block
-            update_sequence_for!(:fail, *args) # mutate @state
-          end
-
-          def pass(*args)
-            update_sequence_for!(:pass, *args) # mutate @state
-          end
-        end # State
 
         Normalizers = Linear::State::Normalizer.new(
           step:  Railway::DSL.Normalizer(),
@@ -113,30 +102,34 @@ module Trailblazer
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
-        def self.OptionsForState(normalizers: Normalizers, failure_end: Activity::End.new(semantic: :failure), **options)
-          options = Path::DSL.OptionsForState(**options).
+        def self.OptionsForSequencer(normalizers: Normalizers, failure_end: Activity::End.new(semantic: :failure), **options)
+          options = Path::DSL.OptionsForSequencer(**options).
             merge(normalizers: normalizers, failure_end: failure_end)
 
           initial_sequence = Railway::DSL.initial_sequence(failure_end: failure_end, **options)
 
           {
             **options,
-            initial_sequence: initial_sequence,
+            sequence: initial_sequence,
           }
         end
       end # DSL
 
       class << self
-        private def fail(*args, &block)
+        def fail(*args, &block)
           recompile_activity_for(:fail, *args, &block)
         end
 
-        private def pass(*args, &block)
+        def pass(*args, &block)
           recompile_activity_for(:pass, *args, &block)
         end
       end
 
-      recompile_for_state!(Railway::DSL::State, DSL.OptionsForState())
+      options = DSL.OptionsForSequencer()
+      @state.update!(:normalizers)        { options[:normalizers] }        # immutable
+      @state.update!(:normalizer_options) { options[:normalizer_options] } # immutable
+
+      recompile!(options[:sequence])
     end # Railway
 
     def self.Railway(options)
