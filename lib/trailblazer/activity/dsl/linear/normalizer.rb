@@ -31,10 +31,12 @@ module Trailblazer
           def Normalizer#(pipeline)
             pipeline = TaskWrap::Pipeline.new(
               {
-                "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)),      # first
-                "activity.normalize_for_macro"            => Normalizer.Task(method(:merge_user_options)),
-                "activity.normalize_normalizer_options"   => Normalizer.Task(method(:merge_normalizer_options)),
+                "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)), # Makes sure {:options} is always a hash.
+                "activity.merge_library_options"          => Normalizer.Task(method(:merge_library_options)),    # Merge "macro"/user options over library options.
+                "activity.normalize_for_macro"            => Normalizer.Task(method(:merge_user_options)),       # Merge user_options over "macro" options.
+                "activity.normalize_normalizer_options"   => Normalizer.Task(method(:merge_normalizer_options)), # Merge user_options over normalizer_options.
                 "activity.normalize_non_symbol_options"   => Normalizer.Task(method(:normalize_non_symbol_options)),
+                "activity.path_helper.forward_block"      => Normalizer.Task(Helper::Path::Normalizer.method(:forward_block_for_path_branch)),     # forward the "global" block
                 "activity.normalize_context"              => method(:normalize_context),
                 "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
                 "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)),
@@ -44,7 +46,6 @@ module Trailblazer
                 "activity.sequence_insert"                => Normalizer.Task(method(:normalize_sequence_insert)),
                 "activity.normalize_duplications"         => Normalizer.Task(method(:normalize_duplications)),
 
-                "activity.path_helper.forward_block"       => Normalizer.Task(Helper::Path::Normalizer.method(:forward_block_for_path_branch)),     # forward the "global" block
                 "activity.path_helper.path_to_track"       => Normalizer.Task(Helper::Path::Normalizer.method(:convert_paths_to_tracks)),
                 "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
                 "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
@@ -107,6 +108,11 @@ module Trailblazer
           def normalize_override(ctx, id:, override: false, **)
             return unless override
             ctx[:replace] = (id || raise)
+          end
+
+          # {:library_options} such as :sequence, :dsl_track, etc.
+          def merge_library_options(ctx, options:, library_options:, **)
+            ctx[:options] = library_options.merge(options)
           end
 
           # make ctx[:options] the actual ctx
@@ -237,7 +243,7 @@ module Trailblazer
 
           # Returns ADDS for the new terminus.
           def add_terminus(end_event, id:, sequence:, normalizers:)
-            step_options = Linear::State.invoke_normalizer_for(:terminus, end_event, {id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
+            step_options = Linear::Sequencer.invoke_normalizer_for(:terminus, end_event, {id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
 
             step_options[:adds]
           end

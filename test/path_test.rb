@@ -1,7 +1,7 @@
 require "test_helper"
 
 class PathTest < Minitest::Spec
-  Implementing = T.def_tasks(:a, :b, :c, :d, :f, :g)
+  Implementing = T.def_steps(:a, :b, :c, :d, :f, :g)
 
   it "empty Path subclass" do
     path = Class.new(Activity::Path) do
@@ -188,96 +188,6 @@ class PathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
-  end
-
-  describe "Path()" do
-    it "accepts {:end_task} and {:end_id}" do # TODO: don't use Railway here.
-      path_end = Activity::End.new(semantic: :roundtrip)
-
-      implementing = self.implementing
-      state, _ = Activity::Railway::DSL::State.build(**Activity::Railway::DSL.OptionsForState())
-      state.step(task: implementing.method(:a), id: :a, state.Output(:failure) => state.Path(end_task: path_end, end_id: "End.roundtrip") do
-        step task: implementing.method(:f), id: :f
-        step task: implementing.method(:g), id: :g
-      end
-      )
-      state.step task: implementing.method(:b), id: :b, state.Output(:success) => state.Id(:a)
-      state.step task: implementing.method(:c), id: :c, state.Output(:success) => state.End(:new)
-      seq = state.fail task: implementing.method(:d), id: :d#, Linear.Output(:success) => Linear.End(:new)
-
-
-      process = assert_process seq, :success, :new, :roundtrip, :failure, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
-#<Method: #<Module:0x>.a>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
-#<Method: #<Module:0x>.g>
- {Trailblazer::Activity::Right} => #<End/:roundtrip>
-#<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.d>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
-#<Method: #<Module:0x>.c>
- {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.d>
- {Trailblazer::Activity::Right} => #<End/:new>
-#<Method: #<Module:0x>.d>
- {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => #<End/:failure>
-#<End/:success>
-
-#<End/:new>
-
-#<End/:roundtrip>
-
-#<End/:failure>
-}
-
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: Activity::Left}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:roundtrip>}
-      _(ctx.inspect).must_equal     %{{:seq=>[:a, :f, :g], :a=>Trailblazer::Activity::Left}}
-    end
-
-    it "allows using a different task builder, etc" do
-      implementing = Module.new do
-        extend Activity::Testing.def_steps(:a, :f, :b) # circuit interface.
-      end
-
-      path_end = Activity::End.new(semantic: :roundtrip)
-
-      shared_options = {step_interface_builder: Fixtures.method(:circuit_interface_builder)}
-      state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState(**shared_options))
-
-      implementing = self.implementing
-
-      state.step(implementing.method(:a), id: :a, state.Output(:success) => state.Path(end_task: path_end, end_id: "End.roundtrip", **shared_options) do
-        step implementing.method(:f), id: :f
-      end
-      )
-      seq = state.step implementing.method(:b), id: :b, state.Output(:success) => state.Id(:a)
-
-
-      process = assert_process seq, :success, :roundtrip, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.f>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.f>>
- {Trailblazer::Activity::Right} => #<End/:roundtrip>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
-#<End/:success>
-
-#<End/:roundtrip>
-}
-
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: false}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:roundtrip>}
-      _(ctx.inspect).must_equal     %{{:seq=>[:a, :f], :a=>false}}
-    end
   end
 
 end

@@ -70,6 +70,16 @@ module Trailblazer
               @state.update!(:activity) { |*| activity }
             end
 
+            # Used only once per strategy class body.
+            def compile_strategy!(strategy, **options)
+              options = strategy.OptionsForSequencer(**options)
+
+              @state.update!(:normalizers)        { options[:normalizers] }        # immutable
+              @state.update!(:normalizer_options) { options[:normalizer_options] } # immutable
+
+              recompile!(options[:sequence])
+            end
+
             def merge!(activity)
               old_seq = @state.to_h[:sequence]
               new_seq = activity.to_h[:sequence]
@@ -138,11 +148,7 @@ module Trailblazer
           initialize!(state) # build an empty State instance that can be copied and recompiled.
           # override :sequencer, :sequence, :activity
           # This is done in every subclass.
-
-
-          # recompile_for_state!(Linear::State, normalizers: {}, sequence: DSL.start_sequence, normalizer_options: {})
           recompile!(DSL.start_sequence)
-
         end # Strategy
       end
     end

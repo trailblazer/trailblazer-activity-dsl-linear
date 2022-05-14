@@ -16,15 +16,19 @@ module Trailblazer
               #
               # Replace a block-expecting {PathBranch} instance with another one that's holding
               # the global {:block} from {#step}.
-              def forward_block_for_path_branch(ctx, non_symbol_options:, block: false, **)
+              def forward_block_for_path_branch(ctx, options:, normalizer_options:, library_options:, **)
+                block              = options[:block]
+                non_symbol_options = options[:non_symbol_options]
+                normalizers        = library_options[:normalizers]
+
                 return unless block
 
                 output, path_branch =
                   non_symbol_options.find { |output, cfg| cfg.kind_of?(Linear::PathBranch) }
 
-                path_branch_with_block = Linear::PathBranch.new(path_branch.options.merge(block: block)) # DISCUSS: lots of internal knowledge here.
+                path_branch_with_block = Linear::PathBranch.new(**normalizer_options, **path_branch.options.merge(block: block)) # DISCUSS: lots of internal knowledge here.
 
-                ctx[:non_symbol_options] = non_symbol_options.merge(output => path_branch_with_block)
+                ctx[:options] = ctx[:options].merge(non_symbol_options: non_symbol_options.merge(output => path_branch_with_block))
               end
 
               # Convert all occurrences of Path() to a corresponding {Track}.
@@ -45,10 +49,13 @@ module Trailblazer
             def convert_path_to_track(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, **options)
               # DISCUSS: should we inherit from self here and erase sequence?
               #   if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.
-              path_state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState(**options, track_name: track_color))
-              path_state.instance_exec(&block)
 
-              seq = path_state.to_h[:sequence]
+              # DISCUSS: use Path::Sequencer::Builder here instead?
+              path = Activity::Path(**options, track_name: track_color)
+              # path_state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState(**options, track_name: track_color))
+              path.instance_exec(&block)
+
+              seq = path.to_h[:sequence]
               # Strip default ends `Start.default` and `End.success` (if present).
               seq = seq[1..-1].reject{ |row| row[3][:stop_event] && row.id == 'End.success' }
 

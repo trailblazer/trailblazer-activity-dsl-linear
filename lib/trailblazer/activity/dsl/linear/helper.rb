@@ -49,8 +49,10 @@ module Trailblazer
             Id.new(id).freeze
           end
 
-          def Path(**kws, &block)
-            @state.get(:sequencer).Path(**kws, &block) # DISCUSS: do we like this?
+          def Path(**options, &block)
+            options = options.merge(block: block) if block_given?
+
+            Linear::PathBranch.new(options) # picked up by normalizer.
           end
 
           # Computes the {:outputs} options for {activity}.
@@ -71,7 +73,7 @@ module Trailblazer
             DataVariableName.new
           end
 
-          module Patch
+          module Patch # TODO: move to options?
             module_function
 
             def customize(activity, options:)

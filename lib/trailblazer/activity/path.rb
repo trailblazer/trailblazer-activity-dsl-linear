@@ -86,28 +86,14 @@ module Trailblazer
             }
           }
         end
-
-# FIXME
-          def Path(**options, &block)
-            options = options.merge(block: block) if block_given?
-
-            # DISCUSS: we're copying normalizer_options here, and not later in the normalizer!
-            Linear::PathBranch.new(@state.get(:normalizer_options).merge(options)) # picked up by normalizer.
-          end
       end # DSL
 
-      options = DSL.OptionsForSequencer()
-      @state.update!(:normalizers)        { options[:normalizers] }        # immutable
-      @state.update!(:normalizer_options) { options[:normalizer_options] } # immutable
-
-      recompile!(options[:sequence])
+      compile_strategy!(DSL)
     end # Path
 
     def self.Path(**options)
       Class.new(Path) do
-        recompile_for_state!(Path::DSL::State, **Path::DSL.OptionsForState(**options))
-        # state, _ = .build(**Path::DSL.OptionsForState(**options))
-        # initialize!(state)
+        compile_strategy!(Path::DSL, **options)
       end
     end
   end

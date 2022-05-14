@@ -125,11 +125,7 @@ module Trailblazer
         end
       end
 
-      options = DSL.OptionsForSequencer()
-      @state.update!(:normalizers)        { options[:normalizers] }        # immutable
-      @state.update!(:normalizer_options) { options[:normalizer_options] } # immutable
-
-      recompile!(options[:sequence])
+      compile_strategy!(DSL)
     end # Railway
 
     def self.Railway(options)

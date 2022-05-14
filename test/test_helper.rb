@@ -12,6 +12,8 @@ require "trailblazer/activity/testing"
 T = Trailblazer::Activity::Testing
 
 Minitest::Spec.class_eval do
+  Implementing = T.def_steps(:a, :b, :c, :d, :e, :f, :g)
+
   # def assert_equal(asserted, expected)
   #   super(expected, asserted)
   # end

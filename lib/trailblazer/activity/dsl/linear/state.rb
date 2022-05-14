@@ -18,14 +18,24 @@ module Trailblazer
           end
 
           # @private
+          # DISCUSS: used in {Normalizer#add_terminus}, too.
           def self.invoke_normalizer_for(type, task, options, normalizers:, normalizer_options:, sequence:, &block)
-            options = options.merge(
+            # These options represent direct configuration of the very method call that causes the normalizer to be run.
+            library_options = {
               dsl_track:   type,
               block:       block,
-              normalizers: normalizers # DISCUSS: do we need you?
-            )
 
-            _step_options = normalizers.(type, normalizer_options: normalizer_options, options: task, user_options: options.merge(sequence: sequence))
+              # DISCUSS: for some reason I am not entirely happy with those variables being here. Maybe this will change.
+              normalizers: normalizers,
+              sequence:    sequence,
+            }
+
+            _step_options = normalizers.(type,
+              normalizer_options: normalizer_options, # class-level Strategy configuration, such as :step_interface_builder
+              options:            task,               # macro-options
+              user_options:       options,            # user-specified options from the DSL method
+              library_options:    library_options     # see above, "runtime" options (from compile-time, haha).
+            )
           end
         end
 
