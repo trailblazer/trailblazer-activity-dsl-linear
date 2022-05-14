@@ -11,11 +11,8 @@ module Trailblazer
             # Normalizer steps to handle Path() macro.
             module Normalizer
               module_function
-              # Forward the block to the DSL's {PathBranch} instance.
-              #   step ..., Output(:semantic) => Path() do .. end
-              #
               # Replace a block-expecting {PathBranch} instance with another one that's holding
-              # the global {:block} from {#step}.
+              # the global {:block} from {#step ... do end}.
               def forward_block_for_path_branch(ctx, options:, normalizer_options:, library_options:, **)
                 block              = options[:block]
                 non_symbol_options = options[:non_symbol_options]
@@ -27,7 +24,7 @@ module Trailblazer
                   non_symbol_options.find { |output, cfg| cfg.kind_of?(Linear::PathBranch) }
 
                 path_branch_with_block = Linear::PathBranch.new(
-                  normalizers: normalizers,
+                  # normalizers: normalizers,
                   **normalizer_options,
                   **path_branch.options.merge(block: block)
                 )

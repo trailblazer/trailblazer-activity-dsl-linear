@@ -209,6 +209,7 @@ class PathHelperTest < Minitest::Spec
   end
 
   it "allows using different normalizers" do
+    skip "we need a mechanism for generically extending normalizers"
   #@ We inject an altered normalizer that prepends every ID with "My ".
     class ComputeId
       def self.call(ctx, id:, **)
