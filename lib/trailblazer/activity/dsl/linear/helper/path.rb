@@ -26,7 +26,11 @@ module Trailblazer
                 output, path_branch =
                   non_symbol_options.find { |output, cfg| cfg.kind_of?(Linear::PathBranch) }
 
-                path_branch_with_block = Linear::PathBranch.new(**normalizer_options, **path_branch.options.merge(block: block)) # DISCUSS: lots of internal knowledge here.
+                path_branch_with_block = Linear::PathBranch.new(
+                  normalizers: normalizers,
+                  **normalizer_options,
+                  **path_branch.options.merge(block: block)
+                )
 
                 ctx[:options] = ctx[:options].merge(non_symbol_options: non_symbol_options.merge(output => path_branch_with_block))
               end

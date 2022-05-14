@@ -178,14 +178,12 @@ class PathHelperTest < Minitest::Spec
   end
 
 
-  it "allows using a different task builder, etc, by providing {OptionsForSequencer}" do
+  it "allows using a different task builder, etc" do
     implementing = Module.new { extend Activity::Testing.def_steps(:a, :f, :b) } # circuit interface.
 
     shared_options = {
       step_interface_builder: Fixtures.method(:circuit_interface_builder)
     }
-
-    # raise Activity::Path::DSL.OptionsForSequencer(**shared_options)[:normalizer_options].inspect
 
     path = Activity.Path(**shared_options) # {shared_options} gets merged into {:normalizer_options} automatically.
     path.step implementing.method(:a), id: :a, path.Output(:success) => path.Path(end_task: Activity::End.new(semantic: :roundtrip), end_id: "End.roundtrip") do
@@ -208,5 +206,51 @@ class PathHelperTest < Minitest::Spec
 }
 
     assert_call path, a: false, :seq=>"[:a, :f]", terminus: :roundtrip
+  end
+
+  it "allows using different normalizers" do
+  #@ We inject an altered normalizer that prepends every ID with "My ".
+    class ComputeId
+      def self.call(ctx, id:, **)
+        ctx[:id] = "My #{id}"
+      end
+    end
+
+    my_normalizer = Activity::TaskWrap::Pipeline.prepend(
+      Activity::Path::DSL.Normalizer(),
+      "activity.normalize_override",
+      {
+        "my.compute_id"  => Linear::Normalizer.Task(ComputeId),
+      }
+    )
+
+    shared_options = {
+      # step_interface_builder: Fixtures.method(:circuit_interface_builder)
+      normalizers: Linear::State::Normalizer.new(step: my_normalizer)
+    }
+
+    path = Activity.Path(**shared_options)
+    path.include Implementing
+    path.step :a, path.Output(:success) => path.Path(end_task: Activity::End.new(semantic: :roundtrip), end_id: "End.roundtrip") do
+      step :f
+    end
+
+    graph = Activity::Introspect.Graph(path)
+    assert_equal graph.find("My a").task.inspect, %{#<Trailblazer::Activity::TaskBuilder::Task user_proc=a>}
+    assert_equal graph.find("My f").task.inspect, %{#<Trailblazer::Activity::TaskBuilder::Task user_proc=f>}
+
+    assert_circuit path, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Right} => #<End/:roundtrip>
+#<End/:success>
+
+#<End/:roundtrip>
+}
+
+    assert_call path, :seq=>"[:a, :f]", terminus: :roundtrip
   end
 end
