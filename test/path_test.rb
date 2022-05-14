@@ -16,7 +16,7 @@ class PathTest < Minitest::Spec
     assert_call path
   end
 
-  it "Path exposes {#step}" do
+  it "Path exposes {#step} and {#call}" do
     path = Class.new(Activity::Path) do
       include Implementing
       step :a
@@ -34,160 +34,134 @@ class PathTest < Minitest::Spec
   end
 
 
-
-
-
-
-  it "provides defaults" do
-    state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState)
-    seq = state.step task: implementing.method(:f), id: :f
-    seq = state.step task: implementing.method(:g), id: :g
-
-    assert_process seq, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
-#<Method: #<Module:0x>.g>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
-  end
-
-  it "accepts {:track_name}" do
-    state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState(track_name: :green))
-    seq = state.step task: implementing.method(:f), id: :f
-    seq = state.step task: implementing.method(:g), id: :g
-
-    _(seq[1][0]).must_equal :green
-
-    assert_process seq, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
-#<Method: #<Module:0x>.g>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
-  end
-
-  it "accepts {:end_task}" do
-    state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner"))
-    seq = state.step task: implementing.method(:f), id: :f
-    seq = state.step task: implementing.method(:g), id: :g
-
-    _(seq.last[3][:id]).must_equal "End.winner"
-
-    assert_process seq, :winning, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
-#<Method: #<Module:0x>.g>
- {Trailblazer::Activity::Right} => #<End/:winning>
-#<End/:winning>
-}
-  end
-
-  it "accepts {Output() => Id()}" do
-    state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState())
-    seq = state.step task: implementing.method(:f), id: :f
-    seq = state.step task: implementing.method(:g), id: :g, state.Output(:success) => state.Id(:f)
-    seq = state.step task: implementing.method(:a), id: :a
-
-    assert_process seq, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
-#<Method: #<Module:0x>.g>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.a>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
-  end
-
   it "accepts {:adds}" do
-    state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState())
-    seq = state.step task: implementing.method(:f), id: :f, adds: [
-      {
-        row:    [:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}],
-        insert: [Linear::Insert.method(:Prepend), :f]
-      }
-    ]
+    path = Activity::Path() do
+      step :f,
+        adds: [
+          {
+            row:    [:success, Implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}],
+            insert: [Activity::Adds::Insert.method(:Prepend), :f]
+          }
+        ]
+    end
 
-    assert_process seq, :success, %{
+    assert_circuit path, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
-#<Method: #<Module:0x>.g>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Right} => #<Method: PathTest::Implementing.g>
+#<Method: PathTest::Implementing.g>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
   end
 
   it "accepts {:before}" do
-    state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState())
-    seq = state.step task: implementing.method(:f), id: :f
-    seq = state.step task: implementing.method(:a), id: :a, before: :f
+    path = Activity::Path() do
+      step :f
+      step :a, before: :f
+    end
 
-    assert_process seq, :success, %{
+    assert_circuit path, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
-#<Method: #<Module:0x>.a>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
   end
 
   it "accepts {:after}" do
-    state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState())
-    seq = state.step task: implementing.method(:f), id: :f
-    seq = state.step task: implementing.method(:b), id: :b
-    seq = state.step task: implementing.method(:a), id: :a, after: :f
+    path = Activity::Path() do
+      step :f
+      step :b
+      step :a, after: :f
+    end
 
-    assert_process seq, :success, %{
+    assert_circuit path, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
-#<Method: #<Module:0x>.f>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
-#<Method: #<Module:0x>.a>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
   end
 
   it "accepts {:replace}" do
-    state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState())
-    seq = state.step task: implementing.method(:f), id: :f
-    seq = state.step task: implementing.method(:a), id: :a, replace: :f
+    path = Activity::Path() do
+      step :f
+      step :a, replace: :f, id: :a
+    end
 
-    assert_process seq, :success, %{
+    assert_circuit path, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
-#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
   end
 
   it "accepts {:delete}" do
-    state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState())
-    seq = state.step task: implementing.method(:f), id: :f
-    seq = state.step task: implementing.method(:a), id: :a, delete: :f
+    path = Activity::Path() do
+      step :f
+      step nil, delete: :f#, id: :a
+    end
 
-    assert_process seq, :success, %{
+    assert_circuit path, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
   end
 
+  describe "Activity.Path() builder" do
+    it "accepts {:track_name}" do
+      path = Activity::Path(track_name: :green) do
+        include Implementing
+        step :f
+        step :g
+
+        step :a, magnetic_to: :success # won't be connected
+        step :b, magnetic_to: :green
+      end
+
+      assert_circuit path, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Right} => <*g>
+<*g>
+ {Trailblazer::Activity::Right} => <*b>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+    end
+
+    it "accepts {:end_task}" do
+      path = Activity::Path(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner") do
+        step :f
+        step :g
+      end
+
+      assert_circuit path, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Right} => <*g>
+<*g>
+ {Trailblazer::Activity::Right} => #<End/:winning>
+#<End/:winning>
+}
+    end
+  end
 end

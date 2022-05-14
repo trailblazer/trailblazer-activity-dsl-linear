@@ -91,9 +91,11 @@ module Trailblazer
       compile_strategy!(DSL)
     end # Path
 
-    def self.Path(**options)
+    def self.Path(**options, &block)
       Class.new(Path) do
         compile_strategy!(Path::DSL, **options)
+
+        instance_exec(&block)
       end
     end
   end
