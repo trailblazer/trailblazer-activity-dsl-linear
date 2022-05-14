@@ -95,7 +95,7 @@ module Trailblazer
       Class.new(Path) do
         compile_strategy!(Path::DSL, **options)
 
-        instance_exec(&block)
+        instance_exec(&block) if block_given?
       end
     end
   end

@@ -1,7 +1,7 @@
 require "test_helper"
 
 class SequencerTest < Minitest::Spec
-  Imp = T.def_tasks(:a, :b, :c, :d, :f, :g)
+  Imp = T.def_steps(:a, :b, :c, :d, :f, :g)
 
   let(:helper) { Activity::Railway }
 
@@ -48,8 +48,8 @@ class SequencerTest < Minitest::Spec
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: SequencerTest::Imp.a>>
 #<Fixtures::CircuitInterface:0x @step=#<Method: SequencerTest::Imp.a>>
- {Trailblazer::Activity::Right} => <*#<Method: SequencerTest::Imp.c>>
-<*# circuit interface <Method: SequencerTest::Imp.c>>
+ {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: SequencerTest::Imp.c>>
+#<Fixtures::CircuitInterface:0x @step=#<Method: SequencerTest::Imp.c>>
  {Trailblazer::Activity::Right} => #<End/:path>
 #<End/:success>
 
