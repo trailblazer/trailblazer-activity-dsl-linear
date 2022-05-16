@@ -112,9 +112,7 @@ module Trailblazer
           ctx
         end
 
-        def initial_sequence(initial_sequence:, fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **)
-          sequence = initial_sequence
-
+        def initial_sequence(sequence:, fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **)
           sequence = Path::DSL.append_terminus(sequence, fail_fast_end, magnetic_to: :fail_fast, id: "End.fail_fast", normalizers: Normalizers)
           sequence = Path::DSL.append_terminus(sequence, pass_fast_end, magnetic_to: :pass_fast, id: "End.pass_fast", normalizers: Normalizers)
         end
@@ -129,15 +127,15 @@ module Trailblazer
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
-        def self.OptionsForState(normalizers: Normalizers, **options)
-          options = Railway::DSL.OptionsForState(**options).
+        def self.OptionsForSequencer(normalizers: Normalizers, **options)
+          options = Railway::DSL.OptionsForSequencer(**options).
               merge(normalizers: normalizers)
 
           initial_sequence = FastTrack::DSL.initial_sequence(**options)
 
           {
             **options,
-            initial_sequence: initial_sequence,
+            sequence: initial_sequence,
           }
         end
       end # DSL
@@ -152,7 +150,7 @@ module Trailblazer
         end
       end
 
-      initialize!(Railway::DSL::State.build(**DSL.OptionsForState()))
+      compile_strategy!(DSL)
     end # FastTrack
   end
 end

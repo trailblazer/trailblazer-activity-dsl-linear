@@ -128,9 +128,11 @@ module Trailblazer
       compile_strategy!(DSL)
     end # Railway
 
-    def self.Railway(options)
+    def self.Railway(options, &block)
       Class.new(Railway) do
-        initialize!(Railway::DSL::State.build(**Railway::DSL.OptionsForState(**options)))
+        compile_strategy!(Railway::DSL, **options)
+
+        instance_exec(&block) if block_given?
       end
     end
   end
