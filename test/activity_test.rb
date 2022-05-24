@@ -531,7 +531,6 @@ class ActivityTest < Minitest::Spec
       end
     end
 
-    _(exc.step_id).must_equal :e
     _(exc.message).must_equal %{#{Song}:
 \e[31m:e is not a valid step ID. Did you mean any of these ?\e[0m
 \e[32m"Start.default"\n"End.success"\n"End.failure"\e[0m}

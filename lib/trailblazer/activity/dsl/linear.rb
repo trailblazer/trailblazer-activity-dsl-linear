@@ -41,8 +41,6 @@ class Trailblazer::Activity
         end
 
         class IndexError < IndexError
-          attr_reader :step_id
-
           def initialize(sequence, step_id)
             @step_id  = step_id
             valid_ids = sequence.collect{ |row| row[3][:id].inspect }
