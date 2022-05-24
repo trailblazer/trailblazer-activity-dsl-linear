@@ -43,10 +43,10 @@ module Trailblazer
             # @return Sequence
             private def apply_step_on_sequencer(type, arg, options={}, &block)
               return Sequencer.(type, arg, options,
-
                 sequence:           @state.get(:sequence),
-                normalizer_options: @state.get(:normalizer_options),
                 normalizers:        @state.get(:normalizers),
+
+                normalizer_options: @state.get(:normalizer_options),
 
                  &block
               )
@@ -74,10 +74,14 @@ module Trailblazer
             def compile_strategy!(strategy, **options)
               options = strategy.OptionsForSequencer(**options)
 
-              @state.update!(:normalizers)        { options[:normalizers] }        # immutable
-              @state.update!(:normalizer_options) { options[:normalizer_options] } # immutable
+              compile_strategy_for!(**options)
+            end
 
-              recompile!(options[:sequence])
+            def compile_strategy_for!(sequence:, normalizers:, **normalizer_options)
+              @state.update!(:normalizers)        { normalizers }        # immutable
+              @state.update!(:normalizer_options) { normalizer_options } # immutable
+
+              recompile!(sequence)
             end
 
             def merge!(activity)

@@ -1,8 +1,10 @@
 module Trailblazer
   class Activity
-    def self.FastTrack(options)
+    def self.FastTrack(**options, &block)
       Class.new(FastTrack) do
-        initialize!(Railway::DSL::State.build(**FastTrack::DSL.OptionsForState(**options)))
+        compile_strategy!(FastTrack::DSL, **options)
+
+        instance_exec(&block) if block_given?
       end
     end
 
@@ -117,9 +119,7 @@ module Trailblazer
           sequence = Path::DSL.append_terminus(sequence, pass_fast_end, magnetic_to: :pass_fast, id: "End.pass_fast", normalizers: Normalizers)
         end
 
-        # This is slow and should be done only once at compile-time,
-        # DISCUSS: maybe make this a function?
-        # These are the normalizers for an {Activity}, to be injected into a State.
+        # Normalizer pipelines taking care of processing your DSL options.
         Normalizers = Linear::State::Normalizer.new(
           step: FastTrack::DSL.Normalizer(),
           fail: FastTrack::DSL.NormalizerForFail(),
@@ -128,10 +128,11 @@ module Trailblazer
         )
 
         def self.OptionsForSequencer(normalizers: Normalizers, **options)
+
           options = Railway::DSL.OptionsForSequencer(**options).
               merge(normalizers: normalizers)
 
-          initial_sequence = FastTrack::DSL.initial_sequence(**options)
+          initial_sequence = DSL.initial_sequence(**options)
 
           {
             **options,

@@ -3,8 +3,8 @@ require "test_helper"
 class FastTrackTest < Minitest::Spec
   it "#initial_sequence" do
       seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence(
-        initial_sequence: Trailblazer::Activity::Railway::DSL.initial_sequence(
-          initial_sequence: Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"),
+        sequence: Trailblazer::Activity::Railway::DSL.initial_sequence(
+          sequence: Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"),
           failure_end: Activity::End.new(semantic: :failure)
         )
       )
@@ -29,19 +29,19 @@ class FastTrackTest < Minitest::Spec
       MyPassFast = Class.new(Activity::End)
       MyFailFast = Class.new(Activity::End)
 
-      activity = Class.new(Activity::FastTrack(
+      activity = Activity::FastTrack(
           end_task: MySuccess.new(semantic: :my_success),
           failure_end: MyFailure.new(semantic: :my_failure),
           fail_fast_end: MyFailFast.new(semantic: :fail_fast),
           pass_fast_end: MyPassFast.new(semantic: :pass_fast),
-        )) do
+        ) do
 
         step task: T.def_task(:a)
       end
 
       _(activity.to_h[:outputs].inspect).must_equal %{[#<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MySuccess semantic=:my_success>, semantic=:my_success>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyPassFast semantic=:pass_fast>, semantic=:pass_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailFast semantic=:fail_fast>, semantic=:fail_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailure semantic=:my_failure>, semantic=:my_failure>]}
 
-      assert_circuit activity.to_h, %{
+      assert_circuit activity, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
 #<Method: #<Module:0x>.a>

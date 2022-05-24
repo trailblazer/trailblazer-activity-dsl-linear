@@ -57,7 +57,7 @@ module Trailblazer
         # DISCUSS: following methods are not part of Normalizer
 
         def append_terminus(sequence, task, normalizers:, **options)
-          _sequence = Linear::Sequencer.update_sequence_for(:terminus, task, options, normalizers: normalizers, normalizer_options: {}, sequence: sequence)
+          _sequence = Linear::Sequencer.update_sequence_for(:terminus, task, options, normalizers: normalizers, sequence: sequence, normalizer_options: {})
         end
 
         # @private
@@ -77,13 +77,13 @@ module Trailblazer
           {
             normalizers:        normalizers,
             sequence:           initial_sequence,
-            normalizer_options: {
+            #normalizer_options: {
               track_name:             track_name,
               end_id:                 end_id,
               step_interface_builder: Activity::TaskBuilder.method(:Binary), # DISCUSS: this is currently the only option we want to pass on in Path() ?
               adds:                   [], # DISCUSS: needed?
               **options
-            }
+            # }
           }
         end
       end # DSL
