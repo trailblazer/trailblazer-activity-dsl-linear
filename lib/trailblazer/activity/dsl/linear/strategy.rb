@@ -51,7 +51,7 @@ module Trailblazer
                  &block
               )
 
-            rescue Sequence::IndexError
+            rescue Activity::Adds::IndexError
               # re-raise this exception with activity class prepended
               # to the message this time.
               raise $!, "#{self}:#{$!.message}"

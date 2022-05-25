@@ -527,15 +527,14 @@ class ActivityTest < Minitest::Spec
 
 # Sequence insert
   it "throws {Sequence::IndexError} exception when {:after} references non-existant {:id}" do
-    exc = assert_raises Activity::DSL::Linear::Sequence::IndexError do
+    exc = assert_raises Activity::Adds::IndexError do
       class Song < Activity::Railway
         step :f, after: :e
         include T.def_steps(:f)
       end
     end
 
-    _(exc.step_id).must_equal :e
-    _(exc.message).must_equal %{#{Song}:
+    assert_equal exc.message, %{#{Song}:
 \e[31m:e is not a valid step ID. Did you mean any of these ?\e[0m
 \e[32m"Start.default"\n"End.success"\n"End.failure"\e[0m}
   end
