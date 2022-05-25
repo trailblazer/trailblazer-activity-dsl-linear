@@ -10,4 +10,19 @@ class StrategyTest < Minitest::Spec
 #<Start/:default>
 }
   end
+
+  it "provides {:fields} in {@state} which is an (inherited) hash" do
+    strategy = Class.new(Linear::Strategy)
+
+    sub      = Class.new(strategy)
+    sub.instance_variable_get(:@state).update!(:fields) { |fields| fields.merge(representer: Module) }
+
+    subsub   = Class.new(sub)
+    subsub.instance_variable_get(:@state).update!(:fields) { |fields| fields.merge(policy: Object) }
+
+  #= initial is empty
+    assert_equal strategy.instance_variable_get(:@state).get(:fields).inspect, "{}"
+    assert_equal sub.instance_variable_get(:@state).get(:fields).inspect, "{:representer=>Module}"
+    assert_equal subsub.instance_variable_get(:@state).get(:fields).inspect, "{:representer=>Module, :policy=>Object}"
+  end
 end
