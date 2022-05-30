@@ -29,6 +29,7 @@ class StrategyTest < Minitest::Spec
 
 #@ DSL tests
   it "importing helpers and constants" do
+  #@ we can add methods to {Helper}. # TODO: document us!
     Trailblazer::Activity::DSL::Linear::Helper.module_eval do # FIXME: make this less global!
       def MyHelper()
         {task: "Task", id: "my_helper.task"}
@@ -41,24 +42,32 @@ class StrategyTest < Minitest::Spec
       end
     end
 
-    # Trailblazer::Activity::DSL::Linear::Helper::Constants::My = MyMacros
+  #@ we can add constants to {Helper::Constants}.
+    Trailblazer::Activity::DSL::Linear::Helper::Constants::My = MyMacros
 
     strategy = Class.new(Trailblazer::Activity::Path) # DISCUSS: should this be just {Linear::Strategy}?
     strategy.instance_exec do
       step MyHelper()
     end
 
-# FIXME: how are we gonna do this?
-    # state.instance_exec do
-    #   step My::MyHelper()
-    # end
 
-    sequence = strategy.to_h[:sequence]
-
-    assert_process sequence, :success, %{
+    assert_circuit strategy, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => \"Task\"
 \"Task\"
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+
+    strategy = Class.new(Trailblazer::Activity::Path)
+    strategy.class_eval <<-EOS
+      step My::MyHelper()
+EOS
+
+    assert_circuit strategy, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => \"Task 2\"
+\"Task 2\"
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
