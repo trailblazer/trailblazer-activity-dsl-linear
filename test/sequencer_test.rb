@@ -6,10 +6,12 @@ class SequencerTest < Minitest::Spec
   let(:helper) { Activity::Railway }
 
   it "builds a Sequence" do
-    options = Activity::Path::DSL.OptionsForSequencer()
-    # raise options.keys.inspect
+    options            = Activity::Path::DSL.OptionsForSequencer()
+    normalizer_options = options.reject { |k, v| [:normalizers, :sequence].include?(k) }
+    normalizers        = options[:normalizers]
+    sequence           = options[:sequence]
 
-    sequence = Activity::DSL::Linear::Sequencer.(:step, Imp.method(:a), {id: :a}, **options)
+    sequence = Activity::DSL::Linear::Sequencer.(:step, Imp.method(:a), {id: :a}, normalizer_options: normalizer_options, normalizers: normalizers, sequence: sequence)
 
     assert_process sequence, :success, %{
 #<Start/:default>
@@ -27,22 +29,15 @@ class SequencerTest < Minitest::Spec
       step Imp.method(:c), id: :c
     end
 
-    options = Activity::Path::DSL.OptionsForSequencer(**shared_options)
-
+    options            = Activity::Path::DSL.OptionsForSequencer(**shared_options)
+    normalizer_options = options.reject { |k, v| [:normalizers, :sequence].include?(k) }
+    normalizers        = options[:normalizers]
+    sequence           = options[:sequence]
 
     sequence = Activity::DSL::Linear::Sequencer.(:step, Imp.method(:a), {id: :a, helper.Output(:success) => helper.Path(end_id: "End.path", end_task: helper.End(:path))},
-      **options,
+      normalizer_options: normalizer_options, normalizers: normalizers, sequence: sequence,
       &block
     )
-
-    # state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState(**shared_options))
-
-    # state.step Imp.method(:a), id: :a, state.Output(:success) => state.Path(end_id: "End.path", end_task: state.End(:path)) do
-    #   step Imp.method(:c), id: :c
-    # end
-    # state.step Imp.method(:b), id: :b
-
-    # sequence = state.to_h[:sequence]
 
     assert_process sequence, :success, :path, %{
 #<Start/:default>
