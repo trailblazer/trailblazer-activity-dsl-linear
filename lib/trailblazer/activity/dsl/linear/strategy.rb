@@ -84,18 +84,6 @@ module Trailblazer
               recompile!(sequence)
             end
 
-            def merge!(activity)
-              old_seq = @state.to_h[:sequence]
-              new_seq = activity.to_h[:sequence]
-
-              seq = Linear.Merge(old_seq, new_seq, end_id: "End.success")
-
-              # Update the DSL's sequence, then recompile the actual activity.
-              @state.update_sequence! { |**| seq }
-
-              recompile_activity!(seq)
-            end
-
             # Mainly used for introspection.
             def to_h
               activity = @state.get(:activity)
@@ -138,6 +126,9 @@ module Trailblazer
             value.copy
           end
 
+          require_relative "feature/merge"
+          extend Merge::DSL # {Strategy.merge!}
+
           state = Declarative::State(
             # sequencer: [nil, copy: method(:copy)], # when inherited, call sequencer.copy
             normalizers: [nil, {}],        # immutable
@@ -158,3 +149,5 @@ module Trailblazer
     end
   end
 end
+
+

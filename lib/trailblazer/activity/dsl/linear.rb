@@ -91,19 +91,7 @@ class Trailblazer::Activity
           Trailblazer::Activity::Adds::Insert.method(name)
         end
       end
-
-      def Merge(old_seq, new_seq, end_id: "End.success") # DISCUSS: also Insert
-        new_seq = strip_start_and_ends(new_seq, end_id: end_id)
-
-        _seq = Insert.Prepend(old_seq, new_seq, end_id)
-      end
-
-      def strip_start_and_ends(seq, end_id:) # TODO: introduce Merge namespace?
-        cut_off_index = end_id.nil? ? seq.size : Insert.find_index(seq, end_id) # find the "first" end.
-
-        seq[1..cut_off_index-1]
-      end
-    end
+    end # Linear
   end
 end
 
