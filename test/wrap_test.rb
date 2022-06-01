@@ -1,13 +1,22 @@
 require "test_helper"
 
+=begin
+     # taskWrap extensions.
+    merge = [
+      [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
+      [taskWrap::Pipeline.method(:insert_after),  "task_wrap.call_task", ["user.add_2", method(:add_2)]],
+    ]
+  # FIXME: deprecate this version!
+=end
+
 class TaskWrapTest < Minitest::Spec
   it "populates activity[:wrap_static] and uses it at run-time" do
     taskWrap = Trailblazer::Activity::TaskWrap
 
     # taskWrap extensions.
     merge = [
-      [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
-      [taskWrap::Pipeline.method(:insert_after),  "task_wrap.call_task", ["user.add_2", method(:add_2)]],
+      {insert: [Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"], row: taskWrap::Pipeline.Row("user.add_1", method(:add_1))},
+      {insert: [Activity::Adds::Insert.method(:Append),  "task_wrap.call_task"], row: taskWrap::Pipeline.Row("user.add_2", method(:add_2))},
     ]
 
     implementing = self.implementing
