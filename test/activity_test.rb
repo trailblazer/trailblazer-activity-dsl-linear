@@ -554,7 +554,7 @@ class ActivityTest < Minitest::Spec
   #@ When inheriting and changing we don't bleed into associated classes.
   it "inheritance copies {config}" do
     merge = [
-      [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
+      {insert: [Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"], row: taskWrap::Pipeline.Row("user.add_1", method(:add_1))},
     ]
 
     ext = taskWrap::Extension(merge: merge)
@@ -613,7 +613,7 @@ class ActivityTest < Minitest::Spec
     end
 
     process = activity.to_h
-raise process.inspect
+# raise process.inspect
     assert_process_for process, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
@@ -805,7 +805,7 @@ ActivityTest::NestedWithThreeTermini
 
   it "{:inherit} also adds the {:extensions} from the inherited row" do
     merge = [
-      [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
+      {insert: [Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"], row: taskWrap::Pipeline.Row("user.add_1", method(:add_1))},
     ]
 
     ext = taskWrap::Extension(merge: merge)

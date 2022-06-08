@@ -19,13 +19,13 @@ Minitest::Spec.class_eval do
   # end
 
   # @param :seq String What the {:seq} variable in the result ctx looks like.
-  def assert_call(activity, terminus: :success, seq: "[]", **ctx_variables)
-    # Call without taskWrap!
-    signal, (ctx, _) = activity.([{seq: [], **ctx_variables}, _flow_options = {}])
+  # def assert_call(activity, terminus: :success, seq: "[]", **ctx_variables)
+  #   # Call without taskWrap!
+  #   signal, (ctx, _) = activity.([{seq: [], **ctx_variables}, _flow_options = {}])
 
-    assert_equal signal.to_h[:semantic], terminus, "assert_call expected #{terminus} terminus, not #{signal}. Use assert_call(activity, terminus: #{signal.to_h[:semantic]})"
-    assert_equal ctx.inspect, {seq: "%%%"}.merge(ctx_variables).inspect.sub('"%%%"', seq)
-  end
+  #   assert_equal signal.to_h[:semantic], terminus, "assert_call expected #{terminus} terminus, not #{signal}. Use assert_call(activity, terminus: #{signal.to_h[:semantic]})"
+  #   assert_equal ctx.inspect, {seq: "%%%"}.merge(ctx_variables).inspect.sub('"%%%"', seq)
+  # end
 
   # TODO: use everywhere!!!
   def assert_activity(activity, *args)

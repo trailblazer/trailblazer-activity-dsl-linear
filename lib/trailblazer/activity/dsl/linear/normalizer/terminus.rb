@@ -11,6 +11,7 @@ module Trailblazer
               normalizer_steps =
                 {
                 "activity.normalize_step_interface"       => Normalizer.Task(Normalizer.method(:normalize_step_interface)),      # first
+                "activity.merge_library_options"          => Normalizer.Task(Normalizer.method(:merge_library_options)),    # Merge "macro"/user options over library options.
                 "activity.normalize_for_macro"            => Normalizer.Task(Normalizer.method(:merge_user_options)),
                 "activity.normalize_normalizer_options"   => Normalizer.Task(Normalizer.method(:merge_normalizer_options)),
                 "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),

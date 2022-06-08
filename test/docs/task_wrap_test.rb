@@ -26,6 +26,7 @@ class DocsTaskWrapTest < Minitest::Spec
     end
     #:op-run end
 
+# DISCUSS: THIS IS OLD API, but needed in the docs
     #:run-merge
     merge = [
       [
@@ -64,5 +65,16 @@ class DocsTaskWrapTest < Minitest::Spec
         ]
     #:run-puts end
 =end
+
+
+  #@ new taskWrap API
+    default_ext = Trailblazer::Activity::TaskWrap::Extension::Runtime(
+      [TaskWrapLogger.method(:log_before), id: "user.log_before", prepend: "task_wrap.call_task"]
+    )
+
+    wrap_runtime = Hash.new(default_ext) # wrap_runtime[...] will always return the same wrap
+
+    signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(Create, [{seq: [], log: []}, {}], wrap_runtime: wrap_runtime)
+    ctx.inspect.must_equal %{{:seq=>[:model, :save], :log=>[\"Before DocsTaskWrapTest::Create\", \"Before #<Trailblazer::Activity::Start semantic=:default>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=model>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>\", \"Before #<Trailblazer::Activity::End semantic=:success>\"]}}
   end
 end
