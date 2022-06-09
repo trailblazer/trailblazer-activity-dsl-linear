@@ -15,9 +15,9 @@ module Trailblazer
             input_filters = []
           end
 
-          merge_instructions = VariableMapping.merge_instructions_from_dsl(input: input, output: output, output_with_outer_ctx: output_with_outer_ctx, inject: inject, input_filters: input_filters, output_filters: output_filters, injects: injects)
+          extension = VariableMapping.merge_instructions_from_dsl(input: input, output: output, output_with_outer_ctx: output_with_outer_ctx, inject: inject, input_filters: input_filters, output_filters: output_filters, injects: injects)
 
-          TaskWrap::Extension(merge: merge_instructions)
+          TaskWrap::Extension::WrapStatic.new(extension: extension)
         end
 
 
@@ -89,7 +89,7 @@ module Trailblazer
 
             output = output_for(output: output, output_with_outer_ctx: output_with_outer_ctx, output_filters: output_filters)
 
-            TaskWrap::VariableMapping.merge_instructions_for(input, output, id: input.object_id) # wraps filters: {Input(input), Output(output)}
+            TaskWrap::VariableMapping.Extension(input, output, id: input.object_id) # wraps filters: {Input(input), Output(output)}
           end
 
 

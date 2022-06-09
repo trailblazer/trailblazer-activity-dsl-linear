@@ -67,8 +67,8 @@ class DocsTaskWrapTest < Minitest::Spec
 =end
 
 
-  #@ new taskWrap API
-    default_ext = Trailblazer::Activity::TaskWrap::Extension::Runtime(
+  #@ new taskWrap API, the "friendly interface"
+    default_ext = Trailblazer::Activity::TaskWrap::Extension(
       [TaskWrapLogger.method(:log_before), id: "user.log_before", prepend: "task_wrap.call_task"]
     )
 
