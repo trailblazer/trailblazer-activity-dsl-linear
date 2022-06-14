@@ -43,7 +43,7 @@ module Trailblazer
         end
 
         def NormalizerForPass
-          pipeline = TaskWrap::Pipeline.prepend(
+          TaskWrap::Pipeline.prepend(
             Normalizer(),
             "activity.normalize_outputs_from_dsl",
             # "path.connections",

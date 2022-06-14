@@ -16,7 +16,6 @@ module Trailblazer
               def forward_block_for_path_branch(ctx, options:, normalizer_options:, library_options:, **)
                 block              = options[:block]
                 non_symbol_options = options[:non_symbol_options]
-                normalizers        = library_options[:normalizers]
 
                 return unless block
 
@@ -24,7 +23,6 @@ module Trailblazer
                   non_symbol_options.find { |output, cfg| cfg.kind_of?(Linear::PathBranch) }
 
                 path_branch_with_block = Linear::PathBranch.new(
-                  # normalizers: normalizers,
                   normalizer_options.
                     merge(path_branch.options).
                     merge(block: block)
