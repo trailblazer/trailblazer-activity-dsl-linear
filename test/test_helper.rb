@@ -20,11 +20,11 @@ Minitest::Spec.class_eval do
   end
 
   def assert_sequence(sequence, *args)
-    assert_process_for Activity::DSL::Linear::Compiler.(sequence), *args
+    assert_process_for Activity::DSL::Linear::Sequence::Compiler.(sequence), *args
   end
 
   def compile_process(sequence)
-    _process = Trailblazer::Activity::DSL::Linear::Compiler.(sequence)
+    _process = Trailblazer::Activity::DSL::Linear::Sequence::Compiler.(sequence)
   end
 
   def assert_process(seq, *args)

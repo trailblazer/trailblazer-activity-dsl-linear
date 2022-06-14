@@ -17,7 +17,7 @@ class CompilerTest < Minitest::Spec
         nil,
         implementing::Start,
         [
-          Lin::Search::Forward(
+          Lin::Sequence::Search::Forward(
             Act::Output(R, :success),
             :success
           ),
@@ -29,11 +29,11 @@ class CompilerTest < Minitest::Spec
         # [Search::Forward(:success), Search::ById(:a)]
         implementing.method(:a),
         [
-          Lin::Search::Forward(
+          Lin::Sequence::Search::Forward(
             Act::Output(R, :success),
             :success
           ),
-          Lin::Search::Forward(
+          Lin::Sequence::Search::Forward(
             Act::Output(L, :failure),
             :failure
           ),
@@ -44,11 +44,11 @@ class CompilerTest < Minitest::Spec
         :success,
         implementing.method(:b),
         [
-          Lin::Search::Forward(
+          Lin::Sequence::Search::Forward(
             Act::Output("B/success", :success),
             :success
           ),
-          Lin::Search::Forward(
+          Lin::Sequence::Search::Forward(
             Act::Output("B/failure", :failure),
             :failure
           )
@@ -59,11 +59,11 @@ class CompilerTest < Minitest::Spec
         :failure,
         implementing.method(:c),
         [
-          Lin::Search::Forward(
+          Lin::Sequence::Search::Forward(
             Act::Output(R, :success),
             :failure
           ),
-          Lin::Search::Forward(
+          Lin::Sequence::Search::Forward(
             Act::Output(L, :failure),
             :failure
          )
@@ -74,11 +74,11 @@ class CompilerTest < Minitest::Spec
         :success,
         implementing.method(:d),
         [
-          Lin::Search::Forward(
+          Lin::Sequence::Search::Forward(
             Act::Output("D/success", :success),
             :success
           ),
-          Lin::Search::Forward(
+          Lin::Sequence::Search::Forward(
             Act::Output(L, :failure),
             :failure
           )
@@ -89,7 +89,7 @@ class CompilerTest < Minitest::Spec
         :success,
         implementing::Success,
         [
-          Lin::Search::Noop(
+          Lin::Sequence::Search::Noop(
             Act::Output(implementing::Success, :success)
           )
         ],
@@ -99,7 +99,7 @@ class CompilerTest < Minitest::Spec
         :failure,
         implementing::Failure,
         [
-          Lin::Search::Noop(
+          Lin::Sequence::Search::Noop(
             Act::Output(implementing::Failure, :failure)
           )
         ],
@@ -107,7 +107,7 @@ class CompilerTest < Minitest::Spec
       ],
     ]
 
-    schema = Lin::Compiler.(seq)
+    schema = Lin::Sequence::Compiler.(seq)
 
     cct = Cct(schema)
 

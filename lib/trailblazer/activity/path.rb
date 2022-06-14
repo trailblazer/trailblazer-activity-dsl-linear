@@ -29,7 +29,7 @@ module Trailblazer
         end
 
         def unary_connections(track_name: :success)
-          {success: [Linear::Search.method(:Forward), track_name]}
+          {success: [Linear::Sequence::Search.method(:Forward), track_name]}
         end
 
         def merge_path_outputs(ctx, outputs: nil, **)
@@ -57,12 +57,12 @@ module Trailblazer
         # DISCUSS: following methods are not part of Normalizer
 
         def append_terminus(sequence, task, normalizers:, **options)
-          _sequence = Linear::Sequencer.update_sequence_for(:terminus, task, options, normalizers: normalizers, sequence: sequence, normalizer_options: {})
+          _sequence = Linear::Sequence::Builder.update_sequence_for(:terminus, task, options, normalizers: normalizers, sequence: sequence, normalizer_options: {})
         end
 
         # @private
         def start_sequence(track_name:)
-          Linear::Strategy::DSL.start_sequence(wirings: [Linear::Search::Forward(unary_outputs[:success], track_name)])
+          Linear::Strategy::DSL.start_sequence(wirings: [Linear::Sequence::Search::Forward(unary_outputs[:success], track_name)])
         end
 
         # Returns an initial two-step sequence with {Start.default > End.success}.
@@ -71,7 +71,7 @@ module Trailblazer
           sequence = append_terminus(sequence, end_task, id: end_id, magnetic_to: track_name, normalizers: Normalizers, append_to: "Start.default")
         end
 
-        def OptionsForSequencer(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
+        def OptionsForSequenceBuilder(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
           initial_sequence = initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id)
 
           {

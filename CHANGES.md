@@ -32,7 +32,9 @@
 * We now need `Sequence::Row` instances in `Sequence` to adhere to the Adds specification.
 * Move `Sequence::IndexError` to `Activity::Adds::IndexError` in the `trailblazer-activity` gem. Remove `IndexError#step_id`.
 * Rename `Linear::State::Normalizer` to `Linear::Normalizer::Normalizers` as it represents a container for normalizers.
-* Rename `Linear::State` to `Linear::Sequencer`. This is now a stateless function, only.
+* Rename `Linear::State` to `Linear::Sequence::Builder`. This is now a stateless function, only.
+* Move `Linear::Search` to `Linear::Sequence::Search`.
+* Move `Linear::Compiler` to `Linear::Sequence::Compiler`.
 
 # 0.5.0
 

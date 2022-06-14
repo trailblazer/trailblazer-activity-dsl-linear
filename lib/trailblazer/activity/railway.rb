@@ -59,7 +59,7 @@ module Trailblazer
           end
 
           def connect_success_to_failure(ctx, connections: nil, **)
-            ctx[:connections] = connections || {success: [Linear::Search.method(:Forward), :failure]}
+            ctx[:connections] = connections || {success: [Linear::Sequence::Search.method(:Forward), :failure]}
           end
         end
 
@@ -67,7 +67,7 @@ module Trailblazer
           module_function
 
           def connect_failure_to_success(ctx, connections:, **)
-            ctx[:connections] = connections.merge({failure: [Linear::Search.method(:Forward), :success]})
+            ctx[:connections] = connections.merge({failure: [Linear::Sequence::Search.method(:Forward), :success]})
           end
         end
 
@@ -88,7 +88,7 @@ module Trailblazer
         end
 
         def failure_connections
-          {failure: [Linear::Search.method(:Forward), :failure]}
+          {failure: [Linear::Sequence::Search.method(:Forward), :failure]}
         end
 
         def initial_sequence(failure_end:, sequence:, **path_options)
@@ -102,8 +102,8 @@ module Trailblazer
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
-        def self.OptionsForSequencer(normalizers: Normalizers, failure_end: Activity::End.new(semantic: :failure), **options)
-          options = Path::DSL.OptionsForSequencer(**options).
+        def self.OptionsForSequenceBuilder(normalizers: Normalizers, failure_end: Activity::End.new(semantic: :failure), **options)
+          options = Path::DSL.OptionsForSequenceBuilder(**options).
             merge(normalizers: normalizers, failure_end: failure_end)
 
           initial_sequence = Railway::DSL.initial_sequence(failure_end: failure_end, **options)

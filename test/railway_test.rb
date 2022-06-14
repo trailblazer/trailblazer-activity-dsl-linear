@@ -243,10 +243,10 @@ class RailwayTest < Minitest::Spec
 
     activity = Class.new(Activity::Railway) do
       step :f, adds: [
-        {row: linear::Sequence::Row[:success, Implementing.method(:g), [linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {id: :g}], insert: [linear::Insert.method(:Prepend), :f]}]
+        {row: linear::Sequence::Row[:success, Implementing.method(:g), [linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {id: :g}], insert: [linear::Insert.method(:Prepend), :f]}]
       fail :a, adds: [
-        {row: linear::Sequence::Row[:failure, Implementing.method(:b), [linear::Search.Forward(Activity.Output("f/signal", :failure), :failure)], {}], insert: [linear::Insert.method(:Prepend), :g]}]
-    # seq = state.pass implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}], Linear::Insert.method(:Prepend), :f]]
+        {row: linear::Sequence::Row[:failure, Implementing.method(:b), [linear::Sequence::Search.Forward(Activity.Output("f/signal", :failure), :failure)], {}], insert: [linear::Insert.method(:Prepend), :g]}]
+    # seq = state.pass implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}], Linear::Insert.method(:Prepend), :f]]
     end
 
     assert_circuit activity, %{

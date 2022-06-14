@@ -76,7 +76,7 @@ module Trailblazer
 
               ctx.merge!(
                 wirings: [
-                  Linear::Search::Noop(
+                  Linear::Sequence::Search::Noop(
                     Activity::Output.new(task, semantic), # DISCUSS: do we really want to transport the semantic "in" the object?
                   )
                 ],

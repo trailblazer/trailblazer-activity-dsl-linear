@@ -105,7 +105,7 @@ module Trailblazer
         def merge_connections_for!(ctx, option_name, semantic, magnetic_to=option_name, connections:, **)
           return ctx unless ctx[option_name]
 
-          ctx[:connections] = connections.merge(semantic => [Linear::Search.method(:Forward), magnetic_to])
+          ctx[:connections] = connections.merge(semantic => [Linear::Sequence::Search.method(:Forward), magnetic_to])
           ctx
         end
 
@@ -127,9 +127,9 @@ module Trailblazer
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
-        def self.OptionsForSequencer(normalizers: Normalizers, **options)
+        def self.OptionsForSequenceBuilder(normalizers: Normalizers, **options)
 
-          options = Railway::DSL.OptionsForSequencer(**options).
+          options = Railway::DSL.OptionsForSequenceBuilder(**options).
               merge(normalizers: normalizers)
 
           initial_sequence = DSL.initial_sequence(**options)

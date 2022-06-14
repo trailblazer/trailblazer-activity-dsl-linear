@@ -34,15 +34,15 @@ module Trailblazer
             def terminus(*args);     recompile_activity_for(:terminus, *args); end
 
             private def recompile_activity_for(type, *args, &block)
-              sequence = apply_step_on_sequencer(type, *args, &block)
+              sequence = apply_step_on_sequence_builder(type, *args, &block)
 
               recompile!(sequence)
             end
 
             # TODO: make {rescue} optional, only in dev mode.
             # @return Sequence
-            private def apply_step_on_sequencer(type, arg, options={}, &block)
-              return Sequencer.(type, arg, options,
+            private def apply_step_on_sequence_builder(type, arg, options={}, &block)
+              return Sequence::Builder.(type, arg, options,
                 sequence:           @state.get(:sequence),
                 normalizers:        @state.get(:normalizers),
 
@@ -58,7 +58,7 @@ module Trailblazer
             end
 
             private def recompile_activity(sequence)
-              schema = Compiler.(sequence)
+              schema = Sequence::Compiler.(sequence)
               Activity.new(schema)
             end
 
@@ -72,7 +72,7 @@ module Trailblazer
 
             # Used only once per strategy class body.
             def compile_strategy!(strategy, **options)
-              options = strategy.OptionsForSequencer(**options)
+              options = strategy.OptionsForSequenceBuilder(**options)
 
               compile_strategy_for!(**options)
             end

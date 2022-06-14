@@ -39,7 +39,7 @@ class PathTest < Minitest::Spec
       step :f,
         adds: [
           {
-            row:    [:success, Implementing.method(:g), [Trailblazer::Activity::DSL::Linear::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}],
+            row:    [:success, Implementing.method(:g), [Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}],
             insert: [Activity::Adds::Insert.method(:Prepend), :f]
           }
         ]

@@ -245,16 +245,16 @@ module Trailblazer
           def output_to_track(ctx, output, track)
             search_strategy = track.options[:wrap_around] ? :WrapAround : :Forward
 
-            {output.value => [Linear::Search.method(search_strategy), track.color]}
+            {output.value => [Linear::Sequence::Search.method(search_strategy), track.color]}
           end
 
           def output_to_id(ctx, output, target)
-            {output.value => [Linear::Search.method(:ById), target]}
+            {output.value => [Linear::Sequence::Search.method(:ById), target]}
           end
 
           # Returns ADDS for the new terminus.
           def add_terminus(end_event, id:, sequence:, normalizers:)
-            step_options = Linear::Sequencer.invoke_normalizer_for(:terminus, end_event, {id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
+            step_options = Linear::Sequence::Builder.invoke_normalizer_for(:terminus, end_event, {id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
 
             step_options[:adds]
           end
