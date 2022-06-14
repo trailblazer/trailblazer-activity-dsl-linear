@@ -95,7 +95,7 @@ module Trailblazer
           _seq = Path::DSL.append_terminus(sequence, failure_end, magnetic_to: :failure, id: "End.failure", normalizers: Normalizers)
         end
 
-        Normalizers = Linear::State::Normalizer.new(
+        Normalizers = Linear::Normalizer::Normalizers.new(
           step:  Railway::DSL.Normalizer(),
           fail:  Railway::DSL.NormalizerForFail(),
           pass:  Railway::DSL.NormalizerForPass(),

@@ -52,24 +52,7 @@ module Trailblazer
         class State # TODO: rename to Sequencer::Builder
 
 
-          # Compiles and maintains all final normalizers for a specific DSL.
-          class Normalizer
-            # [gets instantiated at compile time.]
-            #
-            # We simply compile the activities that represent the normalizers for #step, #pass, etc.
-            # This can happen at compile-time, as normalizers are stateless.
-            def initialize(normalizer_pipelines)
-              @normalizers = normalizer_pipelines
-            end
 
-            # Execute the specific normalizer (step, fail, pass) for a particular option set provided
-            # by the DSL user. This is usually when you call Operation::step.
-            def call(name, ctx)
-              normalizer = @normalizers.fetch(name)
-              wrap_ctx, _ = normalizer.(ctx, nil)
-              wrap_ctx
-            end
-          end
         end # State
 
       end

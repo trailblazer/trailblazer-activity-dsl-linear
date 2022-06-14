@@ -120,7 +120,7 @@ module Trailblazer
         end
 
         # Normalizer pipelines taking care of processing your DSL options.
-        Normalizers = Linear::State::Normalizer.new(
+        Normalizers = Linear::Normalizer::Normalizers.new(
           step: FastTrack::DSL.Normalizer(),
           fail: FastTrack::DSL.NormalizerForFail(),
           pass: FastTrack::DSL.NormalizerForPass(),

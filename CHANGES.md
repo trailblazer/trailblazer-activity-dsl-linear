@@ -31,6 +31,7 @@
 * Move `Insert` to `trailblazer-activity` gem.
 * We now need `Sequence::Row` instances in `Sequence` to adhere to the Adds specification.
 * Move `Sequence::IndexError` to `Activity::Adds::IndexError` in the `trailblazer-activity` gem. Remove `IndexError#step_id`.
+* Rename `Linear::State::Normalizer` to `Linear::Normalizer::Normalizers` as it represents a container for normalizers.
 
 # 0.5.0
 

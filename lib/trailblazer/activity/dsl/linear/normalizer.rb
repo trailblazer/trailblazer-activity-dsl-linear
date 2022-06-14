@@ -10,6 +10,17 @@ module Trailblazer
         # They're usually invoked from {Strategy#invoke_normalizer_for!}, which is called from {Path#step},
         # {Railway#pass}, etc.
         module Normalizer
+          # Container for all final normalizers of a specific Strategy.
+          class Normalizers < Struct.new(:normalizers)
+            # Execute the specific normalizer (step, fail, pass) for a particular option set provided
+            # by the DSL user. Usually invoked when you call {#step}.
+            def call(name, ctx)
+              normalizer = normalizers.fetch(name)
+              wrap_ctx, _ = normalizer.(ctx, nil)
+              wrap_ctx
+            end
+          end
+
           module_function
 
           # Wrap {task} with {Trailblazer::Option} and execute it with kw args in {#call}.

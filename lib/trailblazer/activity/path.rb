@@ -47,7 +47,7 @@ module Trailblazer
         # This is slow and should be done only once at compile-time,
         # DISCUSS: maybe make this a function?
         # These are the normalizers for an {Activity}, to be injected into a State.
-        Normalizers = Linear::State::Normalizer.new(
+        Normalizers = Linear::Normalizer::Normalizers.new(
           step:     Normalizer(), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
