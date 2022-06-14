@@ -37,7 +37,7 @@ class DocsIOTest < Minitest::Spec
       #:io-ary-hash end
     end
     #:io-call
-    signal, (ctx, flow_options) = Activity::TaskWrap.invoke(A::Memo::Create, [{params: {id: 1}}, {}])
+    signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(A::Memo::Create, [{params: {id: 1}}, {}])
     #:io-call end
     assert_equal %{#<Trailblazer::Activity::End semantic=:success>}, signal.inspect
   ## {:user} is not visible in public ctx due to {:output}.
@@ -169,7 +169,7 @@ class DocsIOTest < Minitest::Spec
         end
       end
 
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(E::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(E::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       ctx.inspect.must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
 
@@ -200,28 +200,28 @@ class DocsIOTest < Minitest::Spec
 
       end
 
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(F::Memo, [{params: {id: "1"}}.freeze, {}])
+      signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(F::Memo, [{params: {id: "1"}}.freeze, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       ctx.inspect.must_equal %{{:params=>{:id=>\"1\", :errors=>false}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
     end
 
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::Memo::Bla, [{parameters: {id: "1"}}.freeze, {}])
+      signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(B::Memo::Bla, [{parameters: {id: "1"}}.freeze, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
 
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(B::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
 
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::C::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(B::C::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
 
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::D::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(B::D::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :user=>\"User \\\"1\\\"\", :result=>\"Found a user.\", :model=>\"User \\\"1\\\"\"}}
 
-      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(B::E::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
+      signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(B::E::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       _(ctx.inspect).must_equal %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
   end
@@ -286,12 +286,12 @@ class DocsIOTest < Minitest::Spec
       end # G
 
     # {:time} is defaulted
-      _, (ctx, _) = Activity::TaskWrap.invoke(G::Create, [{catch_args: [], database: []}, {}])
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(G::Create, [{catch_args: [], database: []}, {}])
       assert_equal '{:catch_args=>[[:catch_args, :database], [:db, :catch_args], [:catch_args, :database, :log]], :database=>["persist"], :log=>"Called ', ctx.inspect[0..131]
                                                               #   {:time} is not visible in {Log}
 
     # {:time} is injected
-      _, (ctx, _) = Activity::TaskWrap.invoke(G::Create, [{catch_args: [], database: [], time: "yesterday"}, {}], **{})
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(G::Create, [{catch_args: [], database: [], time: "yesterday"}, {}], **{})
       assert_equal '{:catch_args=>[[:catch_args, :database, :time], [:db, :catch_args, :time], [:catch_args, :database, :time, :log]], :database=>["persist"], :time=>"yesterday", :log=>"Called yesterday!"}', ctx.inspect#[0..65]
     end # it
 
@@ -321,7 +321,7 @@ class DocsIOTest < Minitest::Spec
         }
       }
 
-      _, (ctx, _) = Activity::TaskWrap.invoke(H::Outer, [Trailblazer::Context({"contract.default" => Module}, {}, flow_options[:context_options]), flow_options])
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(H::Outer, [Trailblazer::Context({"contract.default" => Module}, {}, flow_options[:context_options]), flow_options])
       assert_equal %{#<Trailblazer::Context::Container::WithAliases wrapped_options={\"contract.default\"=>Module} mutable_options={:inner_contract=>Module, :inner_contract_default=>Module} aliases={:\"contract.default\"=>:contract}>}, ctx.inspect
     end
 
@@ -352,11 +352,11 @@ class DocsIOTest < Minitest::Spec
       end # I
 
     # inject {:time}
-      _, (ctx, _) = Activity::TaskWrap.invoke(I::Create, [{catch_args: [], database: [], time: "yesterday"}, {}])
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(I::Create, [{catch_args: [], database: [], time: "yesterday"}, {}])
       assert_equal %{{:catch_args=>[[:catch_args, :database, :time], [:catch_args, :database, :time], [:catch_args, :database, :time, :log]], :database=>[], :time=>\"yesterday\", :log=>\"Called yesterday!\"}}, ctx.inspect
 
     # default {:time}
-      _, (ctx, _) = Activity::TaskWrap.invoke(I::Create, [{catch_args: [], database: []}, {}])
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(I::Create, [{catch_args: [], database: []}, {}])
       assert_equal '{:catch_args=>[[:catch_args, :database], [:catch_args, :database], [:catch_args, :database, :log]], :database=>[], :log=>"Called 20', ctx.inspect[0..130]
     end
 
@@ -387,12 +387,12 @@ class DocsIOTest < Minitest::Spec
       end # X
 
     # inject {:time}
-      _, (ctx, _) = Activity::TaskWrap.invoke(X::Create, [{catch_args: [], database: [], time: "yesterday"}, {}])
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(X::Create, [{catch_args: [], database: [], time: "yesterday"}, {}])
       assert_equal %{{:catch_args=>[[:catch_args, :database, :time], [:catch_args, :database, :time], [:catch_args, :database, :time, :log]], :database=>[], :time=>\"yesterday\", :log=>\"Called yesterday!\"}}, ctx.inspect
 
     # default {:time}
     # injected/defaulted variables such as {:time} are NOT visible in the outer context if not configured otherwise.
-      _, (ctx, _) = Activity::TaskWrap.invoke(X::Create, [{catch_args: [], database: []}, {}])        # {:time} is "gone", not here anymore!
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(X::Create, [{catch_args: [], database: []}, {}])        # {:time} is "gone", not here anymore!
       assert_equal '{:catch_args=>[[:catch_args, :database], [:catch_args, :database, :time], [:catch_args, :database, :log]], :database=>[], :log=>"Called 1!"}', ctx.inspect
     end
 
@@ -424,11 +424,11 @@ class DocsIOTest < Minitest::Spec
       end # J
 
       # inject {:time}
-      _, (ctx, _) = Activity::TaskWrap.invoke(J::Create, [{database: [], catch_args: [], time: "yesterday"}, {}])
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(J::Create, [{database: [], catch_args: [], time: "yesterday"}, {}])
       assert_equal %{{:database=>[], :catch_args=>[[:database, :catch_args, :time], [:database, :catch_args, :time, :log]], :time=>\"yesterday\", :log=>\"Called yesterday!\"}}, ctx.inspect
 
     # default {:time} from {:inject}
-      _, (ctx, _) = Activity::TaskWrap.invoke(J::Create, [{database: [], catch_args: []}, {}])
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(J::Create, [{database: [], catch_args: []}, {}])
       assert_equal '{:database=>[], :catch_args=>[[:database, :catch_args], [:database, :catch_args, :log]], :log=>"Called tomorrow!"}', ctx.inspect
 
 
@@ -459,11 +459,11 @@ class DocsIOTest < Minitest::Spec
       end # K
 
       # inject {:time}
-      _, (ctx, _) = Activity::TaskWrap.invoke(K::Create, [{database: [], catch_args: [], time: "yesterday", ago: 700}, {}])
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(K::Create, [{database: [], catch_args: [], time: "yesterday", ago: 700}, {}])
       assert_equal %{{:database=>[], :catch_args=>[[:database, :catch_args, :time, :ago], [:database, :catch_args, :time, :ago, :log]], :time=>\"yesterday\", :ago=>700, :log=>\"Called yesterday@700 years ago!\"}}, ctx.inspect
 
     # default {:time} from {:inject}
-      _, (ctx, _) = Activity::TaskWrap.invoke(K::Create, [{database: [], catch_args: [], ago: 700}, {}])
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(K::Create, [{database: [], catch_args: [], ago: 700}, {}])
       assert_equal '{:database=>[], :catch_args=>[[:database, :catch_args, :ago], [:database, :catch_args, :ago, :log]], :ago=>700, :log=>"Called tomorrow@700 years ago!"}', ctx.inspect
     end
 
@@ -493,7 +493,7 @@ class DocsIOTest < Minitest::Spec
       end # L
 
       # inject {:volume}
-      _, (ctx, _) = Activity::TaskWrap.invoke(L::Create, [{database: [], catch_args: [], volume: 99}, {}])
+      _, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(L::Create, [{database: [], catch_args: [], volume: 99}, {}])
       assert_equal %{{:database=>[], :catch_args=>[[:database, :catch_args, :volume], [:database, :catch_args, :volume, :log]], :volume=>99, :log=>"Called tomorrow@new@99!"}}, ctx.inspect
     end
 
@@ -528,11 +528,11 @@ class DocsIOTest < Minitest::Spec
 
       Log = Y::Log
       #:inject-log-time
-      signal, (ctx, _) = Activity::TaskWrap.invoke(Log, [{time: "yesterday"}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Log, [{time: "yesterday"}, {}])
       #:inject-log-time end
       ctx.inspect.must_equal %{{:time=>\"yesterday\", :log=>\"Called @ yesterday!\"}}
 
-      signal, (ctx, _) = Activity::TaskWrap.invoke(Log, [{}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Log, [{}, {}])
       ctx.inspect[0..18].must_equal '{:log=>"Called @ 20'
 
       module Z
@@ -558,9 +558,9 @@ class DocsIOTest < Minitest::Spec
         #:clumsy-merge end
       end
 
-      signal, (ctx, _) = Activity::TaskWrap.invoke(Z::Create, [{model: Object, time: "yesterday"}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Z::Create, [{model: Object, time: "yesterday"}, {}])
       ctx.inspect.must_equal %{{:model=>Object, :time=>\"yesterday\", :log=>\"Called @ yesterday!\"}}
-      signal, (ctx, _) = Activity::TaskWrap.invoke(Z::Create, [{model: Object, }, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Z::Create, [{model: Object, }, {}])
       ctx.inspect[0..33].must_equal '{:model=>Object, :log=>"Called @ 2'
 
       module Q
@@ -584,9 +584,9 @@ require "date"
         #:inject-default end
       end
 
-      signal, (ctx, _) = Activity::TaskWrap.invoke(Q::Create, [{time: "yesterday", model: Object}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Q::Create, [{time: "yesterday", model: Object}, {}])
       ctx.inspect[0..68].must_equal '{:time=>"yesterday", :model=>Object, :log=>"Called @ yesterday and 20'
-      signal, (ctx, _) = Activity::TaskWrap.invoke(Q::Create, [{model: Object}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Q::Create, [{model: Object}, {}])
       ctx.inspect[0..33].must_equal '{:model=>Object, :log=>"Called @ 2'
 
     end # it
@@ -609,7 +609,7 @@ require "date"
 
     ## this must break because of missing {:date} - it is not defaulted, only injected when present.
       exception = assert_raises do
-        signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{time: "yesterday", model: Object}, {}])
+        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(T::Create, [{time: "yesterday", model: Object}, {}])
       end
       assert_match /missing keyword: :?date/, exception.message
 
@@ -617,16 +617,16 @@ require "date"
     ## {:date} is passed-through.
     ## {:current_user} is defaulted through Inject()
     ## Note that Inject()s are put "on top" of the default input, no whitelisting is happening, we can still see {:model}.
-      signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{time: "yesterday", date: "today", model: Object}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(T::Create, [{time: "yesterday", date: "today", model: Object}, {}])
       assert_equal ctx.inspect, '{:time=>"yesterday", :date=>"today", :model=>Object, :log=>"Called @ yesterday and \"today\" by [:time, :date, :model]{:time=>\"yesterday\", :date=>\"today\", :model=>Object}!", :private=>"[:time, :date, :model, :current_user, :log]"}'
 
     ## {:time} is defaulted through kw
     ## {:current_user} is defaulted through Inject()
-      signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{date: "today"}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(T::Create, [{date: "today"}, {}])
       assert_equal ctx.inspect, '{:date=>"today", :log=>"Called @ Time.now and \"today\" by [:date]{:date=>\"today\"}!", :private=>"[:date, :current_user, :log]"}'
 
     ## {:current_user} is passed-through
-      signal, (ctx, _) = Activity::TaskWrap.invoke(T::Create, [{date: "today", current_user: Object}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(T::Create, [{date: "today", current_user: Object}, {}])
       assert_equal ctx.inspect, '{:date=>"today", :current_user=>Object, :log=>"Called @ Time.now and \"today\" by Object!", :private=>"[:date, :current_user, :log]"}'
     end
 
@@ -648,7 +648,7 @@ require "date"
       end
 
     ## we can only see variables combined from Inject() and In() in the step.
-      signal, (ctx, _) = Activity::TaskWrap.invoke(TT::Create, [{date: "today", model: Object, something: 99}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TT::Create, [{date: "today", model: Object, something: 99}, {}])
       assert_equal ctx.inspect, '{:date=>"today", :model=>Object, :something=>99, :log=>"Called @ Time.now and \"today\" by [:date, :model, :something]!", :private=>"[:model, :thing, :date, :current_user, :log]Object"}'
     end
 
@@ -664,10 +664,10 @@ require "date"
         end
       end
 
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RR::Create, [{time: "yesterday", model: Object}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RR::Create, [{time: "yesterday", model: Object}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :incoming=>[9, nil, [:current_user]]}}
       # pass {:current_user} from the outside
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :incoming=>[9, Module, [:current_user]]}}
     end
 
@@ -685,11 +685,11 @@ require "date"
       end
 
     ## {:private} invisible in outer ctx
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module}}
 
       # no {:model} for invocation
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :model=>[Module, [:time, :current_user, :private]]}}
     end
 
@@ -707,11 +707,11 @@ require "date"
       end
 
     ## {:model} is in outer ctx as we passed it into invocation, {:private} invisible:
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]]}}
 
       # no {:model} in outer ctx
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRR::Create, [{time: "yesterday", current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :song=>[Module, [:time, :current_user, :private]]}}
     end
 
@@ -733,11 +733,11 @@ require "date"
       end
 
       # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]], :user=>Module, :hit=>[Module, [:time, :model, :current_user, :private]]}}
 
       # no {:model} in original ctx
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :song=>[Module, [:time, :current_user, :private]], :user=>Module, :hit=>[Module, [:time, :current_user, :private]]}}
     end
 
@@ -761,7 +761,7 @@ require "date"
       end
 
     ## we basically rename {:errors} to {:create_model_errors} in the {:aggregate} itself.
-      signal, (ctx, _) = Activity::TaskWrap.invoke(SSS::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(SSS::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module, :create_model_errors=>{}}}
     end
 
@@ -784,11 +784,11 @@ require "date"
       end
 
       # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module, :private=>"XXX"}}
 
       # no {:model} in original ctx
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :model=>[Module, [:time, :current_user, :private]], :private=>"XXX"}}
     end
 
@@ -812,11 +812,11 @@ require "date"
       end
 
       # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>"<[Module, [:time, :model, :current_user, :private]]>", :current_user=>Module, :private=>"XXX"}}
 
       # no {:model} in original ctx
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :model=>"<[Module, [:time, :current_user, :private]]>", :private=>"XXX"}}
     end
 
@@ -839,11 +839,11 @@ require "date"
         end
       end
 
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module, :private=>1, :song=>[Module, [:time, :model, :current_user, :private]]}}
 
       # no {:model} in original ctx
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRRRR::Create, [{time: "yesterday", current_user: Module, private: 9}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRRR::Create, [{time: "yesterday", current_user: Module, private: 9}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :private=>10, :model=>[Module, [:time, :current_user, :private]], :song=>[Module, [:time, :current_user, :private]]}}
     end
 
@@ -866,7 +866,7 @@ require "date"
 
       assert_match /\[Trailblazer\] You are mixing `:output/, err
 
-      signal, (ctx, _) = Activity::TaskWrap.invoke(S::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(S::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]]}}
     end
 
@@ -888,7 +888,7 @@ require "date"
 
       assert_match /\[Trailblazer\] You are mixing `:input/, err
 
-      signal, (ctx, _) = Activity::TaskWrap.invoke(RRRRRRRRRR::Create, [{time: "yesterday", model: Object}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRRRRR::Create, [{time: "yesterday", model: Object}, {}])
       assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :incoming=>[Object, [:model]]}}
     end
 
@@ -925,11 +925,11 @@ require "date"
 
 
 
-      signal, (ctx, _) = Activity::TaskWrap.invoke(R::Create, [{time: "yesterday", model: Object}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Create, [{time: "yesterday", model: Object}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, {:model=>"Objecthello! yesterday", :current_user=>nil, :time=>"yesterday"}]]}}
 
     ## {:time} is defaulted by Inject()
-      signal, (ctx, _) = Activity::TaskWrap.invoke(R::Create, [{model: Object}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Create, [{model: Object}, {}])
       assert_equal ctx.inspect, %{{:model=>Object, :out=>["Objecthello! ", ["Objecthello! ", nil, {:model=>"Objecthello! ", :current_user=>nil, :time=>99}]]}}
 
       activity = R::Create
@@ -956,11 +956,11 @@ require "date"
 
     ## Inheriting I/O taskWrap filters
       ## {:time} is defaulted by Inject()
-      signal, (ctx, _) = Activity::TaskWrap.invoke(R::Update, [{model: Object}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Update, [{model: Object}, {}])
       assert_equal ctx.inspect, %{{:model=>Object, :out=>[\"Objecthello! \", [\"Objecthello! \", nil, {:model=>"Objecthello! ", :current_user=>nil, :time=>99}]]}}
 
     ## currently, the In() in Upsert overrides the inherited taskWrap.
-      signal, (ctx, _) = Activity::TaskWrap.invoke(R::Upsert, [{model: Object}, {}])
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Upsert, [{model: Object}, {}])
       assert_equal ctx.inspect, %{{:model=>Object, :incoming=>[Object, nil, {:model=>Object, :current_user=>nil}]}}
 
     end

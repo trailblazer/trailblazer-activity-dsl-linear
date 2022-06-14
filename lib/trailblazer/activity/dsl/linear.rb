@@ -11,6 +11,7 @@ class Trailblazer::Activity
 
       # {Sequence} consists of rows.
       # {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
+      # Complies with the Adds interface (#to_a).
       class Sequence < Array
         # Row interface is part of the ADDs specification.
         class Row < Array
@@ -69,7 +70,7 @@ class Trailblazer::Activity
         # Find the seq_row with {id} and connect the current node to it.
         def ById(output, id)
           ->(sequence, me) do
-            index          = Activity::Adds::Insert.find_index(sequence, id) or return output, sequence[0] # FIXME # or raise "Couldn't find {#{id}}"
+            index          = Adds::Insert.find_index(sequence, id) or return output, sequence[0] # FIXME # or raise "Couldn't find {#{id}}"
             target_seq_row = sequence[index]
 
             return output, target_seq_row

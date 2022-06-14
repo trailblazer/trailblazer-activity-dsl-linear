@@ -2,7 +2,7 @@ require "test_helper"
 
 class StrategyTest < Minitest::Spec
   it "empty Strategy" do
-    strategy = Class.new(Linear::Strategy)
+    strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy)
 
     assert_equal strategy.to_h[:sequence].inspect, %{[[nil, #<Trailblazer::Activity::Start semantic=:default>, [], {:id=>"Start.default"}]]}
 
@@ -13,7 +13,7 @@ class StrategyTest < Minitest::Spec
 
 #@ State-relevant tests
   it "provides {:fields} in {@state} which is an (inherited) hash" do
-    strategy = Class.new(Linear::Strategy)
+    strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy)
 
     sub      = Class.new(strategy)
     sub.instance_variable_get(:@state).update!(:fields) { |fields| fields.merge(representer: Module) }

@@ -179,13 +179,13 @@ class PathHelperTest < Minitest::Spec
 
 
   it "allows using a different task builder, etc" do
-    implementing = Module.new { extend Activity::Testing.def_steps(:a, :f, :b) } # circuit interface.
+    implementing = Module.new { extend Trailblazer::Activity::Testing.def_steps(:a, :f, :b) } # circuit interface.
 
     shared_options = {
       step_interface_builder: Fixtures.method(:circuit_interface_builder)
     }
 
-    path = Activity.Path(**shared_options) # {shared_options} gets merged into {:normalizer_options} automatically.
+    path = Trailblazer::Activity.Path(**shared_options) # {shared_options} gets merged into {:normalizer_options} automatically.
     path.step implementing.method(:a), id: :a, path.Output(:success) => path.Path(end_task: Activity::End.new(semantic: :roundtrip), end_id: "End.roundtrip") do
       step implementing.method(:f), id: :f
     end

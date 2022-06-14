@@ -14,19 +14,6 @@ T = Trailblazer::Activity::Testing
 Minitest::Spec.class_eval do
   Implementing = T.def_steps(:a, :b, :c, :d, :e, :f, :g)
 
-  # def assert_equal(asserted, expected)
-  #   super(expected, asserted)
-  # end
-
-  # @param :seq String What the {:seq} variable in the result ctx looks like.
-  # def assert_call(activity, terminus: :success, seq: "[]", **ctx_variables)
-  #   # Call without taskWrap!
-  #   signal, (ctx, _) = activity.([{seq: [], **ctx_variables}, _flow_options = {}])
-
-  #   assert_equal signal.to_h[:semantic], terminus, "assert_call expected #{terminus} terminus, not #{signal}. Use assert_call(activity, terminus: #{signal.to_h[:semantic]})"
-  #   assert_equal ctx.inspect, {seq: "%%%"}.merge(ctx_variables).inspect.sub('"%%%"', seq)
-  # end
-
   # TODO: use everywhere!!!
   def assert_activity(activity, *args)
     assert_process_for(activity, *args)
@@ -37,10 +24,8 @@ Minitest::Spec.class_eval do
   end
 
   def compile_process(sequence)
-    _process = Linear::Compiler.(sequence)
+    _process = Trailblazer::Activity::DSL::Linear::Compiler.(sequence)
   end
-
-  Linear = Trailblazer::Activity::DSL::Linear
 
   def assert_process(seq, *args)
     process = compile_process(seq)
@@ -48,15 +33,13 @@ Minitest::Spec.class_eval do
     assert_process_for(process, *args)
   end
 
-  Activity = Trailblazer::Activity
-
   let(:implementing) do
     implementing = Module.new do
       extend T.def_tasks(:a, :b, :c, :d, :f, :g)
     end
-    implementing::Start = Activity::Start.new(semantic: :default)
-    implementing::Failure = Activity::End(:failure)
-    implementing::Success = Activity::End(:success)
+    implementing::Start = Trailblazer::Activity::Start.new(semantic: :default)
+    implementing::Failure = Trailblazer::Activity::End(:failure)
+    implementing::Success = Trailblazer::Activity::End(:success)
 
     implementing
   end
@@ -91,7 +74,7 @@ module Fixtures
     def call((ctx, flow_options), *)
       @step.(ctx)
 
-      return Activity::Right, [ctx, flow_options]
+      return Trailblazer::Activity::Right, [ctx, flow_options]
     end
 
     def inspect

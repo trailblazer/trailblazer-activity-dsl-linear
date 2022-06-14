@@ -47,7 +47,7 @@ class DocsStrategyTest < Minitest::Spec
       #:validate
       class Create < Trailblazer::Activity::Path
         #~flow
-        step :validate, Output(Activity::Left, :failure) => End(:invalid)
+        step :validate, Output(Trailblazer::Activity::Left, :failure) => End(:invalid)
         step :create
         #~flow end
         #~mod
@@ -88,8 +88,8 @@ class DocsStrategyTest < Minitest::Spec
       #:double-end
       class Create < Trailblazer::Activity::Path
         #~flow
-        step :validate, Output(Activity::Left, :failure) => End(:invalid)
-        step :create,   Output(Activity::Left, :failure) => End(:invalid)
+        step :validate, Output(Trailblazer::Activity::Left, :failure) => End(:invalid)
+        step :create,   Output(Trailblazer::Activity::Left, :failure) => End(:invalid)
         #~flow end
         #~mod
         def validate(ctx, params:, **)
@@ -406,7 +406,7 @@ class DocsStrategyTest < Minitest::Spec
           begin
             ctx[:input] = Form.validate(params) # true/false
           rescue
-            return Activity::FastTrack::FailFast # signal
+            return Trailblazer::Activity::FastTrack::FailFast # signal
           end
 
           ctx[:input] # true/false

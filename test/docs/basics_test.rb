@@ -16,15 +16,15 @@ class DocsBasicTest < Minitest::Spec
       #:upsert
       class Upsert < Trailblazer::Activity::Path
         #~flow
-        step :find_model, Output(Activity::Left, :failure) => Id(:create)
+        step :find_model, Output(Trailblazer::Activity::Left, :failure) => Id(:create)
         step :update
-        step :create, magnetic_to: nil, Output(Activity::Right, :success) => Id(:update)
+        step :create, magnetic_to: nil, Output(Trailblazer::Activity::Right, :success) => Id(:update)
         #~flow end
 
         #~mod
         def find_model(ctx, id:, **) # A
           ctx[:memo] = Memo.find(id)
-          ctx[:memo] ? Activity::Right : Activity::Left # can be omitted.
+          ctx[:memo] ? Trailblazer::Activity::Right : Trailblazer::Activity::Left # can be omitted.
         end
 
         def update(ctx, params:, **) # B

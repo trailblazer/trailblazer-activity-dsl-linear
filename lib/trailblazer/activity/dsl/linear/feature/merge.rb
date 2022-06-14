@@ -19,11 +19,11 @@ class Trailblazer::Activity
         def self.call(old_seq, new_seq, end_id: "End.success") # DISCUSS: also Insert
           new_seq = strip_start_and_ends(new_seq, end_id: end_id)
 
-          _seq = Activity::Adds::Insert.Prepend(old_seq, new_seq, end_id)
+          _seq = Adds::Insert.Prepend(old_seq, new_seq, end_id)
         end
 
         def self.strip_start_and_ends(seq, end_id:)
-          cut_off_index = end_id.nil? ? seq.size : Activity::Adds::Insert.find_index(seq, end_id) # find the "first" end.
+          cut_off_index = end_id.nil? ? seq.size : Adds::Insert.find_index(seq, end_id) # find the "first" end.
 
           seq[1..cut_off_index-1]
         end

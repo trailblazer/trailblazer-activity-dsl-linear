@@ -4,6 +4,8 @@ require "test_helper"
 # Output(NewSignal, :semantic)
 
 class ActivityTest < Minitest::Spec
+  let(:Activity) { Trailblazer::Activity }
+
   describe "macro" do
 
     it "accepts {:before} in macro options" do
@@ -101,13 +103,13 @@ class ActivityTest < Minitest::Spec
     it "accepts {:outputs}" do
       implementing = self.implementing
 
-      activity = Class.new(Activity::Path) do
+      _activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
         # step MyMacro()
         step(id: :b, task: implementing.method(:b), before: :a, outputs: {success: Activity.Output("Yo", :success)})
       end
 
-      assert_process_for activity.to_h, :success, %{
+      assert_process_for _activity, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.b>
@@ -354,7 +356,7 @@ class ActivityTest < Minitest::Spec
 
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
-        step(id: :b, task: implementing.method(:b), connections: {success: [Linear::Search.method(:ById), :a]})
+        step(id: :b, task: implementing.method(:b), connections: {success: [Trailblazer::Activity::DSL::Linear::Search.method(:ById), :a]})
       end
 
       assert_process_for activity.to_h, :success, %{
@@ -376,13 +378,13 @@ class ActivityTest < Minitest::Spec
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
 
-        row = Linear::Sequence.create_row(task: circuit_interface_tasks.method(:c), id: :c, magnetic_to: :success,
-            wirings: [Linear::Search::Forward(Activity.Output(Activity::Right, :success), :success)])
+        row = Trailblazer::Activity::DSL::Linear::Sequence.create_row(task: circuit_interface_tasks.method(:c), id: :c, magnetic_to: :success,
+            wirings: [Trailblazer::Activity::DSL::Linear::Search::Forward(Activity.Output(Activity::Right, :success), :success)])
 
         step(id: :b, task: implementing.method(:b), adds: [
           {
             row:    row,
-            insert: [Linear::Insert.method(:Prepend), :a]
+            insert: [Trailblazer::Activity::DSL::Linear::Insert.method(:Prepend), :a]
           }
         ])
       end
@@ -683,7 +685,7 @@ raise copy.to_h.inspect
 
     process = activity.to_h
 
-    assert_process_for process, :success, %{
+    assert_process_for activity, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
 #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
@@ -733,7 +735,7 @@ raise copy.to_h.inspect
         step :x, Output(:success) => End(:legit)
         include T.def_steps(:x)
 
-        class Sub < Activity::Railway
+        class Sub < Trailblazer::Activity::Railway
           step :z, Output(:success) => End(:legit)
           include T.def_steps(:z)
         end
