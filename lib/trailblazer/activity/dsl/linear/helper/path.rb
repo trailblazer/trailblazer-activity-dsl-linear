@@ -25,8 +25,9 @@ module Trailblazer
 
                 path_branch_with_block = Linear::PathBranch.new(
                   # normalizers: normalizers,
-                  **normalizer_options,
-                  **path_branch.options.merge(block: block)
+                  normalizer_options.
+                    merge(path_branch.options).
+                    merge(block: block)
                 )
 
                 ctx[:options] = ctx[:options].merge(non_symbol_options: non_symbol_options.merge(output => path_branch_with_block))
