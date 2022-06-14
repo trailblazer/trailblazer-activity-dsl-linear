@@ -625,7 +625,7 @@ class ActivityTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
-raise copy.to_h.inspect
+
     assert_process_for copy.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
