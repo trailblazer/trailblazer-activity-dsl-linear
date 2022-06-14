@@ -11,11 +11,14 @@ module Trailblazer
         # {Railway#pass}, etc.
         module Normalizer
           # Container for all final normalizers of a specific Strategy.
-          class Normalizers < Struct.new(:normalizers)
+          class Normalizers
+            def initialize(**options)
+              @normalizers = options
+            end
             # Execute the specific normalizer (step, fail, pass) for a particular option set provided
             # by the DSL user. Usually invoked when you call {#step}.
             def call(name, ctx)
-              normalizer = normalizers.fetch(name)
+              normalizer = @normalizers.fetch(name)
               wrap_ctx, _ = normalizer.(ctx, nil)
               wrap_ctx
             end
