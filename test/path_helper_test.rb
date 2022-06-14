@@ -227,7 +227,7 @@ class PathHelperTest < Minitest::Spec
 
     shared_options = {
       # step_interface_builder: Fixtures.method(:circuit_interface_builder)
-      normalizers: Linear::State::Normalizer.new(step: my_normalizer)
+      normalizers: Linear::Normalizer::Normalizers.new(step: my_normalizer)
     }
 
     path = Activity.Path(**shared_options)
