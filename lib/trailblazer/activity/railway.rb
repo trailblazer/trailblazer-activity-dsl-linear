@@ -10,7 +10,7 @@ module Trailblazer
         def Normalizer
           path_normalizer =  Path::DSL.Normalizer()
 
-          TaskWrap::Pipeline.prepend(
+          Linear::Normalizer.prepend_to(
             path_normalizer,
             "activity.wirings",
             {
@@ -24,7 +24,7 @@ module Trailblazer
         # We're bound to using a very primitive Pipeline API, remember, we don't have
         # a DSL at this point!
         def NormalizerForFail
-          pipeline = TaskWrap::Pipeline.prepend(
+          pipeline = Linear::Normalizer.prepend_to(
             Normalizer(),
             "activity.wirings",
             {
@@ -32,18 +32,15 @@ module Trailblazer
             }
           )
 
-          pipeline = TaskWrap::Pipeline.prepend(
+          pipeline = Linear::Normalizer.replace(
             pipeline,
             "path.connections",
-            {
-              "railway.connections.fail.success_to_failure" => Linear::Normalizer.Task(Fail.method(:connect_success_to_failure)),
-            },
-            replace: 1 # replace {"path.connections"}
+            ["railway.connections.fail.success_to_failure", Linear::Normalizer.Task(Fail.method(:connect_success_to_failure))],
           )
         end
 
         def NormalizerForPass
-          TaskWrap::Pipeline.prepend(
+          Linear::Normalizer.prepend_to(
             Normalizer(),
             "activity.normalize_outputs_from_dsl",
             # "path.connections",

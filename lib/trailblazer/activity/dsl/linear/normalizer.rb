@@ -26,6 +26,25 @@ module Trailblazer
 
           module_function
 
+          # Helper for normalizers.
+          # To be applied on {Pipeline} instances.
+          def self.prepend_to(pipe, insertion_id, insertion)
+            adds =
+              insertion.collect do |id, task|
+                {insert: [Adds::Insert.method(:Prepend), insertion_id], row: Activity::TaskWrap::Pipeline.Row(id, task)}
+              end
+
+            Adds.apply_adds(pipe, adds.reverse)
+          end
+
+          # Helper for normalizers.
+          def self.replace(pipe, insertion_id, (id, task))
+            Adds.apply_adds(
+              pipe,
+              [{insert: [Adds::Insert.method(:Replace), insertion_id], row: Activity::TaskWrap::Pipeline.Row(id, task)}]
+            )
+          end
+
           # Wrap {task} with {Trailblazer::Option} and execute it with kw args in {#call}.
           # Note that this instance always return {Right}.
           class Task < TaskBuilder::Task

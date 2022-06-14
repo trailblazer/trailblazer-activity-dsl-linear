@@ -21,7 +21,7 @@ module Trailblazer
         module_function
 
         def Normalizer(base_normalizer=Trailblazer::Activity::Railway::DSL.Normalizer())
-          TaskWrap::Pipeline.prepend(
+          Linear::Normalizer.prepend_to(
             base_normalizer,
             "activity.wirings",
 
@@ -36,7 +36,7 @@ module Trailblazer
         def NormalizerForFail
           pipeline = Normalizer(Railway::DSL.NormalizerForFail())
 
-          TaskWrap::Pipeline.prepend(
+          Linear::Normalizer.prepend_to(
             pipeline,
             "activity.wirings",
 
@@ -49,7 +49,7 @@ module Trailblazer
         def NormalizerForPass
           pipeline = Normalizer(Railway::DSL.NormalizerForPass())
 
-          TaskWrap::Pipeline.prepend(
+          Linear::Normalizer.prepend_to(
             pipeline,
             "activity.wirings",
 

@@ -12,7 +12,7 @@ module Trailblazer
           # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
           dsl_normalizer = Linear::Normalizer.Normalizer()
 
-          TaskWrap::Pipeline.prepend(
+          Linear::Normalizer.prepend_to(
             dsl_normalizer,
             # "activity.wirings",
             "activity.normalize_outputs_from_dsl",
