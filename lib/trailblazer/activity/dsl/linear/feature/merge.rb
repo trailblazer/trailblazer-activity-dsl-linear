@@ -19,7 +19,10 @@ class Trailblazer::Activity
         def self.call(old_seq, new_seq, end_id: "End.success") # DISCUSS: also Insert
           new_seq = strip_start_and_ends(new_seq, end_id: end_id)
 
-          _seq = Adds::Insert.Prepend(old_seq, new_seq, end_id)
+          _seq = Adds.apply_adds(
+            old_seq,
+            new_seq.collect { |row| {insert: [Adds::Insert.method(:Prepend), end_id], row: row } }
+          )
         end
 
         def self.strip_start_and_ends(seq, end_id:)
