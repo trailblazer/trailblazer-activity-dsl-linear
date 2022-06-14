@@ -37,24 +37,7 @@ module Trailblazer
               library_options:    library_options     # see above, "runtime" options (from compile-time, haha).
             )
           end
-        end
-
-        # A {State} instance is kept per DSL client, which usually is a subclass of {Path}, {Railway}, etc.
-        # State doesn't have any immutable features - all write operations to it must guarantee they only replace
-        # instance variables.
-        #
-        # @private
-        #
-        # DISCUSS: why do we have this structure? It doesn't cover "immutable copying", that has to be done by its clients.
-        #          also, copy with to_h
-        #
-        # * All public DSL methods on Sequencer return the updated sequence.
-        class State # TODO: rename to Sequencer::Builder
-
-
-
-        end # State
-
+        end # Sequencer
       end
     end
   end
