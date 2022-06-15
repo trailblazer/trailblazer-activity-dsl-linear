@@ -45,8 +45,7 @@ module Trailblazer
             )
           end
 
-          # Wrap {task} with {Trailblazer::Option} and execute it with kw args in {#call}.
-          # Note that this instance always return {Right}.
+          # @private
           class Task < TaskBuilder::Task
             def call(wrap_ctx, flow_options={})
               _result = call_option(@task, [wrap_ctx, flow_options]) # DISCUSS: this mutates {ctx}.
@@ -55,13 +54,20 @@ module Trailblazer
             end
           end
 
+          # Wrap user's normalizer task with {Trailblazer::Option} and thus execute it with
+          # convenient kw args.
+          #
+          # Example
+          #   normalizer_task = Normalizer.Task(method(:normalize_id))
+          #
+          #   # will call {normalizer_task} and pass ctx variables as kwargs, as follows
+          #   def normalize_id(ctx, id: false, task:, **)
           def Task(user_proc)
             Normalizer::Task.new(Trailblazer::Option(user_proc), user_proc)
           end
 
-          #   activity_normalizer.([{options:, user_options:, normalizer_options: }])
           # The generic normalizer not tied to `step` or friends.
-          def Normalizer#(pipeline)
+          def Normalizer
             pipeline = TaskWrap::Pipeline.new(
               {
                 "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)), # Makes sure {:options} is always a hash.
@@ -210,7 +216,7 @@ module Trailblazer
 
           # @private
           def raise_on_duplicate_id(ctx, id:, sequence:, **)
-            raise "ID #{id} is already taken. Please specify an `:id`." if sequence.find { |row| row[3][:id] == id }
+            raise "ID #{id} is already taken. Please specify an `:id`." if sequence.find { |row| row.id == id }
           end
 
           # @private
