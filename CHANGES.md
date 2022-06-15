@@ -35,6 +35,7 @@
 * Rename `Linear::State` to `Linear::Sequence::Builder`. This is now a stateless function, only.
 * Move `Linear::Search` to `Linear::Sequence::Search`.
 * Move `Linear::Compiler` to `Linear::Sequence::Compiler`.
+* `TaskWrap::Pipeline.prepend` is now `Linear::Normalizer.prepend_to`. To use the `:replace` option you can use `Linear::Normalizer.replace`.
 
 # 0.5.0
 

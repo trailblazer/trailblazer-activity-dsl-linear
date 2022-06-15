@@ -34,7 +34,7 @@ module Trailblazer
                 {insert: [Adds::Insert.method(:Prepend), insertion_id], row: Activity::TaskWrap::Pipeline.Row(id, task)}
               end
 
-            Adds.apply_adds(pipe, adds.reverse)
+            Adds.apply_adds(pipe, insertion_id ? adds : adds.reverse)
           end
 
           # Helper for normalizers.
