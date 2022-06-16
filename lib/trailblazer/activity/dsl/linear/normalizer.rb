@@ -336,8 +336,8 @@ module Trailblazer
             index = Activity::Adds::Insert.find_index(sequence, id)
             row   = sequence[index] # from this row we're inheriting options.
 
-            ctx[:connections] = get_inheritable_connections(ctx, row[3][:connections])
-            ctx[:extensions]  = Array(row[3][:extensions]) + Array(extensions)
+            ctx[:connections] = get_inheritable_connections(ctx, row.data[:connections])
+            ctx[:extensions]  = Array(row.data[:extensions]) + Array(extensions)
           end
 
           # return connections from {parent} step which are supported by current step

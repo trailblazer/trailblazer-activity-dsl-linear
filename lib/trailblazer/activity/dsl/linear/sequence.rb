@@ -11,17 +11,21 @@ class Trailblazer::Activity
         # Row interface is part of the ADDs specification.
         class Row < Array
           def id
-            self[3][:id]
+            data[:id]
+          end
+
+          def data
+            self[3]
           end
         end
 
         # Return {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
-        def self.create_row(task:, magnetic_to:, wirings:, **options)
+        def self.create_row(task:, magnetic_to:, wirings:, **data)
           Row[
             magnetic_to,
             task,
             wirings,
-            options # {id: "Start.success"}
+            data # {id: "Start.success"}
           ]
         end
       end # Sequence
