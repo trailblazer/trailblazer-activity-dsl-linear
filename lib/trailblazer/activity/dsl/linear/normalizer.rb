@@ -88,8 +88,10 @@ module Trailblazer
                 "activity.path_helper.path_to_track"       => Normalizer.Task(Helper::Path::Normalizer.method(:convert_paths_to_tracks)),
                 "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
                 "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
-                "activity.input_output_extensions"        => Normalizer.Task(method(:input_output_extensions)),
-                "activity.input_output_dsl"               => Normalizer.Task(method(:input_output_dsl)),
+
+                # In(), Out(), {:input}, Inject() feature
+                "activity.normalize_input_output_filters" => Normalizer.Task(VariableMapping::Normalizer.method(:normalize_input_output_filters)),
+                "activity.input_output_dsl"               => Normalizer.Task(VariableMapping::Normalizer.method(:input_output_dsl)),
 
 
                 "activity.wirings"                            => Normalizer.Task(method(:compile_wirings)),
@@ -303,31 +305,6 @@ module Trailblazer
             ctx[:non_symbol_options] = non_symbol_options.merge(dsl_options)
           end
 
-          # Process {In() => [:model], Inject() => [:current_user], Out() => [:model]}
-          def input_output_extensions(ctx, non_symbol_options:, **)
-            input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::In) }
-            output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Out) }
-            inject_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Inject) }
-
-            return unless input_exts.any? || output_exts.any? || inject_exts.any?
-
-            ctx[:injects] = inject_exts
-            ctx[:input_filters] = input_exts
-            ctx[:output_filters] = output_exts # DISCUSS: naming
-          end
-
-          def input_output_dsl(ctx, extensions: [], input_filters: nil, output_filters: nil, injects: nil, **)
-            config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx, :inject].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
-            config = config.merge(input_filters: input_filters)   if input_filters
-            config = config.merge(output_filters: output_filters) if output_filters # TODO: hm, is this nice code?
-
-            config = config.merge(injects: injects) if injects
-
-            return unless config.any? # no :input/:output/:inject/Input()/Output() passed.
-
-            ctx[:extensions] = extensions + [Linear.VariableMapping(**config)]
-          end
-
           # Currently, the {:inherit} option copies over {:connections} from the original step
           # and merges them with the (prolly) connections passed from the user.
           def inherit_option(ctx, inherit: false, sequence:, id:, extensions: [], **)
@@ -336,8 +313,11 @@ module Trailblazer
             index = Activity::Adds::Insert.find_index(sequence, id)
             row   = sequence[index] # from this row we're inheriting options.
 
-            ctx[:connections] = get_inheritable_connections(ctx, row.data[:connections])
-            ctx[:extensions]  = Array(row.data[:extensions]) + Array(extensions)
+            inherited_connections = row.data[:connections]
+            inherited_extensions  = row.data[:extensions]
+
+            ctx[:connections] = get_inheritable_connections(ctx, inherited_connections)
+            ctx[:extensions]  = Array(inherited_extensions) + Array(extensions)
           end
 
           # return connections from {parent} step which are supported by current step

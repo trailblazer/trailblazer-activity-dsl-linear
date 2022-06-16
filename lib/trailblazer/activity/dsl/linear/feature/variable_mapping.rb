@@ -25,8 +25,35 @@ module Trailblazer
 #   Option
 #     filter
 #   MergeVariables
-
         module VariableMapping
+          # Steps that are added to the DSL normalizer.
+          module Normalizer
+            # Process {In() => [:model], Inject() => [:current_user], Out() => [:model]}
+            def self.normalize_input_output_filters(ctx, non_symbol_options:, **)
+              input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::In) }
+              output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Out) }
+              inject_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Inject) }
+
+              return unless input_exts.any? || output_exts.any? || inject_exts.any?
+
+              ctx[:injects] = inject_exts
+              ctx[:input_filters] = input_exts
+              ctx[:output_filters] = output_exts # DISCUSS: naming
+            end
+
+            def self.input_output_dsl(ctx, extensions: [], input_filters: nil, output_filters: nil, injects: nil, **)
+              config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx, :inject].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
+              config = config.merge(input_filters: input_filters)   if input_filters
+              config = config.merge(output_filters: output_filters) if output_filters # TODO: hm, is this nice code?
+
+              config = config.merge(injects: injects) if injects
+
+              return unless config.any? # no :input/:output/:inject/Input()/Output() passed.
+
+              ctx[:extensions] = extensions + [Linear.VariableMapping(**config)]
+            end
+          end
+
           module_function
 
           Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class) # FIXME: move to DSL part
