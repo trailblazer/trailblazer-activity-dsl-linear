@@ -45,6 +45,18 @@ module Trailblazer
             )
           end
 
+          # Extend a particular normalizer with new steps and save it on the activity.
+          def self.extend!(activity_class, name)
+            activity_class.instance_variable_get(:@state).update!(:normalizers) do |normalizers|
+              hsh = normalizers.instance_variable_get(:@normalizers) # TODO: introduce {#to_h}.
+              extended_normalizer = hsh.fetch(name)
+
+              new_normalizer = yield(extended_normalizer)
+
+              Normalizers.new(**hsh.merge(name => new_normalizer))
+            end
+          end
+
           # @private
           class Task < TaskBuilder::Task
             def call(wrap_ctx, flow_options={})

@@ -36,6 +36,7 @@
 * Move `Linear::Search` to `Linear::Sequence::Search`.
 * Move `Linear::Compiler` to `Linear::Sequence::Compiler`.
 * `TaskWrap::Pipeline.prepend` is now `Linear::Normalizer.prepend_to`. To use the `:replace` option you can use `Linear::Normalizer.replace`.
+* Add `Normalizer.extend!` to extend a particular normalizer in a strategy subclass.
 
 # 0.5.0
 

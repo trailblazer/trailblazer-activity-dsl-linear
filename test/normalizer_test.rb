@@ -1,6 +1,40 @@
 require "test_helper"
 
 class NormalizerTest < Minitest::Spec
+  it "Normalizer API" do
+    # Your code to customize the DSL normalizer.
+    module NormalizerExtensions
+      def self.upcase_id(ctx, id:, **)
+        ctx[:id] = id.to_s.upcase
+      end
+    end
+
+    application_operation = Class.new(Trailblazer::Activity::Railway) do
+      Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step) do |normalizer|
+        # this is where your extending code enters the stage:
+        Trailblazer::Activity::DSL::Linear::Normalizer.prepend_to(
+          normalizer,
+          "activity.normalize_override", # step after "activity.normalize_id"
+          {
+            "my.upcase_id" => Trailblazer::Activity::DSL::Linear::Normalizer.Task(NormalizerExtensions.method(:upcase_id)),
+          }
+        )
+      end
+
+      step :model
+      pass :find_id
+    end
+
+    graph = Trailblazer::Activity::Introspect.Graph(application_operation)
+
+    #@ we don't find a row named {:model}
+    assert_equal graph.find(:model), nil
+    #@ we find a {"MODEL"} row
+    assert_equal graph.find("MODEL").id, "MODEL"
+    #@ {#pass} still has lowercase ID.
+    assert_equal graph.find(:find_id).id, :find_id
+  end
+
   it "#prepend_to  and #replace" do
     pipe = Trailblazer::Activity::TaskWrap::Pipeline.new([])
 
