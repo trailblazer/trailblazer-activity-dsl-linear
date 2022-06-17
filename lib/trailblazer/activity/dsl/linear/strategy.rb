@@ -130,7 +130,6 @@ module Trailblazer
           extend Merge::DSL # {Strategy.merge!}
 
           state = Declarative::State(
-            # sequencer: [nil, copy: method(:copy)], # when inherited, call sequencer.copy
             normalizers: [nil, {}],        # immutable
             normalizer_options: [nil, {}], # immutable
 
