@@ -25,6 +25,10 @@ class NormalizerTest < Minitest::Spec
       pass :find_id
     end
 
+    create_operation = Class.new(application_operation) do
+      step :create
+    end
+
     graph = Trailblazer::Activity::Introspect.Graph(application_operation)
 
     #@ we don't find a row named {:model}
@@ -33,6 +37,12 @@ class NormalizerTest < Minitest::Spec
     assert_equal graph.find("MODEL").id, "MODEL"
     #@ {#pass} still has lowercase ID.
     assert_equal graph.find(:find_id).id, :find_id
+
+  #@ inheritance
+    graph = Trailblazer::Activity::Introspect.Graph(create_operation)
+    assert_equal graph.find("MODEL").id, "MODEL"
+    assert_equal graph.find(:find_id).id, :find_id
+    assert_equal graph.find("CREATE").id, "CREATE"
   end
 
   it "#prepend_to  and #replace" do
