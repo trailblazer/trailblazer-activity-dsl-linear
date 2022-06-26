@@ -611,7 +611,7 @@ require "date"
       exception = assert_raises do
         signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(T::Create, [{time: "yesterday", model: Object}, {}])
       end
-      assert_match /missing keyword: :?date/, exception.message
+      assert_match /missing keywords?: :?date/, exception.message
 
     ## {:time} is passed-through.
     ## {:date} is passed-through.
@@ -913,17 +913,13 @@ require "date"
         class Update < Create
         end
 
-        # TODO: allow adding/modifying the inherited settings.
         class Upsert < Update
           step :write, replace: :write,
             # inherit: [:variable_mapping],
           ## this overrides the existing taskWrap
             In() => [:model, :current_user]
-
         end
       end
-
-
 
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Create, [{time: "yesterday", model: Object}, {}])
       assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, {:model=>"Objecthello! yesterday", :current_user=>nil, :time=>"yesterday"}]]}}
@@ -962,6 +958,63 @@ require "date"
     ## currently, the In() in Upsert overrides the inherited taskWrap.
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Upsert, [{model: Object}, {}])
       assert_equal ctx.inspect, %{{:model=>Object, :incoming=>[Object, nil, {:model=>Object, :current_user=>nil}]}}
+
+    end
+
+    it "inherit: [:variable_mapping]" do
+      module TTTTT
+        class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
+          extend Trailblazer::Activity::DSL::Linear::VariableMapping::Inherit # this has to be done on the root level!
+
+          step :write,
+            # all filters can see the original ctx:
+            Inject() => {time: ->(ctx, **) { 99 }},
+            In() => [:model],
+            In() => [:current_user]
+
+          def write(ctx, model:, current_user:, **)
+            ctx[:incoming] = [model, current_user, ctx.to_h]
+          end
+        end
+
+      #@ Is the taskWrap inherited?
+        class Update < Create
+        end
+
+        # TODO: allow adding/modifying the inherited settings.
+        class Upsert < Update
+          step :write, replace: :write,
+            # inherit: [:variable_mapping],
+          ## this overrides the existing taskWrap
+            In() => [:model, :current_user]
+
+        end
+      end
+
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Create, [{time: "yesterday", model: Object}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, {:model=>"Objecthello! yesterday", :current_user=>nil, :time=>"yesterday"}]]}}
+
+      #@ {:time} is defaulted by Inject()
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Create, [{model: Object}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :out=>["Objecthello! ", ["Objecthello! ", nil, {:model=>"Objecthello! ", :current_user=>nil, :time=>99}]]}}
+
+    end
+
+    #@ unit test
+    it "accepts :initial_input_pipeline as normalizer option" do
+      activity = Class.new(Trailblazer::Activity::Railway) do
+        input_pipe = Trailblazer::Activity::TaskWrap::Pipeline.new([Trailblazer::Activity::TaskWrap::Pipeline.Row("input.scope", ->(wrap_ctx, original_args) { raise wrap_ctx.inspect })])
+
+        step :write,
+          initial_input_pipeline: input_pipe#, In() => [:model]
+
+        def write(ctx, model:, **)
+          ctx[:incoming] = [model, ctx.to_h]
+        end
+      end
+
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{time: "yesterday", model: Object}, {}])
+      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, {:model=>"Objecthello! yesterday", :current_user=>nil, :time=>"yesterday"}]]}}
 
     end
 

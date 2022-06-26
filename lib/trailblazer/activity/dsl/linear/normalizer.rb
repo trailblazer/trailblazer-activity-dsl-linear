@@ -101,11 +101,6 @@ module Trailblazer
                 "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
                 "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
 
-                # In(), Out(), {:input}, Inject() feature
-                "activity.normalize_input_output_filters" => Normalizer.Task(VariableMapping::Normalizer.method(:normalize_input_output_filters)),
-                "activity.input_output_dsl"               => Normalizer.Task(VariableMapping::Normalizer.method(:input_output_dsl)),
-
-
                 "activity.wirings"                            => Normalizer.Task(method(:compile_wirings)),
 
                 # TODO: make this a "Subprocess":

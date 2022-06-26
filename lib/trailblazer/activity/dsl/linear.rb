@@ -24,7 +24,6 @@ require "trailblazer/activity/dsl/linear/sequence"
 require "trailblazer/activity/dsl/linear/sequence/builder"
 require "trailblazer/activity/dsl/linear/sequence/search"
 require "trailblazer/activity/dsl/linear/sequence/compiler"
-require "trailblazer/activity/dsl/linear/feature/variable_mapping"
 require "trailblazer/activity/dsl/linear/normalizer"
 require "trailblazer/activity/dsl/linear/normalizer/terminus"
 require "trailblazer/activity/dsl/linear/helper"
@@ -33,3 +32,10 @@ require "trailblazer/activity/dsl/linear/strategy"
 require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"
+require "trailblazer/activity/dsl/linear/feature/variable_mapping"
+
+
+Trailblazer::Activity::Path.extend Trailblazer::Activity::DSL::Linear::VariableMapping # feature/variable_mapping
+Trailblazer::Activity::Railway.extend Trailblazer::Activity::DSL::Linear::VariableMapping # feature/variable_mapping
+# FIXME: test variable mapping for pass and fail, and implement  it via VariableMapping.extend!(Railway, :step, :pass, :fail)
+# FIXME: test variable_mapping for FastTrack
