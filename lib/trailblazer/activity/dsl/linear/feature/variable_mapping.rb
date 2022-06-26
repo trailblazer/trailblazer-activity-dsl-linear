@@ -52,17 +52,16 @@ module Trailblazer
               ctx[:output_filters] = output_exts # DISCUSS: naming
             end
 
-            def self.input_output_dsl(ctx, extensions: [], input_filters: nil, output_filters: nil, injects: nil, initial_input_pipeline: nil, **)
+            def self.input_output_dsl(ctx, extensions: [], input_filters: nil, output_filters: nil, injects: nil, **options)
               config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx, :inject].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
               config = config.merge(input_filters: input_filters)   if input_filters
               config = config.merge(output_filters: output_filters) if output_filters # TODO: hm, is this nice code?
-              config = config.merge(initial_input_pipeline: initial_input_pipeline) if initial_input_pipeline # TODO: the defaulting here sucks.
 
               config = config.merge(injects: injects) if injects
 
               return unless config.any? # no :input/:output/:inject/Input()/Output() passed.
 
-              extension, normalizer_options = Linear.VariableMapping(**config)
+              extension, normalizer_options = Linear.VariableMapping(**config, **options)
 
               ctx[:extensions] = extensions + [extension] # FIXME: allow {Extension() => extension}
               ctx.merge!(**normalizer_options) # DISCUSS: is there another way of merging variables into ctx?
@@ -72,10 +71,6 @@ module Trailblazer
           module_function
 
           Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class) # FIXME: move to DSL part
-
-          def input_pipeline_for(initial_pipeline: initial_input_pipeline)
-
-          end
 
           # Adds the default_ctx step as per option {:add_default_ctx}
           def initial_input_pipeline(add_default_ctx: false)
@@ -134,11 +129,9 @@ module Trailblazer
             return pipeline, has_filters
           end
 
-          def pipe_for_composable_input(in_filters: [], inject_filters: [])
-            is_inject_only = Array(in_filters).empty?
-
-            pipeline = initial_input_pipeline(add_default_ctx: is_inject_only)
-
+          # We allow to inject {:initial_input_pipeline} here in order to skip creating a new input pipeline and instead
+          # use the inherit one.
+          def pipe_for_composable_input(in_filters: [], inject_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
             inject_filters = DSL::Inject.filters_for_injects(inject_filters) # {Inject() => ...} the pure user input gets translated into AddVariable aggregate steps.
             in_filters     = DSL::Tuple.filters_from_tuples(in_filters)
 
@@ -146,16 +139,22 @@ module Trailblazer
                 # With only injections defined, we do not filter out anything, we use the original ctx
                 # and _add_ defaulting for injected variables.
 
-                pipeline = add_filter_steps(pipeline, in_filters)
+                pipeline = add_filter_steps(initial_input_pipeline, in_filters)
                 pipeline = add_filter_steps(pipeline, inject_filters)
               # end
               pipeline
           end
 
+          def initial_input_pipeline_for(in_filters)
+            is_inject_only = Array(in_filters).empty?
+
+            initial_input_pipeline(add_default_ctx: is_inject_only)
+          end
+
           def add_filter_steps(pipeline, rows) # FIXME: do we need all this?
             rows = add_variables_steps_for_filters(rows)
 
-            adds = Activity::Adds::FriendlyInterface.adds_for( # FIXME: make line below unnecessary
+            adds = Activity::Adds::FriendlyInterface.adds_for(
               rows.collect { |row| [row[1], id: row[0], prepend: "input.scope"] }
             )
 
@@ -179,40 +178,14 @@ module Trailblazer
             # newway(initial_input_pipeline)
             #   In,Inject
           # => input_pipe
-          def merge_instructions_from_dsl(output:, output_with_outer_ctx:, input_filters:, output_filters:, injects:, initial_input_pipeline: initial_input_pipeline(), **options)
+          def merge_instructions_from_dsl(output:, output_with_outer_ctx:, input_filters:, output_filters:, injects:, **options)
 
             # The overriding {:input} option is set.
             pipeline, input_overrides = pipe_for_mono_input(input_filters: input_filters, output: output, **options) # FIXME: make this **options
 
             if ! input_overrides
-              pipeline = pipe_for_composable_input(in_filters: input_filters, inject_filters: injects)
-              pp pipeline
+              pipeline = pipe_for_composable_input(in_filters: input_filters, inject_filters: injects, **options)  # FIXME: rename filters consistently
             end
-            # if input
-            #   input_steps += pipe_steps_for_input_option(input: input)
-            # In()
-            # else
-            #   input_steps += [["input.default_input", VariableMapping.method(:default_input_ctx)]]
-            # end
-
-            # Inject filters are just input filters.
-            #
-            # {inject} can be {[:current_user, :model, {volume: ->() {}, }]}
-            # if inject.any?
-            #   injects = inject.collect { |name| name.is_a?(Symbol) ? [DSL.Inject(), [name]] : [DSL.Inject(), name] }
-
-            #   tuples  = DSL::Inject.filters_for_injects(injects) # DISCUSS: should we add passthrough/defaulting here at Inject()-time?
-
-            #   input_steps += add_variables_steps_for_filters(tuples)
-            # end
-
-            # add Inject() steps
-
-            # adds = Activity::Adds::FriendlyInterface.adds_for( # FIXME: make line below unnecessary
-            #   input_steps.collect { |row| [row[1], id: row[0], prepend: "input.scope"] }
-            # )
-            # puts "@@@@@ #{input_steps.inspect}"
-            # pipe = Activity::Adds.apply_adds(initial_input_pipeline, adds) # we need to save this pipe to support inheritance etc.
 
             # gets wrapped by {VariableMapping::Input} and called there.
             # API: @filter.([ctx, original_flow_options], **original_circuit_options)

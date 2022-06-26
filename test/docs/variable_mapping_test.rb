@@ -1002,11 +1002,23 @@ require "date"
 
     #@ unit test
     it "accepts :initial_input_pipeline as normalizer option" do
+      my_input_ctx = ->(wrap_ctx, original_args) do
+      # The default ctx is the original ctx but with uppercased values.
+        default_ctx = wrap_ctx[:original_ctx].collect { |k,v| [k.to_s.upcase, v.to_s.upcase] }.to_h
+
+        Trailblazer::Activity::DSL::Linear::VariableMapping.MergeVariables(default_ctx, wrap_ctx, original_args)
+      end
+
       activity = Class.new(Trailblazer::Activity::Railway) do
-        input_pipe = Trailblazer::Activity::TaskWrap::Pipeline.new([Trailblazer::Activity::TaskWrap::Pipeline.Row("input.scope", ->(wrap_ctx, original_args) { raise wrap_ctx.inspect })])
+        input_pipe = Trailblazer::Activity::TaskWrap::Pipeline.new([
+          Trailblazer::Activity::TaskWrap::Pipeline.Row("input.init_hash", Trailblazer::Activity::DSL::Linear::VariableMapping.method(:initial_aggregate)),
+        # we use the standard input pipeline but with our own default_ctx that has UPPERCASED variables and values.
+          Trailblazer::Activity::TaskWrap::Pipeline.Row("input.my_input_ctx", my_input_ctx),
+          Trailblazer::Activity::TaskWrap::Pipeline.Row("input.scope", Trailblazer::Activity::DSL::Linear::VariableMapping.method(:scope)),
+        ]) # DISCUSS: use VariableMapping.initial_input_pipeline here, and modify it?
 
         step :write,
-          initial_input_pipeline: input_pipe#, In() => [:model]
+          initial_input_pipeline: input_pipe, In() => [:model]
 
         def write(ctx, model:, **)
           ctx[:incoming] = [model, ctx.to_h]
@@ -1014,8 +1026,7 @@ require "date"
       end
 
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{time: "yesterday", model: Object}, {}])
-      assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, {:model=>"Objecthello! yesterday", :current_user=>nil, :time=>"yesterday"}]]}}
-
+      assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :incoming=>[Object, {:TIME=>"YESTERDAY", :MODEL=>"OBJECT", :model=>Object}]}}
     end
 
 
