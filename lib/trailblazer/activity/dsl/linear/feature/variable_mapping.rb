@@ -10,10 +10,10 @@ module Trailblazer
             output_filters = []
           end
 
-          extension, normalizer_options = VariableMapping.merge_instructions_from_dsl(output: output, output_with_outer_ctx: output_with_outer_ctx, input_filters: input_filters,
+          extension, normalizer_options, non_symbol_options = VariableMapping.merge_instructions_from_dsl(output: output, output_with_outer_ctx: output_with_outer_ctx, input_filters: input_filters,
             output_filters: output_filters, injects: injects, **options)
 
-          return TaskWrap::Extension::WrapStatic.new(extension: extension), normalizer_options
+          return TaskWrap::Extension::WrapStatic.new(extension: extension), normalizer_options, non_symbol_options
         end
 
 
@@ -61,10 +61,11 @@ module Trailblazer
 
               return unless config.any? # no :input/:output/:inject/Input()/Output() passed.
 
-              extension, normalizer_options = Linear.VariableMapping(**config, **options)
+              extension, normalizer_options, non_symbol_options = Linear.VariableMapping(**config, **options)
 
               ctx[:extensions] = extensions + [extension] # FIXME: allow {Extension() => extension}
               ctx.merge!(**normalizer_options) # DISCUSS: is there another way of merging variables into ctx?
+              ctx[:non_symbol_options].merge!(non_symbol_options)
             end
           end
 
@@ -142,6 +143,7 @@ module Trailblazer
                 pipeline = add_filter_steps(initial_input_pipeline, in_filters)
                 pipeline = add_filter_steps(pipeline, inject_filters)
               # end
+
               pipeline
           end
 
@@ -196,8 +198,12 @@ module Trailblazer
 
 # store pipe in the extension (via TW::Extension.data)?
             return TaskWrap::VariableMapping.Extension(input, output, id: input.object_id), # wraps filters: {Input(input), Output(output)}
+              # normalizer_options:
               {
                 variable_mapping_pipelines: [pipeline],
+              },
+              # non_symbol_options:
+              {
                 Linear::Strategy.DataVariable() => :variable_mapping_pipelines # we want to store {:variable_mapping_pipelines} in {Row.data} for later reference.
               }
               # DISCUSS: should we remember the pure pipelines or get it from the compiled extension?

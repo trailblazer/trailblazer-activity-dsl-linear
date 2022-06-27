@@ -315,16 +315,22 @@ module Trailblazer
           # Currently, the {:inherit} option copies over {:connections} from the original step
           # and merges them with the (prolly) connections passed from the user.
           def inherit_option(ctx, inherit: false, sequence:, id:, extensions: [], **)
-            return unless inherit
+            return unless inherit === true
 
-            index = Activity::Adds::Insert.find_index(sequence, id)
-            row   = sequence[index] # from this row we're inheriting options.
+            row = InheritOption.find_row(sequence, id) # from this row we're inheriting options.
 
             inherited_connections = row.data[:connections]
             inherited_extensions  = row.data[:extensions]
 
             ctx[:connections] = get_inheritable_connections(ctx, inherited_connections)
             ctx[:extensions]  = Array(inherited_extensions) + Array(extensions)
+          end
+
+          module InheritOption # TODO: move all inherit methods in here!
+            def self.find_row(sequence, id)
+              index = Activity::Adds::Insert.find_index(sequence, id)
+              sequence[index]
+            end
           end
 
           # return connections from {parent} step which are supported by current step
