@@ -4,14 +4,14 @@ module Trailblazer
       module Linear
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
-        def self.VariableMapping(output: nil, output_with_outer_ctx: false, input_filters: [], output_filters: [], injects: [], **options)
+        def self.VariableMapping(output: nil, output_with_outer_ctx: false, output_filters: [], **options)
           if output && output_filters.any? # DISCUSS: where does this live?
             warn "[Trailblazer] You are mixing `:output` and `Out() => ...`. `Out()` options are ignored and `:output` wins."
             output_filters = []
           end
 
-          extension, normalizer_options, non_symbol_options = VariableMapping.merge_instructions_from_dsl(output: output, output_with_outer_ctx: output_with_outer_ctx, input_filters: input_filters,
-            output_filters: output_filters, injects: injects, **options)
+          extension, normalizer_options, non_symbol_options = VariableMapping.merge_instructions_from_dsl(output: output, output_with_outer_ctx: output_with_outer_ctx,
+            output_filters: output_filters, **options)
 
           return TaskWrap::Extension::WrapStatic.new(extension: extension), normalizer_options, non_symbol_options
         end
@@ -47,21 +47,16 @@ module Trailblazer
 
               return unless input_exts.any? || output_exts.any? || inject_exts.any?
 
-              ctx[:injects] = inject_exts
-              ctx[:input_filters] = input_exts
+              ctx[:inject_filters] = inject_exts
+              ctx[:in_filters]     = input_exts
               ctx[:output_filters] = output_exts # DISCUSS: naming
             end
 
-            def self.input_output_dsl(ctx, extensions: [], input_filters: nil, output_filters: nil, injects: nil, **options)
-              config = ctx.select { |k,v| [:input, :output, :output_with_outer_ctx, :inject].include?(k) } # TODO: optimize this, we don't have to go through the entire hash.
-              config = config.merge(input_filters: input_filters)   if input_filters
-              config = config.merge(output_filters: output_filters) if output_filters # TODO: hm, is this nice code?
+            def self.input_output_dsl(ctx, extensions: [], **options)
+              # no :input/:output/:inject/Input()/Output() passed.
+              return if (options.keys & [:input, :output, :inject, :inject_filters, :in_filters, :output_filters]).empty?
 
-              config = config.merge(injects: injects) if injects
-
-              return unless config.any? # no :input/:output/:inject/Input()/Output() passed.
-
-              extension, normalizer_options, non_symbol_options = Linear.VariableMapping(**config, **options)
+              extension, normalizer_options, non_symbol_options = Linear.VariableMapping(**options)
 
               ctx[:extensions] = extensions + [extension] # FIXME: allow {Extension() => extension}
               ctx.merge!(**normalizer_options) # DISCUSS: is there another way of merging variables into ctx?
@@ -94,38 +89,32 @@ module Trailblazer
           end
 
           # Handle {:input} and {:inject} option, the "old" interface.
-          def pipe_steps_for_input_option(pipeline, input:)
+          def add_steps_for_input_option(pipeline, input:)
             tuple         = DSL.In(name: ":input") # simulate {In() => input}
             input_filter  = DSL::Tuple.filters_from_tuples([[tuple, input]])
 
             add_filter_steps(pipeline, input_filter)
           end
 
-          def pipe_for_mono_input(input: [], inject: [], input_filters:, output:, **)
+          def add_steps_for_inject_option(pipeline, inject:)
+            injects = inject.collect { |name| name.is_a?(Symbol) ? [DSL.Inject(), [name]] : [DSL.Inject(), name] }
+
+            tuples  = DSL::Inject.filters_for_injects(injects) # DISCUSS: should we add passthrough/defaulting here at Inject()-time?
+
+            add_filter_steps(pipeline, tuples)
+          end
+
+          def pipe_for_mono_input(input: [], inject: [], in_filters: [], output: [], **)
             has_input   = Array(input).any?
             has_filters = has_input || Array(inject).any? || Array(output).any?
 
-                      if has_filters && input_filters.any?
+            if has_filters && in_filters.any?
               warn "[Trailblazer] You are mixing `:input` and `In() => ...`. `In()` and Inject () options are ignored and `:input` wins."
-              input_filters = []
             end
-
-
 
             pipeline = initial_input_pipeline(add_default_ctx: !has_input)
-
-            if input # FIXME: remove condition
-              pipeline = pipe_steps_for_input_option(pipeline, input: input)
-            end
-
-
-            if inject # FIXME: remove condition
-              injects = inject.collect { |name| name.is_a?(Symbol) ? [DSL.Inject(), [name]] : [DSL.Inject(), name] }
-
-              tuples  = DSL::Inject.filters_for_injects(injects) # DISCUSS: should we add passthrough/defaulting here at Inject()-time?
-
-              pipeline = add_filter_steps(pipeline, tuples)
-            end
+            pipeline = add_steps_for_input_option(pipeline, input: input)
+            pipeline = add_steps_for_inject_option(pipeline, inject: inject)
 
             return pipeline, has_filters
           end
@@ -136,15 +125,10 @@ module Trailblazer
             inject_filters = DSL::Inject.filters_for_injects(inject_filters) # {Inject() => ...} the pure user input gets translated into AddVariable aggregate steps.
             in_filters     = DSL::Tuple.filters_from_tuples(in_filters)
 
-            # if in_filters.any?
-                # With only injections defined, we do not filter out anything, we use the original ctx
-                # and _add_ defaulting for injected variables.
-
-                pipeline = add_filter_steps(initial_input_pipeline, in_filters)
-                pipeline = add_filter_steps(pipeline, inject_filters)
-              # end
-
-              pipeline
+            # With only injections defined, we do not filter out anything, we use the original ctx
+            # and _add_ defaulting for injected variables.
+            pipeline = add_filter_steps(initial_input_pipeline, in_filters)
+            pipeline = add_filter_steps(pipeline, inject_filters)
           end
 
           def initial_input_pipeline_for(in_filters)
@@ -180,13 +164,13 @@ module Trailblazer
             # newway(initial_input_pipeline)
             #   In,Inject
           # => input_pipe
-          def merge_instructions_from_dsl(output:, output_with_outer_ctx:, input_filters:, output_filters:, injects:, **options)
+          def merge_instructions_from_dsl(output:, output_with_outer_ctx:, output_filters:, **options)
 
             # The overriding {:input} option is set.
-            pipeline, input_overrides = pipe_for_mono_input(input_filters: input_filters, output: output, **options) # FIXME: make this **options
+            pipeline, input_overrides = pipe_for_mono_input(output: output, **options) # FIXME: make this **options
 
             if ! input_overrides
-              pipeline = pipe_for_composable_input(in_filters: input_filters, inject_filters: injects, **options)  # FIXME: rename filters consistently
+              pipeline = pipe_for_composable_input(**options)  # FIXME: rename filters consistently
             end
 
             # gets wrapped by {VariableMapping::Input} and called there.

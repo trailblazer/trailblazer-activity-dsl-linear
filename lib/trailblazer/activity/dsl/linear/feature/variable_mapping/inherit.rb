@@ -17,17 +17,19 @@ module Trailblazer
             end
 
             module Normalizer
+              # Inheriting the original I/O happens by grabbing the variable_mapping_pipelines
+              # from the original sequence and pass it on in the normalizer.
+              # It will eventually get processed by {VariableMapping#pipe_for_composable_input} etc.
               def self.inherit_option(ctx, inherit: [], sequence:, id:, **)
                 return unless inherit.include?(:variable_mapping)
 
                 inherited_input_pipeline, inherited_output_pipeline = Linear::Normalizer::InheritOption.find_row(sequence, id).data[:variable_mapping_pipelines]
 
-                # this eventually gets processed by {VariableMapping#pipe_for_composable_input}.
                 ctx[:initial_input_pipeline] = inherited_input_pipeline
               end
             end
           end
-        end #VariableMapping
+        end # VariableMapping
       end
     end
   end

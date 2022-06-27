@@ -991,8 +991,6 @@ require "date"
           step :write,
             # all filters can see the original ctx:
             Inject() => {time: ->(ctx, **) { 99 }},
-            # In() => [:model],
-            # In() => [:current_user]
             In() => ->(ctx,**) { {current_user: ctx[:current_user]} }
 
           def write(ctx, current_user:, time:, **)
@@ -1073,7 +1071,6 @@ require "date"
 
     # TODO: test if injections are discarded afterwards
     # TODO: can we use Context() from VariableMapping?
-    # TODO: :inject, only.
     # TODO: inject: {"action.class" => Song}
 
     # input:, inject:
