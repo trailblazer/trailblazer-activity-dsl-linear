@@ -68,84 +68,7 @@ module Trailblazer
 
           Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class) # FIXME: move to DSL part
 
-          # Adds the default_ctx step as per option {:add_default_ctx}
-          def initial_input_pipeline(add_default_ctx: false)
-            # No In() or {:input}. Use default ctx, which is the original ctxx.
-            # When using Inject without In/:input, we also need a {default_input} ctx.
-            default_ctx_row =
-              add_default_ctx ? Activity::TaskWrap::Pipeline.Row(*default_input_ctx_config) : nil
 
-            pipe = Activity::TaskWrap::Pipeline.new(
-              [
-                Activity::TaskWrap::Pipeline.Row("input.init_hash", VariableMapping.method(:initial_aggregate)), # very first step
-                default_ctx_row,
-                Activity::TaskWrap::Pipeline.Row("input.scope",     VariableMapping.method(:scope)), # last step
-              ].compact
-            )
-          end
-
-          def default_input_ctx_config # almost a Row.
-            ["input.default_input", VariableMapping.method(:default_input_ctx)]
-          end
-
-          # Handle {:input} and {:inject} option, the "old" interface.
-          def add_steps_for_input_option(pipeline, input:)
-            tuple         = DSL.In(name: ":input") # simulate {In() => input}
-            input_filter  = DSL::Tuple.filters_from_tuples([[tuple, input]])
-
-            add_filter_steps(pipeline, input_filter)
-          end
-
-          def add_steps_for_inject_option(pipeline, inject:)
-            injects = inject.collect { |name| name.is_a?(Symbol) ? [DSL.Inject(), [name]] : [DSL.Inject(), name] }
-
-            tuples  = DSL::Inject.filters_for_injects(injects) # DISCUSS: should we add passthrough/defaulting here at Inject()-time?
-
-            add_filter_steps(pipeline, tuples)
-          end
-
-          def pipe_for_mono_input(input: [], inject: [], in_filters: [], output: [], **)
-            has_input   = Array(input).any?
-            has_filters = has_input || Array(inject).any? || Array(output).any?
-
-            if has_filters && in_filters.any?
-              warn "[Trailblazer] You are mixing `:input` and `In() => ...`. `In()` and Inject () options are ignored and `:input` wins."
-            end
-
-            pipeline = initial_input_pipeline(add_default_ctx: !has_input)
-            pipeline = add_steps_for_input_option(pipeline, input: input)
-            pipeline = add_steps_for_inject_option(pipeline, inject: inject)
-
-            return pipeline, has_filters
-          end
-
-          # We allow to inject {:initial_input_pipeline} here in order to skip creating a new input pipeline and instead
-          # use the inherit one.
-          def pipe_for_composable_input(in_filters: [], inject_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
-            inject_filters = DSL::Inject.filters_for_injects(inject_filters) # {Inject() => ...} the pure user input gets translated into AddVariable aggregate steps.
-            in_filters     = DSL::Tuple.filters_from_tuples(in_filters)
-
-            # With only injections defined, we do not filter out anything, we use the original ctx
-            # and _add_ defaulting for injected variables.
-            pipeline = add_filter_steps(initial_input_pipeline, in_filters)
-            pipeline = add_filter_steps(pipeline, inject_filters)
-          end
-
-          def initial_input_pipeline_for(in_filters)
-            is_inject_only = Array(in_filters).empty?
-
-            initial_input_pipeline(add_default_ctx: is_inject_only)
-          end
-
-          def add_filter_steps(pipeline, rows) # FIXME: do we need all this?
-            rows = add_variables_steps_for_filters(rows)
-
-            adds = Activity::Adds::FriendlyInterface.adds_for(
-              rows.collect { |row| [row[1], id: row[0], prepend: "input.scope"] }
-            )
-
-            Activity::Adds.apply_adds(pipeline, adds)
-          end
 
           # For the input filter we
           #   1. create a separate {Pipeline} instance {pipe}. Depending on the user's options, this might have up to four steps.
@@ -167,10 +90,10 @@ module Trailblazer
           def merge_instructions_from_dsl(output:, output_with_outer_ctx:, output_filters:, **options)
 
             # The overriding {:input} option is set.
-            pipeline, input_overrides = pipe_for_mono_input(output: output, **options) # FIXME: make this **options
+            pipeline, has_mono_options, _ = DSL.pipe_for_mono_input(output: output, **options) # FIXME: make this **options
 
-            if ! input_overrides
-              pipeline = pipe_for_composable_input(**options)  # FIXME: rename filters consistently
+            if ! has_mono_options
+              pipeline = DSL.pipe_for_composable_input(**options)  # FIXME: rename filters consistently
             end
 
             # gets wrapped by {VariableMapping::Input} and called there.
@@ -178,7 +101,14 @@ module Trailblazer
             # input = Trailblazer::Option(->(original_ctx, **) {  })
             input  = Pipe::Input.new(pipeline)
 
-            output = output_for(output: output, output_with_outer_ctx: output_with_outer_ctx, output_filters: output_filters)
+
+            output_pipeline, has_mono_options, _ = DSL.pipe_for_mono_output(output: output, output_with_outer_ctx: output_with_outer_ctx, out_filters: output_filters)
+
+            if ! has_mono_options
+              output_pipeline = DSL.pipe_for_composable_output(output: output, output_with_outer_ctx: output_with_outer_ctx, out_filters: output_filters)
+            end
+
+            output = Pipe::Output.new(output_pipeline)
 
 # store pipe in the extension (via TW::Extension.data)?
             return TaskWrap::VariableMapping.Extension(input, output, id: input.object_id), # wraps filters: {Input(input), Output(output)}
@@ -194,35 +124,8 @@ module Trailblazer
           end
 
 
-          def output_for(output_with_outer_ctx:, output:, output_filters:)
-            steps = [
-              ["output.init_hash", VariableMapping.method(:initial_aggregate)],
-            ]
 
-            # {:output} option.
-            if output
-              tuple         = DSL.Out(name: ":output", with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
-              output_filter = DSL::Tuple.filters_from_tuples([[tuple, output]])
 
-              steps += add_variables_steps_for_filters(output_filter)
-            # Out() given.
-            elsif output_filters.any?
-              out_filters = DSL::Tuple.filters_from_tuples(output_filters)
-
-              # Add one row per filter (either {:output} or {Output()}).
-              steps += add_variables_steps_for_filters(out_filters)
-            # No Out(), no {:output}.
-            else
-              # TODO: make this just another output_filter(s)
-              steps += [["output.default_output", VariableMapping.method(:default_output_ctx)]]
-            end
-
-            steps << ["output.merge_with_original", VariableMapping.method(:merge_with_original)]
-
-            pipe = Activity::TaskWrap::Pipeline.new(steps)
-
-            Pipe::Output.new(pipe)
-          end
 
           # Runtime classes
           # These objects are created via the DSL, keep all i/o steps in a Pipeline
@@ -259,7 +162,7 @@ module Trailblazer
             filters.collect do |filter|
               ["input.add_variables.#{filter.name}", filter.aggregate_step] # FIXME: config name sucks, of course, if we want to allow inserting etc.
             end
-          end
+          end # FIXME: remove me!
 
 # DISCUSS: improvable sections such as merge vs hash[]=
           def initial_aggregate(wrap_ctx, original_args)

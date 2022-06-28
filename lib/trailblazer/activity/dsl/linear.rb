@@ -33,6 +33,7 @@ require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"
 require "trailblazer/activity/dsl/linear/feature/variable_mapping"
+require "trailblazer/activity/dsl/linear/feature/variable_mapping/dsl"
 
 
 Trailblazer::Activity::Path.extend Trailblazer::Activity::DSL::Linear::VariableMapping # feature/variable_mapping
