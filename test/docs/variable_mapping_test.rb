@@ -1067,6 +1067,31 @@ require "date"
       assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :incoming=>[Object, {:TIME=>"YESTERDAY", :MODEL=>"OBJECT", :model=>Object}]}}
     end
 
+    #@ unit test
+    it "accepts :initial_output_pipeline as normalizer option" do
+      my_output_ctx = ->(wrap_ctx, original_args) do
+        wrap_ctx[:aggregate] = wrap_ctx[:aggregate].collect { |k,v| [k.to_s.upcase, v.to_s.upcase] }.to_h
+
+        return wrap_ctx, original_args
+      end
+
+      activity = Class.new(Trailblazer::Activity::Railway) do
+        output_pipe = Trailblazer::Activity::DSL::Linear::VariableMapping::DSL.initial_output_pipeline()
+        output_pipe = Trailblazer::Activity::TaskWrap::Extension([my_output_ctx, id: "my.output_uppercaser", append: "output.merge_with_original"]).(output_pipe)
+
+
+        step :write,
+          initial_output_pipeline: output_pipe, Out() => [:model]
+
+        def write(ctx, model:, **)
+          ctx[:current_user] = Module
+        end
+      end
+
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{model: Object}, {}])
+      assert_equal ctx.inspect, %{{"MODEL"=>"OBJECT"}}
+    end
+
 
 
     # TODO: test if injections are discarded afterwards
