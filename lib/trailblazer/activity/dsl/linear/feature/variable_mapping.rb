@@ -4,14 +4,8 @@ module Trailblazer
       module Linear
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
-        def self.VariableMapping(output: nil, output_with_outer_ctx: false, output_filters: [], **options)
-          if output && output_filters.any? # DISCUSS: where does this live?
-            warn "[Trailblazer] You are mixing `:output` and `Out() => ...`. `Out()` options are ignored and `:output` wins."
-            output_filters = []
-          end
-
-          extension, normalizer_options, non_symbol_options = VariableMapping.merge_instructions_from_dsl(output: output, output_with_outer_ctx: output_with_outer_ctx,
-            output_filters: output_filters, **options)
+        def self.VariableMapping(**options)
+          extension, normalizer_options, non_symbol_options = VariableMapping.merge_instructions_from_dsl(**options)
 
           return TaskWrap::Extension::WrapStatic.new(extension: extension), normalizer_options, non_symbol_options
         end
@@ -49,7 +43,7 @@ module Trailblazer
 
               ctx[:inject_filters] = inject_exts
               ctx[:in_filters]     = input_exts
-              ctx[:output_filters] = output_exts # DISCUSS: naming
+              ctx[:out_filters]    = output_exts
             end
 
             def self.input_output_dsl(ctx, extensions: [], **options)
@@ -87,10 +81,9 @@ module Trailblazer
             # newway(initial_input_pipeline)
             #   In,Inject
           # => input_pipe
-          def merge_instructions_from_dsl(output:, output_with_outer_ctx:, output_filters:, **options)
-
+          def merge_instructions_from_dsl(**options)
             # The overriding {:input} option is set.
-            pipeline, has_mono_options, _ = DSL.pipe_for_mono_input(output: output, **options) # FIXME: make this **options
+            pipeline, has_mono_options, _ = DSL.pipe_for_mono_input(**options)
 
             if ! has_mono_options
               pipeline = DSL.pipe_for_composable_input(**options)  # FIXME: rename filters consistently
@@ -102,10 +95,10 @@ module Trailblazer
             input  = Pipe::Input.new(pipeline)
 
 
-            output_pipeline, has_mono_options, _ = DSL.pipe_for_mono_output(output: output, output_with_outer_ctx: output_with_outer_ctx, out_filters: output_filters)
+            output_pipeline, has_mono_options, _ = DSL.pipe_for_mono_output(**options)
 
             if ! has_mono_options
-              output_pipeline = DSL.pipe_for_composable_output(output: output, output_with_outer_ctx: output_with_outer_ctx, out_filters: output_filters)
+              output_pipeline = DSL.pipe_for_composable_output(**options)
             end
 
             output = Pipe::Output.new(output_pipeline)
@@ -154,15 +147,6 @@ module Trailblazer
               end
             end
           end
-
-
-          # Returns array of step rows ("sequence").
-          # @param filters [Array] List of {Filter} objects
-          def add_variables_steps_for_filters(filters) # FIXME: allow output too!
-            filters.collect do |filter|
-              ["input.add_variables.#{filter.name}", filter.aggregate_step] # FIXME: config name sucks, of course, if we want to allow inserting etc.
-            end
-          end # FIXME: remove me!
 
 # DISCUSS: improvable sections such as merge vs hash[]=
           def initial_aggregate(wrap_ctx, original_args)

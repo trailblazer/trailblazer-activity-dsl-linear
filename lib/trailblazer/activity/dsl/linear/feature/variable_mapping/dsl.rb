@@ -74,7 +74,7 @@ module Trailblazer
             end
 
 
-            def pipe_for_mono_output(output_with_outer_ctx:, output: [], out_filters: [])
+            def pipe_for_mono_output(output_with_outer_ctx: false, output: [], out_filters: [], **)
               # No Out(), no {:output} will result in a default_output_ctx step.
               has_output             = Array(output).any?
               has_mono_options       = has_output
