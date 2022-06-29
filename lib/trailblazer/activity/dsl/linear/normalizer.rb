@@ -46,14 +46,19 @@ module Trailblazer
           end
 
           # Extend a particular normalizer with new steps and save it on the activity.
-          def self.extend!(activity_class, name)
+          def self.extend!(activity_class, *step_methods)
             activity_class.instance_variable_get(:@state).update!(:normalizers) do |normalizers|
               hsh = normalizers.instance_variable_get(:@normalizers) # TODO: introduce {#to_h}.
-              extended_normalizer = hsh.fetch(name)
 
-              new_normalizer = yield(extended_normalizer)
+              new_normalizers = # {step: #<..>, pass: #<..>}
+                step_methods.collect do |name|
+                  extended_normalizer = hsh.fetch(name)            # grab existing normalizer.
+                  new_normalizer      = yield(extended_normalizer) # and let the user block change it.
+                  [name, new_normalizer]
+                end.to_h
 
-              Normalizers.new(**hsh.merge(name => new_normalizer))
+
+              Normalizers.new(**hsh.merge(new_normalizers))
             end
           end
 

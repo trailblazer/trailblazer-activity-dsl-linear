@@ -10,7 +10,7 @@ class NormalizerTest < Minitest::Spec
     end
 
     application_operation = Class.new(Trailblazer::Activity::Railway) do
-      Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step) do |normalizer|
+      Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step, :fail) do |normalizer|
         # this is where your extending code enters the stage:
         Trailblazer::Activity::DSL::Linear::Normalizer.prepend_to(
           normalizer,
@@ -23,6 +23,7 @@ class NormalizerTest < Minitest::Spec
 
       step :model
       pass :find_id
+      fail :log
     end
 
     create_operation = Class.new(application_operation) do
@@ -37,12 +38,15 @@ class NormalizerTest < Minitest::Spec
     assert_equal graph.find("MODEL").id, "MODEL"
     #@ {#pass} still has lowercase ID.
     assert_equal graph.find(:find_id).id, :find_id
+    #@ we find uppercased LOG for {fail}
+    assert_equal graph.find("LOG").id, "LOG"
 
   #@ inheritance
     graph = Trailblazer::Activity::Introspect.Graph(create_operation)
     assert_equal graph.find("MODEL").id, "MODEL"
     assert_equal graph.find(:find_id).id, :find_id
     assert_equal graph.find("CREATE").id, "CREATE"
+    assert_equal graph.find("LOG").id, "LOG"
   end
 
   it "#prepend_to  and #replace" do

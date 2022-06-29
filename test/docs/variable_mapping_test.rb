@@ -962,6 +962,49 @@ require "date"
     end
 
     #@ unit test
+    it "i/o works for step, pass and fail and is automatically included in Path, Railway and FastTrack" do
+      write_step_for = ->(strategy, method_name) do
+        Class.new(strategy) do
+          step :deviate
+          send method_name, :write, In() => [:model],
+            Out() => {:model => :write_model, :incoming => :incoming}
+
+          def deviate(ctx, deviate: true, **)
+            deviate
+          end
+
+          def write(ctx, model:, **)
+            ctx[:incoming] = [model, ctx.keys]
+          end
+        end
+      end
+
+      #@ Path
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Path, :step), [{model: Object, ignore: 1}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :ignore=>1, :write_model=>Object, :incoming=>[Object, [:model]]}}
+
+      #@ Railway
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Railway, :step), [{model: Object, ignore: 1}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :ignore=>1, :write_model=>Object, :incoming=>[Object, [:model]]}}
+
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Railway, :pass), [{model: Object, ignore: 1}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :ignore=>1, :write_model=>Object, :incoming=>[Object, [:model]]}}
+
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Railway, :fail), [{model: Object, ignore: 1, deviate: false}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :ignore=>1, :deviate=>false, :write_model=>Object, :incoming=>[Object, [:model]]}}
+
+      #@ FastTrack
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::FastTrack, :step), [{model: Object, ignore: 1}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :ignore=>1, :write_model=>Object, :incoming=>[Object, [:model]]}}
+
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::FastTrack, :pass), [{model: Object, ignore: 1}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :ignore=>1, :write_model=>Object, :incoming=>[Object, [:model]]}}
+
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::FastTrack, :fail), [{model: Object, ignore: 1, deviate: false}, {}])
+      assert_equal ctx.inspect, %{{:model=>Object, :ignore=>1, :deviate=>false, :write_model=>Object, :incoming=>[Object, [:model]]}}
+    end
+
+    #@ unit test
     # it "In() and Inject() execution order" do
     #   module YYY
     #     class Create < Trailblazer::Activity::Railway

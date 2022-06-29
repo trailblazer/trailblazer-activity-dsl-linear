@@ -35,8 +35,7 @@ require "trailblazer/activity/fast_track"
 require "trailblazer/activity/dsl/linear/feature/variable_mapping"
 require "trailblazer/activity/dsl/linear/feature/variable_mapping/dsl"
 
-
-Trailblazer::Activity::Path.extend Trailblazer::Activity::DSL::Linear::VariableMapping # feature/variable_mapping
-Trailblazer::Activity::Railway.extend Trailblazer::Activity::DSL::Linear::VariableMapping # feature/variable_mapping
-# FIXME: test variable mapping for pass and fail, and implement  it via VariableMapping.extend!(Railway, :step, :pass, :fail)
-# FIXME: test variable_mapping for FastTrack
+# feature/variable_mapping
+Trailblazer::Activity::DSL::Linear::VariableMapping.extend!(Trailblazer::Activity::Path, :step)
+Trailblazer::Activity::DSL::Linear::VariableMapping.extend!(Trailblazer::Activity::Railway, :step, :pass, :fail)
+Trailblazer::Activity::DSL::Linear::VariableMapping.extend!(Trailblazer::Activity::FastTrack, :step, :pass, :fail)

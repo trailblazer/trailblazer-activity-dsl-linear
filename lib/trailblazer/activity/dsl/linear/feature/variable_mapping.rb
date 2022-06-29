@@ -17,8 +17,8 @@ module Trailblazer
 #   MergeVariables
         module VariableMapping
           # Add our normalizer steps to the strategy's normalizer.
-          def self.extended(strategy) # FIXME: who implements {extend!}
-            Linear::Normalizer.extend!(strategy, :step) do |normalizer|
+          def self.extend!(strategy, *step_methods) # DISCUSS: should this be implemented in Linear?
+            Linear::Normalizer.extend!(strategy, *step_methods) do |normalizer|
               Linear::Normalizer.prepend_to(
                 normalizer,
                 "activity.wirings",

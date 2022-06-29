@@ -3,6 +3,7 @@ module Trailblazer
     module DSL
       module Linear
         module VariableMapping
+          # Implements the {inherit: [:variable_mapping]} feature.
           module Inherit
             def self.extended(strategy) # FIXME: who implements {extend!}
               Linear::Normalizer.extend!(strategy, :step) do |normalizer|
