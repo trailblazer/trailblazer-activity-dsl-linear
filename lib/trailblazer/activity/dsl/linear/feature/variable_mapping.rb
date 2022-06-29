@@ -107,7 +107,7 @@ module Trailblazer
             return TaskWrap::VariableMapping.Extension(input, output, id: input.object_id), # wraps filters: {Input(input), Output(output)}
               # normalizer_options:
               {
-                variable_mapping_pipelines: [pipeline],
+                variable_mapping_pipelines: [pipeline, output_pipeline],
               },
               # non_symbol_options:
               {

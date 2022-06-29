@@ -991,7 +991,9 @@ require "date"
           step :write,
             # all filters can see the original ctx:
             Inject() => {time: ->(ctx, **) { 99 }},
-            In() => ->(ctx,**) { {current_user: ctx[:current_user]} }
+            In() => ->(ctx,**) { {current_user: ctx[:current_user]} },
+            Out() => {:current_user => :acting_user},
+            Out() => [:incoming]
 
           def write(ctx, current_user:, time:, **)
             ctx[:incoming] = [ctx[:model], current_user, ctx.to_h]
@@ -1008,34 +1010,36 @@ require "date"
         class Upsert < Update
           step :write, replace: :write,
             inherit: [:variable_mapping],
-              In() => ->(ctx, model:, action:, **) { {model: model} } # [:model]
+              In()  => ->(ctx, model:, action:, **) { {model: model} }, # [:model]
+              Out() => {:incoming => :output_of_write}, #
+              Out(delete: true) => [:incoming] # as this is statically set in the superclass, we have to delete to make it invisible.
         end
       end
 
     # Create
       #= we don't see {:model} because Create doesn't have an In() for it.
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Create, [{time: "yesterday", model: Object}, {}])
-      assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :incoming=>[nil, nil, {:current_user=>nil, :time=>"yesterday"}]}}
+      assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :acting_user=>nil, :incoming=>[nil, nil, {:current_user=>nil, :time=>"yesterday"}]}}
       #@ {:time} is defaulted by Inject()
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Create, [{}, {}])
-      assert_equal ctx.inspect, %{{:incoming=>[nil, nil, {:current_user=>nil, :time=>99}]}}
+      assert_equal ctx.inspect, %{{:acting_user=>nil, :incoming=>[nil, nil, {:current_user=>nil, :time=>99}]}}
 
     # Update and Create work identically
       #= we don't see {:model} because Create doesn't have an In() for it.
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Update, [{time: "yesterday", model: Object}, {}])
-      assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :incoming=>[nil, nil, {:current_user=>nil, :time=>"yesterday"}]}}
+      assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :acting_user=>nil, :incoming=>[nil, nil, {:current_user=>nil, :time=>"yesterday"}]}}
 
       #@ {:time} is defaulted by Inject()
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Update, [{}, {}])
-      assert_equal ctx.inspect, %{{:incoming=>[nil, nil, {:current_user=>nil, :time=>99}]}}
+      assert_equal ctx.inspect, %{{:acting_user=>nil, :incoming=>[nil, nil, {:current_user=>nil, :time=>99}]}}
 
     #= Upsert additionally sees {:model}
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Upsert, [{time: "yesterday", model: Object, action: :upsert}, {}])
-      assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :action=>:upsert, :incoming=>[Object, nil, {:current_user=>nil, :time=>"yesterday", :model=>Object}]}}
+      assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :action=>:upsert, :acting_user=>nil, :output_of_write=>[Object, nil, {:current_user=>nil, :time=>"yesterday", :model=>Object}]}}
 
       #@ {:time} is defaulted by Inject()
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Upsert, [{model: Object, action: :upsert}, {}])
-      assert_equal ctx.inspect, %{{:model=>Object, :action=>:upsert, :incoming=>[Object, nil, {:current_user=>nil, :time=>99, :model=>Object}]}}
+      assert_equal ctx.inspect, %{{:model=>Object, :action=>:upsert, :acting_user=>nil, :output_of_write=>[Object, nil, {:current_user=>nil, :time=>99, :model=>Object}]}}
     end
 
     #@ unit test

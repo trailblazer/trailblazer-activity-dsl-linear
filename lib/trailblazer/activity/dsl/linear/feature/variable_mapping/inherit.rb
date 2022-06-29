@@ -25,7 +25,8 @@ module Trailblazer
 
                 inherited_input_pipeline, inherited_output_pipeline = Linear::Normalizer::InheritOption.find_row(sequence, id).data[:variable_mapping_pipelines]
 
-                ctx[:initial_input_pipeline] = inherited_input_pipeline
+                ctx[:initial_input_pipeline]  = inherited_input_pipeline
+                ctx[:initial_output_pipeline] = inherited_output_pipeline
               end
             end
           end
