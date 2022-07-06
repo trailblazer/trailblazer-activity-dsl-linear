@@ -146,13 +146,7 @@ module Trailblazer
     end # FastTrack
 
     def self.FastTrack(**options, &block)
-      Class.new(FastTrack) do
-        # compile_strategy!(FastTrack::DSL, **options)
-        compile_strategy!(FastTrack::DSL, normalizers: @state.get(:normalizers), **options)
-        # compile_strategy_for!(**options)
-
-        class_exec(&block) if block_given?
-      end
+      Activity::DSL::Linear::Strategy::DSL.Build(FastTrack, **options, &block)
     end
   end
 end

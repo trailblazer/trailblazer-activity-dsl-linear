@@ -92,13 +92,7 @@ module Trailblazer
     end # Path
 
     def self.Path(**options, &block)
-      Class.new(Path) do
-        # compile_strategy!(Path::DSL, **options)
-        compile_strategy!(Path::DSL, normalizers: @state.get(:normalizers), **options)
-        # compile_strategy_for!(**options)
-
-        class_exec(&block) if block_given?
-      end
+      Activity::DSL::Linear::Strategy::DSL.Build(Path, **options, &block)
     end
   end
 end

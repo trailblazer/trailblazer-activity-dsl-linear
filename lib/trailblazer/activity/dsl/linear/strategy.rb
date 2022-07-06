@@ -119,6 +119,14 @@ module Trailblazer
               start_event   = Linear::Sequence.create_row(task: start_default, id: "Start.default", magnetic_to: nil, wirings: wirings)
               _sequence     = Linear::Sequence[start_event]
             end
+
+            def Build(strategy, **options, &block)
+              Class.new(strategy) do
+                compile_strategy!(strategy::DSL, normalizers: @state.get(:normalizers), **options)
+
+                class_exec(&block) if block_given?
+              end
+            end
           end # DSL
 
           # FIXME: move to State#dup

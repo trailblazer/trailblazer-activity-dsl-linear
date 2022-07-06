@@ -126,13 +126,7 @@ module Trailblazer
     end # Railway
 
     def self.Railway(**options, &block)
-      Class.new(Railway) do
-        # compile_strategy!(Railway::DSL, **options)
-        compile_strategy!(Railway::DSL, normalizers: @state.get(:normalizers), **options)
-        # compile_strategy_for!(**options)
-
-        class_exec(&block) if block_given?
-      end
+      Activity::DSL::Linear::Strategy::DSL.Build(Railway, **options, &block)
     end
   end
 end
