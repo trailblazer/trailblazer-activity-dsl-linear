@@ -22,7 +22,7 @@ class FastTrackTest < Minitest::Spec
 }
   end
 
-  describe "{:end_task}, {:failure_end}, {:fail_fast_end}, {:pass_fast_end}" do
+  describe "Activity.FastTrack() builder" do
     it "allows to define custom End instances" do
       MyFailure  = Class.new(Activity::End)
       MySuccess  = Class.new(Activity::End)
@@ -55,6 +55,19 @@ class FastTrackTest < Minitest::Spec
 
 #<FastTrackTest::MyFailure/:my_failure>
 }
+    end
+
+    # @generic strategy test
+    it "copies (extended) normalizers from original {Activity::FastTrack} and thereby allows i/o" do
+      path = Activity.FastTrack() do
+        step :model, Inject() => {:id => ->(*) { 1 }}
+
+        def model(ctx, id:, seq:, **)
+          seq << id
+        end
+      end
+
+      assert_invoke path, seq: %{[1]}
     end
   end
 

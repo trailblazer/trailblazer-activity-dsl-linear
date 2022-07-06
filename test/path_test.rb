@@ -35,7 +35,7 @@ class PathTest < Minitest::Spec
 
 
   it "accepts {:adds}" do
-    path = Activity::Path() do
+    path = Activity.Path() do
       step :f,
         adds: [
           {
@@ -57,7 +57,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:before}" do
-    path = Activity::Path() do
+    path = Activity.Path() do
       step :f
       step :a, before: :f
     end
@@ -74,7 +74,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:after}" do
-    path = Activity::Path() do
+    path = Activity.Path() do
       step :f
       step :b
       step :a, after: :f
@@ -94,7 +94,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:replace}" do
-    path = Activity::Path() do
+    path = Activity.Path() do
       step :f
       step :a, replace: :f, id: :a
     end
@@ -109,7 +109,7 @@ class PathTest < Minitest::Spec
   end
 
   it "accepts {:delete}" do
-    path = Activity::Path() do
+    path = Activity.Path() do
       step :f
       step nil, delete: :f#, id: :a
     end
@@ -123,7 +123,7 @@ class PathTest < Minitest::Spec
 
   describe "Activity.Path() builder" do
     it "accepts {:track_name}" do
-      path = Activity::Path(track_name: :green) do
+      path = Activity.Path(track_name: :green) do
         include Implementing
         step :f
         step :g
@@ -148,7 +148,7 @@ class PathTest < Minitest::Spec
     end
 
     it "accepts {:end_task}" do
-      path = Activity::Path(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner") do
+      path = Activity.Path(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner") do
         step :f
         step :g
       end
@@ -162,6 +162,19 @@ class PathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:winning>
 #<End/:winning>
 }
+    end
+
+    # @generic strategy test
+    it "copies (extended) normalizers from original {Activity::Path} and thereby allows i/o" do
+      path = Activity.Path() do
+        step :model, Inject() => {:id => ->(*) { 1 }}
+
+        def model(ctx, id:, seq:, **)
+          seq << id
+        end
+      end
+
+      assert_invoke path, seq: %{[1]}
     end
   end
 end

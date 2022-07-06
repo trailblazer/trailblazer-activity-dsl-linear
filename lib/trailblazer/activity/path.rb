@@ -71,33 +71,45 @@ module Trailblazer
           sequence = append_terminus(sequence, end_task, id: end_id, magnetic_to: track_name, normalizers: Normalizers, append_to: "Start.default")
         end
 
-        def OptionsForSequenceBuilder(normalizers: Normalizers, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
+        def OptionsForSequenceBuilder(normalizers:, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
+          # DISCUSS: instead of calling a separate {initial_sequence} method we could make DSL strategies
+          # use the actual DSL to build up the initial_sequence, somewhere outside? Maybe using {:adds}?
           initial_sequence = initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id)
 
           {
-            normalizers:        normalizers,
-            sequence:           initial_sequence,
-            #normalizer_options: {
-              track_name:             track_name,
-              end_id:                 end_id,
-              step_interface_builder: Activity::TaskBuilder.method(:Binary), # DISCUSS: this is currently the only option we want to pass on in Path() ?
-              adds:                   [], # DISCUSS: needed?
-              **options
-            # }
+            sequence:               initial_sequence,
+            normalizers:            normalizers,
+            track_name:             track_name,
+            end_id:                 end_id,
+            step_interface_builder: Activity::TaskBuilder.method(:Binary), # DISCUSS: this is currently the only option we want to pass on in Path() ?
+            adds:                   [], # DISCUSS: needed?
+            **options
           }
         end
       end # DSL
 
-      compile_strategy!(DSL)
+      compile_strategy!(DSL, normalizers: DSL::Normalizers) # sets :normalizer, normalizer_options, sequence and activity
     end # Path
 
     def self.Path(**options, &block)
       Class.new(Path) do
-        compile_strategy!(Path::DSL, **options)
+        # compile_strategy!(Path::DSL, **options)
+        compile_strategy!(Path::DSL, normalizers: @state.get(:normalizers), **options)
+        # compile_strategy_for!(**options)
 
-        instance_exec(&block) if block_given?
+        class_exec(&block) if block_given?
       end
     end
   end
 end
 
+=begin
+class Operation
+  def self.subclassed(track_name:) # FIXME: it should be run in SubOperation context.
+    # initialize code here
+  end
+
+end
+
+SubOperation = Class.new(Operation, track_name: :green)
+=end

@@ -1,13 +1,5 @@
 module Trailblazer
   class Activity
-    def self.FastTrack(**options, &block)
-      Class.new(FastTrack) do
-        compile_strategy!(FastTrack::DSL, **options)
-
-        instance_exec(&block) if block_given?
-      end
-    end
-
     # Implementation of the "FastTrack" layout that is also used for `Operation`.
     class FastTrack < Activity::DSL::Linear::Strategy
 
@@ -127,10 +119,9 @@ module Trailblazer
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
-        def self.OptionsForSequenceBuilder(normalizers: Normalizers, **options)
+        def self.OptionsForSequenceBuilder(**options)
 
-          options = Railway::DSL.OptionsForSequenceBuilder(**options).
-              merge(normalizers: normalizers)
+          options = Railway::DSL.OptionsForSequenceBuilder(**options)
 
           initial_sequence = DSL.initial_sequence(**options)
 
@@ -151,7 +142,17 @@ module Trailblazer
         end
       end
 
-      compile_strategy!(DSL)
+      compile_strategy!(DSL, normalizers: DSL::Normalizers)
     end # FastTrack
+
+    def self.FastTrack(**options, &block)
+      Class.new(FastTrack) do
+        # compile_strategy!(FastTrack::DSL, **options)
+        compile_strategy!(FastTrack::DSL, normalizers: @state.get(:normalizers), **options)
+        # compile_strategy_for!(**options)
+
+        class_exec(&block) if block_given?
+      end
+    end
   end
 end

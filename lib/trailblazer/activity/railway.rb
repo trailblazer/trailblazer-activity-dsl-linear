@@ -99,9 +99,9 @@ module Trailblazer
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
-        def self.OptionsForSequenceBuilder(normalizers: Normalizers, failure_end: Activity::End.new(semantic: :failure), **options)
+        def self.OptionsForSequenceBuilder(failure_end: Activity::End.new(semantic: :failure), **options)
           options = Path::DSL.OptionsForSequenceBuilder(**options).
-            merge(normalizers: normalizers, failure_end: failure_end)
+            merge(failure_end: failure_end)
 
           initial_sequence = Railway::DSL.initial_sequence(failure_end: failure_end, **options)
 
@@ -122,14 +122,16 @@ module Trailblazer
         end
       end
 
-      compile_strategy!(DSL)
+      compile_strategy!(DSL, normalizers: DSL::Normalizers)
     end # Railway
 
-    def self.Railway(options, &block)
+    def self.Railway(**options, &block)
       Class.new(Railway) do
-        compile_strategy!(Railway::DSL, **options)
+        # compile_strategy!(Railway::DSL, **options)
+        compile_strategy!(Railway::DSL, normalizers: @state.get(:normalizers), **options)
+        # compile_strategy_for!(**options)
 
-        instance_exec(&block) if block_given?
+        class_exec(&block) if block_given?
       end
     end
   end

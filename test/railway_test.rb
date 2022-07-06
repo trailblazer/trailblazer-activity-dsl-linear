@@ -293,4 +293,17 @@ class RailwayTest < Minitest::Spec
     end
   end
 
+  # @generic strategy test
+  it "copies (extended) normalizers from original {Activity::Railway} and thereby allows i/o" do
+    path = Activity.Railway() do
+      step :model, Inject() => {:id => ->(*) { 1 }}
+
+      def model(ctx, id:, seq:, **)
+        seq << id
+      end
+    end
+
+    assert_invoke path, seq: %{[1]}
+  end
+
 end
