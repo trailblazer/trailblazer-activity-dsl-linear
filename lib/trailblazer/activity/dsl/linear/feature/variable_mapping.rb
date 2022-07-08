@@ -10,11 +10,6 @@ module Trailblazer
           return TaskWrap::Extension::WrapStatic.new(extension: extension), normalizer_options, non_symbol_options
         end
 
-
-# < AddVariables
-#   Option
-#     filter
-#   MergeVariables
         module VariableMapping
           # Add our normalizer steps to the strategy's normalizer.
           def self.extend!(strategy, *step_methods) # DISCUSS: should this be implemented in Linear?
@@ -60,10 +55,6 @@ module Trailblazer
 
           module_function
 
-          Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class) # FIXME: move to DSL part
-
-
-
           # For the input filter we
           #   1. create a separate {Pipeline} instance {pipe}. Depending on the user's options, this might have up to four steps.
           #   2. The {pipe} is run in a lamdba {input}, the lambda returns the pipe's ctx[:input_ctx].
@@ -103,7 +94,6 @@ module Trailblazer
 
             output = Pipe::Output.new(output_pipeline)
 
-# store pipe in the extension (via TW::Extension.data)?
             return TaskWrap::VariableMapping.Extension(input, output, id: input.object_id), # wraps filters: {Input(input), Output(output)}
               # normalizer_options:
               {
@@ -114,13 +104,19 @@ module Trailblazer
                 Linear::Strategy.DataVariable() => :variable_mapping_pipelines # we want to store {:variable_mapping_pipelines} in {Row.data} for later reference.
               }
               # DISCUSS: should we remember the pure pipelines or get it from the compiled extension?
+              # store pipe in the extension (via TW::Extension.data)?
           end
 
 
 
-
+# < AddVariables
+#   Option
+#     filter
+#   MergeVariables
 
           # Runtime classes
+          Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class)
+
           # These objects are created via the DSL, keep all i/o steps in a Pipeline
           # and run the latter when being `call`ed.
           module Pipe
@@ -270,134 +266,6 @@ module Trailblazer
             # pp wrap_ctx
             return wrap_ctx, original_args
           end
-
-
-          module DSL
-            # @param [Array, Hash, Proc] User option coming from the DSL, like {[:model]}
-            #
-            # Returns a "filter interface" callable that's invoked in {AddVariables}:
-            #   filter.(new_ctx, ..., keyword_arguments: new_ctx.to_hash, **circuit_options)
-            def self.build_filter(user_filter)
-              Trailblazer::Option(filter_for(user_filter))
-            end
-
-            # Convert a user option such as {[:model]} to a filter.
-            #
-            # Returns a filter proc to be called in an Option.
-            # @private
-            def self.filter_for(filter)
-              if filter.is_a?(::Array) || filter.is_a?(::Hash)
-                filter_from_dsl(filter)
-              else
-                filter
-              end
-            end
-
-            # The returned filter compiles a new hash for Scoped/Unscoped that only contains
-            # the desired i/o variables.
-            #
-            # Filter expects a "filter interface" {(ctx, **)}.
-            def self.filter_from_dsl(map)
-              hsh = DSL.hash_for(map)
-
-              ->(incoming_ctx, **kwargs) { Hash[hsh.collect { |from_name, to_name| [to_name, incoming_ctx[from_name]] }] }
-            end
-
-            def self.hash_for(ary)
-              return ary if ary.instance_of?(::Hash)
-              Hash[ary.collect { |name| [name, name] }]
-            end
-
-            # Keeps user's DSL configuration for a particular io-pipe step.
-            # Implements the interface for the actual I/O code and is DSL code happening in the normalizer.
-            # The actual I/O code expects {DSL::In} and {DSL::Out} objects to generate the two io-pipes.
-            #
-            # If a user needs to inject their own private iop step they can create this data structure with desired values here.
-            # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
-
-            class Tuple < Struct.new(:name, :add_variables_class, :filter_builder, :insert_args)
-              def self.filters_from_tuples(tuples_to_user_filters)
-                tuples_to_user_filters.collect { |tuple, user_filter| tuple.(user_filter) }
-              end
-
-
-              # @return [Filter] Filter instance that keeps {name} and {aggregate_step}.
-              def call(user_filter)
-                filter         = filter_builder.(user_filter)
-                aggregate_step = add_variables_class.new(filter, user_filter)
-
-                VariableMapping::Filter.new(aggregate_step, filter, name, add_variables_class)
-              end
-            end # TODO: implement {:insert_args}
-
-            # In, Out and Inject are objects instantiated when using the DSL, for instance {In() => [:model]}.
-            class In < Tuple; end
-            class Out < Tuple; end
-
-            def self.In(name: rand, add_variables_class: AddVariables, filter_builder: method(:build_filter))
-              In.new(name, add_variables_class, filter_builder)
-            end
-
-# We need DSL::Input/Output objects to find those in the DSL options hash.
-
-            # Builder for a DSL Output() object.
-            def self.Out(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false, delete: false, filter_builder: method(:build_filter), read_from_aggregate: false)
-              add_variables_class = AddVariables::Output::WithOuterContext  if with_outer_ctx
-              add_variables_class = AddVariables::Output::Delete            if delete
-              filter_builder      = ->(user_filter) { user_filter }         if delete
-              add_variables_class = AddVariables::ReadFromAggregate         if read_from_aggregate
-
-              Out.new(name, add_variables_class, filter_builder)
-            end
-
-            def self.Inject()
-              Inject.new
-            end
-
-            # This class is supposed to hold configuration options for Inject().
-            class Inject
-            # Translate the raw input of the user to {In} tuples
-              # {injects}:
-              # [[#<Trailblazer::Activity::DSL::Linear::VariableMapping::DSL::Inject:0x0000556e7a206000>, [:date, :time]],
-              #  [#<Trailblazer::Activity::DSL::Linear::VariableMapping::DSL::Inject:0x0000556e7a205e48>, {:current_user=>#<Proc:0x0000556e7a205d58 test/docs/variable_mapping_test.rb:601 (lambda)>}]]
-              def self.filters_for_injects(injects)
-                injects.collect do |inject, user_filter| # iterate all {Inject() => user_filter} calls
-                  DSL::Inject.compute_tuples_for_inject(inject, user_filter)
-                end.flatten(1)
-              end
-
-              # Compute {In} tuples from the user's DSL input.
-              # We simply use AddVariables but use our own {inject_filter} which checks if the particular
-              # variable is already present in the incoming ctx.
-              def self.compute_tuples_for_inject(inject, user_filter) # {user_filter} either [:current_user, :model] or {model: ->{}}
-                return tuples_for_array(inject, user_filter) if user_filter.is_a?(Array)
-                tuples_for_hash_of_callables(inject, user_filter)
-              end
-
-              # [:model, :current_user]
-              def self.tuples_for_array(inject, user_filter)
-                user_filter.collect do |name|
-                  inject_filter = ->(original_ctx, **) { original_ctx.key?(name) ? {name => original_ctx[name]} : {} } # FIXME: make me an {Inject::} method.
-
-                  tuple_for(inject, inject_filter, name, "passthrough")
-                end
-              end
-
-              # {model: ->(*) { snippet }}
-              def self.tuples_for_hash_of_callables(inject, user_filter)
-                user_filter.collect do |name, defaulting_filter|
-                  inject_filter = ->(original_ctx, **kws) { original_ctx.key?(name) ? {name => original_ctx[name]} : {name => defaulting_filter.(original_ctx, **kws)} }
-
-                  tuple_for(inject, inject_filter, name, "defaulting_callable")
-                end
-              end
-
-              def self.tuple_for(inject, inject_filter, name, type)
-                DSL.In(name: "inject.#{type}.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
-              end
-            end
-          end # DSL
-
         end # VariableMapping
       end
     end
