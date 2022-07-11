@@ -112,7 +112,7 @@ module Trailblazer
 # < AddVariables
 #   Option
 #     filter
-#   MergeVariables
+#   merge_variables
 
           # Runtime classes
           Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class)
@@ -156,7 +156,7 @@ module Trailblazer
           def default_input_ctx(wrap_ctx, original_args)
             default_ctx = wrap_ctx[:original_ctx]
 
-            MergeVariables(default_ctx, wrap_ctx, original_args)
+            merge_variables(default_ctx, wrap_ctx, original_args)
           end
 
           # Input/output Pipeline step that runs the user's {filter} and adds
@@ -164,7 +164,7 @@ module Trailblazer
           #
           # Basically implements {:input}.
           #
-# AddVariables: I call something with an Option-interface and run the return value through MergeVariables().
+# AddVariables: I call something with an Option-interface and run the return value through merge_variables().
           # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
           class AddVariables
             def initialize(filter, user_filter)
@@ -179,7 +179,7 @@ module Trailblazer
               # this is the actual logic.
               variables = call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
 
-              VariableMapping.MergeVariables(variables, wrap_ctx, original_args)
+              VariableMapping.merge_variables(variables, wrap_ctx, original_args)
             end
 
             def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
@@ -241,7 +241,7 @@ module Trailblazer
 
           # Last call in every step. Currently replaces {:input_ctx} by adding variables using {#merge}.
           # DISCUSS: improve here?
-          def MergeVariables(variables, wrap_ctx, original_args)
+          def merge_variables(variables, wrap_ctx, original_args)
             wrap_ctx[:aggregate] = wrap_ctx[:aggregate].merge(variables)
 
             return wrap_ctx, original_args
@@ -255,14 +255,14 @@ module Trailblazer
 
             _wrapped, mutable = new_ctx.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
 
-            MergeVariables(mutable, wrap_ctx, original_args)
+            merge_variables(mutable, wrap_ctx, original_args)
           end
 
           def merge_with_original(wrap_ctx, original_args)
             original_ctx     = wrap_ctx[:original_ctx]  # outer ctx
             output_variables = wrap_ctx[:aggregate]
 
-            wrap_ctx[:aggregate] = original_ctx.merge(output_variables) # FIXME: use MergeVariables()
+            wrap_ctx[:aggregate] = original_ctx.merge(output_variables) # FIXME: use merge_variables()
             # pp wrap_ctx
             return wrap_ctx, original_args
           end

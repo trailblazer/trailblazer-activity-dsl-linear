@@ -1091,7 +1091,7 @@ require "date"
       # The default ctx is the original ctx but with uppercased values.
         default_ctx = wrap_ctx[:original_ctx].collect { |k,v| [k.to_s.upcase, v.to_s.upcase] }.to_h
 
-        Trailblazer::Activity::DSL::Linear::VariableMapping.MergeVariables(default_ctx, wrap_ctx, original_args)
+        Trailblazer::Activity::DSL::Linear::VariableMapping.merge_variables(default_ctx, wrap_ctx, original_args)
       end
 
       activity = Class.new(Trailblazer::Activity::Railway) do
