@@ -1,7 +1,9 @@
 # 1.0.0
 
-* DSL logic: move as much as possible into the normalizer as it's much easier to understand and follow (and debug).
-* We no longer store arbitrary variables from `#step` in the sequence row's `data` field.
+## Additions
+
+* Introduce composable input/output filters with `In()`, `Out()` and `Inject()`. # FIXME: add link
+* We no longer store arbitrary variables from `#step` calls in the sequence row's `data` field.
   Use the `DataVariable` helper to mark variables for storage in `data`.
 
   ```ruby
@@ -9,34 +11,44 @@
     model_class: Song,
     Trailblazer::Activity::DSL::Linear::Helper.DataVariable() => :model_class
   ```
-* The `Railway.Path()` helper now simply delegates to `@state.Path()` which returns a `DSL::PathBranch` non-symbol that is then processed by the normalizer (exactly how we do it with `In()`, `Track()` etc. Branching implementation is handled in `helper/path.rb`.
-* Add `Strategy.terminus` to add end events.
-* `Linear.end_id` now accepts keyword arguments (mainly, `:semantic`).
+* Add `Normalizer.extend!` to add steps to a particular normalizer. # FIXME: add link
+* Add `Strategy.terminus` to add termini. # FIXME: add link
+* The `Sequence` instance is now readable via `#to_h`: `Strategy.to_h[:sequence]`.
+* In Normalizer, the `path.wirings` step is now named `activity.wirings`.
+
+## Design
+
+  * DSL logic: move as much as possible into the normalizer as it's much easier to understand and follow (and debug).
+  * Each DSL method now directly invokes a normalizer pipeline that processes the user options and produces an ADDS structure.
+* We now need `Sequence::Row` instances in `Sequence` to adhere to the Adds specification.
+* Rename `Linear::State` to `Linear::Sequence::Builder`. This is now a stateless function, only.
+  Sequence::Builder.()
+* @state ?
+* Remove `Strategy@activity` instance variable and move it to `@state[:activity]`.
+* Much better file structuring.
+
+## Internals
+
 * Use `Trailblazer::Declarative::State` to maintain sequence and other fields. This makes inheritance consistent.
-* `Strategy::State.build` is now the official constructor for a `State` instance.
-* Moved and renamed `Strategy.task_for!` to `State.update_sequence_for!`.
-* `Sequence` is now readable via `#to_h`: `Strategy.to_h[:sequence]`.
-* Adding composable variable mapping: `In()`, `Inject()` and `Out()`
-  delete add "aggregate"
-* Rename `State.update_sequence` to `State.update_sequence!`.
+* Make `Strategy` a class. It makes constant management much simpler to understand.
+* `Linear.end_id` now accepts keyword arguments (mainly, `:semantic`).
+* `Strategy.apply_step_on_state!` is now an immutable `Sequence::Builder.update_sequence_for`.
+* The `Railway.Path()` helper returns a `DSL::PathBranch` non-symbol that is then picked up and processed by the normalizer (exactly how we do it with `In()`, `Track()` etc.). Branching implementation is handled in `helper/path.rb`.
 * Remove `State.update_options`. Use `@state.update!`.
 * Remove `Helper.normalize`.
 * Remove `Linear::DSL.insert_task`. The canonical way to add steps is using the ADDS interface going through a normalizer.
-  This is why there's a normalizer for `end` (or "terminus") now for consistency.
-* In Normalizer, `path.wirings` is now `activity.wirings`.
+  That's why there's a normalizer for `end` (or "terminus") now for consistency.
 * Remove `Helper::ClassMethods`, `Helper` is now the namespace to mix in your own functions (and ours, like `Output()`).
 * Introduce `Helper::Constants` for namespaced macros such as `Policy::Pundit()`.
-* Move DSL structures like `OutputSemantic` to `Linear` namespace.
-* Make `Strategy` a class. It makes constant management much simpler to understand.
-* Move `Insert` to `trailblazer-activity` gem.
-* We now need `Sequence::Row` instances in `Sequence` to adhere to the Adds specification.
-* Move `Sequence::IndexError` to `Activity::Adds::IndexError` in the `trailblazer-activity` gem. Remove `IndexError#step_id`.
+
+## Renaming
+
 * Rename `Linear::State::Normalizer` to `Linear::Normalizer::Normalizers` as it represents a container for normalizers.
-* Rename `Linear::State` to `Linear::Sequence::Builder`. This is now a stateless function, only.
-* Move `Linear::Search` to `Linear::Sequence::Search`.
-* Move `Linear::Compiler` to `Linear::Sequence::Compiler`.
+* Move `Linear::Insert` to `Activity::Adds::Insert` in the `trailblazer-activity` gem.
+* Move `Linear::Search` to `Linear::Sequence::Search` and `Linear::Compiler` to `Linear::Sequence::Compiler`.
 * `TaskWrap::Pipeline.prepend` is now `Linear::Normalizer.prepend_to`. To use the `:replace` option you can use `Linear::Normalizer.replace`.
-* Add `Normalizer.extend!` to extend a particular normalizer in a strategy subclass.
+* Move `Sequence::IndexError` to `Activity::Adds::IndexError` in the `trailblazer-activity` gem. Remove `IndexError#step_id`.
+* Move DSL structures like `OutputSemantic` to `Linear` namespace.
 
 # 0.5.0
 
