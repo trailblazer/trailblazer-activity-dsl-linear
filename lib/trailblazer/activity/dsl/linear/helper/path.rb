@@ -47,13 +47,10 @@ module Trailblazer
             module_function
 
             def convert_path_to_track(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, **options)
-              # DISCUSS: should we inherit from self here and erase sequence?
-              #   if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.
+              # DISCUSS:  if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.
 
               # DISCUSS: use Path::Sequencer::Builder here instead?
-              path = Activity::Path(**options, track_name: track_color)
-              # path_state, _ = Activity::Path::DSL::State.build(**Activity::Path::DSL.OptionsForState(**options, track_name: track_color))
-              path.instance_exec(&block)
+              path = Activity::Path(**options, track_name: track_color, &block)
 
               seq = path.to_h[:sequence]
               # Strip default ends `Start.default` and `End.success` (if present).
