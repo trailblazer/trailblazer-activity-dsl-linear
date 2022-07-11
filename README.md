@@ -1,17 +1,12 @@
 # Activity-DSL-Linear
 
-The `activity-dsl-linear` gem brings:
-- [Path](https://trailblazer.to/2.1/docs/activity.html#activity-strategy-path)
-- [Railway](https://trailblazer.to/2.1/docs/activity.html#activity-strategy-railway)
-- [Fasttrack](https://trailblazer.to/2.1/docs/activity.html#activity-strategy-fasttrack)
-  
-DSLs strategies for buildig activities. It is build around [`activity`](https://github.com/trailblazer/trailblazer-activity) gem.
+The `trailblazer-activity-dsl-linear` gem brings the popular `step` DSL around the [`activity`](https://github.com/trailblazer/trailblazer-activity) gem. It allows to create classes that you might mostly know as _operations_, service objects that execute your business logic in a certain order, depending on how you harness the `step` DSL.
 
 Please find the [full documentation on the Trailblazer website](https://trailblazer.to/2.1/docs/activity.html#activity-strategy).
 
 ## Example
 
-The `activity-dsl-linear` gem provides three default patterns to model processes: `Path`, `Railway` and `FastTrack`. Here's an example of what a railway activity could look like, along with some more complex connections (you can read more about Railway strategy in the [docs](https://trailblazer.to/2.1/docs/activity.html#activity-strategy-railway)).
+The `activity-dsl-linear` gem provides three default patterns to model activities: `Path`, `Railway` and `FastTrack`. Here's an example of what a railway activity could look like, along with some more complex connections (you can read more about Railway strategy in the [docs](https://trailblazer.to/2.1/docs/activity.html#activity-strategy-railway)).
 
 ```ruby
 require "trailblazer-activity"
