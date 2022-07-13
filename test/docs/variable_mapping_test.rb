@@ -652,6 +652,24 @@ require "date"
       assert_equal ctx.inspect, '{:date=>"today", :model=>Object, :something=>99, :log=>"Called @ Time.now and \"today\" by [:date, :model, :something]!", :private=>"[:model, :thing, :date, :current_user, :log]Object"}'
     end
 
+    #@ unit test
+    it "with default Out(), it doesn't merge variables to the outer ctx that haven't been explicitely written to the inner ctx" do
+      module EEE
+        class Create < Trailblazer::Activity::Railway
+          step :write,
+            # we create a new {:seq} variable for this scope. this one won't be visible outside.
+            In() => ->(ctx, seq:, **) { {seq: [:something, :new]} }
+
+          def write(ctx, seq:, **)
+            ctx[:seq] << :write # we're writing to the new {:seq} variable. This doesn't create a new entry in mutable_options on the new ctx. So this won't be merged in the automatic default Out().
+          end
+        end
+      end
+
+      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(EEE::Create, [{seq: ["today"]}, {}])
+      assert_equal ctx.inspect, %{{:seq=>["today"]}} #= the additions from the In() filter and from `#write` are missing.
+    end
+
     it "In() DSL: single {In() => [:current_user]}" do
       module RR
         class Create < Trailblazer::Activity::Railway
@@ -938,6 +956,38 @@ require "date"
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Upsert, [{model: Object}, {}])
       assert_equal ctx.inspect, %{{:model=>Object, :incoming=>[Object, nil, {:model=>Object, :current_user=>nil}]}}
 
+    end
+
+    #@ unit test
+    it "uses and returns the correct {flow_options}" do
+      lets_change_flow_options = ->((ctx, flow_options), circuit_options) do
+        ctx[:seq] = ctx[:seq] + [:lets_change_flow_options]
+
+      # allows to change flow_options in the task.
+        flow_options = flow_options.merge(coffee: true)
+
+        [Trailblazer::Activity::Right, [ctx, flow_options]]
+      end
+
+      activity = Class.new(Trailblazer::Activity::Railway) do
+        step task: lets_change_flow_options,
+          In() => ->(ctx, seq:, model_input:, **) { {seq: seq + [:model_input]} }#, #@ test if In() kicks in.
+          # Out() => ->(original_ctx, seq:, **) { {seq: seq} }
+        step :uuid
+
+        include ::T.def_steps(:uuid)
+      end
+
+      signal, (ctx, flow_options) = Activity::TaskWrap.invoke(
+        activity,
+        [
+          {seq: [], model_input: "great!"},
+          {yo: 1} #@ flow_options to be changed by the step.
+        ]
+      )
+
+      assert_equal ctx.inspect, %{{:seq=>[:model_input, :lets_change_flow_options, :uuid], :model_input=>"great!"}}
+      assert_equal flow_options.inspect, %{{:yo=>1, :coffee=>true}}
     end
 
     #@ unit test
