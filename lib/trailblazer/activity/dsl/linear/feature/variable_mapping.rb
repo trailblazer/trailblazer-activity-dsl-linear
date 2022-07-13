@@ -4,8 +4,10 @@ module Trailblazer
       module Linear
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
-        def self.VariableMapping(**options)
-          extension, normalizer_options, non_symbol_options = VariableMapping.merge_instructions_from_dsl(**options)
+        def self.VariableMapping(input_id: "task_wrap.input", output_id: "task_wrap.output", **options)
+          input, output, normalizer_options, non_symbol_options = VariableMapping.merge_instructions_from_dsl(**options)
+
+          extension = VariableMapping.Extension(input, output)
 
           return TaskWrap::Extension::WrapStatic.new(extension: extension), normalizer_options, non_symbol_options
         end
@@ -24,6 +26,13 @@ module Trailblazer
                 }
               )
             end
+          end
+
+          def self.Extension(input, output, input_id: "task_wrap.input", output_id: "task_wrap.output")
+            TaskWrap.Extension(
+              [input,  id: input_id,  prepend: "task_wrap.call_task"],
+              [output, id: output_id, append: "task_wrap.call_task"]
+            )
           end
 
           # Steps that are added to the DSL normalizer.
@@ -94,7 +103,7 @@ module Trailblazer
 
             output = Pipe::Output.new(output_pipeline)
 
-            return TaskWrap::VariableMapping.Extension(input, output, id: input.object_id), # wraps filters: {Input(input), Output(output)}
+            return input, output,
               # normalizer_options:
               {
                 variable_mapping_pipelines: [pipeline, output_pipeline],
@@ -106,8 +115,6 @@ module Trailblazer
               # DISCUSS: should we remember the pure pipelines or get it from the compiled extension?
               # store pipe in the extension (via TW::Extension.data)?
           end
-
-
 
 # < AddVariables
 #   Option
@@ -121,14 +128,22 @@ module Trailblazer
           # and run the latter when being `call`ed.
           module Pipe
             class Input
-              def initialize(pipe)
+              def initialize(pipe, id: :vm_original_ctx)
                 @pipe = pipe
+                @id   = id # DISCUSS: untested.
               end
 
-              def call((ctx, flow_options), **circuit_options) # This method is called by {TaskWrap::Input#call} in the {activity} gem.
-                wrap_ctx, _ = @pipe.({original_ctx: ctx}, [[ctx, flow_options], circuit_options])
+              def call(wrap_ctx, original_args)
+                (original_ctx, original_flow_options), original_circuit_options = original_args
 
-                wrap_ctx[:input_ctx]
+                # let user compute new ctx for the wrapped task.
+                pipe_ctx, _ = @pipe.({original_ctx: original_ctx}, [[original_ctx, original_flow_options], original_circuit_options])
+                input_ctx   = pipe_ctx[:input_ctx]
+
+                wrap_ctx = wrap_ctx.merge(@id => original_ctx) # remember the original ctx under the key {:vm_original_ctx}.
+
+                # instead of the original Context, pass on the filtered `input_ctx` in the wrap.
+                return wrap_ctx, [[input_ctx, original_flow_options], original_circuit_options]
               end
             end
 
@@ -136,10 +151,20 @@ module Trailblazer
             #   output_ctx = @filter.(returned_ctx, [original_ctx, returned_flow_options], **original_circuit_options)
             # Returns {output_ctx} that is used after taskWrap finished.
             class Output < Input
-              def call(returned_ctx, (original_ctx, returned_flow_options), **original_circuit_options)
-                wrap_ctx, _ = @pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx}, [[original_ctx, returned_flow_options], original_circuit_options])
+              # def call(returned_ctx, (original_ctx, returned_flow_options), **original_circuit_options)
+                def call(wrap_ctx, original_args)
+                  returned_ctx, returned_flow_options = wrap_ctx[:return_args]  # this is the Context returned from {call}ing the wrapped user task.
+                  original_ctx                        = wrap_ctx[@id]           # grab the original ctx from before which was set in the {:input} filter.
+                  _, original_circuit_options         = original_args
 
-                wrap_ctx[:aggregate]
+                # let user compute the output.
+                pipe_ctx, _ = @pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx}, [[original_ctx, returned_flow_options], original_circuit_options])
+
+                output_ctx  = pipe_ctx[:aggregate]
+
+                wrap_ctx = wrap_ctx.merge(return_args: [output_ctx, returned_flow_options]) # DISCUSS: this won't allow tracing in the taskWrap as we're returning {returned_flow_options} from above.
+
+                return wrap_ctx, original_args
               end
             end
           end

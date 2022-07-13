@@ -928,27 +928,6 @@ require "date"
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Create, [{model: Object}, {}])
       assert_equal ctx.inspect, %{{:model=>Object, :out=>["Objecthello! ", ["Objecthello! ", nil, {:model=>"Objecthello! ", :current_user=>nil, :time=>99}]]}}
 
-      activity = R::Create
-      step_id = :write
-
-      task_wrap = R::Create.to_h[:config][:wrap_static]
-
-      task = Trailblazer::Activity::Introspect.Graph(activity).find(step_id).task
-
-      step_wrap = task_wrap[task]
-      index = Trailblazer::Activity::Adds::Insert.find_index(step_wrap.to_a, "task_wrap.input")
-      _, input = step_wrap.to_a[index] # we also need do to that for {"task_wrap.output"}
-
-
-
-      # puts input.instance_variable_get(:@filter).inspect
-      input_pipe = input.instance_variable_get(:@filter).instance_variable_get(:@pipe)
-      # this is again a {TaskWrap::Pipeline}
-
-      input_pipe.to_a.each do |id, filter|
-        puts "#{id} |  #{filter.is_a?(Trailblazer::Activity::DSL::Linear::VariableMapping::AddVariables) ? filter.instance_variable_get(:@user_filter).inspect : filter }" # we could even grab the source code for callables here!
-      end
-
 
     ## Inheriting I/O taskWrap filters
       ## {:time} is defaulted by Inject()

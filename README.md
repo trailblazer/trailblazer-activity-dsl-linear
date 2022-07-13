@@ -1,6 +1,6 @@
 # Activity-DSL-Linear
 
-The `trailblazer-activity-dsl-linear` gem brings the popular `step` DSL around the [`activity`](https://github.com/trailblazer/trailblazer-activity) gem. It allows to create classes that you might mostly know as _operations_, service objects that execute your business logic in a certain order, depending on how you harness the `step` DSL.
+The `trailblazer-activity-dsl-linear` gem brings the popular `step` DSL around the [`activity`](https://github.com/trailblazer/trailblazer-activity) gem. It allows to create classes that you might mostly know as _operations_ - service objects that execute your business logic in a certain order, depending on how you harness the `step` DSL.
 
 Please find the [full documentation on the Trailblazer website](https://trailblazer.to/2.1/docs/activity.html#activity-strategy).
 
@@ -9,12 +9,16 @@ Please find the [full documentation on the Trailblazer website](https://trailbla
 The `activity-dsl-linear` gem provides three default patterns to model activities: `Path`, `Railway` and `FastTrack`. Here's an example of what a railway activity could look like, along with some more complex connections (you can read more about Railway strategy in the [docs](https://trailblazer.to/2.1/docs/activity.html#activity-strategy-railway)).
 
 ```ruby
-require "trailblazer-activity"
 require "trailblazer-activity-dsl-linear"
 
 class Memo::Update < Trailblazer::Activity::Railway
-  # here goes your business logic
-  #
+  # Use the DSL to describe the layout of the activity.
+  step :find_model
+  step :validate, Output(:failure) => End(:validation_error)
+  step :save
+  fail :log_error
+
+  # Here comes your business logic.
   def find_model(ctx, id:, **)
     ctx[:model] = Memo.find_by(id: id)
   end
@@ -32,13 +36,6 @@ class Memo::Update < Trailblazer::Activity::Railway
   def log_error(ctx, params:, **)
     ctx[:log] = "Some idiot wrote #{params.inspect}"
   end
-
-  # here comes the DSL describing the layout of the activity
-  #
-  step :find_model
-  step :validate, Output(:failure) => End(:validation_error)
-  step :save
-  fail :log_error
 end
 ```
 
