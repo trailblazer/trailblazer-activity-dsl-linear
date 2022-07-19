@@ -27,6 +27,7 @@ class DocsTaskWrapTest < Minitest::Spec
     #:op-run end
 
 # DISCUSS: THIS IS OLD API, but needed in the docs
+# TODO: test deprecation warning.
     #:run-merge
     merge = [
       [
