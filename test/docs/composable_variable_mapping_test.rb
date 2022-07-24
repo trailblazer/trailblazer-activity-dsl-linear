@@ -1,0 +1,60 @@
+require "test_helper"
+
+class ComposableVariableMappingDocTest < Minitest::Spec
+  class ApplicationPolicy
+    def self.can?(model, user, mode)
+      true
+    end
+  end
+
+  module Steps
+    def create_model(ctx, **)
+      ctx[:model] = Object
+    end
+  end
+
+#@ In() 1.1 {:model => :model}
+  module A
+    module Policy
+      # Explicit policy, one way, not ideal as it results in a lot of code.
+      class Create
+        def self.call(ctx, model:, user:, **)
+          ApplicationPolicy.can?(model, user, :create) # FIXME: how does pundit/cancan do this exactly?
+        end
+      end
+    end
+
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create, # callable class can be a step, too.
+        In() => {:current_user => :user, :model => :model} # rename {:current_user} to {:user}
+      #~meths
+      include Steps
+      #~meths end
+    end
+
+  end # A
+
+  it "why do we need In() ?" do
+    assert_invoke A::Create, current_user: Module, expected_ctx_variables: {model: Object}
+  end
+
+# In() 1.2
+  module B
+    Policy = A::Policy
+
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create,
+        In() => {:current_user => :user},
+        In() => [:model]
+      #~meths
+      include Steps
+      #~meths end
+    end
+  end
+
+  it "In() can map and limit" do
+    assert_invoke B::Create, current_user: Module, expected_ctx_variables: {model: Object}
+  end
+end
