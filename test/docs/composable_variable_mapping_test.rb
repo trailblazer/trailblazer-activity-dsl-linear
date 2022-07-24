@@ -14,10 +14,10 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     end
   end
 
-#@ In() 1.1 {:model => :model}
   module A
+    #:policy
     module Policy
-      # Explicit policy, one way, not ideal as it results in a lot of code.
+      # Explicit policy, not ideal as it results in a lot of code.
       class Create
         def self.call(ctx, model:, user:, **)
           decision = ApplicationPolicy.can?(model, user, :create) # FIXME: how does pundit/cancan do this exactly?
@@ -33,7 +33,38 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         end
       end
     end
+    #:policy end
+  end
 
+#@ 0.1 No In()
+  module AA
+    Policy = A::Policy
+
+    #:no-in
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create # an imaginary policy step.
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:no-in end
+  end
+
+  it "why do we need In() ? because we get an exception" do
+    exception = assert_raises ArgumentError do
+      #:no-in-invoke
+      result = Trailblazer::Activity::TaskWrap.invoke(AA::Create, [{current_user: Module}])
+
+      #=> ArgumentError: missing keyword: :user
+      #:no-in-invoke end
+    end
+
+    assert_equal exception.message, "missing keyword: :user"
+  end
+
+#@ In() 1.1 {:model => :model}
+  module A
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create, # callable class can be a step, too.
