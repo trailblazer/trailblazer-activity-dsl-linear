@@ -25,6 +25,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
           if decision.allowed?
             return true
           else
+            ctx[:status]  = 422 # we're not interested in this field.
             ctx[:message] = "Command {create} not allowed!"
             return false
           end
@@ -67,7 +68,35 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     assert_invoke B::Create, current_user: Module, expected_ctx_variables: {model: Object}
   end
 
+  it "Policy breach will add {ctx[:message]} and {:status}" do
+    assert_invoke B::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, status: 422, message: "Command {create} not allowed!"}
+  end
+
 # Out() 1.1
+  module D
+    Policy = A::Policy
+
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create,
+        In() => {:current_user => :user},
+        In() => [:model],
+        Out() => [:message]
+      #~meths
+      include Steps
+      #~meths end
+    end
+  end
+
+  it "Out() can limit" do
+    #= policy didn't set any message
+    assert_invoke D::Create, current_user: Module, expected_ctx_variables: {model: Object, message: nil}
+    #= policy breach, {message_from_policy} set.
+    assert_invoke D::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message: "Command {create} not allowed!"}
+  end
+
+# Out() 1.2
+
   module C
     Policy = A::Policy
 
@@ -89,4 +118,17 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     #= policy breach, {message_from_policy} set.
     assert_invoke C::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
   end
+
+  # def operation_for(&block)
+  #   namespace = Module.new
+  #   # namespace::Policy = A::Policy
+  #   namespace.const_set :Policy, A::Policy
+
+  #   namespace.module_eval do
+  #     operation = yield
+  #     operation.class_eval do
+  #       include Steps
+  #     end
+  #   end
+  # end # operation_for
 end
