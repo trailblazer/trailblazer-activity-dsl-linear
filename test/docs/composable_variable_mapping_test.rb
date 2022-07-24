@@ -3,7 +3,8 @@ require "test_helper"
 class ComposableVariableMappingDocTest < Minitest::Spec
   class ApplicationPolicy
     def self.can?(model, user, mode)
-      true
+      decision = !user.nil?
+      Struct.new(:allowed?).new(decision)
     end
   end
 
@@ -19,7 +20,15 @@ class ComposableVariableMappingDocTest < Minitest::Spec
       # Explicit policy, one way, not ideal as it results in a lot of code.
       class Create
         def self.call(ctx, model:, user:, **)
-          ApplicationPolicy.can?(model, user, :create) # FIXME: how does pundit/cancan do this exactly?
+          decision = ApplicationPolicy.can?(model, user, :create) # FIXME: how does pundit/cancan do this exactly?
+          #~decision
+          if decision.allowed?
+            return true
+          else
+            ctx[:message] = "Command {create} not allowed!"
+            return false
+          end
+          #~decision end
         end
       end
     end
@@ -56,5 +65,28 @@ class ComposableVariableMappingDocTest < Minitest::Spec
 
   it "In() can map and limit" do
     assert_invoke B::Create, current_user: Module, expected_ctx_variables: {model: Object}
+  end
+
+# Out() 1.1
+  module C
+    Policy = A::Policy
+
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create,
+        In() => {:current_user => :user},
+        In() => [:model],
+        Out() => {:message => :message_from_policy}
+      #~meths
+      include Steps
+      #~meths end
+    end
+  end
+
+  it "Out() can map" do
+    #= policy didn't set any message
+    assert_invoke C::Create, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil}
+    #= policy breach, {message_from_policy} set.
+    assert_invoke C::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
   end
 end
