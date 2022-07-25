@@ -65,14 +65,19 @@ class ComposableVariableMappingDocTest < Minitest::Spec
 
 #@ In() 1.1 {:model => :model}
   module A
+    #:in-mapping
     class Create < Trailblazer::Activity::Railway
       step :create_model
-      step Policy::Create, # callable class can be a step, too.
-        In() => {:current_user => :user, :model => :model} # rename {:current_user} to {:user}
+      step Policy::Create,
+        In() => {
+          :current_user => :user, # rename {:current_user} to {:user}
+          :model        => :model # add {:model} to the inner ctx.
+        }
       #~meths
       include Steps
       #~meths end
     end
+    #:in-mapping end
 
   end # A
 
@@ -80,10 +85,37 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     assert_invoke A::Create, current_user: Module, expected_ctx_variables: {model: Object}
   end
 
+  module AAA
+    #:in-mapping-keys
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step :show_ctx,
+        In() => {
+          :current_user => :user, # rename {:current_user} to {:user}
+          :model        => :model # add {:model} to the inner ctx.
+        }
+
+      def show_ctx(ctx, **)
+        p ctx.to_h
+        #=> {:user=>#<User email:...>, :model=>#<Song name=nil>}
+      end
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:in-mapping-keys end
+
+  end # A
+
+  it "In() is only locally visible" do
+    assert_invoke AAA::Create, current_user: Module, expected_ctx_variables: {model: Object}
+  end
+
 # In() 1.2
   module B
     Policy = A::Policy
 
+    #:in-limit
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create,
@@ -93,6 +125,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
       include Steps
       #~meths end
     end
+    #:in-limit end
   end
 
   it "In() can map and limit" do
@@ -101,6 +134,38 @@ class ComposableVariableMappingDocTest < Minitest::Spec
 
   it "Policy breach will add {ctx[:message]} and {:status}" do
     assert_invoke B::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, status: 422, message: "Command {create} not allowed!"}
+  end
+
+# In() 1.3 (callable)
+  module BB
+    Policy = A::Policy
+
+    #:in-callable
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create,
+        In() => ->(ctx, **) do
+          # only rename {:current_user} if it's there.
+          ctx[:current_user].nil? ? {} : {user: ctx[:current_user]}
+        end,
+        In() => [:model]
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:in-callable end
+  end
+
+  it "In() can map and limit" do
+    assert_invoke BB::Create, current_user: Module, expected_ctx_variables: {model: Object}
+  end
+
+  it "exception because we don't pass {:current_user}" do
+    exception = assert_raises ArgumentError do
+      result = Trailblazer::Activity::TaskWrap.invoke(BB::Create, [{}, {}]) # no {:current_user}
+    end
+
+    assert_equal exception.message, "missing keyword: :user"
   end
 
 # Out() 1.1
