@@ -168,6 +168,52 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     assert_equal exception.message, "missing keyword: :user"
   end
 
+# In() 1.4 (filter method)
+  module BBB
+    Policy = A::Policy
+
+    #:in-method
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create,
+        In() => :input_for_policy, # You can use an {:instance_method}!
+        In() => [:model]
+
+      def input_for_policy(ctx, **)
+        # only rename {:current_user} if it's there.
+        ctx[:current_user].nil? ? {} : {user: ctx[:current_user]}
+      end
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:in-method end
+  end
+
+  it{ assert_invoke BBB::Create, current_user: Module, expected_ctx_variables: {model: Object} }
+
+# In() 1.5 (callable with kwargs)
+  module BBBB
+    Policy = A::Policy
+
+    #:in-kwargs
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create,
+                      # vvvvvvvvvvvv keyword arguments rock!
+        In() => ->(ctx, current_user: nil, **) do
+          current_user.nil? ? {} : {user: current_user}
+        end,
+        In() => [:model]
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:in-kwargs end
+  end
+
+  it{ assert_invoke BBBB::Create, current_user: Module, expected_ctx_variables: {model: Object} }
+
 # Out() 1.1
   module D
     Policy = A::Policy
