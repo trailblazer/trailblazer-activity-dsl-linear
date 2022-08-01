@@ -61,7 +61,15 @@ class ComposableVariableMappingDocTest < Minitest::Spec
       #:no-in-invoke end
     end
 
-    assert_equal exception.message, "missing keyword: :user"
+    assert_equal exception.message, "missing keyword: #{symbol_inspect_for(:user)}"
+  end
+
+  def symbol_inspect_for(name)
+    if Gem::Version.new(RUBY_VERSION) <= Gem::Version.new("2.6.0")
+      "#{name}"
+    else
+      ":#{name}"
+    end
   end
 
 #@ In() 1.1 {:model => :model}
@@ -166,7 +174,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
       result = Trailblazer::Activity::TaskWrap.invoke(BB::Create, [{}, {}]) # no {:current_user}
     end
 
-    assert_equal exception.message, "missing keyword: :user"
+    assert_equal exception.message, "missing keyword: #{symbol_inspect_for(:user)}"
   end
 
 # In() 1.4 (filter method)
