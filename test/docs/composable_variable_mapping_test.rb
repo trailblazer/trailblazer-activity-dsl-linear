@@ -65,7 +65,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
   end
 
   def symbol_inspect_for(name)
-    if Gem::Version.new(RUBY_VERSION) <= Gem::Version.new("2.6.0")
+    if Gem::Version.new(RUBY_VERSION) <= Gem::Version.new("2.5.0") || RUBY_ENGINE == 'jruby'
       "#{name}"
     else
       ":#{name}"
