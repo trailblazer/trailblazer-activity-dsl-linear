@@ -22,6 +22,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         def self.call(ctx, model:, user:, **)
           decision = ApplicationPolicy.can?(model, user, :create) # FIXME: how does pundit/cancan do this exactly?
           #~decision
+
           if decision.allowed?
             return true
           else
@@ -218,6 +219,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
   module D
     Policy = A::Policy
 
+    #:out-array
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create,
@@ -228,6 +230,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
       include Steps
       #~meths end
     end
+    #:out-array end
   end
 
   it "Out() can limit" do
@@ -238,10 +241,10 @@ class ComposableVariableMappingDocTest < Minitest::Spec
   end
 
 # Out() 1.2
-
   module C
     Policy = A::Policy
 
+    #:out-hash
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create,
@@ -252,6 +255,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
       include Steps
       #~meths end
     end
+    #:out-hash end
   end
 
   it "Out() can map" do
@@ -260,6 +264,102 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     #= policy breach, {message_from_policy} set.
     assert_invoke C::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
   end
+
+
+# Out() 1.3
+  module DD
+    Policy = A::Policy
+
+    # Message = Struct.new(:data)
+    #:out-callable
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create,
+        In() => {:current_user => :user},
+        In() => [:model],
+        Out() => ->(ctx, **) do
+          return {} unless ctx[:message]
+
+          { # you always have to return a hash from a callable!
+            :message_from_policy => ctx[:message]
+          }
+        end
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:out-callable end
+  end
+
+  it "Out() can map with callable" do
+    #= policy didn't set any message
+    assert_invoke DD::Create, current_user: Module, expected_ctx_variables: {model: Object}
+    #= policy breach, {message_from_policy} set.
+    assert_invoke DD::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
+  end
+
+# Out() 1.4
+  module DDD
+    Policy = A::Policy
+
+    #:out-kw
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create,
+        In() => {:current_user => :user},
+        In() => [:model],
+        Out() => ->(ctx, message: nil, **) do
+          return {} if message.nil?
+
+          { # you always have to return a hash from a callable!
+            :message_from_policy => message
+          }
+        end
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:out-kw end
+  end
+
+  it "Out() can map with callable" do
+    #= policy didn't set any message
+    assert_invoke DDD::Create, current_user: Module, expected_ctx_variables: {model: Object}
+    #= policy breach, {message_from_policy} set.
+    assert_invoke DDD::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
+  end
+
+# Out() 1.5
+  module DDDD
+    Policy = A::Policy
+
+    #:out-outer
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create,
+        In() => {:current_user => :user},
+        In() => [:model],
+        Out() => [:message],
+
+        Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx, **) do
+          {
+            errors: outer_ctx[:errors].merge(policy_message: inner_ctx[:message])
+          }
+        end
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:out-outer end
+  end
+
+  it "Out() with {outer_ctx}" do
+    #= policy didn't set any message
+    assert_invoke DDDD::Create, current_user: Module, errors: {}, expected_ctx_variables: {:errors=>{:policy_message=>nil}, model: Object, message: nil}
+    #= policy breach, {message_from_policy} set.
+    assert_invoke DDDD::Create, current_user: nil, errors: {}, terminus: :failure, expected_ctx_variables: {model: Object, :errors=>{:policy_message=>"Command {create} not allowed!"}, :model=>Object, :message=>"Command {create} not allowed!"}
+  end
+
 
   # def operation_for(&block)
   #   namespace = Module.new
