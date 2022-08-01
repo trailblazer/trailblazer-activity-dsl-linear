@@ -360,6 +360,63 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     assert_invoke DDDD::Create, current_user: nil, errors: {}, terminus: :failure, expected_ctx_variables: {model: Object, :errors=>{:policy_message=>"Command {create} not allowed!"}, :model=>Object, :message=>"Command {create} not allowed!"}
   end
 
+# Macro 1.0
+  module DDDDD
+    Policy = A::Policy
+    #:macro
+    module Policy
+      def self.Create()
+        {
+          task: Policy::Create,
+          wrap_task: true,
+          Trailblazer::Activity::Railway.In()  => {:current_user => :user},
+          Trailblazer::Activity::Railway.In()  => [:model],
+          Trailblazer::Activity::Railway.Out() => {:message => :message_from_policy},
+        }
+      end
+    end
+    #:macro end
+
+    #:macro-use
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create()
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:macro-use end
+  end
+
+  it "Out() with {outer_ctx}" do
+    #= policy didn't set any message
+    assert_invoke DDDDD::Create, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil}
+    #= policy breach, {message_from_policy} set.
+    assert_invoke DDDDD::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message_from_policy=>"Command {create} not allowed!"}
+  end
+
+# Macro 1.1
+  module DDDDDD
+    Policy = DDDDD::Policy
+
+    #:macro-merge
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Create(),
+        Out() => {:message => :copied_message}
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:macro-merge end
+  end
+
+  it "Out() with {outer_ctx}" do
+    #= policy didn't set any message
+    assert_invoke DDDDDD::Create, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil, :copied_message=>nil}
+    #= policy breach, {message_from_policy} set.
+    assert_invoke DDDDDD::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message_from_policy=>"Command {create} not allowed!", :copied_message=>"Command {create} not allowed!"}
+  end
 
   # def operation_for(&block)
   #   namespace = Module.new
