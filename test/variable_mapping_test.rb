@@ -465,7 +465,6 @@ class VariableMappingTest < Minitest::Spec
   #   assert_equal ctx.inspect, %{{:model=>[], :ignore=>1, :incoming=>[[asdfasdf], {:model=>Object, :current_user=>nil}]}}
   # end
 
-  require "trailblazer/activity/dsl/linear/feature/variable_mapping/inherit"
   it "inherit: [:variable_mapping]" do
     module TTTTT
       class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
@@ -483,6 +482,22 @@ class VariableMappingTest < Minitest::Spec
         end
       end
 
+      # puts Trailblazer::Developer::Render::TaskWrap.(Create, id: :write)
+=begin
+`-- write
+    |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
+    |   |-- input.init_hash.................. VariableMapping.initial_aggregate
+    |   |-- input.add_variables.0.38201322097043044 #<Proc:0x0000563ccddeac00 test/variable_mapping_test.rb:477 (lambda)>
+    |   |-- input.add_variables.inject.defaulting_callable.:time #<Proc:0x0000563ccdd99d78 /home/nick/projects/trailblazer-activity-dsl-linear/lib/trailblazer/activity/dsl/linear/feature/variable_mapping/dsl.rb:265 (lambda)>
+    |   `-- input.scope...................... VariableMapping.scope
+    |-- task_wrap.call_task..............Method
+    `-- task_wrap.output.................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Output
+        |-- output.init_hash................. VariableMapping.initial_aggregate
+        |-- input.add_variables.0.3193284352064869 {:current_user=>:acting_user}
+        |-- input.add_variables.0.38710688414782224 [:incoming]
+        `-- output.merge_with_original....... VariableMapping.merge_with_original
+=end
+
       # raise Trailblazer::Activity::Introspect::Graph(Create).find(:write).data.keys.inspect
 
     #@ Is the taskWrap inherited?
@@ -497,6 +512,25 @@ class VariableMappingTest < Minitest::Spec
             Out() => {:incoming => :output_of_write}, #
             Out(delete: true) => [:incoming] # as this is statically set in the superclass, we have to delete to make it invisible.
       end
+
+      # puts Trailblazer::Developer::Render::TaskWrap.(Upsert, id: :write)
+=begin
+`-- write
+    |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
+    |   |-- input.init_hash.................. VariableMapping.initial_aggregate
+    |   |-- input.add_variables.0.20645771700848103 #<Proc:0x00005648d42b2780 test/variable_mapping_test.rb:477 (lambda)>
+    |   |-- input.add_variables.inject.defaulting_callable.:time #<Proc:0x00005648d4602db8 /home/nick/projects/trailblazer-activity-dsl-linear/lib/trailblazer/activity/dsl/linear/feature/variable_mapping/dsl.rb:265 (lambda)>
+    |   |-- input.add_variables.0.5854806761771405 #<Proc:0x00005648d45e4ef8 test/variable_mapping_test.rb:512 (lambda)>
+    |   `-- input.scope...................... VariableMapping.scope
+    |-- task_wrap.call_task..............Method
+    `-- task_wrap.output.................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Output
+        |-- output.init_hash................. VariableMapping.initial_aggregate
+        |-- input.add_variables.0.9107743346926569 {:current_user=>:acting_user}
+        |-- input.add_variables.0.8006623186384084 [:incoming]
+        |-- input.add_variables.0.6227212997466626 {:incoming=>:output_of_write}
+        |-- input.add_variables.0.39150656923962324 [:incoming]
+        `-- output.merge_with_original....... VariableMapping.merge_with_original
+=end
     end
 
   # Create

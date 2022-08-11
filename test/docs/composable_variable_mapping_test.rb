@@ -365,7 +365,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     #= policy didn't set any message
     assert_invoke DDDD::Create, current_user: Module, errors: {}, expected_ctx_variables: {:errors=>{:policy_message=>nil}, model: Object, message: nil}
     #= policy breach, {message_from_policy} set.
-    assert_invoke DDDD::Create, current_user: nil, errors: {}, terminus: :failure, expected_ctx_variables: {model: Object, :errors=>{:policy_message=>"Command {create} not allowed!"}, :model=>Object, :message=>"Command {create} not allowed!"}
+    assert_invoke DDDD::Create, current_user: nil, errors: {}, terminus: :failure, expected_ctx_variables: {:errors=>{:policy_message=>"Command {create} not allowed!"}, :model=>Object, :message=>"Command {create} not allowed!"}
   end
 
 # Macro 1.0
@@ -419,11 +419,84 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     #:macro-merge end
   end
 
-  it "Out() with {outer_ctx}" do
+  it do
     #= policy didn't set any message
     assert_invoke DDDDDD::Create, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil, :copied_message=>nil}
     #= policy breach, {message_from_policy} set.
     assert_invoke DDDDDD::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message_from_policy=>"Command {create} not allowed!", :copied_message=>"Command {create} not allowed!"}
+  end
+
+  # Inheritance 1.0
+  module EEE
+    Policy = DDDDD::Policy
+
+    #:inheritance-base
+    class Create < Trailblazer::Activity::Railway
+      extend Trailblazer::Activity::DSL::Linear::VariableMapping::Inherit # this has to be done on the root level!
+
+      step :create_model
+      step Policy::Create,
+        In() => {:current_user => :user},
+        In() => [:model],
+        Out() => {:message => :copied_message}, # FIXME: not inherited
+        Out() => [:message],
+        id: :a
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:inheritance-base end
+
+    # puts Trailblazer::Developer::Render::TaskWrap.(Create, id: :a)
+=begin
+ComposableVariableMappingDocTest::EEE::Create
+`-- a
+    |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
+    |   |-- input.init_hash.................. VariableMapping.initial_aggregate
+    |   |-- input.add_variables.0.9900873387710722 {:current_user=>:user}
+    |   |-- input.add_variables.0.31508340411605396 [:model]
+    |   `-- input.scope...................... VariableMapping.scope
+    |-- task_wrap.call_task..............Method
+    `-- task_wrap.output.................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Output
+        |-- output.init_hash................. VariableMapping.initial_aggregate
+        |-- input.add_variables.0.3868458427278203 {:message=>:copied_message}
+        |-- input.add_variables.0.5322939645110448 [:message]
+        `-- output.merge_with_original....... VariableMapping.merge_with_original
+=end
+
+    #:inheritance-sub
+    class Admin < Create
+      step Policy::Create,
+        Out() => {:message => :raw_message_for_admin},
+        inherit: [:variable_mapping],
+        id: :a,      # you need to reference the :id when your step
+        replace: :a
+    end
+    #:inheritance-sub end
+
+    # puts Trailblazer::Developer::Render::TaskWrap.(Admin, id: :a)
+=begin
+ComposableVariableMappingDocTest::EEE::Admin
+`-- a
+    |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
+    |   |-- input.init_hash.................. VariableMapping.initial_aggregate
+    |   |-- input.add_variables.0.9900873387710722 {:current_user=>:user}
+    |   |-- input.add_variables.0.31508340411605396 [:model]
+    |   `-- input.scope...................... VariableMapping.scope
+    |-- task_wrap.call_task..............Method
+    `-- task_wrap.output.................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Output
+        |-- output.init_hash................. VariableMapping.initial_aggregate
+        |-- input.add_variables.0.3868458427278203 {:message=>:copied_message}
+        |-- input.add_variables.0.5322939645110448 [:message]
+        |-- input.add_variables.0.1442024112181285 {:message=>:raw_message_for_admin}
+        `-- output.merge_with_original....... VariableMapping.merge_with_original
+=end
+  end
+
+  it do
+    #= policy didn't set any message
+    assert_invoke EEE::Admin, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil, :copied_message=>nil, :raw_message_for_admin=>nil}
+    assert_invoke EEE::Admin, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message_from_policy=>"Command {create} not allowed!", :copied_message=>"Command {create} not allowed!"}
   end
 
   # def operation_for(&block)
