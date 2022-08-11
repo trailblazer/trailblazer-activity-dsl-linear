@@ -35,6 +35,7 @@ require "trailblazer/activity/fast_track"
 require "trailblazer/activity/dsl/linear/feature/variable_mapping"
 require "trailblazer/activity/dsl/linear/feature/variable_mapping/dsl"
 require "trailblazer/activity/dsl/linear/feature/patch"
+require "trailblazer/activity/dsl/linear/feature/variable_mapping/inherit"
 
 # feature/variable_mapping
 Trailblazer::Activity::DSL::Linear::VariableMapping.extend!(Trailblazer::Activity::Path, :step)
