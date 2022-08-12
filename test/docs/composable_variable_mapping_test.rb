@@ -495,8 +495,8 @@ ComposableVariableMappingDocTest::EEE::Admin
 
   it do
     #= policy didn't set any message
-    assert_invoke EEE::Admin, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil, :copied_message=>nil, :raw_message_for_admin=>nil}
-    assert_invoke EEE::Admin, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message_from_policy=>"Command {create} not allowed!", :copied_message=>"Command {create} not allowed!"}
+    assert_invoke EEE::Admin, current_user: Module, expected_ctx_variables: {model: Object, :copied_message=>nil, message: nil, :raw_message_for_admin=>nil}
+    assert_invoke EEE::Admin, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :copied_message=>"Command {create} not allowed!", :message=>"Command {create} not allowed!", :raw_message_for_admin=>"Command {create} not allowed!"}
   end
 
   # def operation_for(&block)
