@@ -37,7 +37,7 @@ module Trailblazer
               # With only injections defined, we do not filter out anything, we use the original ctx
               # and _add_ defaulting for injected variables.
               pipeline = add_filter_steps(initial_input_pipeline, in_filters)
-              pipeline = add_filter_steps(pipeline, inject_filters)
+              pipeline = add_filter_steps(pipeline, inject_filters, path_prefix: "inject")
             end
 
             # initial pipleline depending on whether or not we got any In() filters.
@@ -97,13 +97,13 @@ module Trailblazer
               tuple         = DSL.Out(name: ":output", with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
               output_filter = DSL::Tuple.filters_from_options([[tuple, output]])
 
-              add_filter_steps(pipeline, output_filter, prepend_to: "output.merge_with_original")
+              add_filter_steps(pipeline, output_filter, prepend_to: "output.merge_with_original", path_prefix: "output")
             end
 
             def pipe_for_composable_output(out_filters: [], initial_output_pipeline: initial_output_pipeline(add_default_ctx: Array(out_filters).empty?), **)
               out_filters = DSL::Tuple.filters_from_options(out_filters)
 
-              add_filter_steps(initial_output_pipeline, out_filters, prepend_to: "output.merge_with_original")
+              add_filter_steps(initial_output_pipeline, out_filters, prepend_to: "output.merge_with_original", path_prefix: "output")
             end
 
             def initial_output_pipeline(add_default_ctx: false)
@@ -128,11 +128,11 @@ module Trailblazer
 
               tuples  = DSL::Inject.filters_for_injects(injects) # DISCUSS: should we add passthrough/defaulting here at Inject()-time?
 
-              add_filter_steps(pipeline, tuples)
+              add_filter_steps(pipeline, tuples, path_prefix: "inject")
             end
 
-            def add_filter_steps(pipeline, rows, prepend_to: "input.scope") # FIXME: do we need all this?
-              rows = add_variables_steps_for_filters(rows)
+            def add_filter_steps(pipeline, rows, prepend_to: "input.scope", path_prefix: "input")
+              rows = add_variables_steps_for_filters(rows, path_prefix: path_prefix)
 
               adds = Activity::Adds::FriendlyInterface.adds_for(
                 rows.collect { |row| [row[1], id: row[0], prepend: prepend_to] }
@@ -143,9 +143,9 @@ module Trailblazer
 
                       # Returns array of step rows ("sequence").
             # @param filters [Array] List of {Filter} objects
-            def add_variables_steps_for_filters(filters) # FIXME: allow output too!
+            def add_variables_steps_for_filters(filters, path_prefix:)
               filters.collect do |filter|
-                ["input.add_variables.#{filter.name}", filter.aggregate_step] # FIXME: config name sucks, of course, if we want to allow inserting etc.
+                ["#{path_prefix}.add_variables.#{filter.name}", filter.aggregate_step] # FIXME: config name sucks, of course, if we want to allow inserting etc.
               end
             end
 
@@ -269,7 +269,7 @@ module Trailblazer
               end
 
               def self.filter_for(inject, inject_filter, name, type)
-                DSL.In(name: "inject.#{type}.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
+                DSL.In(name: "#{type}.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
               end
             end
 
