@@ -411,7 +411,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create(),
-        Out() => {:message => :copied_message}
+        Out() => {:message => :copied_message} # user options!
       #~meths
       include Steps
       #~meths end
@@ -438,30 +438,28 @@ class ComposableVariableMappingDocTest < Minitest::Spec
       step Policy::Create,
         In() => {:current_user => :user},
         In() => [:model],
-        Out() => {:message => :copied_message}, # FIXME: not inherited
         Out() => [:message],
-        id: :a
+        id: :policy
       #~meths
       include Steps
       #~meths end
     end
     #:inheritance-base end
 
-    # puts Trailblazer::Developer::Render::TaskWrap.(Create, id: :a)
+    puts Trailblazer::Developer::Render::TaskWrap.(Create, id: :policy)
 =begin
 ComposableVariableMappingDocTest::EEE::Create
-`-- a
+`-- policy
     |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
-    |   |-- input.init_hash.................. VariableMapping.initial_aggregate
-    |   |-- input.add_variables.0.9900873387710722 {:current_user=>:user}
-    |   |-- input.add_variables.0.31508340411605396 [:model]
-    |   `-- input.scope...................... VariableMapping.scope
+    |   |-- input.init_hash.............................. ............................................. VariableMapping.initial_aggregate
+    |   |-- input.add_variables.0.994[...]............... {:current_user=>:user}....................... VariableMapping::AddVariables
+    |   |-- input.add_variables.0.592[...]............... [:model]..................................... VariableMapping::AddVariables
+    |   `-- input.scope.................................. ............................................. VariableMapping.scope
     |-- task_wrap.call_task..............Method
     `-- task_wrap.output.................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Output
-        |-- output.init_hash................. VariableMapping.initial_aggregate
-        |-- input.add_variables.0.3868458427278203 {:message=>:copied_message}
-        |-- input.add_variables.0.5322939645110448 [:message]
-        `-- output.merge_with_original....... VariableMapping.merge_with_original
+        |-- output.init_hash............................. ............................................. VariableMapping.initial_aggregate
+        |-- output.add_variables.0.599[...].............. [:message]................................... VariableMapping::AddVariables::Output
+        `-- output.merge_with_original................... ............................................. VariableMapping.merge_with_original
 =end
 
     #:inheritance-sub
@@ -469,34 +467,37 @@ ComposableVariableMappingDocTest::EEE::Create
       step Policy::Create,
         Out() => {:message => :raw_message_for_admin},
         inherit: [:variable_mapping],
-        id: :a,      # you need to reference the :id when your step
-        replace: :a
+        id: :policy,      # you need to reference the :id when your step
+        replace: :policy
     end
     #:inheritance-sub end
 
-    # puts Trailblazer::Developer::Render::TaskWrap.(Admin, id: :a)
+    puts Trailblazer::Developer::Render::TaskWrap.(Admin, id: :policy)
 =begin
+#:sub-pipe
+puts Trailblazer::Developer::Render::TaskWrap.(Admin, id: :policy)
+
 ComposableVariableMappingDocTest::EEE::Admin
-`-- a
-    |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
-    |   |-- input.init_hash.................. VariableMapping.initial_aggregate
-    |   |-- input.add_variables.0.9900873387710722 {:current_user=>:user}
-    |   |-- input.add_variables.0.31508340411605396 [:model]
-    |   `-- input.scope...................... VariableMapping.scope
-    |-- task_wrap.call_task..............Method
-    `-- task_wrap.output.................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Output
-        |-- output.init_hash................. VariableMapping.initial_aggregate
-        |-- input.add_variables.0.3868458427278203 {:message=>:copied_message}
-        |-- input.add_variables.0.5322939645110448 [:message]
-        |-- input.add_variables.0.1442024112181285 {:message=>:raw_message_for_admin}
-        `-- output.merge_with_original....... VariableMapping.merge_with_original
+# `-- policy
+#     |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
+#     |   |-- input.init_hash.............................. ............................................. VariableMapping.initial_aggregate
+#     |   |-- input.add_variables.0.994[...]............... {:current_user=>:user}....................... VariableMapping::AddVariables
+#     |   |-- input.add_variables.0.592[...]............... [:model]..................................... VariableMapping::AddVariables
+#     |   `-- input.scope.................................. ............................................. VariableMapping.scope
+#     |-- task_wrap.call_task..............Method
+#     `-- task_wrap.output.................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Output
+#         |-- output.init_hash............................. ............................................. VariableMapping.initial_aggregate
+#         |-- output.add_variables.0.599[...].............. [:message]................................... VariableMapping::AddVariables::Output
+#         |-- output.add_variables.0.710[...].............. {:message=>:raw_message_for_admin}........... VariableMapping::AddVariables::Output
+#        `-- output.merge_with_original................... ............................................. VariableMapping.merge_with_original
+#:sub-pipe end
 =end
   end
 
   it do
     #= policy didn't set any message
-    assert_invoke EEE::Admin, current_user: Module, expected_ctx_variables: {model: Object, :copied_message=>nil, message: nil, :raw_message_for_admin=>nil}
-    assert_invoke EEE::Admin, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :copied_message=>"Command {create} not allowed!", :message=>"Command {create} not allowed!", :raw_message_for_admin=>"Command {create} not allowed!"}
+    assert_invoke EEE::Admin, current_user: Module, expected_ctx_variables: {model: Object, message: nil, :raw_message_for_admin=>nil}
+    assert_invoke EEE::Admin, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message=>"Command {create} not allowed!", :raw_message_for_admin=>"Command {create} not allowed!"}
   end
 
   # def operation_for(&block)
