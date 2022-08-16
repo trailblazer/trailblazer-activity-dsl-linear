@@ -446,7 +446,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     end
     #:inheritance-base end
 
-    puts Trailblazer::Developer::Render::TaskWrap.(Create, id: :policy)
+    # puts Trailblazer::Developer::Render::TaskWrap.(Create, id: :policy)
 =begin
 ComposableVariableMappingDocTest::EEE::Create
 `-- policy
@@ -472,7 +472,7 @@ ComposableVariableMappingDocTest::EEE::Create
     end
     #:inheritance-sub end
 
-    puts Trailblazer::Developer::Render::TaskWrap.(Admin, id: :policy)
+    # puts Trailblazer::Developer::Render::TaskWrap.(Admin, id: :policy)
 =begin
 #:sub-pipe
 puts Trailblazer::Developer::Render::TaskWrap.(Admin, id: :policy)
