@@ -448,7 +448,14 @@ class ComposableVariableMappingDocTest < Minitest::Spec
 
     # puts Trailblazer::Developer::Render::TaskWrap.(Create, id: :policy)
 =begin
-ComposableVariableMappingDocTest::EEE::Create
+#:tw-render
+puts Trailblazer::Developer::Render::TaskWrap.(Song::Operation::Create, id: :policy)
+#:tw-render end
+=end
+
+=begin
+#:tw-render-out
+Song::Operation::Create
 `-- policy
     |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
     |   |-- input.init_hash.............................. ............................................. VariableMapping.initial_aggregate
@@ -460,6 +467,7 @@ ComposableVariableMappingDocTest::EEE::Create
         |-- output.init_hash............................. ............................................. VariableMapping.initial_aggregate
         |-- output.add_variables.0.599[...].............. [:message]................................... VariableMapping::AddVariables::Output
         `-- output.merge_with_original................... ............................................. VariableMapping.merge_with_original
+#:tw-render-out end
 =end
 
     #:inheritance-sub
@@ -498,6 +506,137 @@ ComposableVariableMappingDocTest::EEE::Admin
     #= policy didn't set any message
     assert_invoke EEE::Admin, current_user: Module, expected_ctx_variables: {model: Object, message: nil, :raw_message_for_admin=>nil}
     assert_invoke EEE::Admin, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message=>"Command {create} not allowed!", :raw_message_for_admin=>"Command {create} not allowed!"}
+  end
+
+  # Inject() 1.0
+  module GGG
+    class ApplicationPolicy
+      def self.can?(model, user, action)
+        decision = !user.nil? && action == :create
+        Struct.new(:allowed?).new(decision)
+      end
+    end
+
+    #:policy-check
+    module Policy
+      class Check
+                                        # vvvvvvvvvvvvvvv-- defaulted keyword arguments
+        def self.call(ctx, model:, user:, action: :create, **)
+          decision = ApplicationPolicy.can?(model, user, action) # FIXME: how does pundit/cancan do this exactly?
+          #~decision
+
+          if decision.allowed?
+            return true
+          else
+            ctx[:message] = "Command {#{action}} not allowed!"
+            return false
+          end
+          #~decision end
+        end
+      end
+    end
+    #:policy-check end
+
+    #:inject
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Check,
+        In() => {:current_user => :user},
+        In() => [:model],
+        Inject() => [:action]
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:inject end
+  end
+
+  it "Inject()" do
+    #= {:action} defaulted to {:create}
+    assert_invoke GGG::Create, current_user: Module, expected_ctx_variables: {model: Object}
+
+    #= {:action} set explicitely to {:create}
+    assert_invoke GGG::Create, current_user: Module, action: :create, expected_ctx_variables: {model: Object}
+
+    #= {:action} set explicitely to {:update}, policy breach
+    assert_invoke GGG::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object, message: "Command {update} not allowed!"}, terminus: :failure
+  end
+
+  module GGGG
+    Policy = GGG::Policy
+
+    #:no-inject
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Check,
+        In() => {:current_user => :user},
+        In() => [:model, :action]
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:no-inject end
+  end
+
+  it "not using Inject()" do
+    #= {:action} not defaulted as In() passes nil
+    assert_invoke GGGG::Create, current_user: Module, expected_ctx_variables: {model: Object, message: "Command {} not allowed!"}, terminus: :failure
+
+    #= {:action} set explicitely to {:create}
+    assert_invoke GGGG::Create, current_user: Module, action: :create, expected_ctx_variables: {model: Object}
+
+    #= {:action} set explicitely to {:update}
+    assert_invoke GGGG::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object, message: "Command {update} not allowed!"}, terminus: :failure
+  end
+
+  module GGGGG
+    ApplicationPolicy = GGG::ApplicationPolicy
+
+    #:policy-check-nodef
+    module Policy
+      class Check
+                                        # vvvvvvv-- no defaulting!
+        def self.call(ctx, model:, user:, action:, **)
+          decision = ApplicationPolicy.can?(model, user, action) # FIXME: how does pundit/cancan do this exactly?
+          #~decision
+
+          if decision.allowed?
+            return true
+          else
+            ctx[:message] = "Command {#{action}} not allowed!"
+            return false
+          end
+          #~decision end
+        end
+      end
+    end
+    #:policy-check-nodef end
+
+    #:inject-default
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Check,
+        In() => {:current_user => :user},
+        In() => [:model],
+        Inject() => {
+          action: ->(ctx, **) { :create }
+        }
+      #~meths
+      include Steps
+      #~meths end
+    end
+    #:inject-default end
+  end
+
+  it "Inject() with default" do
+    #= {:action} defaulted by Inject()
+    assert_invoke GGGGG::Create, current_user: Module, expected_ctx_variables: {model: Object}
+
+    #= {:action} set explicitely to {:create}
+    assert_invoke GGGGG::Create, current_user: Module, action: :create, expected_ctx_variables: {model: Object}
+
+    #= {:action} set explicitely to {:update}
+    assert_invoke GGGGG::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object, message: "Command {update} not allowed!"}, terminus: :failure
   end
 
   # def operation_for(&block)
