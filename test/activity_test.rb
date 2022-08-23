@@ -1365,7 +1365,7 @@ ActivityTest::NestedWithThreeTermini
       terminus :not_found #@ id, magnetic_to computed automatically
 
       terminus :found,    magnetic_to: :shipment_found #@ id computed automatically
-      terminus :found_it, magnetic_to: :shipment_found_it, id: "End.found_it!" #@ all options provided explicitly # TODO: test if ID worked
+      terminus :found_it, magnetic_to: :shipment_found_it, id: "End.found_it!" #@ all options provided explicitly
     end
 
     #@ IDs are automatically computed in case of no {:id} option.
