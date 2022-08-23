@@ -53,4 +53,16 @@ class WiringApiDocsTest < Minitest::Spec
   #@ failure routes to {End.provider_invalid}
   it { assert_invoke B::Payment::Operation::Create, seq: "[:find_provider]" }
   it { assert_invoke B::Payment::Operation::Create, find_provider: false, seq: "[:find_provider]", terminus: :provider_invalid }
+
+  it do
+    signal, (ctx, _) = B::Payment::Operation::Create.([{find_provider: false, seq: []}, {}])
+    assert_equal signal.to_h[:semantic], :provider_invalid
+=begin
+    #:terminus-invalid
+    signal, (ctx, _) = Payment::Operation::Create.(provider: "bla-unknown")
+    puts signal.to_h[:semantic] #=> :provider_invalid
+    #:terminus-invalid end
+=end
+
+  end
 end

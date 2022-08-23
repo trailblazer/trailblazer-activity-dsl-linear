@@ -145,7 +145,7 @@ class DocsActivityTest < Minitest::Spec
             class Memo::Create < Trailblazer::Activity::Railway
               DatabaseError = Class.new(Trailblazer::Activity::Signal) # subclass Signal
 
-              def self.create_model(ctx, attrs:, **)
+              def create_model(ctx, attrs:, **)
                 ctx[:model] = Memo.new(attrs)
 
                 begin
@@ -155,14 +155,14 @@ class DocsActivityTest < Minitest::Spec
                 end
               end
               #~method
-              def self.handle_db_error(*)
+              def handle_db_error(*)
                 true
               end
               #~method end
 
-              step method(:create_model),
+              step :create_model,
                 Output(DatabaseError, :handle_error) => Id(:handle_db_error)
-              step method(:handle_db_error),
+              step :handle_db_error,
                 id: :handle_db_error, magnetic_to: nil, Output(:success) => Track(:failure)
             end
             #:task-implementation-signal end
