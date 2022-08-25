@@ -16,7 +16,7 @@ module Trailblazer
                 "activity.normalize_normalizer_options"   => Normalizer.Task(Normalizer.method(:merge_normalizer_options)),
                 "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),
                 "activity.normalize_context"              => Normalizer.method(:normalize_context),
-                "terminus.normalize_task"          => Normalizer.Task(Terminus.method(:normalize_task)),
+                "terminus.normalize_task"                 => Normalizer.Task(Terminus.method(:normalize_task)),
                 "terminus.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
                 "terminus.normalize_magnetic_to"          => Normalizer.Task(Terminus.method(:normalize_magnetic_to)),
                 "terminus.append_end"                     => Normalizer.Task(Terminus.method(:append_end)),

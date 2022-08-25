@@ -1411,6 +1411,18 @@ ActivityTest::NestedWithThreeTermini
 }
   end
 
+  it "#terminus accepts {:task}" do
+    my_terminus_class = Class.new(Trailblazer::Activity::End)
+
+    activity = Class.new(Activity::Railway) do
+      terminus :not_sure, task: my_terminus_class.new(semantic: :tell_me)
+    end
+
+    #@ {:task} allows passing {End} instance
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.tell_me").data.inspect, %{{:id=>\"End.tell_me\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.tell_me").task.class, my_terminus_class
+  end
+
   it "what" do
     skip
     raise "make sure options don't get mutated"
