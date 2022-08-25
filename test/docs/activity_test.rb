@@ -89,28 +89,44 @@ class DocsActivityTest < Minitest::Spec
           #:task-style-3 end
         end # C
 
+        class Proxy < Struct.new(:query_class, :reader)
+          # Called in {#assert_call_for}
+          def inspect
+            query_class.send(reader)
+          end
+        end
+
         module D
-          class Memo
-            def initialize(*)
-              def save
-                true
+          class Memo < Struct.new(:data)
+            class << self
+              def new(args)
+                @last_object = super(args)
               end
+
+              attr_reader :last_object
+            end
+
+            def save
+              true
             end
           end
+
           #:task-implementation
-          class Memo::Create < Trailblazer::Activity::Railway
-            def self.create_model(ctx, **)
-              attributes = ctx[:attrs]           # read from ctx
+          module Memo::Operation
+            class Create < Trailblazer::Activity::Railway
+              def self.create_model(ctx, **)
+                attributes = ctx[:attrs]           # read from ctx
 
-              ctx[:model] = Memo.new(attributes) # write to ctx
+                ctx[:model] = Memo.new(attributes) # write to ctx
 
-              #~method
-              ctx[:model].save ? true : false    # return value matters
-              #~method end
+                #~method
+                ctx[:model].save ? true : false    # return value matters
+                #~method end
+              end
+
+              step method(:create_model)
+              # ...
             end
-
-            step method(:create_model)
-            # ...
           end
           #:task-implementation end
 
@@ -134,65 +150,59 @@ class DocsActivityTest < Minitest::Spec
           end
 
           module D2
-            class Memo < Struct.new(:body)
+            class Memo < D::Memo
               def save
-                raise if body[:not_valid]
+                raise if data.is_a?(Hash) && data[:not_valid]
                 true
               end
             end
 
             #:task-implementation-signal
-            class Memo::Create < Trailblazer::Activity::Railway
-              DatabaseError = Class.new(Trailblazer::Activity::Signal) # subclass Signal
+            module Memo::Operation
+              class Create < Trailblazer::Activity::Railway
+                DatabaseError = Class.new(Trailblazer::Activity::Signal) # subclass Signal
 
-              def create_model(ctx, attrs:, **)
-                ctx[:model] = Memo.new(attrs)
+                def create_model(ctx, attrs:, **)
+                  ctx[:model] = Memo.new(attrs)
 
-                begin
-                  return ctx[:model].save ? true : false  # binary return values
-                rescue
-                  return DatabaseError                    # third return value
+                  begin
+                    return ctx[:model].save ? true : false  # binary return values
+                  rescue
+                    return DatabaseError                    # third return value
+                  end
                 end
-              end
-              #~method
-              def handle_db_error(*)
-                true
-              end
-              #~method end
+                #~method
+                def handle_db_error(*)
+                  true
+                end
+                #~method end
 
-              step :create_model,
-                Output(DatabaseError, :handle_error) => Id(:handle_db_error)
-              step :handle_db_error,
-                id: :handle_db_error, magnetic_to: nil, Output(:success) => Track(:failure)
+                step :create_model,
+                  Output(DatabaseError, :handle_error) => Id(:handle_db_error)
+                step :handle_db_error,
+                  magnetic_to: nil, Output(:success) => Track(:failure)
+              end
             end
             #:task-implementation-signal end
           end # D2
         end # D
       end # A
 
-      signal, (ctx, flow_options) = A::Memo::Create.([{current_user: user}, {}])
-      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      assert_invoke A::Memo::Create, current_user: user
 
-      signal, (ctx, flow_options) = A::B::Memo::Create.([{current_user: user}, {}])
-      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      assert_invoke A::B::Memo::Create, current_user: user
 
-      signal, (ctx, flow_options) = A::BB::Memo::Create.([{current_user: user}, {}])
-      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      assert_invoke A::BB::Memo::Create, current_user: user
 
-      signal, (ctx, flow_options) = A::C::Memo::Create.([{current_user: user}, {}])
-      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      assert_invoke A::C::Memo::Create, current_user: user
 
-      signal, (ctx, flow_options) = A::D::Memo::Create.([{current_user: user}, {}])
-      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      assert_invoke A::D::Memo::Operation::Create, current_user: user, expected_ctx_variables: {model: A::Proxy.new(A::D::Memo, :last_object)}
 
-      signal, (ctx, flow_options) = A::D::D1::Memo::Create.([{attrs: {body: "Wine"}}, {}])
-      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      assert_invoke A::D::D1::Memo::Operation::Create, attrs: {body: "Wine"}, expected_ctx_variables: {model: A::Proxy.new(A::D::Memo, :last_object)}
 
-      signal, (ctx, flow_options) = A::D::D2::Memo::Create.([{attrs: {body: "Wine"}}, {}])
-      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-
-      signal, (ctx, flow_options) = A::D::D2::Memo::Create.([{attrs: {not_valid: true}}, {}])
-      _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
+      assert_invoke A::D::D2::Memo::Operation::Create, attrs: {body: "Wine"}, expected_ctx_variables: {model: A::Proxy.new(A::D::D2::Memo, :last_object)}
+      #@ invalid data
+      assert_invoke A::D::D2::Memo::Operation::Create, attrs: {not_valid: true}, expected_ctx_variables: {model: A::Proxy.new(A::D::D2::Memo, :last_object)}, terminus: :failure
     end
   end
 
