@@ -81,10 +81,14 @@ module Trailblazer
             normalizers:            normalizers,
             track_name:             track_name,
             end_id:                 end_id,
-            step_interface_builder: Activity::TaskBuilder.method(:Binary), # DISCUSS: this is currently the only option we want to pass on in Path() ?
+            step_interface_builder: method(:build_circuit_task_for_step), # DISCUSS: this is currently the only option we want to pass on in Path() ?
             adds:                   [], # DISCUSS: needed?
             **options
           }
+        end
+
+        def build_circuit_task_for_step(user_step)
+          Activity::Circuit::TaskAdapter.for_step(user_step, option: true)
         end
       end # DSL
 

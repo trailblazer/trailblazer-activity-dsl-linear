@@ -62,16 +62,7 @@ module Trailblazer
             end
           end
 
-          # @private
-          class Task < TaskBuilder::Task
-            def call(wrap_ctx, flow_options={})
-              _result = call_option(@task, [wrap_ctx, flow_options]) # DISCUSS: this mutates {ctx}.
-
-              return wrap_ctx, flow_options
-            end
-          end
-
-          # Wrap user's normalizer task with {Trailblazer::Option} and thus execute it with
+          # Wrap user's normalizer task in a {Pipeline::TaskAdapter} so it executes with
           # convenient kw args.
           #
           # Example
@@ -79,8 +70,8 @@ module Trailblazer
           #
           #   # will call {normalizer_task} and pass ctx variables as kwargs, as follows
           #   def normalize_id(ctx, id: false, task:, **)
-          def Task(user_proc)
-            Normalizer::Task.new(Trailblazer::Option(user_proc), user_proc)
+          def Task(user_step)
+            Activity::TaskWrap::Pipeline::TaskAdapter.for_step(user_step, option: false) # we don't need Option as we don't have ciruit_options here, and no {:exec_context}
           end
 
           # The generic normalizer not tied to `step` or friends.
