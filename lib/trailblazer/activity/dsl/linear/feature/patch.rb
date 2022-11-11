@@ -21,7 +21,7 @@ class Trailblazer::Activity
 
           patch =
             if task_id
-              segment_activity = Introspect::Graph(activity).find(task_id).task
+              segment_activity = Introspect::Graph(activity).find(task_id).task # FIXME: use {Introspect.find_path} here.
               patched_segment_activity = call(segment_activity, path, customization)
 
               # Replace the patched subprocess.
