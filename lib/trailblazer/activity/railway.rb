@@ -103,7 +103,7 @@ module Trailblazer
           options = Path::DSL.OptionsForSequenceBuilder(**options).
             merge(failure_end: failure_end)
 
-          initial_sequence = Railway::DSL.initial_sequence(failure_end: failure_end, **options)
+          initial_sequence = Railway::DSL.initial_sequence(**options)
 
           {
             **options,
