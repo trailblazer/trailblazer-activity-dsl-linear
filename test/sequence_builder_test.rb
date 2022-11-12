@@ -6,7 +6,7 @@ class SequenceBuilderTest < Minitest::Spec
   let(:helper) { Activity::Railway }
 
   it "builds a Sequence" do
-    options            = Activity::Path::DSL.OptionsForSequenceBuilder(normalizers: Activity::Path::DSL::Normalizers)
+    options            = Activity::DSL::Linear::Strategy::DSL.OptionsForSequenceBuilder(Activity::Path::DSL, normalizers: Activity::Path::DSL::Normalizers)
     normalizer_options = options.reject { |k, v| [:normalizers, :sequence].include?(k) }
     normalizers        = options[:normalizers]
     sequence           = options[:sequence]
@@ -29,7 +29,7 @@ class SequenceBuilderTest < Minitest::Spec
       step Imp.method(:c), id: :c
     end
 
-    options            = Activity::Path::DSL.OptionsForSequenceBuilder(normalizers: Activity::Path::DSL::Normalizers, **shared_options)
+    options            = Activity::DSL::Linear::Strategy::DSL.OptionsForSequenceBuilder(Activity::Path::DSL, normalizers: Activity::Path::DSL::Normalizers, **shared_options)
     normalizer_options = options.reject { |k, v| [:normalizers, :sequence].include?(k) }
     normalizers        = options[:normalizers]
     sequence           = options[:sequence]

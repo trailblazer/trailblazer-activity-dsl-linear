@@ -71,8 +71,8 @@ module Trailblazer
             end
 
             # Used only once per strategy class body.
-            def compile_strategy!(strategy, **options)
-              options = strategy.OptionsForSequenceBuilder(**options)
+            def compile_strategy!(strategy_dsl, **options)
+              options = DSL.OptionsForSequenceBuilder(strategy_dsl, **options)
 
               compile_strategy_for!(**options)
             end
@@ -127,7 +127,40 @@ module Trailblazer
                 class_exec(&block) if block_given?
               end
             end
+
+            def OptionsForSequenceBuilder(strategy_dsl, termini: [], **user_options)
+              # DISCUSS: instead of calling a separate {initial_sequence} method we could make DSL strategies
+              # use the actual DSL to build up the initial_sequence, somewhere outside? Maybe using {:adds}?
+              strategy_options, strategy_termini = strategy_dsl.options_for_sequence_build(**user_options) # call Path.options_for_sequence_builder
+
+              initial_sequence = process_termini(strategy_options[:sequence], strategy_termini, *termini)
+
+              {
+                step_interface_builder: method(:build_circuit_task_for_step),
+                adds:                   [], # DISCUSS: needed?
+                **user_options,
+                **strategy_options, # this might (and should!) override :track_name etc.
+                sequence:               initial_sequence,
+              }
+              # no {:termini} left in options
+            end
+
+            # If no {:termini} were provided by the Strategy user, we use the default
+            # {strategy_termini}.
+            def process_termini(sequence, strategy_termini, termini = strategy_termini)
+              termini.each do |task, terminus_options|
+                sequence = Path::DSL.append_terminus(sequence, task, **terminus_options) # FIXME: move
+              end
+
+              return sequence
+            end
+
+            # Wraps {user_step} into a circuit-interface compatible callable, a.k.a. "task".
+            def build_circuit_task_for_step(user_step)
+              Activity::Circuit::TaskAdapter.for_step(user_step, option: true)
+            end
           end # DSL
+
 
           # FIXME: move to State#dup
           def self.copy(value, **) # DISCUSS: should that be here?

@@ -164,6 +164,10 @@ class PathTest < Minitest::Spec
 }
     end
 
+    it "accepts {:termini}" do
+
+    end
+
     # @generic strategy test
     it "copies (extended) normalizers from original {Activity::Path} and thereby allows i/o" do
       path = Activity.Path() do

@@ -1,27 +1,6 @@
 require "test_helper"
 
 class FastTrackTest < Minitest::Spec
-  it "#initial_sequence" do
-      seq = Trailblazer::Activity::FastTrack::DSL.initial_sequence(
-        sequence: Trailblazer::Activity::Railway::DSL.initial_sequence(
-          sequence: Trailblazer::Activity::Path::DSL.initial_sequence(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success"),
-          failure_end: Activity::End.new(semantic: :failure)
-        )
-      )
-
-      _(Cct(compile_process(seq))).must_equal %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-
-#<End/:pass_fast>
-
-#<End/:fail_fast>
-
-#<End/:failure>
-}
-  end
-
   describe "Activity.FastTrack() builder" do
     it "allows to define custom End instances" do
       MyFailure  = Class.new(Activity::End)

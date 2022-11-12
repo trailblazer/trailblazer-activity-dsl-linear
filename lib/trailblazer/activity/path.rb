@@ -65,34 +65,24 @@ module Trailblazer
           Linear::Strategy::DSL.start_sequence(wirings: [Linear::Sequence::Search::Forward(unary_outputs[:success], track_name)])
         end
 
-        # Returns an initial two-step sequence with {Start.default > End.success}.
-        def initial_sequence(track_name:, end_task:, end_id:)
-          sequence = start_sequence(track_name: track_name)
-          sequence = append_terminus(sequence, end_task, id: end_id, magnetic_to: track_name, normalizers: Normalizers, append_to: "Start.default")
-        end
+        def options_for_sequence_build(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **)
+          initial_sequence = start_sequence(track_name: track_name)
 
-        def OptionsForSequenceBuilder(normalizers:, track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **options)
-          # DISCUSS: instead of calling a separate {initial_sequence} method we could make DSL strategies
-          # use the actual DSL to build up the initial_sequence, somewhere outside? Maybe using {:adds}?
-          initial_sequence = initial_sequence(track_name: track_name, end_task: end_task, end_id: end_id)
+          termini = [
+            [end_task, id: end_id, magnetic_to: track_name, append_to: "Start.default"]
+          ]
 
-          {
-            sequence:               initial_sequence,
-            normalizers:            normalizers,
-            track_name:             track_name,
-            end_id:                 end_id,
-            step_interface_builder: method(:build_circuit_task_for_step), # DISCUSS: this is currently the only option we want to pass on in Path() ?
-            adds:                   [], # DISCUSS: needed?
-            **options
+          options = {
+            sequence:   initial_sequence,
+            track_name: track_name,
+            end_id:     end_id,           # needed in Normalizer.normalize_sequence_insert.
           }
-        end
 
-        def build_circuit_task_for_step(user_step)
-          Activity::Circuit::TaskAdapter.for_step(user_step, option: true)
+          return options, termini
         end
       end # DSL
 
-      compile_strategy!(DSL, normalizers: DSL::Normalizers) # sets :normalizer, normalizer_options, sequence and activity
+      compile_strategy!(Path::DSL, normalizers: DSL::Normalizers) # sets :normalizer, normalizer_options, sequence and activity
     end # Path
 
     def self.Path(**options, &block)

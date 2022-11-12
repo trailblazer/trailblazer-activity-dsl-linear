@@ -1,3 +1,15 @@
+# 1.0.1
+
+* Use `trailblazer-activity` 0.15.0.
+* Remove `Path::DSL.OptionsForSequenceBuilder` and move concrete code to `Path::DSL.options_for_sequence_build`
+  which returns a set:
+
+  1. default termini instructions for the concrete strategy
+  2. options specific for this strategy subclass.
+
+  Everything else, such as merging user options, computing and adding termini, etc, now happens in
+  `Strategy::DSL.OptionsForSequenceBuilder`.
+
 # 1.0.0
 
 ## Additions

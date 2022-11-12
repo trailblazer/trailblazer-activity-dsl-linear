@@ -88,10 +88,6 @@ module Trailblazer
           {failure: [Linear::Sequence::Search.method(:Forward), :failure]}
         end
 
-        def initial_sequence(failure_end:, sequence:, **path_options)
-          _seq = Path::DSL.append_terminus(sequence, failure_end, magnetic_to: :failure, id: "End.failure", normalizers: Normalizers)
-        end
-
         Normalizers = Linear::Normalizer::Normalizers.new(
           step:  Railway::DSL.Normalizer(),
           fail:  Railway::DSL.NormalizerForFail(),
@@ -99,16 +95,12 @@ module Trailblazer
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
-        def self.OptionsForSequenceBuilder(failure_end: Activity::End.new(semantic: :failure), **options)
-          options = Path::DSL.OptionsForSequenceBuilder(**options).
-            merge(failure_end: failure_end)
+        def options_for_sequence_build(failure_end: Activity::End.new(semantic: :failure), **options)
+          failure_terminus_options = [failure_end, magnetic_to: :failure, id: "End.failure", normalizers: Normalizers]
 
-          initial_sequence = Railway::DSL.initial_sequence(**options)
+          path_options, path_termini = Path::DSL.options_for_sequence_build(**options)
 
-          {
-            **options,
-            sequence: initial_sequence,
-          }
+          return path_options, path_termini + [failure_terminus_options]
         end
       end # DSL
 
