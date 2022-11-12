@@ -164,8 +164,29 @@ class PathTest < Minitest::Spec
 }
     end
 
-    it "accepts {:termini}" do
+    it "accepts {:termini} and overrides Path's termini" do
+      path = Activity.Path(
+        termini: [
+                  [Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: "Start.default"],
+                  [Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner],
+                ]
+      ) do
+        step :f
+        step :g, Output(Object, :failure) => Track(:winner)
+      end
 
+      assert_circuit path, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Right} => <*g>
+<*g>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Object} => #<End/:winning>
+#<End/:success>
+
+#<End/:winning>
+}
     end
 
     # @generic strategy test

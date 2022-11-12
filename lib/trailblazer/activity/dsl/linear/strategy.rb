@@ -128,12 +128,13 @@ module Trailblazer
               end
             end
 
-            def OptionsForSequenceBuilder(strategy_dsl, termini: [], **user_options)
+            def OptionsForSequenceBuilder(strategy_dsl, termini: nil, **user_options)
               # DISCUSS: instead of calling a separate {initial_sequence} method we could make DSL strategies
               # use the actual DSL to build up the initial_sequence, somewhere outside? Maybe using {:adds}?
               strategy_options, strategy_termini = strategy_dsl.options_for_sequence_build(**user_options) # call Path.options_for_sequence_builder
 
-              initial_sequence = process_termini(strategy_options[:sequence], strategy_termini, *termini)
+              # DISCUSS: passing on Normalizers here is a service, not sure I like it.
+              initial_sequence = process_termini(strategy_options[:sequence], termini || strategy_termini, normalizers: strategy_dsl::Normalizers)
 
               {
                 step_interface_builder: method(:build_circuit_task_for_step),
@@ -147,12 +148,17 @@ module Trailblazer
 
             # If no {:termini} were provided by the Strategy user, we use the default
             # {strategy_termini}.
-            def process_termini(sequence, strategy_termini, termini = strategy_termini)
+            def process_termini(sequence, termini, **options_for_append_terminus)
               termini.each do |task, terminus_options|
-                sequence = Path::DSL.append_terminus(sequence, task, **terminus_options) # FIXME: move
+                sequence = append_terminus(sequence, task, **options_for_append_terminus, **terminus_options)
               end
 
               return sequence
+            end
+
+            def append_terminus(sequence, task, normalizers:, **options)
+              # DISCUSS: why are we requiring {:normalizers} here? only for invoking Normalizer.terminus
+              _sequence = Linear::Sequence::Builder.update_sequence_for(:terminus, task, options, normalizers: normalizers, sequence: sequence, normalizer_options: {})
             end
 
             # Wraps {user_step} into a circuit-interface compatible callable, a.k.a. "task".

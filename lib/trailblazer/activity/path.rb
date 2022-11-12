@@ -45,7 +45,6 @@ module Trailblazer
         end
 
         # This is slow and should be done only once at compile-time,
-        # DISCUSS: maybe make this a function?
         # These are the normalizers for an {Activity}, to be injected into a State.
         Normalizers = Linear::Normalizer::Normalizers.new(
           step:     Normalizer(), # here, we extend the generic FastTrack::step_normalizer with the Activity-specific DSL
@@ -56,10 +55,6 @@ module Trailblazer
 
         # DISCUSS: following methods are not part of Normalizer
 
-        def append_terminus(sequence, task, normalizers:, **options)
-          _sequence = Linear::Sequence::Builder.update_sequence_for(:terminus, task, options, normalizers: normalizers, sequence: sequence, normalizer_options: {})
-        end
-
         # @private
         def start_sequence(track_name:)
           Linear::Strategy::DSL.start_sequence(wirings: [Linear::Sequence::Search::Forward(unary_outputs[:success], track_name)])
@@ -69,7 +64,7 @@ module Trailblazer
           initial_sequence = start_sequence(track_name: track_name)
 
           termini = [
-            [end_task, id: end_id, magnetic_to: track_name, append_to: "Start.default"]
+            [end_task, id: end_id, magnetic_to: track_name, normalizers: Normalizers, append_to: "Start.default"]
           ]
 
           options = {
