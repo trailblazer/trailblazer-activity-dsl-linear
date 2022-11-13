@@ -56,13 +56,25 @@ module Trailblazer
           end
 
           # Computes the {:outputs} options for {activity}.
-          def Subprocess(activity, patch: {})
+          # @param :strict If true, all outputs of {activity} will be wired to the track named after the
+          #   output's semantic.
+          def Subprocess(activity, patch: {}, strict: false)
             activity = Patch.customize(activity, options: patch)
+
+            outputs  = activity.to_h[:outputs]
+            options  = {}
+
+            if strict
+              options.merge!(
+                outputs.collect { |output| [Output(output.semantic), Track(output.semantic)] }.to_h
+              )
+            end
 
             {
               task:    activity,
-              outputs: Hash[activity.to_h[:outputs].collect { |output| [output.semantic, output] }]
-            }
+              outputs: outputs.collect { |output| [output.semantic, output] }.to_h,
+            }.
+            merge(options)
           end
 
           def In(**kws);     VariableMapping::DSL::In(**kws); end
