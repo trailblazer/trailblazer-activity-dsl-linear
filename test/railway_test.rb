@@ -293,6 +293,33 @@ class RailwayTest < Minitest::Spec
     end
   end
 
+  it "accepts {:termini} and overrides Railway's termini" do
+      path = Activity.Railway(
+        termini: [
+                  [Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: "Start.default"],
+                  [Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner],
+                ]
+      ) do
+        step :f
+        step :g, Output(Object, :failure) => Track(:winner)
+      end
+
+# FIXME: f/failure shouldn't go to End.winner
+      assert_circuit path, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Left} => #<End/:winning>
+ {Trailblazer::Activity::Right} => <*g>
+<*g>
+ {Object} => #<End/:winning>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:winning>
+}
+    end
+
   # @generic strategy test
   it "copies (extended) normalizers from original {Activity::Railway} and thereby allows i/o" do
     path = Activity.Railway() do

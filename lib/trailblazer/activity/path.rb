@@ -64,7 +64,7 @@ module Trailblazer
           initial_sequence = start_sequence(track_name: track_name)
 
           termini = [
-            [end_task, id: end_id, magnetic_to: track_name, normalizers: Normalizers, append_to: "Start.default"]
+            [end_task, id: end_id, magnetic_to: track_name, append_to: "Start.default"]
           ]
 
           options = {

@@ -305,4 +305,36 @@ class FastTrackTest < Minitest::Spec
 
     end
   end
+
+  it "accepts {:termini} and overrides FastTrack's termini" do
+      path = Activity.FastTrack(
+        termini: [
+                  [Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: "Start.default"],
+                  [Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner],
+                  [Activity::End.new(semantic: :pass_fast), id: "End.pass_fast",   magnetic_to: :pass_fast],
+                ]
+      ) do
+        step :f
+        step :g, Output(Object, :failure) => Track(:winner), pass_fast: true, fast_track: true
+      end
+
+# FIXME: f/failure shouldn't go to End.winner
+      assert_circuit path, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Left} => #<End/:winning>
+ {Trailblazer::Activity::Right} => <*g>
+<*g>
+ {Object} => #<End/:winning>
+ {Trailblazer::Activity::Right} => #<End/:pass_fast>
+ {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
+ {Trailblazer::Activity::FastTrack::FailFast} => #<End/:winning>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:winning>
+}
+    end
 end
