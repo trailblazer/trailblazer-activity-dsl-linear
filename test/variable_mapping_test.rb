@@ -66,38 +66,6 @@ class VariableMappingTest < Minitest::Spec
     assert_equal ctx.inspect, '{:date=>"today", :model=>Object, :something=>99, :log=>"Called @ Time.now and \"today\" by [:date, :model, :something]!", :private=>"[:model, :thing, :date, :current_user, :log]Object"}'
   end
 
-  it "Inject(circuit_interface: true)" do
-    module XX
-      class Create < Trailblazer::Activity::Railway
-        step :write,
-          Inject(circuit_interface: true) => {current_user: :my_instance_method},
-          # Inject() => [:date, :time],
-          # Inject() => {current_user: ->(ctx, **) { ctx.keys.inspect }},
-          In() => [:model],
-          In() => {:something => :thing}
-
-        def write(ctx, time: "Time.now", date:, current_user:, **) # {date} has no default configured.
-          ctx[:log] = "Called @ #{time} and #{date.inspect} by #{current_user}!"
-          ctx[:private] = ctx.keys.inspect
-          ctx[:private] += ctx[:model].inspect
-        end
-
-        def my_instance_method(ctx, model:, **)
-          {current_user: "<Currentuser for #{model}>", date: 1}
-        end
-      end
-    end # XX
-
-    assert_invoke XX::Create, time: "yesterday", date: "today", model: Object, expected_ctx_variables: {
-      log: "Called @ yesterday and \"today\" by [:seq, :time, :date, :model]{:seq=>[], :time=>\"yesterday\", :date=>\"today\", :model=>Object}!",
-      private: "[:seq, :time, :date, :model, :current_user, :log]"
-    }
-
-  ## we can only see variables combined from Inject() and In() in the step.
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TT::Create, [{date: "today", model: Object, something: 99}, {}])
-    assert_equal ctx.inspect, '{:date=>"today", :model=>Object, :something=>99, :log=>"Called @ Time.now and \"today\" by [:date, :model, :something]!", :private=>"[:model, :thing, :date, :current_user, :log]Object"}'
-  end
-
   #@ unit test
   it "with default Out(), it doesn't merge variables to the outer ctx that haven't been explicitely written to the inner ctx" do
     module EEE
