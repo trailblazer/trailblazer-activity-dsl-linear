@@ -189,6 +189,36 @@ module Trailblazer
           #
           # Basically implements {:input}.
           #
+
+
+          # Write one particular variable to the {aggregate} using {aggregate[:name] = (value)}.
+          #
+          # This is much faster than merging a hash, and provides better overriding semantics. (to be done!)
+          #
+          # @param filter Any circuit-step compatible callable that exposes {#call(args, **circuit_options)}
+          #   and returns [value, new_ctx]
+          class SetVariable
+            def initialize(variable_name, filter, user_filter)
+              @variable_name = variable_name
+              @filter        = filter
+            end
+
+            def call(wrap_ctx, original_args)
+              # this is the actual logic.
+              value = call_filter(wrap_ctx, original_args)
+
+              wrap_ctx[:aggregate][@variable_name] = value # yes, we're mutating, but this is ok as we're on some private hash.
+
+              return wrap_ctx, original_args
+            end
+
+            # Call a filter with a Circuit-Step interface.
+            def call_filter(wrap_ctx, (args, circuit_options))
+              value, _ = @filter.(args, **circuit_options) # circuit-step interface
+              value
+            end
+          end
+
 # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
           # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
           class AddVariables
