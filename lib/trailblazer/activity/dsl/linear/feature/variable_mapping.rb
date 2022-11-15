@@ -122,7 +122,7 @@ module Trailblazer
 #   merge_variables
 
           # Runtime classes
-          Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class)
+          Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class, :variable_name, keyword_init:true)
 
           # These objects are created via the DSL, keep all i/o steps in a Pipeline
           # and run the latter when being `call`ed.
@@ -198,7 +198,7 @@ module Trailblazer
           # @param filter Any circuit-step compatible callable that exposes {#call(args, **circuit_options)}
           #   and returns [value, new_ctx]
           class SetVariable
-            def initialize(variable_name, filter, user_filter)
+            def initialize(variable_name:, filter:, user_filter:, **)
               @variable_name = variable_name
               @filter        = filter
             end
@@ -222,7 +222,7 @@ module Trailblazer
 # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
           # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
           class AddVariables
-            def initialize(filter, user_filter)
+            def initialize(filter:, user_filter:, **)
               @filter      = filter # The users input/output filter.
               @user_filter = user_filter # this is for introspection.
             end

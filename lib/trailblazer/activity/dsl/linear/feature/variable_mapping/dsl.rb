@@ -31,7 +31,7 @@ module Trailblazer
             # We allow to inject {:initial_input_pipeline} here in order to skip creating a new input pipeline and instead
             # use the inherit one.
             def pipe_for_composable_input(in_filters: [], inject_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
-              inject_filters = DSL::Inject.filters_for_injects(inject_filters) # {Inject() => ...} the pure user input gets translated into AddVariable aggregate steps.
+              inject_filters = DSL::Tuple.filters_from_options(inject_filters) # {Inject() => ...} the pure user input gets translated into AddVariable aggregate steps.
               in_filters     = DSL::Tuple.filters_from_options(in_filters)
 
               # With only injections defined, we do not filter out anything, we use the original ctx
@@ -157,8 +157,12 @@ module Trailblazer
             #
             # Returns a "filter interface" callable that's invoked in {AddVariables}:
             #   filter.(new_ctx, ..., keyword_arguments: new_ctx.to_hash, **circuit_options)
-            def self.build_filter(user_filter)
-              Trailblazer::Option(filter_for(user_filter))
+            def self.build_filters(user_filter, tuple)
+              [
+                {filter: Trailblazer::Option(filter_for(user_filter)), name: tuple.name},
+
+
+              ]
             end
 
             # Convert a user option such as {[:model]} to a filter.
@@ -195,18 +199,25 @@ module Trailblazer
             # If a user needs to inject their own private iop step they can create this data structure with desired values here.
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
 
-            class Tuple < Struct.new(:name, :add_variables_class, :filter_builder, :insert_args)
+            class Tuple < Struct.new(:name, :add_variables_class, :filters_builder, :insert_args)
               def self.filters_from_options(tuples_to_user_filters)
-                tuples_to_user_filters.collect { |tuple, user_filter| tuple.(user_filter) }
+                tuples_to_user_filters.collect { |tuple, user_filter| tuple.(user_filter) }.flatten(1)
               end
 
 
               # @return [Filter] Filter instance that keeps {name} and {aggregate_step}.
               def call(user_filter)
-                filter         = filter_builder.(user_filter)
-                aggregate_step = add_variables_class.new(filter, user_filter)
+                filters_options         = filters_builder.(user_filter, self) # this might be a hash, too.
 
-                VariableMapping::Filter.new(aggregate_step, filter, name, add_variables_class)
+                filters_options.collect do |filter_options|
+                  aggregate_step = add_variables_class.new(user_filter: user_filter, **filter_options)
+
+                  VariableMapping::Filter.new( # TODO: remove Filter, and make AddVariables, SetVariable etc Filter subclasses.
+                    aggregate_step:       aggregate_step,
+                    add_variables_class:  add_variables_class,
+                    **filter_options
+                  )
+                end
               end
             end # TODO: implement {:insert_args}
 
@@ -214,12 +225,12 @@ module Trailblazer
             class In < Tuple; end
             class Out < Tuple; end
 
-            def self.In(name: rand, add_variables_class: AddVariables, filter_builder: method(:build_filter))
+            def self.In(name: rand, add_variables_class: AddVariables, filter_builder: method(:build_filters))
               In.new(name, add_variables_class, filter_builder)
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false, delete: false, filter_builder: method(:build_filter), read_from_aggregate: false)
+            def self.Out(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false, delete: false, filter_builder: method(:build_filters), read_from_aggregate: false)
               add_variables_class = AddVariables::Output::WithOuterContext  if with_outer_ctx
               add_variables_class = AddVariables::Output::Delete            if delete
               filter_builder      = ->(user_filter) { user_filter }         if delete
@@ -228,17 +239,26 @@ module Trailblazer
               Out.new(name, add_variables_class, filter_builder)
             end
 
-            def self.Inject()
-              Inject.new
+            # Used in the DSL by you.
+            def self.Inject(variable_name = nil)
+              Inject.new(
+                variable_name,
+                SetVariable, # add_variables_class
+                Inject.method(:filters_for_user_filter),
+              )
             end
 
             # This class is supposed to hold configuration options for Inject().
-            class Inject
+            class Inject < Tuple
+              def variable_name
+                name
+              end
+
             # Translate the raw input of the user to {In} tuples
               # @return Array of VariableMapping::Filter
               def self.filters_for_injects(injects)
                 injects.collect do |inject, user_filter| # iterate all {Inject() => user_filter} calls
-                  DSL::Inject.compute_filters_for_inject(inject, user_filter)
+                  compute_filters_for_inject(inject, user_filter)
                 end.flatten(1)
               end
 
@@ -268,9 +288,24 @@ module Trailblazer
                 end
               end
 
-              def self.filter_for(inject, inject_filter, name, type)
-                DSL.In(name: "#{type}.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
+              # Called via {Tuple#call}
+              def self.filters_for_user_filter(user_filter, tuple)
+                if user_filter.is_a?(Hash)
+                  raise "implement me"
+                  return
+                end
+
+                # {user_filter} is one of the following
+                # :instance_method
+                circuit_step_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
+
+                [
+                  {filter: circuit_step_filter, name: tuple.variable_name, variable_name: tuple.variable_name}
+                ]
               end
+              # def self.filter_for(inject, inject_filter, name, type)
+              #   DSL.In(name: "#{type}.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
+              # end
             end
 
           end # DSL

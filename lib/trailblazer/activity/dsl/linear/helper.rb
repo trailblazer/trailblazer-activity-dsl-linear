@@ -79,7 +79,7 @@ module Trailblazer
 
           def In(**kws);     VariableMapping::DSL::In(**kws); end
           def Out(**kws);    VariableMapping::DSL::Out(**kws); end
-          def Inject(**kws); VariableMapping::DSL::Inject(**kws); end
+          def Inject(*args, **kws); VariableMapping::DSL::Inject(*args, **kws); end
 
           def DataVariable
             DataVariableName.new
