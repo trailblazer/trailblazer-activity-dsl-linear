@@ -189,11 +189,6 @@ module Trailblazer
             class In < Tuple
               class FiltersBuilder
                 def self.call(user_filter, add_variables_class:, **options)
-                  filter = Trailblazer::Option(
-                    filter_for(user_filter)
-                  ) # FIXME: Option or Circuit::Step?
-
-
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
                     user_filter = hash_for(user_filter)
                                                                                         # FIXME
@@ -216,40 +211,17 @@ module Trailblazer
                     end
                   end
 
+                  # callable
 
+                  filter = Trailblazer::Option(user_filter) # FIXME: Option or Circuit::Step?
 
-
-                  [
-                    add_variables_class.new(
-                      filter:         filter,
-                      user_filter:    user_filter,
-                      **options,
-                    )
-                  ]
-
-                end
-
-
-                # Convert a user option such as {[:model]} to a filter.
-                #
-                # Returns a filter proc to be called in an Option.
-                # @private
-                def self.filter_for(filter)
-                  if filter.is_a?(::Array) || filter.is_a?(::Hash)
-                    filter_from_dsl(filter)
-                  else
-                    filter
-                  end
-                end
-
-                # The returned filter compiles a new hash for Scoped/Unscoped that only contains
-                # the desired i/o variables.
-                #
-                # Filter expects a "filter interface" {(ctx, **)}.
-                def self.filter_from_dsl(map)
-                  hsh = hash_for(map)
-
-                  ->(incoming_ctx, **kwargs) { Hash[hsh.collect { |from_name, to_name| [to_name, incoming_ctx[from_name]] }] }
+                  Inject::FiltersBuilder.build_filters_for_callable(
+                    filter,
+                    variable_name:        options[:name],
+                    user_filter:          user_filter,
+                    add_variables_class:  add_variables_class,
+                    **options
+                  )
                 end
 
                 def self.hash_for(ary)
@@ -295,8 +267,6 @@ module Trailblazer
               end
 
 #FIXME: naming!
-                  # filter_for(inject, inject_filter, name, "passthrough")
-                  # filter_for(inject, inject_filter, name, "defaulting_callable")
 
 
               class FiltersBuilder
@@ -339,15 +309,12 @@ module Trailblazer
                   # :instance_method
                   circuit_step_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
 
-                  [
-                    add_variables_class.new(
-                      filter:         circuit_step_filter,
-                      variable_name:  options[:name], # FIXME: maybe remove this?
-                      user_filter:    user_filter,
-                      **options,
-                    )
-                  ]
-
+                  build_filters_for_callable(circuit_step_filter,
+                    variable_name:        options[:name],
+                    user_filter:          user_filter,
+                    add_variables_class:  add_variables_class,
+                    **options
+                  )
                 end # call
 
                 def self.build_filters_for_hash(user_filter, add_variables_class:, **options)
@@ -364,6 +331,15 @@ module Trailblazer
                     )
 
                   end
+                end
+
+                def self.build_filters_for_callable(filter, add_variables_class:, **options)
+                  [
+                    add_variables_class.new(
+                      filter:         filter,
+                      **options,
+                    )
+                  ]
                 end
 
               end # FiltersBuilder
