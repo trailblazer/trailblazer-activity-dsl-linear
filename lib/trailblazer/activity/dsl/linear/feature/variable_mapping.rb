@@ -197,7 +197,7 @@ module Trailblazer
           #
           # @param filter Any circuit-step compatible callable that exposes {#call(args, **circuit_options)}
           #   and returns [value, new_ctx]
-          class SetVariable
+          class SetVariable   # TODO: introduce SetVariable without condition.
             def initialize(variable_name:, filter:, user_filter:, name:, condition: ->(*) { true }, **)
               @variable_name = variable_name
               @filter        = filter
