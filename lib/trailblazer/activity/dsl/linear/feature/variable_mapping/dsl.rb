@@ -218,6 +218,9 @@ module Trailblazer
                   # filter = Trailblazer::Option(user_filter) # FIXME: Option or Circuit::Step?
                   filter = Activity::Circuit.Step(user_filter, option: true)
 
+  # FIXME
+        filter = Trailblazer::Option(user_filter) if add_variables_class_for_callable == AddVariables::Output::WithOuterContext
+
                   Inject::FiltersBuilder.build_filters_for_callable(
                     filter,
                     variable_name:        options[:name],
@@ -241,7 +244,7 @@ module Trailblazer
 
             # Builder for a DSL Output() object.
             def self.Out(name: rand, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: In::FiltersBuilder, read_from_aggregate: false, add_variables_class_for_callable: AddVariables::Output)
-              add_variables_class = AddVariables::Output::WithOuterContext  if with_outer_ctx
+              add_variables_class_for_callable = AddVariables::Output::WithOuterContext  if with_outer_ctx
               add_variables_class = AddVariables::Output::Delete            if delete
               filter_builder      = ->(user_filter) { user_filter }         if delete
               add_variables_class = AddVariables::ReadFromAggregate         if read_from_aggregate
