@@ -253,20 +253,16 @@ module Trailblazer
             end
 
             # Used in the DSL by you.
-            def self.Inject(variable_name = nil)
+            def self.Inject(variable_name = nil, **)
               Inject.new(
                 variable_name,
-                SetVariable, # add_variables_class
+                SetVariable::Default, # add_variables_class
                 Inject::FiltersBuilder
               )
             end
 
             # This class is supposed to hold configuration options for Inject().
             class Inject < Tuple
-              def variable_name
-                name
-              end
-
               def self.compute_filters_for_inject(inject, user_filter) # {user_filter} either [:current_user, :model] or {model: ->{}}
                 return filters_for_array(inject, user_filter) if user_filter.is_a?(Array)
                 filters_for_hash_of_callables(inject, user_filter)
@@ -283,8 +279,6 @@ module Trailblazer
                       circuit_step_filter = VariableFromCtx.new(variable_name: inject_variable) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
                       default_filter      = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
 
-                      add_variables_class = SetVariable::Default
-
                       add_variables_class.new(
                         condition:      VariablePresent.new(variable_name: inject_variable),
                         filter:         circuit_step_filter,
@@ -299,7 +293,8 @@ module Trailblazer
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
                     user_filter = In::FiltersBuilder.hash_for(user_filter)
 
-                    return build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, _|
+                    return build_filters_for_hash(user_filter, add_variables_class: SetVariable) do |options, from_name, _|
+
                       options.merge(
                         # run our filter if variable is present.
                         condition:      VariablePresent.new(variable_name: from_name),
@@ -313,9 +308,14 @@ module Trailblazer
 
                   # {user_filter} is one of the following
                   # :instance_method
-                  circuit_step_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
+                  circuit_step_filter = VariableFromCtx.new(variable_name: options[:name])
+                  default_filter      = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
 
-                  build_filters_for_callable(circuit_step_filter,
+                  build_filters_for_callable(
+                    circuit_step_filter,
+                    condition:      VariablePresent.new(variable_name: options[:name]),
+                    default_filter: default_filter,
+
                     variable_name:        options[:name],
                     user_filter:          user_filter,
                     add_variables_class:  add_variables_class,
