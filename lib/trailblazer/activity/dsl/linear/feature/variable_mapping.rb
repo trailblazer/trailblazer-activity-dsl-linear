@@ -198,10 +198,13 @@ module Trailblazer
           # @param filter Any circuit-step compatible callable that exposes {#call(args, **circuit_options)}
           #   and returns [value, new_ctx]
           class SetVariable
-            def initialize(variable_name:, filter:, user_filter:, **)
+            def initialize(variable_name:, filter:, user_filter:, name:, **)
               @variable_name = variable_name
               @filter        = filter
+              @name = name
             end
+
+            attr_reader :name
 
             def call(wrap_ctx, original_args)
               # this is the actual logic.
@@ -222,10 +225,13 @@ module Trailblazer
 # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
           # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
           class AddVariables
-            def initialize(filter:, user_filter:, **)
+            def initialize(filter:, user_filter:, name:, **)
               @filter      = filter # The users input/output filter.
               @user_filter = user_filter # this is for introspection.
+              @name = name
             end
+
+            attr_reader :name
 
             def call(wrap_ctx, original_args)
               ((original_ctx, _), circuit_options) = original_args

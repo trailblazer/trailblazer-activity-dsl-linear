@@ -145,52 +145,10 @@ module Trailblazer
             # @param filters [Array] List of {Filter} objects
             def add_variables_steps_for_filters(filters, path_prefix:)
               filters.collect do |filter|
-                ["#{path_prefix}.add_variables.#{filter.name}", filter.aggregate_step] # FIXME: config name sucks, of course, if we want to allow inserting etc.
+                ["#{path_prefix}.add_variables.#{filter.name}", filter] # FIXME: config name sucks, of course, if we want to allow inserting etc.
               end
             end
 
-
-          # Filter code
-            # Converting user options to callable filters.
-
-            # @param [Array, Hash, Proc] User option coming from the DSL, like {[:model]}
-            #
-            # Returns a "filter interface" callable that's invoked in {AddVariables}:
-            #   filter.(new_ctx, ..., keyword_arguments: new_ctx.to_hash, **circuit_options)
-            def self.build_filters(user_filter, tuple)
-              [
-                {filter: Trailblazer::Option(filter_for(user_filter)), name: tuple.name},
-
-
-              ]
-            end
-
-            # Convert a user option such as {[:model]} to a filter.
-            #
-            # Returns a filter proc to be called in an Option.
-            # @private
-            def self.filter_for(filter)
-              if filter.is_a?(::Array) || filter.is_a?(::Hash)
-                filter_from_dsl(filter)
-              else
-                filter
-              end
-            end
-
-            # The returned filter compiles a new hash for Scoped/Unscoped that only contains
-            # the desired i/o variables.
-            #
-            # Filter expects a "filter interface" {(ctx, **)}.
-            def self.filter_from_dsl(map)
-              hsh = DSL.hash_for(map)
-
-              ->(incoming_ctx, **kwargs) { Hash[hsh.collect { |from_name, to_name| [to_name, incoming_ctx[from_name]] }] }
-            end
-
-            def self.hash_for(ary)
-              return ary if ary.instance_of?(::Hash)
-              Hash[ary.collect { |name| [name, name] }]
-            end
 
             # Keeps user's DSL configuration for a particular io-pipe step.
             # Implements the interface for the actual I/O code and is DSL code happening in the normalizer.
@@ -205,32 +163,68 @@ module Trailblazer
               end
 
 
+
+
               # @return [Filter] Filter instance that keeps {name} and {aggregate_step}.
               def call(user_filter)
-                filters_options         = filters_builder.(user_filter, self) # this might be a hash, too.
-
-                filters_options.collect do |filter_options|
-                  aggregate_step = add_variables_class.new(user_filter: user_filter, **filter_options)
-
-                  VariableMapping::Filter.new( # TODO: remove Filter, and make AddVariables, SetVariable etc Filter subclasses.
-                    aggregate_step:       aggregate_step,
-                    add_variables_class:  add_variables_class,
-                    **filter_options
-                  )
-                end
+                filters_builder.(user_filter, self)
               end
             end # TODO: implement {:insert_args}
 
             # In, Out and Inject are objects instantiated when using the DSL, for instance {In() => [:model]}.
-            class In < Tuple; end
+            class In < Tuple
+              class FiltersBuilder
+                def self.call(user_filter, tuple)
+                  filter = Trailblazer::Option(
+                    filter_for(user_filter)
+                  ) # FIXME: Option or Circuit::Step?
+
+                  [
+                    tuple.add_variables_class.new(
+                      filter:         filter,
+                      user_filter:    user_filter,
+                      **tuple.to_h,
+                    )
+                  ]
+
+                end
+
+                # Convert a user option such as {[:model]} to a filter.
+                #
+                # Returns a filter proc to be called in an Option.
+                # @private
+                def self.filter_for(filter)
+                  if filter.is_a?(::Array) || filter.is_a?(::Hash)
+                    filter_from_dsl(filter)
+                  else
+                    filter
+                  end
+                end
+
+                # The returned filter compiles a new hash for Scoped/Unscoped that only contains
+                # the desired i/o variables.
+                #
+                # Filter expects a "filter interface" {(ctx, **)}.
+                def self.filter_from_dsl(map)
+                  hsh = hash_for(map)
+
+                  ->(incoming_ctx, **kwargs) { Hash[hsh.collect { |from_name, to_name| [to_name, incoming_ctx[from_name]] }] }
+                end
+
+                def self.hash_for(ary)
+                  return ary if ary.instance_of?(::Hash)
+                  Hash[ary.collect { |name| [name, name] }]
+                end
+              end
+            end
             class Out < Tuple; end
 
-            def self.In(name: rand, add_variables_class: AddVariables, filter_builder: method(:build_filters))
+            def self.In(name: rand, add_variables_class: AddVariables, filter_builder: In::FiltersBuilder)
               In.new(name, add_variables_class, filter_builder)
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false, delete: false, filter_builder: method(:build_filters), read_from_aggregate: false)
+            def self.Out(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false, delete: false, filter_builder: In::FiltersBuilder, read_from_aggregate: false)
               add_variables_class = AddVariables::Output::WithOuterContext  if with_outer_ctx
               add_variables_class = AddVariables::Output::Delete            if delete
               filter_builder      = ->(user_filter) { user_filter }         if delete
@@ -244,7 +238,7 @@ module Trailblazer
               Inject.new(
                 variable_name,
                 SetVariable, # add_variables_class
-                Inject.method(:filters_for_user_filter),
+                Inject::FiltersBuilder,
               )
             end
 
@@ -288,24 +282,63 @@ module Trailblazer
                 end
               end
 
-              # Called via {Tuple#call}
-              def self.filters_for_user_filter(user_filter, tuple)
-                if user_filter.is_a?(Hash)
-                  raise "implement me"
-                  return
+              # TODO: move to Runtime
+              # TODO: check if this abstraction is worth
+              class VariableFromCtx # Filter
+                def initialize(variable_name:)
+                  @variable_name = variable_name
                 end
 
-                # {user_filter} is one of the following
-                # :instance_method
-                circuit_step_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
-
-                [
-                  {filter: circuit_step_filter, name: tuple.variable_name, variable_name: tuple.variable_name}
-                ]
+                # Grab @variable_name from {ctx}.
+                def call((ctx, _), **) # Circuit-step interface
+                  return ctx[@variable_name], ctx
+                end
               end
-              # def self.filter_for(inject, inject_filter, name, type)
-              #   DSL.In(name: "#{type}.#{name.inspect}", add_variables_class: AddVariables).(inject_filter)
-              # end
+
+              class FiltersBuilder
+                # Called via {Tuple#call}
+                def self.call(user_filter, tuple)
+                  if user_filter.is_a?(Hash)
+                    raise "implement me"
+                    return
+                  end
+
+                  if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
+                    return user_filter.collect do |inject_variable|
+
+
+                      circuit_step_filter = VariableFromCtx.new(variable_name: inject_variable) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
+
+
+
+
+                      tuple.add_variables_class.new(
+                        filter:         circuit_step_filter,
+                        variable_name:  inject_variable, # FIXME: maybe remove this?
+                        user_filter:    user_filter,
+                        **tuple.to_h, # FIXME: same name here for every iteration!
+                      )
+
+                    end
+                  end
+
+
+
+                  # {user_filter} is one of the following
+                  # :instance_method
+                  circuit_step_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
+
+                  [
+                    tuple.add_variables_class.new(
+                      filter:         circuit_step_filter,
+                      variable_name:  tuple.name, # FIXME: maybe remove this?
+                      user_filter:    user_filter,
+                      **tuple.to_h,
+                    )
+                  ]
+
+                end
+              end # FiltersBuilder
             end
 
           end # DSL
