@@ -126,7 +126,7 @@ module Trailblazer
             def add_steps_for_inject_option(pipeline, inject:)
               injects = inject.collect { |name| name.is_a?(Symbol) ? [DSL.Inject(), [name]] : [DSL.Inject(), name] }
 
-              tuples  = DSL::Inject.filters_for_injects(injects) # DISCUSS: should we add passthrough/defaulting here at Inject()-time?
+              tuples  = Tuple.filters_from_options(injects) # DISCUSS: should we add passthrough/defaulting here at Inject()-time?
 
               add_filter_steps(pipeline, tuples, path_prefix: "inject")
             end
@@ -260,14 +260,6 @@ module Trailblazer
             class Inject < Tuple
               def variable_name
                 name
-              end
-
-            # Translate the raw input of the user to {In} tuples
-              # @return Array of VariableMapping::Filter
-              def self.filters_for_injects(injects)
-                injects.collect do |inject, user_filter| # iterate all {Inject() => user_filter} calls
-                  compute_filters_for_inject(inject, user_filter)
-                end.flatten(1)
               end
 
               def self.compute_filters_for_inject(inject, user_filter) # {user_filter} either [:current_user, :model] or {model: ->{}}
