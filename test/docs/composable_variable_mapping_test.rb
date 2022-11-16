@@ -337,7 +337,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     assert_invoke DDD::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
   end
 
-# Out() 1.5
+# Out() 1.6
   module DDDD
     Policy = A::Policy
 
@@ -651,4 +651,32 @@ ComposableVariableMappingDocTest::EEE::Admin
   #     end
   #   end
   # end # operation_for
+end
+
+#@ Out() 1.5
+#@   First, blacklist all, then add whitelisted.
+class OutMultipleTimes < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+
+  class Create < Trailblazer::Activity::Railway
+    step :model
+    step Policy::Create,
+      In() => {:current_user => :user},
+      In() => [:model],
+      Out() => [],
+      Out() => [:message]
+
+    #~meths
+    def model(ctx, **)
+      ctx[:model] = Object
+    end
+    #~meths end
+  end
+
+  it "Out() can be used sequentially" do
+    #= policy didn't set any message
+    assert_invoke Create, current_user: Module, expected_ctx_variables: {model: Object, message: nil}
+    #= policy breach, {message_from_policy} set.
+    assert_invoke Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message: "Command {create} not allowed!"}
+  end
 end
