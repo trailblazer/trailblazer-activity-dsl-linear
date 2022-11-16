@@ -333,9 +333,10 @@ module Trailblazer
 
               # Pass {inner_ctx, outer_ctx, **inner_ctx}
               class WithOuterContext < Output
-                def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
-                  new_ctx = wrap_ctx[:returned_ctx]
+                def call_filter(filter, wrap_ctx, ((original_ctx, _), circuit_options))
+                  new_ctx = wrap_ctx[:returned_ctx] # FIXME: redundant.
 
+                  # Here, due to a stupid API decision, we have to call an Option with two positional args.
                   @filter.(new_ctx, original_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
                 end
               end
