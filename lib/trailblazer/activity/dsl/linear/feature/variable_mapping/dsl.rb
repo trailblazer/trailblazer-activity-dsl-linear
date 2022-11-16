@@ -193,6 +193,32 @@ module Trailblazer
                     filter_for(user_filter)
                   ) # FIXME: Option or Circuit::Step?
 
+
+                  if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
+                    user_filter = hash_for(user_filter)
+                                                                                        # FIXME
+                    return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: SetVariable) do |options, in_variable, target_name|
+                      options.merge(
+                        # run our filter if variable is present.
+                        # condition:      VariablePresent.new(variable_name: in_variable),
+                        name:           in_variable,
+                      )
+
+                    end
+                  end
+
+                  if user_filter.is_a?(Hash) # TODO: merge with In::FiltersBuilder
+                    return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: SetVariable) do |options, from_name, to_name|
+                      options.merge(
+                        name:           from_name,
+                        variable_name:  to_name,
+                      )
+                    end
+                  end
+
+
+
+
                   [
                     add_variables_class.new(
                       filter:         filter,
@@ -202,6 +228,7 @@ module Trailblazer
                   ]
 
                 end
+
 
                 # Convert a user option such as {[:model]} to a filter.
                 #
@@ -226,7 +253,7 @@ module Trailblazer
                 end
 
                 def self.hash_for(ary)
-                  return ary if ary.instance_of?(::Hash)
+                  return ary if ary.instance_of?(::Hash) # FIXME: remove
                   Hash[ary.collect { |name| [name, name] }]
                 end
               end
@@ -294,21 +321,13 @@ module Trailblazer
                   end
 
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
-                    return user_filter.collect do |inject_variable|
+                    user_filter = In::FiltersBuilder.hash_for(user_filter)
 
-
-                      circuit_step_filter = VariableFromCtx.new(variable_name: inject_variable) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
-
-
-
-
-                      add_variables_class.new(
+                    return build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, _|
+                      options.merge(
                         # run our filter if variable is present.
-                        condition:      VariablePresent.new(variable_name: inject_variable),
-                        filter:         circuit_step_filter,
-                        variable_name:  inject_variable, # FIXME: maybe remove this?
-                        user_filter:    user_filter,
-                        **options, # FIXME: same name here for every iteration!
+                        condition:      VariablePresent.new(variable_name: from_name),
+                        name:           from_name,
                       )
 
                     end
@@ -329,7 +348,24 @@ module Trailblazer
                     )
                   ]
 
+                end # call
+
+                def self.build_filters_for_hash(user_filter, add_variables_class:, **options)
+                  return user_filter.collect do |from_name, to_name|
+                    options = yield(options, from_name, to_name)
+
+                    circuit_step_filter = VariableFromCtx.new(variable_name: from_name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
+
+                    add_variables_class.new(
+                      filter:         circuit_step_filter,
+                      variable_name:  from_name, # FIXME: maybe remove this?
+                      user_filter:    user_filter,
+                      **options, # FIXME: same name here for every iteration!
+                    )
+
+                  end
                 end
+
               end # FiltersBuilder
             end
 
