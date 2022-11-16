@@ -271,17 +271,17 @@ module Trailblazer
                 # Called via {Tuple#call}
                 def self.call(user_filter, add_variables_class:, **options)
                   if user_filter.is_a?(Hash) # TODO: deprecate in favor if {Inject(:variable_name)}!
-                    return user_filter.collect do |inject_variable, user_filter|
-                      circuit_step_filter = VariableFromCtx.new(variable_name: inject_variable) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
-                      default_filter      = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
 
-                      add_variables_class.new(
-                        condition:      VariablePresent.new(variable_name: inject_variable),
-                        filter:         circuit_step_filter,
+                    return build_filters_for_hash(user_filter, add_variables_class: SetVariable::Default) do |options, from_name, user_proc|
+                      default_filter      = Activity::Circuit.Step(user_proc, option: true) # this is passed into {SetVariable.new}.
+
+                      options.merge(
+                        name:           from_name,
+                        condition:      VariablePresent.new(variable_name: from_name),
+                        # filter:         circuit_step_filter,
                         default_filter: default_filter,
-                        variable_name:  inject_variable,
-                        user_filter:    user_filter,
-                        **options, # FIXME: NAME is same for all filters
+                        variable_name:  from_name,
+                        user_filter:    user_proc,
                       )
                     end
                   end
