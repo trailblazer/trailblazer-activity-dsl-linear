@@ -157,7 +157,21 @@ module Trailblazer
             # If a user needs to inject their own private iop step they can create this data structure with desired values here.
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
 
-            class Tuple < Struct.new(:name, :add_variables_class, :filters_builder, :insert_args)
+            class Tuple # < Struct.new(:name, :add_variables_class, :filters_builder, :insert_args)
+              def initialize(name, add_variables_class, filters_builder, insert_args=nil)
+                @options =
+                  {
+                    name:                 name,
+                    add_variables_class:  add_variables_class,
+                    filters_builder:      filters_builder,
+                    insert_args:          insert_args,
+                  }
+              end
+
+              def to_h
+                @options
+              end
+
               def self.filters_from_options(tuples_to_user_filters)
                 tuples_to_user_filters.collect { |tuple, user_filter| tuple.(user_filter) }.flatten(1)
               end
@@ -167,23 +181,23 @@ module Trailblazer
 
               # @return [Filter] Filter instance that keeps {name} and {aggregate_step}.
               def call(user_filter)
-                filters_builder.(user_filter, self)
+                @options[:filters_builder].(user_filter, **to_h)
               end
             end # TODO: implement {:insert_args}
 
             # In, Out and Inject are objects instantiated when using the DSL, for instance {In() => [:model]}.
             class In < Tuple
               class FiltersBuilder
-                def self.call(user_filter, tuple)
+                def self.call(user_filter, add_variables_class:, **options)
                   filter = Trailblazer::Option(
                     filter_for(user_filter)
                   ) # FIXME: Option or Circuit::Step?
 
                   [
-                    tuple.add_variables_class.new(
+                    add_variables_class.new(
                       filter:         filter,
                       user_filter:    user_filter,
-                      **tuple.to_h,
+                      **options,
                     )
                   ]
 
@@ -238,7 +252,7 @@ module Trailblazer
               Inject.new(
                 variable_name,
                 SetVariable, # add_variables_class
-                Inject::FiltersBuilder,
+                Inject::FiltersBuilder
               )
             end
 
@@ -297,10 +311,19 @@ module Trailblazer
 
               class FiltersBuilder
                 # Called via {Tuple#call}
-                def self.call(user_filter, tuple)
-                  if user_filter.is_a?(Hash)
-                    raise "implement me"
-                    return
+                def self.call(user_filter, add_variables_class:, **options)
+                  if user_filter.is_a?(Hash) # TODO: deprecate in favor if {Inject(:variable_name)}!
+                    return []
+                    return user_filter.collect do |variable_name, user_filter|
+                      circuit_step_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
+
+                      add_variables_class.new(
+                        filter:         circuit_step_filter,
+                        variable_name:  variable_name,
+                        user_filter:    user_filter,
+                        **options, # FIXME: NAME is same for all filters
+                      )
+                    end
                   end
 
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
@@ -312,11 +335,11 @@ module Trailblazer
 
 
 
-                      tuple.add_variables_class.new(
+                      add_variables_class.new(
                         filter:         circuit_step_filter,
                         variable_name:  inject_variable, # FIXME: maybe remove this?
                         user_filter:    user_filter,
-                        **tuple.to_h, # FIXME: same name here for every iteration!
+                        **options, # FIXME: same name here for every iteration!
                       )
 
                     end
@@ -329,11 +352,11 @@ module Trailblazer
                   circuit_step_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
 
                   [
-                    tuple.add_variables_class.new(
+                    add_variables_class.new(
                       filter:         circuit_step_filter,
-                      variable_name:  tuple.name, # FIXME: maybe remove this?
+                      variable_name:  options[:name], # FIXME: maybe remove this?
                       user_filter:    user_filter,
-                      **tuple.to_h,
+                      **options,
                     )
                   ]
 
