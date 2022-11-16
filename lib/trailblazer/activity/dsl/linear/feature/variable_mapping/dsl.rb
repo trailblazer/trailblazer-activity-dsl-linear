@@ -263,10 +263,6 @@ module Trailblazer
 
             # This class is supposed to hold configuration options for Inject().
             class Inject < Tuple
-              def self.compute_filters_for_inject(inject, user_filter) # {user_filter} either [:current_user, :model] or {model: ->{}}
-                return filters_for_array(inject, user_filter) if user_filter.is_a?(Array)
-                filters_for_hash_of_callables(inject, user_filter)
-              end
 
 #FIXME: naming!
 
