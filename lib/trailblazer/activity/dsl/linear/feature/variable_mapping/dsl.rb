@@ -158,13 +158,15 @@ module Trailblazer
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
 
             class Tuple # < Struct.new(:name, :add_variables_class, :filters_builder, :insert_args)
-              def initialize(name, add_variables_class, filters_builder, insert_args=nil)
+              def initialize(name, add_variables_class, filters_builder, add_variables_class_for_callable=nil, insert_args=nil)
                 @options =
                   {
                     name:                 name,
                     add_variables_class:  add_variables_class,
                     filters_builder:      filters_builder,
                     insert_args:          insert_args,
+
+                    add_variables_class_for_callable: add_variables_class_for_callable,
                   }
               end
 
@@ -176,9 +178,6 @@ module Trailblazer
                 tuples_to_user_filters.collect { |tuple, user_filter| tuple.(user_filter) }.flatten(1)
               end
 
-
-
-
               # @return [Filter] Filter instance that keeps {name} and {aggregate_step}.
               def call(user_filter)
                 @options[:filters_builder].(user_filter, **to_h)
@@ -188,11 +187,11 @@ module Trailblazer
             # In, Out and Inject are objects instantiated when using the DSL, for instance {In() => [:model]}.
             class In < Tuple
               class FiltersBuilder
-                def self.call(user_filter, add_variables_class:, **options)
+                def self.call(user_filter, add_variables_class:, add_variables_class_for_callable:, **options)
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
                     user_filter = hash_for(user_filter)
                                                                                         # FIXME
-                    return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: SetVariable) do |options, in_variable, target_name|
+                    return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, in_variable, target_name|
                       options.merge(
                         # run our filter if variable is present.
                         # condition:      VariablePresent.new(variable_name: in_variable),
@@ -203,7 +202,7 @@ module Trailblazer
                   end
 
                   if user_filter.is_a?(Hash) # TODO: merge with In::FiltersBuilder
-                    return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: SetVariable) do |options, from_name, to_name|
+                    return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, to_name|
                       options.merge(
                         name:           from_name,
                         variable_name:  to_name,
@@ -211,15 +210,19 @@ module Trailblazer
                     end
                   end
 
-                  # callable
 
-                  filter = Trailblazer::Option(user_filter) # FIXME: Option or Circuit::Step?
+
+
+                  # callable, producing a hash!
+
+                  # filter = Trailblazer::Option(user_filter) # FIXME: Option or Circuit::Step?
+                  filter = Activity::Circuit.Step(user_filter, option: true)
 
                   Inject::FiltersBuilder.build_filters_for_callable(
                     filter,
                     variable_name:        options[:name],
                     user_filter:          user_filter,
-                    add_variables_class:  add_variables_class,
+                    add_variables_class:  add_variables_class_for_callable, # for example, {AddVariables::Output}
                     **options
                   )
                 end
@@ -232,18 +235,18 @@ module Trailblazer
             end
             class Out < Tuple; end
 
-            def self.In(name: rand, add_variables_class: AddVariables, filter_builder: In::FiltersBuilder)
-              In.new(name, add_variables_class, filter_builder)
+            def self.In(name: rand, add_variables_class: SetVariable, filter_builder: In::FiltersBuilder, add_variables_class_for_callable: AddVariables)
+              In.new(name, add_variables_class, filter_builder, add_variables_class_for_callable)
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(name: rand, add_variables_class: AddVariables::Output, with_outer_ctx: false, delete: false, filter_builder: In::FiltersBuilder, read_from_aggregate: false)
+            def self.Out(name: rand, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: In::FiltersBuilder, read_from_aggregate: false, add_variables_class_for_callable: AddVariables::Output)
               add_variables_class = AddVariables::Output::WithOuterContext  if with_outer_ctx
               add_variables_class = AddVariables::Output::Delete            if delete
               filter_builder      = ->(user_filter) { user_filter }         if delete
               add_variables_class = AddVariables::ReadFromAggregate         if read_from_aggregate
 
-              Out.new(name, add_variables_class, filter_builder)
+              Out.new(name, add_variables_class, filter_builder, add_variables_class_for_callable)
             end
 
             # Used in the DSL by you.

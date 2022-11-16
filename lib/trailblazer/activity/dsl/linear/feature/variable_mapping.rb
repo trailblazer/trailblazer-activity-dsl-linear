@@ -252,6 +252,16 @@ module Trailblazer
 
                 return wrap_ctx
               end
+            end # Default
+
+            class Output < SetVariable
+              # Call a filter with a Circuit-Step interface.
+              def call_filter(filter, wrap_ctx, ((ctx, flow_options), circuit_options))
+                new_ctx = wrap_ctx[:returned_ctx]
+
+                value, _ = filter.([new_ctx, flow_options], **circuit_options) # circuit-step interface
+                value
+              end
             end
           end
 
@@ -286,28 +296,20 @@ module Trailblazer
 
 # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
           # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
-          class AddVariables
-            def initialize(filter:, user_filter:, name:, **)
-              @filter      = filter # The users input/output filter.
-              @user_filter = user_filter # this is for introspection.
-              @name = name
+
+          # Add a hash of variables to ctx after running a filter (which returns a hash!).
+          class AddVariables < SetVariable
+            def invoke_filter_after_decision(decision, wrap_ctx, original_args) # FIXME: make this nicer.
+              # FIXME: REMOVE {variable_name} from this class, we don't use it here.
+              if decision
+                variables = call_filter(@filter, wrap_ctx, original_args)
+
+                VariableMapping.merge_variables(variables, wrap_ctx, original_args)
+              end
+
+              return wrap_ctx
             end
 
-            attr_reader :name
-
-            def call(wrap_ctx, original_args)
-              ((original_ctx, _), circuit_options) = original_args
-              # puts "@@@@@ #{wrap_ctx[:returned_ctx].inspect}"
-
-              # this is the actual logic.
-              variables = call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
-
-              VariableMapping.merge_variables(variables, wrap_ctx, original_args)
-            end
-
-            def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
-              _variables = @filter.(original_ctx, keyword_arguments: original_ctx.to_hash, **circuit_options)
-            end
 
             class ReadFromAggregate < AddVariables # FIXME: REFACTOR
               def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
@@ -317,11 +319,16 @@ module Trailblazer
               end
             end
 
-            class Output < AddVariables
-              def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
-                new_ctx = wrap_ctx[:returned_ctx]
+            class Output < SetVariable::Output
+              def invoke_filter_after_decision(decision, wrap_ctx, original_args) # FIXME: make this nicer.
+                # FIXME: REMOVE {variable_name} from this class, we don't use it here.
+                if decision
+                  variables = call_filter(@filter, wrap_ctx, original_args)
 
-                @filter.(new_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
+                  VariableMapping.merge_variables(variables, wrap_ctx, original_args)
+                end
+
+                return wrap_ctx
               end
 
               # Pass {inner_ctx, outer_ctx, **inner_ctx}
