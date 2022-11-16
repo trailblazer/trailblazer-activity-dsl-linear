@@ -270,56 +270,31 @@ module Trailblazer
                 end.flatten(1)
               end
 
-              # Compute {In} tuples from the user's DSL input.
-              # We simply use AddVariables but use our own {inject_filter} which checks if the particular
-              # variable is already present in the incoming ctx.
               def self.compute_filters_for_inject(inject, user_filter) # {user_filter} either [:current_user, :model] or {model: ->{}}
                 return filters_for_array(inject, user_filter) if user_filter.is_a?(Array)
                 filters_for_hash_of_callables(inject, user_filter)
               end
 
-              # [:model, :current_user]
-              def self.filters_for_array(inject, user_filter)
-                user_filter.collect do |name|
-                  inject_filter = ->(original_ctx, **) { original_ctx.key?(name) ? {name => original_ctx[name]} : {} } # FIXME: make me an {Inject::} method.
+#FIXME: naming!
+                  # filter_for(inject, inject_filter, name, "passthrough")
+                  # filter_for(inject, inject_filter, name, "defaulting_callable")
 
-                  filter_for(inject, inject_filter, name, "passthrough")
-                end
-              end
-
-              # {model: ->(*) { snippet }}
-              def self.filters_for_hash_of_callables(inject, user_filter)
-                user_filter.collect do |name, defaulting_filter|
-                  inject_filter = ->(original_ctx, **kws) { original_ctx.key?(name) ? {name => original_ctx[name]} : {name => defaulting_filter.(original_ctx, **kws)} }
-
-                  filter_for(inject, inject_filter, name, "defaulting_callable")
-                end
-              end
-
-              # TODO: move to Runtime
-              # TODO: check if this abstraction is worth
-              class VariableFromCtx # Filter
-                def initialize(variable_name:)
-                  @variable_name = variable_name
-                end
-
-                # Grab @variable_name from {ctx}.
-                def call((ctx, _), **) # Circuit-step interface
-                  return ctx[@variable_name], ctx
-                end
-              end
 
               class FiltersBuilder
                 # Called via {Tuple#call}
                 def self.call(user_filter, add_variables_class:, **options)
                   if user_filter.is_a?(Hash) # TODO: deprecate in favor if {Inject(:variable_name)}!
-                    return []
-                    return user_filter.collect do |variable_name, user_filter|
-                      circuit_step_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
+                    return user_filter.collect do |inject_variable, user_filter|
+                      circuit_step_filter = VariableFromCtx.new(variable_name: inject_variable) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
+                      default_filter      = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
+
+                      add_variables_class = SetVariable::Default
 
                       add_variables_class.new(
+                        condition:      VariablePresent.new(variable_name: inject_variable),
                         filter:         circuit_step_filter,
-                        variable_name:  variable_name,
+                        default_filter: default_filter,
+                        variable_name:  inject_variable,
                         user_filter:    user_filter,
                         **options, # FIXME: NAME is same for all filters
                       )
@@ -336,6 +311,8 @@ module Trailblazer
 
 
                       add_variables_class.new(
+                        # run our filter if variable is present.
+                        condition:      VariablePresent.new(variable_name: inject_variable),
                         filter:         circuit_step_filter,
                         variable_name:  inject_variable, # FIXME: maybe remove this?
                         user_filter:    user_filter,

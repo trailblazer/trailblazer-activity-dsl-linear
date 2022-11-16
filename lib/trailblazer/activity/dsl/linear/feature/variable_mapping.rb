@@ -198,27 +198,89 @@ module Trailblazer
           # @param filter Any circuit-step compatible callable that exposes {#call(args, **circuit_options)}
           #   and returns [value, new_ctx]
           class SetVariable
-            def initialize(variable_name:, filter:, user_filter:, name:, **)
+            def initialize(variable_name:, filter:, user_filter:, name:, condition: ->(*) { true }, **)
               @variable_name = variable_name
               @filter        = filter
               @name = name
+              @condition = condition # DISCUSS: adding this as an "optional" step in a "Railway"
             end
 
             attr_reader :name
 
             def call(wrap_ctx, original_args)
               # this is the actual logic.
-              value = call_filter(wrap_ctx, original_args)
+              decision, _ = @condition.(original_args[0]) # DISCUSS: use call_filter here, too
 
-              wrap_ctx[:aggregate][@variable_name] = value # yes, we're mutating, but this is ok as we're on some private hash.
+              wrap_ctx = invoke_filter_after_decision(decision, wrap_ctx, original_args)
 
               return wrap_ctx, original_args
             end
 
+            # @private
+            # FIXME: this is not the final API in SetVariable.
+            def invoke_filter_after_decision(decision, wrap_ctx, original_args)
+              if decision
+                value = call_filter(@filter, wrap_ctx, original_args)
+
+                wrap_ctx[:aggregate][@variable_name] = value # yes, we're mutating, but this is ok as we're on some private hash.
+              end
+
+              return wrap_ctx
+            end
+
             # Call a filter with a Circuit-Step interface.
-            def call_filter(wrap_ctx, (args, circuit_options))
-              value, _ = @filter.(args, **circuit_options) # circuit-step interface
+            def call_filter(filter, wrap_ctx, (args, circuit_options))
+              value, _ = filter.(args, **circuit_options) # circuit-step interface
               value
+            end
+
+            class Default < SetVariable
+              def initialize(default_filter:, **)
+                super
+                @default_filter = default_filter
+              end
+
+              def invoke_filter_after_decision(decision, wrap_ctx, original_args)
+                value =
+                  if decision
+                    call_filter(@filter, wrap_ctx, original_args)
+                  else
+                    call_filter(@default_filter, wrap_ctx, original_args)
+                  end
+
+                wrap_ctx[:aggregate][@variable_name] = value # yes, we're mutating, but this is ok as we're on some private hash.
+
+                return wrap_ctx
+              end
+            end
+          end
+
+          # TODO: check if this abstraction is worth
+          class VariableFromCtx # Filter
+            def initialize(variable_name:)
+              @variable_name = variable_name
+            end
+
+            # Grab @variable_name from {ctx}.
+            def call((ctx, _), **) # Circuit-step interface
+              return ctx[@variable_name], ctx
+            end
+          end
+
+          # TODO: check if this abstraction is worth
+          class VariablePresent < VariableFromCtx # Filter
+            # Grab @variable_name from {ctx} if it's there.
+            def call((ctx, _), **) # Circuit-step interface
+              return ctx.key?(@variable_name), ctx
+            end
+          end
+
+          # TODO: check if this abstraction is worth
+          class VariableAbsent < VariablePresent # Filter
+            # Grab @variable_name from {ctx} if it's there.
+            def call((ctx, _), **) # Circuit-step interface
+              decision, ctx = super
+              return !decision, ctx
             end
           end
 
