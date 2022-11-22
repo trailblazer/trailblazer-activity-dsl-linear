@@ -618,9 +618,7 @@ ComposableVariableMappingDocTest::EEE::Admin
       step Policy::Check,
         In() => {:current_user => :user},
         In() => [:model],
-        Inject() => {
-          action: ->(ctx, **) { :create }
-        }
+        Inject(:action) => ->(ctx, **) { :create }
       #~meths
       include Steps
       #~meths end
