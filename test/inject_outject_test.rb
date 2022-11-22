@@ -1,5 +1,51 @@
 require "test_helper"
 
+class InjectAlwaysOptionTest < Minitest::Spec
+  it "Inject(:name, always: true)" do
+    class Create < Trailblazer::Activity::Railway
+      step :write,
+        Inject(:name, always: true) => ->(ctx, **) { ctx[:field] },
+      #@ no {always: true}
+        Inject() => [:date, :time],
+        Inject() => {
+          year: ->(ctx, date:, **) { "<Year of #{date}>" },
+          never: ->(ctx, never:, call:, **) { raise "i shouldn't be called!" },
+        }
+
+      def write(ctx, time: "Time.now", date:, current_user:, name:, **) # {date} has no default configured.
+        ctx[:log] = %{
+ctx keys:     #{ctx.keys.inspect}
+time:         #{time.inspect}
+ctx[:time]:   #{ctx[:time].inspect}
+date:         #{date}
+current_user: #{current_user}
+ctx[:model]:  #{ctx[:model]}
+ctx[:thing]:  #{ctx[:thing].inspect}
+ctx[:year]:   #{ctx[:year].inspect}
+
+name:         #{name.inspect}
+}
+      end
+    end
+
+    assert_invoke Create, never: true, time: "yesterday", date: "today", model: Object, something: 99, current_user: Module, field: :mode, expected_ctx_variables: {
+      log: %{
+ctx keys:     [:model, :thing, :current_user, :date, :time, :year, :never]
+time:         "yesterday"
+ctx[:time]:   "yesterday"
+date:         today
+current_user: <Currentuser for Object>
+ctx[:model]:  Object
+ctx[:thing]:  99
+ctx[:year]:   "<Year of today>"
+
+name:         :mode
+}
+    }
+  end
+
+end
+
 class InjectTest < Minitest::Spec
   it "Inject(circuit_interface: true)" do
     module XX
