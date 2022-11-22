@@ -1,12 +1,15 @@
 require "test_helper"
 
 class InjectAlwaysOptionTest < Minitest::Spec
+#@ we actually don't need {always: true}
+#@ Inject() is always called.
   it "Inject(:name, always: true)" do
     class Create < Trailblazer::Activity::Railway
       step :write,
-        Inject(:name, always: true) => ->(ctx, **) { ctx[:field] },
+        Inject(:name) => ->(ctx, **) { ctx[:field] },
       #@ no {always: true}
         Inject() => [:date, :time],
+        # TODO: deprecate this in favor of {Inject(:name)}.
         Inject() => {
           year: ->(ctx, date:, **) { "<Year of #{date}>" },
           never: ->(ctx, never:, call:, **) { raise "i shouldn't be called!" },
@@ -20,7 +23,6 @@ ctx[:time]:   #{ctx[:time].inspect}
 date:         #{date}
 current_user: #{current_user}
 ctx[:model]:  #{ctx[:model]}
-ctx[:thing]:  #{ctx[:thing].inspect}
 ctx[:year]:   #{ctx[:year].inspect}
 
 name:         #{name.inspect}
@@ -28,22 +30,20 @@ name:         #{name.inspect}
       end
     end
 
-    assert_invoke Create, never: true, time: "yesterday", date: "today", model: Object, something: 99, current_user: Module, field: :mode, expected_ctx_variables: {
+    assert_invoke Create, never: true, time: "yesterday", date: "today", model: Object, current_user: Module, field: :mode, expected_ctx_variables: {
       log: %{
-ctx keys:     [:model, :thing, :current_user, :date, :time, :year, :never]
+ctx keys:     [:seq, :never, :time, :date, :model, :current_user, :field, :name, :year]
 time:         "yesterday"
 ctx[:time]:   "yesterday"
 date:         today
-current_user: <Currentuser for Object>
+current_user: Module
 ctx[:model]:  Object
-ctx[:thing]:  99
 ctx[:year]:   "<Year of today>"
 
 name:         :mode
 }
     }
   end
-
 end
 
 class InjectTest < Minitest::Spec
