@@ -289,7 +289,7 @@ module Trailblazer
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
                     user_filter = In::FiltersBuilder.hash_for(user_filter)
 
-                    return build_filters_for_hash(user_filter, add_variables_class: SetVariable) do |options, from_name, _|
+                    return build_filters_for_hash(user_filter, add_variables_class: SetVariable::Conditioned) do |options, from_name, _|
 
                       options.merge(
                         # run our filter if variable is present.
