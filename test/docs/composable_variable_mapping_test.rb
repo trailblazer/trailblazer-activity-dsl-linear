@@ -652,3 +652,41 @@ ComposableVariableMappingDocTest::EEE::Admin
   #   end
   # end # operation_for
 end
+
+class DefaultInjectOnlyTest < Minitest::Spec
+  it "Inject(), only, without In()" do
+    class Create < Trailblazer::Activity::Railway
+      step :write,
+        Inject() => { name: ->(ctx, field:, **) { field } }
+
+      def write(ctx, name: nil, **)
+        ctx[:write] = %{
+name:     #{name.inspect}
+}
+      end
+    end
+
+    assert_invoke Create, field: Module, expected_ctx_variables: {write: %{
+name:     Module
+}}
+  end
+end
+
+class PassthroughInjectOnlyTest < Minitest::Spec
+  it "Inject() => [...], only, without In()" do
+    class Create < Trailblazer::Activity::Railway
+      step :write,
+        Inject() => [:name]
+
+      def write(ctx, name: nil, **)
+        ctx[:write] = %{
+name:     #{name.inspect}
+}
+      end
+    end
+
+    assert_invoke Create, name: Module, expected_ctx_variables: {write: %{
+name:     Module
+}}
+  end
+end
