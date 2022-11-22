@@ -9,6 +9,9 @@
 
   Everything else, such as merging user options, computing and adding termini, etc, now happens in
   `Strategy::DSL.OptionsForSequenceBuilder`.
+* Adding `Subprocess(Create, strict: true)` to wire all outputs of `Create` automatically.
+  Each output will be wired to its same named Track(semantic).
+* Adding `Strategy(termini: )`
 
 # 1.0.0
 
