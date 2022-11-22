@@ -168,15 +168,6 @@ module Trailblazer
           end
         end
 
-        # TODO: check if this abstraction is worth
-        class VariableAbsent < VariablePresent # Filter
-          # Grab @variable_name from {ctx} if it's there.
-          def call((ctx, _), **) # Circuit-step interface
-            decision, ctx = super
-            return !decision, ctx
-          end
-        end
-
   # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
         # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
 
