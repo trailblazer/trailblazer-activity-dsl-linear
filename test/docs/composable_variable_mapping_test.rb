@@ -688,6 +688,8 @@ name:     #{name.inspect}
     assert_invoke Create, name: Module, expected_ctx_variables: {write: %{
 name:     Module
 }}
+  end
+end
 
 #@ Out() 1.5
 #@   First, blacklist all, then add whitelisted.
