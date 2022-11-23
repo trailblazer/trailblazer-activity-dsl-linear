@@ -304,19 +304,17 @@ module Trailblazer
 
                   # {user_filter} is one of the following
                   # :instance_method
-                  circuit_step_filter = VariableFromCtx.new(variable_name: options[:name])
                   default_filter      = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
-
-                  build_filters_for_callable(
-                    circuit_step_filter,
-                    condition:      VariablePresent.new(variable_name: options[:name]),
-                    default_filter: default_filter,
-
-                    write_name:        options[:name],
-                    user_filter:          user_filter,
-                    add_variables_class:  add_variables_class,
-                    **options
-                  )
+                  [
+                    Filter.build_for(
+                      **options,
+                      add_variables_class: add_variables_class,
+                      write_name:        options[:name],
+                      user_filter:          user_filter,
+                      default_filter: default_filter,
+                      condition:      VariablePresent.new(variable_name: options[:name]),
+                    )
+                  ]
                 end # call
 
                 def self.build_filters_for_hash(user_filter, **options)
