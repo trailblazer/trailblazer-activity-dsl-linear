@@ -158,7 +158,7 @@ module Trailblazer
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
 
             class Tuple # < Struct.new(:name, :add_variables_class, :filters_builder, :insert_args)
-              def initialize(name, add_variables_class, filters_builder, add_variables_class_for_callable=nil, insert_args=nil)
+              def initialize(name, add_variables_class, filters_builder, add_variables_class_for_callable=nil, insert_args=nil, options={})
                 @options =
                   {
                     name:                 name,
@@ -167,6 +167,8 @@ module Trailblazer
                     insert_args:          insert_args,
 
                     add_variables_class_for_callable: add_variables_class_for_callable,
+
+                    tuple_options: options
                   }
               end
 
@@ -213,9 +215,6 @@ module Trailblazer
                   # callable, producing a hash!
                   filter = Activity::Circuit.Step(user_filter, option: true)
 
-  # FIXME
-        filter = Trailblazer::Option(user_filter) if add_variables_class_for_callable == AddVariables::Output::WithOuterContext
-
                   [
                     Filter.build_for(
                       filter:               filter,
@@ -225,24 +224,50 @@ module Trailblazer
                       **options
                     )
                   ]
+                  # TODO: remove {add_variables_class_for_callable} and make everything SetVariable.
                 end # call
               end
             end # In
 
-            class Out < Tuple; end
+            class Out < Tuple
+              class FiltersBuilder
+                def self.call(user_filter, tuple_options:, **options)
+                  # options = options.merge(add_variables_class: SetVariable::Output)
+
+                  if tuple_options[:with_outer_ctx]
+                    # TODO: deprecate
+                    filter              = Trailblazer::Option(user_filter)
+
+                    options = options.merge(
+                      filter:                           filter,
+                      add_variables_class_for_callable: AddVariables::Output::WithOuterContext, # old positional arg
+                    )
+                  end
+
+                  In::FiltersBuilder.(user_filter,
+                    # add_variables_class: add_variables_class,
+                    **options
+                  )
+                end
+              end
+
+            end
 
             def self.In(name: rand, add_variables_class: SetVariable, filter_builder: In::FiltersBuilder, add_variables_class_for_callable: AddVariables)
               In.new(name, add_variables_class, filter_builder, add_variables_class_for_callable)
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(name: rand, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: In::FiltersBuilder, read_from_aggregate: false, add_variables_class_for_callable: AddVariables::Output)
-              add_variables_class_for_callable = AddVariables::Output::WithOuterContext  if with_outer_ctx
+            def self.Out(name: rand, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: Out::FiltersBuilder, read_from_aggregate: false, add_variables_class_for_callable: AddVariables::Output)
               add_variables_class = AddVariables::Output::Delete            if delete
               filter_builder      = ->(user_filter) { user_filter }         if delete
               add_variables_class = AddVariables::ReadFromAggregate         if read_from_aggregate
 
-              Out.new(name, add_variables_class, filter_builder, add_variables_class_for_callable)
+              Out.new(name, add_variables_class, filter_builder, add_variables_class_for_callable, nil,
+                {
+                  with_outer_ctx: with_outer_ctx,
+                }
+              )
             end
 
             # Used in the DSL by you.
