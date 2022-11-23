@@ -12,6 +12,8 @@
 * Adding `Subprocess(Create, strict: true)` to wire all outputs of `Create` automatically.
   Each output will be wired to its same named Track(semantic).
 * Adding `Strategy(termini: )`
+* For `output:` in combination with `:output_with_outer_ctx`, deprecate the second positional argument and make it
+  the `:outer_ctx` keyword argument instead.
 
 # 1.0.0
 
