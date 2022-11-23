@@ -194,6 +194,7 @@ module Trailblazer
                     return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, in_variable, target_name|
                       options.merge(
                         name:           in_variable,
+                        variable_name:  in_variable,
                       )
 
                     end
@@ -293,6 +294,7 @@ module Trailblazer
                         # run our filter if variable is present.
                         condition:      VariablePresent.new(variable_name: from_name),
                         name:           from_name,
+                        variable_name:  from_name,
                       )
 
                     end
@@ -317,19 +319,29 @@ module Trailblazer
                   )
                 end # call
 
-                def self.build_filters_for_hash(user_filter, add_variables_class:, **options)
+                def self.build_filters_for_hash(user_filter, **options)
                   return user_filter.collect do |from_name, to_name|
                     options = yield(options, from_name, to_name)
 
-                    circuit_step_filter = VariableFromCtx.new(variable_name: from_name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
+                    puts "@@@@@ #{options.inspect} #{from_name}"
+
+                    Filter.build_for(
+                      user_filter: user_filter, # FIXME: this is not really helpful
+                      **options,
+                    )
+                  end
+                end
+
+                module Filter
+                  def self.build_for(add_variables_class:, variable_name:, name:, **options)
+                    circuit_step_filter = VariableFromCtx.new(variable_name: name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
 
                     add_variables_class.new(
                       filter:         circuit_step_filter,
-                      variable_name:  from_name, # FIXME: maybe remove this?
-                      user_filter:    user_filter,
+                      variable_name:  variable_name,
+                      name: name,
                       **options, # FIXME: same name here for every iteration!
                     )
-
                   end
                 end
 
