@@ -268,23 +268,16 @@ module Trailblazer
             class Inject < Tuple
 
 #FIXME: naming!
-
-
               class FiltersBuilder
                 # Called via {Tuple#call}
                 def self.call(user_filter, add_variables_class:, **options)
                   if user_filter.is_a?(Hash) # TODO: deprecate in favor if {Inject(:variable_name)}!
 
                     return build_filters_for_hash(user_filter, add_variables_class: SetVariable::Default) do |options, from_name, user_proc|
-                      default_filter      = Activity::Circuit.Step(user_proc, option: true) # this is passed into {SetVariable.new}.
-
-                      options.merge(
-                        name:           from_name,
-                        condition:      VariablePresent.new(variable_name: from_name),
-                        # filter:         circuit_step_filter,
-                        default_filter: default_filter,
-                        write_name:  from_name,
-                        user_filter:    user_proc,
+                      options_for_defaulted_with_condition(
+                        **options,
+                        user_filter:  user_proc,
+                        write_name:   from_name,
                       )
                     end
                   end
@@ -293,35 +286,42 @@ module Trailblazer
                     user_filter = In::FiltersBuilder.hash_for(user_filter)
 
                     return build_filters_for_hash(user_filter, add_variables_class: SetVariable::Conditioned) do |options, from_name, _|
-
-                      options.merge(
-                        # run our filter if variable is present.
-                        condition:      VariablePresent.new(variable_name: from_name),
-                        name:           from_name,
-                        write_name:  from_name,
+                      options_for_defaulted_with_condition(
+                        **options,
+                        write_name:   from_name,
+                        user_filter:  user_filter, # FIXME: this is not really helpful, it's something like [:field, :injects]
                       )
-
                     end
                   end
 
-
-
                   # {user_filter} is one of the following
                   # :instance_method
-                  default_filter      = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
+                  options = options_for_defaulted_with_condition(
+                    **options,
+                    write_name:   options[:name],
+                    user_filter:  user_filter,
+                  )
 
                   [
-                    Filter.build_for(
-                      **options,
-                      add_variables_class: add_variables_class,
-                      write_name:        options[:name],
-                      user_filter:          user_filter,
-                      default_filter: default_filter,
-                      condition:      VariablePresent.new(variable_name: options[:name]),
-                    )
+                    Filter.build_for(add_variables_class: add_variables_class, **options)
                   ]
                 end # call
 
+                def self.options_for_defaulted_with_condition(user_filter:, write_name:, **options)
+                  default_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
+
+                  {
+                    **options,
+                    name:           write_name,
+                    condition:      VariablePresent.new(variable_name: write_name),
+                    default_filter: default_filter,
+                    write_name:     write_name,
+                    user_filter:    user_filter,
+                  }
+                end
+
+
+# TODO: move to Filter
                 def self.build_filters_for_hash(user_filter, **options)
                   return user_filter.collect do |from_name, to_name|
                     options = yield(options, from_name, to_name)
