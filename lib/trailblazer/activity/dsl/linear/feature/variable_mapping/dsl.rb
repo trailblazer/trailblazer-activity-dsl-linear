@@ -189,7 +189,7 @@ module Trailblazer
               class FiltersBuilder
                 def self.call(user_filter, add_variables_class:, add_variables_class_for_callable:, **options)
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
-                    user_filter = hash_for(user_filter)
+                    user_filter = Filter.hash_for(user_filter)
                                                                                         # FIXME
                     return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, in_variable, target_name|
                       options.merge(
@@ -208,9 +208,6 @@ module Trailblazer
                       )
                     end
                   end
-
-
-
 
                   # callable, producing a hash!
 
@@ -233,10 +230,7 @@ module Trailblazer
                   ]
                 end
 
-                def self.hash_for(ary)
-                  return ary if ary.instance_of?(::Hash) # FIXME: remove
-                  Hash[ary.collect { |name| [name, name] }]
-                end
+
               end
             end
             class Out < Tuple; end
@@ -266,8 +260,6 @@ module Trailblazer
 
             # This class is supposed to hold configuration options for Inject().
             class Inject < Tuple
-
-#FIXME: naming!
               class FiltersBuilder
                 # Called via {Tuple#call}
                 def self.call(user_filter, add_variables_class:, **options)
@@ -284,7 +276,7 @@ module Trailblazer
 
                   # Build {SetVariable::Conditioned}
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
-                    user_filter = In::FiltersBuilder.hash_for(user_filter)
+                    user_filter = Filter.hash_for(user_filter)
 
                     return Filter.build_filters_for_hash(user_filter, add_variables_class: SetVariable::Conditioned) do |options, from_name, _|
                       options_for_defaulted_with_condition(
@@ -346,6 +338,10 @@ module Trailblazer
                     **options,
                   )
                 end
+              end
+
+              def self.hash_for(ary)
+                ary.collect { |name| [name, name] }.to_h
               end
             end # Filter
 
