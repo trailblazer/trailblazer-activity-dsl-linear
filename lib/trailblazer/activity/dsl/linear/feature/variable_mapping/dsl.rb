@@ -220,13 +220,17 @@ module Trailblazer
   # FIXME
         filter = Trailblazer::Option(user_filter) if add_variables_class_for_callable == AddVariables::Output::WithOuterContext
 
-                  Inject::FiltersBuilder.build_filters_for_callable(
-                    filter,
-                    write_name:        options[:name],
-                    user_filter:          user_filter,
-                    add_variables_class:  add_variables_class_for_callable, # for example, {AddVariables::Output}
-                    **options
-                  )
+                  [
+                    Filter.build_for(
+                      filter: filter,
+                      write_name:        options[:name],
+                      user_filter:          user_filter,
+                      add_variables_class:  add_variables_class_for_callable, # for example, {AddVariables::Output}
+                      **options
+
+
+                    )
+                  ]
                 end
 
                 def self.hash_for(ary)
@@ -305,6 +309,7 @@ module Trailblazer
                   # {user_filter} is one of the following
                   # :instance_method
                   default_filter      = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
+
                   [
                     Filter.build_for(
                       **options,
@@ -327,31 +332,22 @@ module Trailblazer
                     )
                   end
                 end
-
-                module Filter
-                  def self.build_for(add_variables_class:, write_name:, name:, **options)
-                    circuit_step_filter = VariableFromCtx.new(variable_name: name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
-
-                    add_variables_class.new(
-                      filter:         circuit_step_filter,
-                      write_name:  write_name,
-                      name: name,
-                      **options, # FIXME: same name here for every iteration!
-                    )
-                  end
-                end
-
-                def self.build_filters_for_callable(filter, add_variables_class:, **options)
-                  [
-                    add_variables_class.new(
-                      filter:         filter,
-                      **options,
-                    )
-                  ]
-                end
-
               end # FiltersBuilder
-            end
+            end # Inject
+
+            # DISCUSS: generic, again
+            module Filter
+              def self.build_for(add_variables_class:, write_name:, name:, **options)
+                circuit_step_filter = VariableFromCtx.new(variable_name: name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
+
+                add_variables_class.new(
+                  filter:         circuit_step_filter,
+                  write_name:  write_name,
+                  name: name,
+                  **options, # FIXME: same name here for every iteration!
+                )
+              end
+            end # Filter
 
           end # DSL
         end
