@@ -5,7 +5,6 @@ module Trailblazer
         module_function
 
         # Runtime classes
-        Filter = Struct.new(:aggregate_step, :filter, :name, :add_variables_class, :variable_name, keyword_init:true)
 
         # These objects are created via the DSL, keep all i/o steps in a Pipeline
         # and run the latter when being `call`ed.
@@ -120,8 +119,6 @@ module Trailblazer
             end
 
             def call(wrap_ctx, original_args)
-              # this is the actual logic.
-              # decision, _ = @condition.(original_args[0]) # DISCUSS: use call_filter here, too
               decision, _ = call_filter(@condition, wrap_ctx, original_args)
 
               return super if decision
@@ -154,8 +151,7 @@ module Trailblazer
             def call_filter(filter, wrap_ctx, ((ctx, flow_options), circuit_options))
               new_ctx = wrap_ctx[:returned_ctx]
 
-              value, _ = filter.([new_ctx, flow_options], **circuit_options) # circuit-step interface
-              value
+              super(filter, wrap_ctx, [[new_ctx, flow_options], circuit_options])
             end
           end
         end
