@@ -188,30 +188,29 @@ module Trailblazer
             class In < Tuple
               class FiltersBuilder
                 def self.call(user_filter, add_variables_class:, add_variables_class_for_callable:, **options)
-                  if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
-                    user_filter = Filter.hash_for(user_filter)
-                                                                                        # FIXME
-                    return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, in_variable, target_name|
+                  # For In(): build {SetVariable} filters.
+                  # For Out(): build {SetVariable::Output} filters.
+                  if user_filter.is_a?(Hash)
+                    return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, to_name|
                       options.merge(
-                        name:           in_variable,
-                        write_name:  in_variable,
+                        name:       from_name,
+                        write_name: to_name,
                       )
-
                     end
                   end
 
-                  if user_filter.is_a?(Hash) # TODO: merge with In::FiltersBuilder
-                    return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, to_name|
+                  if user_filter.is_a?(Array)
+                    user_filter = Filter.hash_for(user_filter)
+                                                                                        # FIXME
+                    return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, _|
                       options.merge(
-                        name:           from_name,
-                        write_name:  to_name,
+                        name:        from_name,
+                        write_name:  from_name,
                       )
                     end
                   end
 
                   # callable, producing a hash!
-
-                  # filter = Trailblazer::Option(user_filter) # FIXME: Option or Circuit::Step?
                   filter = Activity::Circuit.Step(user_filter, option: true)
 
   # FIXME
@@ -219,20 +218,17 @@ module Trailblazer
 
                   [
                     Filter.build_for(
-                      filter: filter,
-                      write_name:        options[:name],
+                      filter:               filter,
+                      write_name:           options[:name],
                       user_filter:          user_filter,
                       add_variables_class:  add_variables_class_for_callable, # for example, {AddVariables::Output}
                       **options
-
-
                     )
                   ]
-                end
-
-
+                end # call
               end
-            end
+            end # In
+
             class Out < Tuple; end
 
             def self.In(name: rand, add_variables_class: SetVariable, filter_builder: In::FiltersBuilder, add_variables_class_for_callable: AddVariables)
