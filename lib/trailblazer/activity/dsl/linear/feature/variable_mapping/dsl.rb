@@ -235,17 +235,26 @@ module Trailblazer
                   # options = options.merge(add_variables_class: SetVariable::Output)
 
                   if tuple_options[:with_outer_ctx]
-                    # TODO: deprecate
-                    filter              = Trailblazer::Option(user_filter)
+                    callable    = user_filter # FIXME: :instance_method, for fuck's sake.
+                    call_method = callable.respond_to?(:arity) ? callable : callable.method(:call)
 
-                    options = options.merge(
-                      filter:                           filter,
-                      add_variables_class_for_callable: AddVariables::Output::WithOuterContext, # old positional arg
-                    )
+                    options =
+                      # TODO: remove {if} and only leave {else}.
+                      if call_method.arity == 3
+                        warn "Trailblazer: The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument. # FIXME"
+
+                        options.merge(
+                          filter:                           Trailblazer::Option(user_filter),
+                          add_variables_class_for_callable: AddVariables::Output::WithOuterContext_Deprecated, # old positional arg
+                        )
+                      else
+                        options.merge(
+                          add_variables_class_for_callable: AddVariables::Output::WithOuterContext,
+                        )
+                      end
                   end
 
                   In::FiltersBuilder.(user_filter,
-                    # add_variables_class: add_variables_class,
                     **options
                   )
                 end

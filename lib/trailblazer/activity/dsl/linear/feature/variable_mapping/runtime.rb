@@ -105,9 +105,13 @@ module Trailblazer
           end
 
           # Call a filter with a Circuit-Step interface.
-          def call_filter(filter, wrap_ctx, (args, circuit_options))
+          def self.call_filter(filter, wrap_ctx, (args, circuit_options))
             value, _ = filter.(args, **circuit_options) # circuit-step interface
             value
+          end
+
+          def call_filter(*args)
+            SetVariable.call_filter(*args) # remove me, fuck instance methods!
           end
 
           # Set variable on ctx if {condition} is true.
@@ -209,12 +213,21 @@ module Trailblazer
             end
 
             # Pass {inner_ctx, outer_ctx, **inner_ctx}
-            class WithOuterContext < Output
+            class WithOuterContext_Deprecated < Output
               def call_filter(filter, wrap_ctx, ((original_ctx, _), circuit_options))
                 new_ctx = wrap_ctx[:returned_ctx] # FIXME: redundant.
 
                 # Here, due to a stupid API decision, we have to call an Option with two positional args.
                 filter.(new_ctx, original_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
+              end
+            end
+
+            class WithOuterContext < Output
+              def call_filter(filter, wrap_ctx, ((original_ctx, flow_options), circuit_options))
+                new_ctx = wrap_ctx[:returned_ctx]
+                new_ctx = new_ctx.merge(outer_ctx: original_ctx)
+
+                SetVariable.call_filter(filter, wrap_ctx, [[new_ctx, flow_options], circuit_options])
               end
             end
 

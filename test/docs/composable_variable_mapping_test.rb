@@ -349,7 +349,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         In() => [:model],
         Out() => [:message],
 
-        Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx, **) do
+        Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx:, **) do
           {
             errors: outer_ctx[:errors].merge(policy_message: inner_ctx[:message])
           }

@@ -1,11 +1,12 @@
 require "test_helper"
 
 class DocsIOTest < Minitest::Spec
+  class User
+    def self.find(id); "User #{id.inspect}"; end
+  end
+
   it "what" do
     user = Object.new.instance_exec { def can?(*); true; end; self }
-    class User
-      def self.find(id); "User #{id.inspect}"; end
-    end
 
     module A
       module Memo; end
@@ -176,16 +177,16 @@ class DocsIOTest < Minitest::Spec
     # {:output} with {inner_ctx, outer_ctx, **} using {:output_with_outer_ctx}
       module F
         class Memo < Trailblazer::Activity::Path
-          #:io-output-positionals
+          #:io-outer-kw
           step :authorize,
             output_with_outer_ctx: true, # tell TRB you want {outer_ctx} in the {:output} filter.
-            output: ->(inner_ctx, outer_ctx, user:, **) do
+            output: ->(inner_ctx, outer_ctx:, user:, **) do
               {
                 current_user: user,
                 params:       outer_ctx[:params].merge(errors: false)
               }
             end
-          #:io-output-positionals end
+          #:io-outer-kw end
           step :create_model
 
           def authorize(ctx, params:, **)
@@ -199,11 +200,11 @@ class DocsIOTest < Minitest::Spec
         end
 
       end
-
       signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(F::Memo, [{params: {id: "1"}}.freeze, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       ctx.inspect.must_equal %{{:params=>{:id=>\"1\", :errors=>false}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
     end
+
 
       signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(B::Memo::Bla, [{parameters: {id: "1"}}.freeze, {}])
       _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
@@ -591,6 +592,81 @@ require "date"
 
     end # it
   end
+end
+
+# TODO: remove me with 2.2.
+class DeprecatedOutWithOuterCtxTest < Minitest::Spec
+  User = DocsIOTest::User
+
+  module Methods
+    def authorize(ctx, params:, **)
+      ctx[:user] = User.find(params[:id])
+      ctx[:user] ? ctx[:result] = "Found a user." : ctx[:result] = "User unknown."
+    end
+
+    def create_model(ctx, current_user:, **)
+      ctx[:model] = current_user
+    end
+  end
+
+  it do
+    _, warning = capture_io do
+      #@ {:output} with {inner_ctx, outer_ctx, **} using {:output_with_outer_ctx}
+      # Note that this is deprecated.
+      class Memo < Trailblazer::Activity::Path
+        #:io-output-positionals
+        step :authorize,
+          output_with_outer_ctx: true, # tell TRB you want {outer_ctx} in the {:output} filter.
+          output: ->(inner_ctx, outer_ctx, user:, **) do
+            {
+              current_user: user,
+              params:       outer_ctx[:params].merge(errors: false)
+            }
+          end
+        #:io-output-positionals end
+        step :create_model
+
+        include Methods
+      end
+
+      assert_invoke Memo, params: {id: "1"}, expected_ctx_variables: {params: {id: "1", errors: false}, :current_user=>%{User "1"}, :model=>%{User "1"}}
+    end
+
+  #@ deprecation warning!!!
+    assert_equal warning, %{Trailblazer: The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument. # FIXME
+}
+  end
+
+  #@ deprecation warning with Callable for {:output_with_outer_ctx}
+  it do
+    _, warning = capture_io do
+      class Memo2 < Trailblazer::Activity::Path
+        class MyOutput
+          def self.call(inner_ctx, outer_ctx, user:, **)
+            {
+              current_user: user,
+              params:       outer_ctx[:params].merge(errors: false)
+            }
+          end
+        end
+
+        step :authorize,
+          output_with_outer_ctx: true, # tell TRB you want {outer_ctx} in the {:output} filter.
+          output: MyOutput
+        step :create_model
+
+        include Methods
+      end
+
+      assert_invoke Memo2, params: {id: "1"}, expected_ctx_variables: {params: {id: "1", errors: false}, :current_user=>%{User "1"}, :model=>%{User "1"}}
+    end
+
+  #@ deprecation warning!!!
+    assert_equal warning, %{Trailblazer: The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument. # FIXME
+}
+  end
+
+  # TODO: add warning test for {:instance_method}
 end
 
 =begin
