@@ -259,7 +259,7 @@ module Trailblazer
             def self.Inject(variable_name = nil, **)
               Inject.new(
                 variable_name,
-                SetVariable::Default, # add_variables_class
+                nil, # add_variables_class # DISCUSS: do we really want that here?
                 Inject::FiltersBuilder
               )
             end
@@ -271,8 +271,8 @@ module Trailblazer
               class FiltersBuilder
                 # Called via {Tuple#call}
                 def self.call(user_filter, add_variables_class:, **options)
+                  # Build {SetVariable::Default}
                   if user_filter.is_a?(Hash) # TODO: deprecate in favor if {Inject(:variable_name)}!
-
                     return build_filters_for_hash(user_filter, add_variables_class: SetVariable::Default) do |options, from_name, user_proc|
                       options_for_defaulted_with_condition(
                         **options,
@@ -282,6 +282,7 @@ module Trailblazer
                     end
                   end
 
+                  # Build {SetVariable::Conditioned}
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
                     user_filter = In::FiltersBuilder.hash_for(user_filter)
 
@@ -294,6 +295,7 @@ module Trailblazer
                     end
                   end
 
+                  # Build {SetVariable::Default}
                   # {user_filter} is one of the following
                   # :instance_method
                   options = options_for_defaulted_with_condition(
@@ -303,7 +305,7 @@ module Trailblazer
                   )
 
                   [
-                    Filter.build_for(add_variables_class: add_variables_class, **options)
+                    Filter.build_for(add_variables_class: SetVariable::Default, **options)
                   ]
                 end # call
 

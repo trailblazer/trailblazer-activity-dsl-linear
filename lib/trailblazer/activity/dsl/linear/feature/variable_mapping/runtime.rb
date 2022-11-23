@@ -110,7 +110,7 @@ module Trailblazer
             value
           end
 
-          # SetVariable with condition
+          # Set variable on ctx if {condition} is true.
           class Conditioned < SetVariable
             def initialize(condition:, **options)
               super(**options)
@@ -127,6 +127,8 @@ module Trailblazer
           end
 
 
+          # Set variable on ctx if {condition} is true.
+          # Otherwise, set default_filter variable on ctx.
           class Default < SetVariable
             def initialize(default_filter:, condition:, **options)
               super(**options)
