@@ -191,7 +191,7 @@ module Trailblazer
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
                     user_filter = hash_for(user_filter)
                                                                                         # FIXME
-                    return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, in_variable, target_name|
+                    return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, in_variable, target_name|
                       options.merge(
                         name:           in_variable,
                         write_name:  in_variable,
@@ -201,7 +201,7 @@ module Trailblazer
                   end
 
                   if user_filter.is_a?(Hash) # TODO: merge with In::FiltersBuilder
-                    return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, to_name|
+                    return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, to_name|
                       options.merge(
                         name:           from_name,
                         write_name:  to_name,
@@ -273,7 +273,7 @@ module Trailblazer
                 def self.call(user_filter, add_variables_class:, **options)
                   # Build {SetVariable::Default}
                   if user_filter.is_a?(Hash) # TODO: deprecate in favor if {Inject(:variable_name)}!
-                    return build_filters_for_hash(user_filter, add_variables_class: SetVariable::Default) do |options, from_name, user_proc|
+                    return Filter.build_filters_for_hash(user_filter, add_variables_class: SetVariable::Default) do |options, from_name, user_proc|
                       options_for_defaulted_with_condition(
                         **options,
                         user_filter:  user_proc,
@@ -286,7 +286,7 @@ module Trailblazer
                   if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
                     user_filter = In::FiltersBuilder.hash_for(user_filter)
 
-                    return build_filters_for_hash(user_filter, add_variables_class: SetVariable::Conditioned) do |options, from_name, _|
+                    return Filter.build_filters_for_hash(user_filter, add_variables_class: SetVariable::Conditioned) do |options, from_name, _|
                       options_for_defaulted_with_condition(
                         **options,
                         write_name:   from_name,
@@ -321,19 +321,6 @@ module Trailblazer
                     user_filter:    user_filter,
                   }
                 end
-
-
-# TODO: move to Filter
-                def self.build_filters_for_hash(user_filter, **options)
-                  return user_filter.collect do |from_name, to_name|
-                    options = yield(options, from_name, to_name)
-
-                    Filter.build_for(
-                      user_filter: user_filter, # FIXME: this is not really helpful
-                      **options,
-                    )
-                  end
-                end
               end # FiltersBuilder
             end # Inject
 
@@ -348,6 +335,17 @@ module Trailblazer
                   name: name,
                   **options, # FIXME: same name here for every iteration!
                 )
+              end
+
+              def self.build_filters_for_hash(user_filter, **options)
+                return user_filter.collect do |from_name, to_name|
+                  options = yield(options, from_name, to_name)
+
+                  Filter.build_for(
+                    user_filter: user_filter, # FIXME: this is not really helpful
+                    **options,
+                  )
+                end
               end
             end # Filter
 
