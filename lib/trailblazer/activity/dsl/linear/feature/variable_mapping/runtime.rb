@@ -80,6 +80,8 @@ module Trailblazer
         #
         # @param filter Any circuit-step compatible callable that exposes {#call(args, **circuit_options)}
         #   and returns [value, new_ctx]
+        #
+        # TODO: * ALL FILTERS and conditions expose circuit-step interface.
         class SetVariable   # TODO: introduce SetVariable without condition.
           def initialize(variable_name:, filter:, user_filter:, name:, **)
             @variable_name  = variable_name
@@ -87,7 +89,7 @@ module Trailblazer
             @name           = name
           end
 
-          attr_reader :name
+          attr_reader :name # TODO: used when adding to pipeline, change to to_h
 
           def call(wrap_ctx, original_args, filter=@filter)
             wrap_ctx = set_variable_for_filter(filter, wrap_ctx, original_args)
@@ -119,7 +121,8 @@ module Trailblazer
 
             def call(wrap_ctx, original_args)
               # this is the actual logic.
-              decision, _ = @condition.(original_args[0]) # DISCUSS: use call_filter here, too
+              # decision, _ = @condition.(original_args[0]) # DISCUSS: use call_filter here, too
+              decision, _ = call_filter(@condition, wrap_ctx, original_args)
 
               return super if decision
               return wrap_ctx, original_args
@@ -137,7 +140,7 @@ module Trailblazer
 
             def call(wrap_ctx, original_args)
               # FIXME: redundant with Conditioned.
-              decision, _ = @condition.(original_args[0]) # DISCUSS: use call_filter here, too
+              decision, _ = call_filter(@condition, wrap_ctx, original_args)
 
               filter = decision ? @filter : @default_filter
 

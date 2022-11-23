@@ -193,8 +193,6 @@ module Trailblazer
                                                                                         # FIXME
                     return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, in_variable, target_name|
                       options.merge(
-                        # run our filter if variable is present.
-                        # condition:      VariablePresent.new(variable_name: in_variable),
                         name:           in_variable,
                       )
 
