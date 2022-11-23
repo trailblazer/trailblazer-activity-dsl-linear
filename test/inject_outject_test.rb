@@ -157,7 +157,7 @@ class VariableMappingUnitTest < Minitest::Spec
 
       filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
 
-      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(variable_name: :model, filter: filter, user_filter: user_filter, name: :model)
+      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(write_name: :model, filter: filter, user_filter: user_filter, name: :model)
 
 
       ctx = {current_user: Object, mode: :update}
@@ -174,7 +174,7 @@ class VariableMappingUnitTest < Minitest::Spec
     it "SetVariable#call can invoke any self-made circuit-step interface filter" do
       my_lowlevel_inject_filter = ->((ctx, flow_options), **) { "<MyModel #{ctx.fetch(:current_user)}>" }
 
-      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(variable_name: :model, filter: my_lowlevel_inject_filter, user_filter: my_lowlevel_inject_filter, name: :model)
+      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(write_name: :model, filter: my_lowlevel_inject_filter, user_filter: my_lowlevel_inject_filter, name: :model)
 
 
       ctx = {current_user: Object, mode: :update}
@@ -210,48 +210,48 @@ class VariableMappingUnitTest < Minitest::Spec
     input_pipe = activity.to_h[:config][:wrap_static][Object].to_a[0][1].instance_variable_get(:@pipe).to_a
 
     set_variable = input_pipe[1][1]
-    assert_equal set_variable.instance_variable_get(:@variable_name), :params
+    assert_equal set_variable.instance_variable_get(:@write_name), :params
     assert_equal set_variable.instance_variable_get(:@name), :params
 
     set_variable = input_pipe[2][1]
-    assert_equal set_variable.instance_variable_get(:@variable_name), :mode
+    assert_equal set_variable.instance_variable_get(:@write_name), :mode
     assert_equal set_variable.instance_variable_get(:@name), :mode
 
     set_variable = input_pipe[3][1]
-    assert_equal set_variable.instance_variable_get(:@variable_name), :styles
+    assert_equal set_variable.instance_variable_get(:@write_name), :styles
     assert_equal set_variable.instance_variable_get(:@name), :styles
 
 # {:variable_name} is what we write to ctx
     set_variable = input_pipe[4][1]
     #@ test the VariableFromCtx
     assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :current_user
-    assert_equal set_variable.instance_variable_get(:@variable_name), :user
+    assert_equal set_variable.instance_variable_get(:@write_name), :user
     assert_equal set_variable.instance_variable_get(:@name), :current_user
 
 # Inject
     set_variable = input_pipe[5][1]
     #@ test the VariableFromCtx
     assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :field
-    assert_equal set_variable.instance_variable_get(:@variable_name), :field
+    assert_equal set_variable.instance_variable_get(:@write_name), :field
     assert_equal set_variable.instance_variable_get(:@name), :field
 
 # Out
     output_pipe = activity.to_h[:config][:wrap_static][Object].to_a[2][1].instance_variable_get(:@pipe).to_a
 
     set_variable = output_pipe[1][1]
-    assert_equal set_variable.instance_variable_get(:@variable_name), :result
+    assert_equal set_variable.instance_variable_get(:@write_name), :result
     assert_equal set_variable.instance_variable_get(:@name), :result
 
     set_variable = output_pipe[2][1]
-    assert_equal set_variable.instance_variable_get(:@variable_name), :message
+    assert_equal set_variable.instance_variable_get(:@write_name), :message
     assert_equal set_variable.instance_variable_get(:@name), :message
 
     set_variable = output_pipe[3][1]
-    assert_equal set_variable.instance_variable_get(:@variable_name), :status
+    assert_equal set_variable.instance_variable_get(:@write_name), :status
     assert_equal set_variable.instance_variable_get(:@name), :status
 
     set_variable = output_pipe[4][1]
-    assert_equal set_variable.instance_variable_get(:@variable_name), :error_code
+    assert_equal set_variable.instance_variable_get(:@write_name), :error_code
     assert_equal set_variable.instance_variable_get(:@name), :code
   end
 end

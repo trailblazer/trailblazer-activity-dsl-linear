@@ -82,10 +82,10 @@ module Trailblazer
         #
         # TODO: * ALL FILTERS and conditions expose circuit-step interface.
         class SetVariable   # TODO: introduce SetVariable without condition.
-          def initialize(variable_name:, filter:, user_filter:, name:, **)
-            @variable_name  = variable_name
-            @filter         = filter
-            @name           = name
+          def initialize(write_name:, filter:, user_filter:, name:, **)
+            @write_name  = write_name
+            @filter      = filter
+            @name        = name
           end
 
           attr_reader :name # TODO: used when adding to pipeline, change to to_h
@@ -99,7 +99,7 @@ module Trailblazer
           def set_variable_for_filter(filter, wrap_ctx, original_args)
             value = call_filter(filter, wrap_ctx, original_args)
 
-            wrap_ctx[:aggregate][@variable_name] = value # yes, we're mutating, but this is ok as we're on some private hash.
+            wrap_ctx[:aggregate][@write_name] = value # yes, we're mutating, but this is ok as we're on some private hash.
 
             wrap_ctx
           end

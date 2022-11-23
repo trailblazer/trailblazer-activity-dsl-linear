@@ -194,7 +194,7 @@ module Trailblazer
                     return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, in_variable, target_name|
                       options.merge(
                         name:           in_variable,
-                        variable_name:  in_variable,
+                        write_name:  in_variable,
                       )
 
                     end
@@ -204,7 +204,7 @@ module Trailblazer
                     return Inject::FiltersBuilder.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, to_name|
                       options.merge(
                         name:           from_name,
-                        variable_name:  to_name,
+                        write_name:  to_name,
                       )
                     end
                   end
@@ -222,7 +222,7 @@ module Trailblazer
 
                   Inject::FiltersBuilder.build_filters_for_callable(
                     filter,
-                    variable_name:        options[:name],
+                    write_name:        options[:name],
                     user_filter:          user_filter,
                     add_variables_class:  add_variables_class_for_callable, # for example, {AddVariables::Output}
                     **options
@@ -279,7 +279,7 @@ module Trailblazer
                         condition:      VariablePresent.new(variable_name: from_name),
                         # filter:         circuit_step_filter,
                         default_filter: default_filter,
-                        variable_name:  from_name,
+                        write_name:  from_name,
                         user_filter:    user_proc,
                       )
                     end
@@ -294,7 +294,7 @@ module Trailblazer
                         # run our filter if variable is present.
                         condition:      VariablePresent.new(variable_name: from_name),
                         name:           from_name,
-                        variable_name:  from_name,
+                        write_name:  from_name,
                       )
 
                     end
@@ -312,7 +312,7 @@ module Trailblazer
                     condition:      VariablePresent.new(variable_name: options[:name]),
                     default_filter: default_filter,
 
-                    variable_name:        options[:name],
+                    write_name:        options[:name],
                     user_filter:          user_filter,
                     add_variables_class:  add_variables_class,
                     **options
@@ -323,8 +323,6 @@ module Trailblazer
                   return user_filter.collect do |from_name, to_name|
                     options = yield(options, from_name, to_name)
 
-                    puts "@@@@@ #{options.inspect} #{from_name}"
-
                     Filter.build_for(
                       user_filter: user_filter, # FIXME: this is not really helpful
                       **options,
@@ -333,12 +331,12 @@ module Trailblazer
                 end
 
                 module Filter
-                  def self.build_for(add_variables_class:, variable_name:, name:, **options)
+                  def self.build_for(add_variables_class:, write_name:, name:, **options)
                     circuit_step_filter = VariableFromCtx.new(variable_name: name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
 
                     add_variables_class.new(
                       filter:         circuit_step_filter,
-                      variable_name:  variable_name,
+                      write_name:  write_name,
                       name: name,
                       **options, # FIXME: same name here for every iteration!
                     )
