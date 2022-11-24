@@ -80,87 +80,6 @@ module Trailblazer
         # @param filter Any circuit-step compatible callable that exposes {#call(args, **circuit_options)}
         #   and returns [value, new_ctx]
         #
-        # TODO: * ALL FILTERS and conditions expose circuit-step interface.
-        class SetVariable   # TODO: introduce SetVariable without condition.
-          def initialize(write_name:, filter:, user_filter:, name:, **)
-            @write_name  = write_name
-            @filter      = filter
-            @name        = name
-          end
-
-          attr_reader :name # TODO: used when adding to pipeline, change to to_h
-
-          def call(wrap_ctx, original_args, filter=@filter)
-            wrap_ctx = set_variable_for_filter(filter, wrap_ctx, original_args)
-
-            return wrap_ctx, original_args
-          end
-
-          def set_variable_for_filter(filter, wrap_ctx, original_args)
-            value = call_filter(filter, wrap_ctx, original_args)
-
-            wrap_ctx[:aggregate][@write_name] = value # yes, we're mutating, but this is ok as we're on some private hash.
-
-            wrap_ctx
-          end
-
-          # Call a filter with a Circuit-Step interface.
-          def self.call_filter(filter, wrap_ctx, (args, circuit_options))
-            value, _ = filter.(args, **circuit_options) # circuit-step interface
-            value
-          end
-
-          def call_filter(*args)
-            SetVariable.call_filter(*args) # remove me, fuck instance methods!
-          end
-
-          # Set variable on ctx if {condition} is true.
-          class Conditioned < SetVariable
-            def initialize(condition:, **options)
-              super(**options)
-
-              @condition = condition # DISCUSS: adding this as an "optional" step in a "Railway"
-            end
-
-            def call(wrap_ctx, original_args)
-              decision, _ = call_filter(@condition, wrap_ctx, original_args)
-
-              return super if decision
-              return wrap_ctx, original_args
-            end
-          end
-
-
-          # Set variable on ctx if {condition} is true.
-          # Otherwise, set default_filter variable on ctx.
-          class Default < SetVariable
-            def initialize(default_filter:, condition:, **options)
-              super(**options)
-
-              @default_filter = default_filter
-              @condition      = condition
-            end
-
-            def call(wrap_ctx, original_args)
-              # FIXME: redundant with Conditioned.
-              decision, _ = call_filter(@condition, wrap_ctx, original_args)
-
-              filter = decision ? @filter : @default_filter
-
-              super(wrap_ctx, original_args, filter)
-            end
-          end # Default
-
-          # TODO: we don't have Out(:variable), yet!
-          class Output < SetVariable
-            # Call a filter with a Circuit-Step interface.
-            def call_filter(filter, wrap_ctx, ((ctx, flow_options), circuit_options))
-              new_ctx = wrap_ctx[:returned_ctx]
-
-              super(filter, wrap_ctx, [[new_ctx, flow_options], circuit_options])
-            end
-          end
-        end
 
         # TODO: check if this abstraction is worth
         class VariableFromCtx # Filter
@@ -182,18 +101,99 @@ module Trailblazer
           end
         end
 
+        # TODO: * ALL FILTERS and conditions expose circuit-step interface.
+        class SetVariable   # TODO: introduce SetVariable without condition.
+          def initialize(write_name:, filter:, user_filter:, name:, **)
+            @write_name  = write_name
+            @filter      = filter
+            @name        = name
+          end
+
+          attr_reader :name # TODO: used when adding to pipeline, change to to_h
+
+          def call(wrap_ctx, original_args, filter=@filter)
+            wrap_ctx = self.class.set_variable_for_filter(filter, @write_name, wrap_ctx, original_args)
+
+            return wrap_ctx, original_args
+          end
+
+          def self.set_variable_for_filter(filter, write_name, wrap_ctx, original_args)
+            value = call_filter(filter, wrap_ctx, original_args)
+
+            wrap_ctx = set_variable(value, write_name, wrap_ctx, original_args)
+
+            wrap_ctx
+          end
+
+          # Call a filter with a Circuit-Step interface.
+          def self.call_filter(filter, wrap_ctx, (args, circuit_options))
+            value, _ = filter.(args, **circuit_options) # circuit-step interface
+            value
+          end
+
+          def self.set_variable(value, write_name, wrap_ctx, original_args)
+            wrap_ctx[:aggregate][write_name] = value # yes, we're mutating, but this is ok as we're on some private hash.
+            wrap_ctx # DISCUSS: could be omitted.
+          end
+
+          # Set variable on ctx if {condition} is true.
+          class Conditioned < SetVariable
+            def initialize(condition:, **options)
+              super(**options)
+
+              @condition = condition # DISCUSS: adding this as an "optional" step in a "Railway"
+            end
+
+            def call(wrap_ctx, original_args)
+              decision, _ = SetVariable.call_filter(@condition, wrap_ctx, original_args)
+
+              return super if decision
+              return wrap_ctx, original_args
+            end
+          end
+
+          # Set variable on ctx if {condition} is true.
+          # Otherwise, set default_filter variable on ctx.
+          class Default < SetVariable
+            def initialize(default_filter:, condition:, **options)
+              super(**options)
+
+              @default_filter = default_filter
+              @condition      = condition
+            end
+
+            def call(wrap_ctx, original_args)
+              # FIXME: redundant with Conditioned.
+              decision, _ = SetVariable.call_filter(@condition, wrap_ctx, original_args)
+
+              filter = decision ? @filter : @default_filter
+
+              super(wrap_ctx, original_args, filter)
+            end
+          end # Default
+
+          # TODO: we don't have Out(:variable), yet!
+          class Output < SetVariable
+            # Call a filter with a Circuit-Step interface.
+            def self.call_filter(filter, wrap_ctx, ((ctx, flow_options), circuit_options))
+              new_ctx = wrap_ctx[:returned_ctx]
+
+              SetVariable.call_filter(filter, wrap_ctx, [[new_ctx, flow_options], circuit_options])
+            end
+          end
+        end
+
   # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
         # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
 
         # Add a hash of variables to ctx after running a filter (which returns a hash!).
         class AddVariables < SetVariable
-          def set_variable_for_filter(filter, wrap_ctx, original_args)
-            variables = call_filter(filter, wrap_ctx, original_args)
-
+          def self.set_variable(variables, write_name, wrap_ctx, original_args)
             wrap_ctx, _ = VariableMapping.merge_variables(variables, wrap_ctx, original_args)
             wrap_ctx
           end
 
+          # FIXME: test
           class ReadFromAggregate < AddVariables # FIXME: REFACTOR
             def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
               new_ctx = wrap_ctx[:aggregate]
@@ -205,16 +205,14 @@ module Trailblazer
           # Merge hash of Out into aggregate.
           # TODO: deprecate and remove.
           class Output < SetVariable::Output
-            def set_variable_for_filter(filter, wrap_ctx, original_args)
-              variables = call_filter(filter, wrap_ctx, original_args)
-
+            def self.set_variable(variables, write_name, wrap_ctx, original_args)
               wrap_ctx, _ = VariableMapping.merge_variables(variables, wrap_ctx, original_args)
               wrap_ctx
             end
 
             # Pass {inner_ctx, outer_ctx, **inner_ctx}
             class WithOuterContext_Deprecated < Output
-              def call_filter(filter, wrap_ctx, ((original_ctx, _), circuit_options))
+              def self.call_filter(filter, wrap_ctx, ((original_ctx, _), circuit_options))
                 new_ctx = wrap_ctx[:returned_ctx] # FIXME: redundant.
 
                 # Here, due to a stupid API decision, we have to call an Option with two positional args.
@@ -223,7 +221,7 @@ module Trailblazer
             end
 
             class WithOuterContext < Output
-              def call_filter(filter, wrap_ctx, ((original_ctx, flow_options), circuit_options))
+              def self.call_filter(filter, wrap_ctx, ((original_ctx, flow_options), circuit_options))
                 new_ctx = wrap_ctx[:returned_ctx]
                 new_ctx = new_ctx.merge(outer_ctx: original_ctx)
 
@@ -231,6 +229,7 @@ module Trailblazer
               end
             end
 
+            # FIXME: test.
             # Always deletes from {:aggregate}.
             class Delete < AddVariables
               def call(wrap_ctx, original_args)
