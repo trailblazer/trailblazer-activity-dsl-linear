@@ -266,7 +266,6 @@ module Trailblazer
             # Builder for a DSL Output() object.
             def self.Out(name: rand, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: Out::FiltersBuilder, read_from_aggregate: false, add_variables_class_for_callable: AddVariables::Output)
               add_variables_class = AddVariables::Output::Delete            if delete
-              filter_builder      = ->(user_filter) { user_filter }         if delete
               add_variables_class = AddVariables::ReadFromAggregate         if read_from_aggregate
 
               Out.new(name, add_variables_class, filter_builder, add_variables_class_for_callable, nil,

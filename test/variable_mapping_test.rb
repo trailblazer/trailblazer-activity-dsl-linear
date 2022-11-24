@@ -173,30 +173,6 @@ class VariableMappingTest < Minitest::Spec
     assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :song=>[Module, [:time, :current_user, :private]], :user=>Module, :hit=>[Module, [:time, :current_user, :private]]}}
   end
 
-## Delete a key in the outgoing ctx.
-## Renaming can be applied on output hash with Out(read_from_aggregate: true)
-# NOTE: this is currently experimental.
-  it "Out() DSL: {delete: true} forces deletion in outgoing ctx. Renaming can be applied on {:input_hash}" do
-    module SSS
-      class Create < Trailblazer::Activity::Railway
-        step :create_model,
-          Out() => [:model],
-          Out() => ->(ctx, **) {           {errors: {}} },
-          Out(read_from_aggregate: true) => {:errors => :create_model_errors},
-          Out(delete: true) => [:errors] # always {read_from_aggregate: true}
-
-        def create_model(ctx, current_user:, **)
-          ctx[:private] = "hi!"
-          ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song} and {:hit}!
-        end
-      end
-    end
-
-  ## we basically rename {:errors} to {:create_model_errors} in the {:aggregate} itself.
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(SSS::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
-    assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module, :create_model_errors=>{}}}
-  end
-
   it "Out() DSL: Dynamic lambda {Out() => ->{}}" do
     module RRRRRR
       class Create < Trailblazer::Activity::Railway

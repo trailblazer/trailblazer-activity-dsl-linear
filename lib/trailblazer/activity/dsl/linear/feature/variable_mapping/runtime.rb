@@ -227,13 +227,11 @@ module Trailblazer
               end
             end
 
-            # FIXME: test.
+            # @private
             # Always deletes from {:aggregate}.
             class Delete < AddVariables
               def call(wrap_ctx, original_args)
-                @filter.collect do |name|
-                  wrap_ctx[:aggregate].delete(name) # FIXME: we're mutating a hash here!
-                end
+                wrap_ctx[:aggregate].delete(@write_name) # FIXME: we're mutating a hash here!
 
                 return wrap_ctx, original_args
               end

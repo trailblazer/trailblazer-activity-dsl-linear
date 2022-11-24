@@ -716,3 +716,59 @@ class OutMultipleTimes < Minitest::Spec
     assert_invoke Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message: "Command {create} not allowed!"}
   end
 end
+
+
+class IoOutDeleteTest < Minitest::Spec
+  #@ Delete a key in the outgoing ctx.
+  it "Out() DSL: {delete: true} forces deletion in aggregate." do
+    class Create < Trailblazer::Activity::Railway
+      step :create_model,
+        Out()             => [:model],
+        Out()             => ->(ctx, **) {
+          {errors: {},  # this is deleted.
+          status: 200}  # this sticks around.
+        },
+        Out(delete: true) => [:errors] # always deletes from aggregate.
+
+      def create_model(ctx, current_user:, **)
+        ctx[:private] = "hi!"
+        ctx[:model]   = [current_user, ctx.keys]
+      end
+    end
+
+    assert_invoke Create, current_user: Object, expected_ctx_variables: {
+      model: [Object, [:seq, :current_user, :private]],
+      :status=>200,
+    }
+  end
+end
+
+class IoOutDeleteReadFromAggregateTest < Minitest::Spec
+  ## Rename a key in the aggregate by using :read_from_aggregate and :delete.
+  # NOTE: this is currently experimental.
+  it "Out() DSL: {delete: true} forces deletion in outgoing ctx. Renaming can be applied on {:input_hash}" do
+    module SSS
+      class Create < Trailblazer::Activity::Railway
+        step :create_model,
+          Out() => [:model],
+          Out() => ->(ctx, **) {           {errors: {}} },
+          Out(read_from_aggregate: true) => {:errors => :create_model_errors},
+          Out(delete: true) => [:errors] # always {read_from_aggregate: true}
+
+        def create_model(ctx, current_user:, **)
+          ctx[:private] = "hi!"
+          ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song} and {:hit}!
+        end
+      end
+    end
+
+  #@ we basically rename {:errors} to {:create_model_errors} in the {:aggregate} itself.
+    assert_invoke Create, current_user: Object, expected_ctx_variables: {
+      model: [Object, [:seq, :current_user, :private]],
+      :status=>200,
+    }
+
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(SSS::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+    assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module, :create_model_errors=>{}}}
+  end
+end
