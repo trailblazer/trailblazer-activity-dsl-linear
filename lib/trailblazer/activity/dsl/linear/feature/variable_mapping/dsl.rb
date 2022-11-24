@@ -254,13 +254,10 @@ module Trailblazer
                       end
                   end
 
-                  In::FiltersBuilder.(user_filter,
-                    **options
-                  )
+                  In::FiltersBuilder.(user_filter, **options)
                 end
               end
-
-            end
+            end # Out
 
             def self.In(name: rand, add_variables_class: SetVariable, filter_builder: In::FiltersBuilder, add_variables_class_for_callable: AddVariables)
               In.new(name, add_variables_class, filter_builder, add_variables_class_for_callable)
