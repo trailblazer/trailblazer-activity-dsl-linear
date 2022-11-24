@@ -195,13 +195,24 @@ module Trailblazer
               Output.call_filter_with_ctx(filter, new_ctx, wrap_ctx, original_args)
             end
           end
-        end
+
+          # @private
+          # Always deletes from {:aggregate}.
+          class Delete < SetVariable
+            def call(wrap_ctx, original_args)
+              wrap_ctx[:aggregate].delete(@write_name) # FIXME: we're mutating a hash here!
+
+              return wrap_ctx, original_args
+            end
+          end
+        end # SetVariable
 
 
   # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
         # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
 
-        # Add a hash of variables to ctx after running a filter (which returns a hash!).
+        # Add a hash of variables to aggregate after running a filter (which returns a hash!).
+        # Note that we only use those for "old-style" callables that produce hashes.
         class AddVariables < SetVariable
           def self.set_variable(variables, write_name, wrap_ctx, original_args)
             wrap_ctx, _ = VariableMapping.merge_variables(variables, wrap_ctx, original_args)
@@ -231,16 +242,6 @@ module Trailblazer
                 new_ctx = new_ctx.merge(outer_ctx: original_ctx)
 
                 Output.call_filter_with_ctx(filter, new_ctx, wrap_ctx, [[original_ctx, flow_options], circuit_options])
-              end
-            end
-
-            # @private
-            # Always deletes from {:aggregate}.
-            class Delete < AddVariables
-              def call(wrap_ctx, original_args)
-                wrap_ctx[:aggregate].delete(@write_name) # FIXME: we're mutating a hash here!
-
-                return wrap_ctx, original_args
               end
             end
           end
