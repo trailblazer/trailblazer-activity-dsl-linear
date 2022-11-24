@@ -743,32 +743,28 @@ class IoOutDeleteTest < Minitest::Spec
   end
 end
 
+# {:read_from_aggregate} for the moment is only supposed to be used with SetVariable filters.
 class IoOutDeleteReadFromAggregateTest < Minitest::Spec
-  ## Rename a key in the aggregate by using :read_from_aggregate and :delete.
+  #@ Rename a key *in the aggregate* and delete the original in {aggregate}.
   # NOTE: this is currently experimental.
   it "Out() DSL: {delete: true} forces deletion in outgoing ctx. Renaming can be applied on {:input_hash}" do
-    module SSS
-      class Create < Trailblazer::Activity::Railway
-        step :create_model,
-          Out() => [:model],
-          Out() => ->(ctx, **) {           {errors: {}} },
-          Out(read_from_aggregate: true) => {:errors => :create_model_errors},
-          Out(delete: true) => [:errors] # always {read_from_aggregate: true}
+    class Create < Trailblazer::Activity::Railway
+      step :create_model,
+        Out() => [:model],
+        Out() => ->(ctx, **) { {errors: {}} },
+        Out(read_from_aggregate: true) => {:errors => :create_model_errors},
+        Out(delete: true) => [:errors] # always on aggregate.
 
-        def create_model(ctx, current_user:, **)
-          ctx[:private] = "hi!"
-          ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song} and {:hit}!
-        end
+      def create_model(ctx, current_user:, **)
+        ctx[:private] = "hi!"
+        ctx[:model]   = [current_user, ctx.keys] # we want only this on the outside, as {:song} and {:hit}!
       end
     end
 
   #@ we basically rename {:errors} to {:create_model_errors} in the {:aggregate} itself.
     assert_invoke Create, current_user: Object, expected_ctx_variables: {
       model: [Object, [:seq, :current_user, :private]],
-      :status=>200,
+      create_model_errors: {},
     }
-
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(SSS::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
-    assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module, :create_model_errors=>{}}}
   end
 end

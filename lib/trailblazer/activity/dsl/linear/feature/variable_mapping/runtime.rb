@@ -112,6 +112,7 @@ module Trailblazer
           attr_reader :name # TODO: used when adding to pipeline, change to to_h
 
           def call(wrap_ctx, original_args, filter=@filter)
+
             wrap_ctx = self.class.set_variable_for_filter(filter, @write_name, wrap_ctx, original_args)
 
             return wrap_ctx, original_args
@@ -174,13 +175,28 @@ module Trailblazer
           # TODO: we don't have Out(:variable), yet!
           class Output < SetVariable
             # Call a filter with a Circuit-Step interface.
-            def self.call_filter(filter, wrap_ctx, ((ctx, flow_options), circuit_options))
+            def self.call_filter(filter, wrap_ctx, original_args)
               new_ctx = wrap_ctx[:returned_ctx]
 
-              SetVariable.call_filter(filter, wrap_ctx, [[new_ctx, flow_options], circuit_options])
+              call_filter_with_ctx(filter, new_ctx, wrap_ctx, original_args)
+            end
+
+            def self.call_filter_with_ctx(filter, ctx, wrap_ctx, ((_, flow_options), circuit_options))
+              SetVariable.call_filter(filter, wrap_ctx, [[ctx, flow_options], circuit_options])
+            end
+          end
+
+          # Do everything SetVariable does but read from {aggregate}, not from {ctx}.
+          # TODO: it would be cool to have this also for AddVariables.
+          class ReadFromAggregate < SetVariable
+            def self.call_filter(filter, wrap_ctx, original_args)
+              new_ctx = wrap_ctx[:aggregate]
+
+              Output.call_filter_with_ctx(filter, new_ctx, wrap_ctx, original_args)
             end
           end
         end
+
 
   # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
         # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
@@ -190,15 +206,6 @@ module Trailblazer
           def self.set_variable(variables, write_name, wrap_ctx, original_args)
             wrap_ctx, _ = VariableMapping.merge_variables(variables, wrap_ctx, original_args)
             wrap_ctx
-          end
-
-          # FIXME: test
-          class ReadFromAggregate < AddVariables # FIXME: REFACTOR
-            def call_filter(wrap_ctx, original_ctx, circuit_options, original_args)
-              new_ctx = wrap_ctx[:aggregate]
-
-              _variables = @filter.(new_ctx, keyword_arguments: new_ctx.to_hash, **circuit_options)
-            end
           end
 
           # Merge hash of Out into aggregate.
@@ -223,7 +230,7 @@ module Trailblazer
                 new_ctx = wrap_ctx[:returned_ctx]
                 new_ctx = new_ctx.merge(outer_ctx: original_ctx)
 
-                SetVariable.call_filter(filter, wrap_ctx, [[new_ctx, flow_options], circuit_options])
+                Output.call_filter_with_ctx(filter, new_ctx, wrap_ctx, [[original_ctx, flow_options], circuit_options])
               end
             end
 
