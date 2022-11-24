@@ -228,6 +228,7 @@ class VariableMappingTest < Minitest::Spec
     assert_equal ctx.inspect, %{{:time=>\"yesterday\", :current_user=>Module, :model=>"<[Module, [:time, :current_user, :private]]>", :private=>"XXX"}}
   end
 
+  # FIXME: remove me, redundant.
   it "Out() DSL: { Out(with_outer_ctx: true) => ->{} }" do
     module RRRRRRRR
       class Create < Trailblazer::Activity::Railway

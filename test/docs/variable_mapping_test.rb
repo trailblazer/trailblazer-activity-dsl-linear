@@ -633,8 +633,7 @@ class DeprecatedOutWithOuterCtxTest < Minitest::Spec
     end
 
   #@ deprecation warning!!!
-    assert_equal warning, %{Trailblazer: The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument. # FIXME
-}
+    assert_equal warning.split("\n")[0], %{Trailblazer: The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument. # FIXME}
   end
 
   #@ deprecation warning with Callable for {:output_with_outer_ctx}
@@ -662,8 +661,7 @@ class DeprecatedOutWithOuterCtxTest < Minitest::Spec
     end
 
   #@ deprecation warning!!!
-    assert_equal warning, %{Trailblazer: The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument. # FIXME
-}
+    assert_equal warning.split("\n")[0], %{Trailblazer: The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument. # FIXME}
   end
 
   # TODO: add warning test for {:instance_method}
