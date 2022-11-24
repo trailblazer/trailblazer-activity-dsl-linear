@@ -118,9 +118,8 @@ module Trailblazer
           end
 
           def self.set_variable_for_filter(filter, write_name, wrap_ctx, original_args)
-            value = call_filter(filter, wrap_ctx, original_args)
-
-            wrap_ctx = set_variable(value, write_name, wrap_ctx, original_args)
+            value     = call_filter(filter, wrap_ctx, original_args)
+            wrap_ctx  = set_variable(value, write_name, wrap_ctx, original_args)
 
             wrap_ctx
           end
@@ -205,9 +204,8 @@ module Trailblazer
           # Merge hash of Out into aggregate.
           # TODO: deprecate and remove.
           class Output < SetVariable::Output
-            def self.set_variable(variables, write_name, wrap_ctx, original_args)
-              wrap_ctx, _ = VariableMapping.merge_variables(variables, wrap_ctx, original_args)
-              wrap_ctx
+            def self.set_variable(*args)
+              AddVariables.set_variable(*args)
             end
 
             # Pass {inner_ctx, outer_ctx, **inner_ctx}
