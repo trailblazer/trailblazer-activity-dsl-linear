@@ -21,9 +21,9 @@ module Trailblazer
                 "activity.wirings",
                 {
                    # In(), Out(), {:input}, Inject() feature
-                  "activity.convert_and_deprecate_symbol_options" => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:convert_and_deprecate_symbol_options)),
-                  "activity.normalize_input_output_filters"       => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:normalize_input_output_filters)),
-                  "activity.input_output_dsl"                     => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:input_output_dsl)),
+                  "activity.convert_symbol_options"           => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:convert_symbol_options)),
+                  "activity.normalize_input_output_filters"   => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:normalize_input_output_filters)),
+                  "activity.input_output_dsl"                 => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:input_output_dsl)),
                 }
               )
             end
@@ -40,39 +40,45 @@ module Trailblazer
           module Normalizer
             # TODO: remove me once {:input} API is removed.
             # Convert {:input}, {:output} and {:inject} to In() and friends.
-            def self.convert_and_deprecate_symbol_options(ctx, non_symbol_options:, output_with_outer_ctx: nil, **)
+            def self.convert_symbol_options(ctx, non_symbol_options:, output_with_outer_ctx: nil, **)
               input, output, inject = ctx.delete(:input), ctx.delete(:output), ctx.delete(:inject)
               return unless input || output || inject
 
+              dsl_options = {}
+
               # TODO: warn, deprecate etc
-              non_symbol_options.merge!(VariableMapping::DSL.In()      => input) if input
+              dsl_options.merge!(VariableMapping::DSL.In() => input) if input
 
               if output
                 options = {}
                 options = {with_outer_ctx: output_with_outer_ctx} unless output_with_outer_ctx.nil?
 
-                non_symbol_options.merge!(VariableMapping::DSL.Out(**options) => output)
+                dsl_options.merge!(VariableMapping::DSL.Out(**options) => output)
               end
 
               if inject
-                inject.collect { |filter|
+                inject.collect do |filter|
                   filter = filter.is_a?(Symbol) ? [filter] : filter
 
-                  non_symbol_options.merge!(VariableMapping::DSL.Inject()  => filter)
-                }
+                  dsl_options.merge!(VariableMapping::DSL.Inject()  => filter)
+                end
               end
 
-              ctx.merge!(non_symbol_options: non_symbol_options)
+              ctx.merge!(
+                non_symbol_options:           non_symbol_options.merge(dsl_options),
+                input_output_inject_options:  [{input: input, output: output, inject: inject}, dsl_options], # yes, there were {:input} options.
+              )
             end
 
             # Process {In() => [:model], Inject() => [:current_user], Out() => [:model]}
-            def self.normalize_input_output_filters(ctx, non_symbol_options:, **)
-
+            def self.normalize_input_output_filters(ctx, non_symbol_options:, input_output_inject_options: [], **)
               input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::In) }
               output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Out) }
               inject_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Inject) }
 
               return unless input_exts.any? || output_exts.any? || inject_exts.any?
+
+              deprecate_input_output_inject_option(input_output_inject_options, input_exts, output_exts, inject_exts)
 
               ctx[:inject_filters] = inject_exts
               ctx[:in_filters]     = input_exts
@@ -89,6 +95,19 @@ module Trailblazer
               ctx.merge!(**normalizer_options) # DISCUSS: is there another way of merging variables into ctx?
               ctx[:non_symbol_options].merge!(non_symbol_options)
             end
+
+            # TODO: remove for TRB 2.2.
+            def self.deprecate_input_output_inject_option(input_output_inject_options, *composable_options)
+              return unless input_output_inject_options.any?
+              options, dsl_options = input_output_inject_options
+
+              deprecated_options_count = options.find_all { |(name, option)| option }.count + (options[:inject] ? options[:inject].count-1 : 0)
+              composable_options_count = composable_options.collect { |options| options.size }.sum
+
+              return if composable_options_count == deprecated_options_count
+
+              warn %{[Trailblazer] You are mixing #{options.inspect} with In(), Out() and Inject().\n#{VariableMapping.deprecation_link}}
+            end
           end
 
           module_function
@@ -101,15 +120,6 @@ module Trailblazer
           #
           # @private
           #
-
-            # default_input
-          #  <or>
-            # oldway
-            #   :input
-            #   :inject
-            # newway(initial_input_pipeline)
-            #   In,Inject
-          # => input_pipe
           def merge_instructions_from_dsl(**options)
             pipeline  = DSL.pipe_for_composable_input(**options)  # FIXME: rename filters consistently
             input     = Pipe::Input.new(pipeline)
@@ -128,6 +138,10 @@ module Trailblazer
               }
               # DISCUSS: should we remember the pure pipelines or get it from the compiled extension?
               # store pipe in the extension (via TW::Extension.data)?
+          end
+
+          def deprecation_link
+            %{Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.}
           end
         end # VariableMapping
       end

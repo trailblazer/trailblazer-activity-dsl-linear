@@ -261,8 +261,8 @@ class VariableMappingTest < Minitest::Spec
       module S
         class Create < Trailblazer::Activity::Railway
           step :create_model,
-            Out() => -> (inner_ctx, model:, private:, **) { raise },
-            Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx, model:, **) { raise },
+            Out() => -> (inner_ctx, model:, private:, **) { {_private: private} },
+            Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx, model:, **) { {} },
             output: {:model => :song}
 
           def create_model(ctx, current_user:, **)
@@ -273,20 +273,24 @@ class VariableMappingTest < Minitest::Spec
       end
     }
 
-    assert_match /\[Trailblazer\] You are mixing `:output/, err
+    assert_equal err, %{[Trailblazer] You are mixing {:input=>nil, :output=>{:model=>:song}, :inject=>nil} with In(), Out() and Inject().
+Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.
+[Trailblazer] The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
+Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.
+}
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(S::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
-    assert_equal ctx.inspect, %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]]}}
+    assert_invoke S::Create, time: "yesterday", model: Object, current_user: Module, expected_ctx_variables: {_private: "hi!", :song=>[Module, [:seq, :time, :model, :current_user, :private]]}
   end
 
-  it "{In()} with {:input} warns and {:input} overrides everything" do
+  it "{In()} with {:input} warns and {:input} is mixed with In()" do
     output, err = capture_io {
       module RRRRRRRRRR
         class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
           step :write,
             input:     [:model],
             In() => [:current_user],
-            In() => ->(ctx, **) { raise }
+            # In() => ->(ctx, **) { raise }
+            In() => ->(ctx, **) { {} }
 
           def write(ctx, model:, **)
             ctx[:incoming] = [model, ctx.keys]
@@ -295,10 +299,11 @@ class VariableMappingTest < Minitest::Spec
       end
     }
 
-    assert_match /\[Trailblazer\] You are mixing `:input/, err
+    assert_equal err, %{[Trailblazer] You are mixing {:input=>[:model], :output=>nil, :inject=>nil} with In(), Out() and Inject().
+Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.
+}
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRRRRR::Create, [{time: "yesterday", model: Object}, {}])
-    assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :incoming=>[Object, [:model]]}}
+    assert_invoke RRRRRRRRRR::Create, time: "yesterday", model: Object, expected_ctx_variables: {:incoming=>[Object, [:current_user, :model]]}
   end
 
   it "merging multiple input/output steps via In() DSL" do

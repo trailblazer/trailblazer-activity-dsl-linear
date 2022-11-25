@@ -196,7 +196,7 @@ module Trailblazer
                     options =
                       # TODO: remove {if} and only leave {else}.
                       if call_method.arity == 3
-                        warn "Trailblazer: The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument. # FIXME"
+                        warn "[Trailblazer] The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.\n#{VariableMapping.deprecation_link}"
 
                         options.merge(
                           filter:                           Trailblazer::Option(user_filter),
