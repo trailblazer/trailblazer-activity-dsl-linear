@@ -709,6 +709,7 @@ class VariableMappingTest < Minitest::Spec
     let(:proc_out)    do ->(*) { {out: 99} } end
 
     it "benchmark" do
+      skip
                       # ruby     25.745k (± 1.4%) i/s -    131.172k in   5.096090s
 
                       # with simpler CI
@@ -717,7 +718,7 @@ class VariableMappingTest < Minitest::Spec
                       # pass circuit_options as positional
                       # ruby     26.526k (± 2.1%) i/s -    134.283k in   5.064631s
 
-      require "benchmark/ips"
+      # require "benchmark/ips"
 
       activity = activity_for()
 
