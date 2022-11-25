@@ -14,6 +14,10 @@
 * Adding `Strategy(termini: )`
 * For `output:` in combination with `:output_with_outer_ctx`, deprecate the second positional argument and make it
   the `:outer_ctx` keyword argument instead.
+## Variable Mapping
+* Simplify the architecture in `VariableMapping`, filters are now added directly into the `Pipeline`.
+  Performance increase from 17k to 25k from 1.0.0 to this version.
+* Introduce `Inject(:variable)` to supersede the version receiving a big mapping hash.
 
 # 1.0.0
 

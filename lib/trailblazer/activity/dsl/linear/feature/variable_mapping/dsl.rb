@@ -10,23 +10,6 @@ module Trailblazer
           module DSL
             module_function
 
-            # Compute pipeline for {:input} option.
-            def pipe_for_mono_input(input: [], inject: [], in_filters: [], output: [], **)
-              has_input              = Array(input).any?
-              has_mono_options       = has_input || Array(inject).any? || Array(output).any? # :input, :inject and :output are "mono options".
-              has_composable_options = in_filters.any? # DISCUSS: why are we not testing Inject()?
-
-              if has_mono_options && has_composable_options
-                warn "[Trailblazer] You are mixing `:input` and `In() => ...`. `In()` and Inject () options are ignored and `:input` wins: #{input} #{inject} #{output} <> #{in_filters} / "
-              end
-
-              pipeline = initial_input_pipeline(add_default_ctx: !has_input)
-              pipeline = add_steps_for_input_option(pipeline, input: input)
-              pipeline = add_steps_for_inject_option(pipeline, inject: inject)
-
-              return pipeline, has_mono_options, has_composable_options
-            end
-
             # Compute pipeline for In() and Inject().
             # We allow to inject {:initial_input_pipeline} here in order to skip creating a new input pipeline and instead
             # use the inherit one.
@@ -76,30 +59,6 @@ module Trailblazer
               add_filter_steps(pipeline, input_filter)
             end
 
-
-            def pipe_for_mono_output(output_with_outer_ctx: false, output: [], out_filters: [], **)
-              # No Out(), no {:output} will result in a default_output_ctx step.
-              has_output             = Array(output).any?
-              has_mono_options       = has_output
-              has_composable_options = Array(out_filters).any?
-
-              if has_mono_options && has_composable_options
-                warn "[Trailblazer] You are mixing `:output` and `Out() => ...`. `Out()` options are ignored and `:output` wins."
-              end
-
-              pipeline = initial_output_pipeline(add_default_ctx: !has_output)
-              pipeline = add_steps_for_output_option(pipeline, output: output, output_with_outer_ctx: output_with_outer_ctx)
-
-              return pipeline, has_mono_options, has_composable_options
-            end
-
-            def add_steps_for_output_option(pipeline, output:, output_with_outer_ctx:)
-              tuple         = DSL.Out(with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
-              output_filter = DSL::Tuple.filters_from_options([[tuple, output]])
-
-              add_filter_steps(pipeline, output_filter, prepend_to: "output.merge_with_original", path_prefix: "output")
-            end
-
             def pipe_for_composable_output(out_filters: [], initial_output_pipeline: initial_output_pipeline(add_default_ctx: Array(out_filters).empty?), **)
               out_filters = DSL::Tuple.filters_from_options(out_filters)
 
@@ -121,14 +80,6 @@ module Trailblazer
 
             def default_output_ctx_config # almost a Row.
               ["output.default_output", VariableMapping.method(:default_output_ctx)]
-            end
-
-            def add_steps_for_inject_option(pipeline, inject:)
-              injects = inject.collect { |name| name.is_a?(Symbol) ? [DSL.Inject(), [name]] : [DSL.Inject(), name] }
-
-              tuples  = Tuple.filters_from_options(injects) # DISCUSS: should we add passthrough/defaulting here at Inject()-time?
-
-              add_filter_steps(pipeline, tuples, path_prefix: "inject")
             end
 
             def add_filter_steps(pipeline, rows, prepend_to: "input.scope", path_prefix: "input")
