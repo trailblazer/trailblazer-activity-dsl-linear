@@ -190,9 +190,10 @@ module Trailblazer
             class In < Tuple
               class FiltersBuilder
                 def self.call(user_filter, add_variables_class:, add_variables_class_for_callable:, type: :In, **options)
-                  # For In(): build {SetVariable} filters.
-                  # For Out(): build {SetVariable::Output} filters.
+                  # In()/Out() => {:user => :current_user}
                   if user_filter.is_a?(Hash)
+                    # For In(): build {SetVariable} filters.
+                    # For Out(): build {SetVariable::Output} filters.
                     return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, to_name|
                       options.merge(
                         name:       Filter.name_for(type, "#{from_name.inspect}>#{to_name.inspect}"),
@@ -202,6 +203,7 @@ module Trailblazer
                     end
                   end
 
+                  # In()/Out() => [:current_user]
                   if user_filter.is_a?(Array)
                     user_filter = Filter.hash_for(user_filter)
 
