@@ -102,6 +102,7 @@ module Trailblazer
         end
 
         # TODO: * ALL FILTERS and conditions expose circuit-step interface.
+        # @param name Identifier for the pipeline
         class SetVariable   # TODO: introduce SetVariable without condition.
           def initialize(write_name:, filter:, user_filter:, name:, **)
             @write_name  = write_name

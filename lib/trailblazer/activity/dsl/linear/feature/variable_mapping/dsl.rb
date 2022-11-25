@@ -70,7 +70,7 @@ module Trailblazer
 
               # Handle {:input} and {:inject} option, the "old" interface.
             def add_steps_for_input_option(pipeline, input:)
-              tuple         = DSL.In(name: ":input") # simulate {In() => input}
+              tuple         = DSL.In() # simulate {In() => input}
               input_filter  = DSL::Tuple.filters_from_options([[tuple, input]])
 
               add_filter_steps(pipeline, input_filter)
@@ -94,7 +94,7 @@ module Trailblazer
             end
 
             def add_steps_for_output_option(pipeline, output:, output_with_outer_ctx:)
-              tuple         = DSL.Out(name: ":output", with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
+              tuple         = DSL.Out(with_outer_ctx: output_with_outer_ctx) # simulate {Out() => output}
               output_filter = DSL::Tuple.filters_from_options([[tuple, output]])
 
               add_filter_steps(pipeline, output_filter, prepend_to: "output.merge_with_original", path_prefix: "output")
@@ -157,11 +157,11 @@ module Trailblazer
             # If a user needs to inject their own private iop step they can create this data structure with desired values here.
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
 
-            class Tuple # < Struct.new(:name, :add_variables_class, :filters_builder, :insert_args)
-              def initialize(name, add_variables_class, filters_builder, add_variables_class_for_callable=nil, insert_args=nil, options={})
+            class Tuple
+              def initialize(variable_name, add_variables_class, filters_builder, add_variables_class_for_callable=nil, insert_args=nil, options={})
                 @options =
                   {
-                    name:                 name,
+                    variable_name:        variable_name,
                     add_variables_class:  add_variables_class,
                     filters_builder:      filters_builder,
                     insert_args:          insert_args,
@@ -189,13 +189,14 @@ module Trailblazer
             # In, Out and Inject are objects instantiated when using the DSL, for instance {In() => [:model]}.
             class In < Tuple
               class FiltersBuilder
-                def self.call(user_filter, add_variables_class:, add_variables_class_for_callable:, **options)
+                def self.call(user_filter, add_variables_class:, add_variables_class_for_callable:, type: :In, **options)
                   # For In(): build {SetVariable} filters.
                   # For Out(): build {SetVariable::Output} filters.
                   if user_filter.is_a?(Hash)
                     return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, to_name|
                       options.merge(
-                        name:       from_name,
+                        name:       Filter.name_for(type, "#{from_name.inspect}>#{to_name.inspect}"),
+                        read_name:  from_name,
                         write_name: to_name,
                       )
                     end
@@ -203,11 +204,12 @@ module Trailblazer
 
                   if user_filter.is_a?(Array)
                     user_filter = Filter.hash_for(user_filter)
-                                                                                        # FIXME
+
                     return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, _|
                       options.merge(
-                        name:        from_name,
+                        name:        Filter.name_for(type, from_name.inspect),
                         write_name:  from_name,
+                        read_name:   from_name,
                       )
                     end
                   end
@@ -217,8 +219,10 @@ module Trailblazer
 
                   [
                     Filter.build_for(
+                      name:                 Filter.name_for(type, user_filter.object_id, :add_variables),
                       filter:               filter,
-                      write_name:           options[:name],
+                      write_name:           nil,
+                      read_name:            nil,
                       user_filter:          user_filter,
                       add_variables_class:  add_variables_class_for_callable, # for example, {AddVariables::Output}
                       **options
@@ -232,8 +236,6 @@ module Trailblazer
             class Out < Tuple
               class FiltersBuilder
                 def self.call(user_filter, tuple_options:, **options)
-                  # options = options.merge(add_variables_class: SetVariable::Output)
-
                   if tuple_options[:with_outer_ctx]
                     callable    = user_filter # FIXME: :instance_method, for fuck's sake.
                     call_method = callable.respond_to?(:arity) ? callable : callable.method(:call)
@@ -254,21 +256,21 @@ module Trailblazer
                       end
                   end
 
-                  In::FiltersBuilder.(user_filter, **options)
+                  In::FiltersBuilder.(user_filter, type: :Out, **options)
                 end
               end
             end # Out
 
-            def self.In(name: rand, add_variables_class: SetVariable, filter_builder: In::FiltersBuilder, add_variables_class_for_callable: AddVariables)
-              In.new(name, add_variables_class, filter_builder, add_variables_class_for_callable)
+            def self.In(variable_name = nil, add_variables_class: SetVariable, filter_builder: In::FiltersBuilder, add_variables_class_for_callable: AddVariables)
+              In.new(variable_name, add_variables_class, filter_builder, add_variables_class_for_callable)
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(name: rand, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: Out::FiltersBuilder, read_from_aggregate: false, add_variables_class_for_callable: AddVariables::Output)
+            def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: Out::FiltersBuilder, read_from_aggregate: false, add_variables_class_for_callable: AddVariables::Output)
               add_variables_class = SetVariable::Output::Delete     if delete
               add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
 
-              Out.new(name, add_variables_class, filter_builder, add_variables_class_for_callable, nil,
+              Out.new(variable_name, add_variables_class, filter_builder, add_variables_class_for_callable, nil,
                 {
                   with_outer_ctx: with_outer_ctx,
                 }
@@ -288,26 +290,28 @@ module Trailblazer
             class Inject < Tuple
               class FiltersBuilder
                 # Called via {Tuple#call}
-                def self.call(user_filter, add_variables_class:, **options)
+                def self.call(user_filter, add_variables_class:, variable_name:, **options)
                   # Build {SetVariable::Default}
                   if user_filter.is_a?(Hash) # TODO: deprecate in favor if {Inject(:variable_name)}!
                     return Filter.build_filters_for_hash(user_filter, add_variables_class: SetVariable::Default) do |options, from_name, user_proc|
-                      options_for_defaulted_with_condition(
+                      options_with_condition_for_defaulted(
                         **options,
                         user_filter:  user_proc,
                         write_name:   from_name,
+                        read_name:    from_name,
                       )
                     end
                   end
 
                   # Build {SetVariable::Conditioned}
-                  if user_filter.is_a?(Array) # TODO: merge with In::FiltersBuilder
+                  if user_filter.is_a?(Array)
                     user_filter = Filter.hash_for(user_filter)
 
                     return Filter.build_filters_for_hash(user_filter, add_variables_class: SetVariable::Conditioned) do |options, from_name, _|
-                      options_for_defaulted_with_condition(
+                      options_with_condition(
                         **options,
                         write_name:   from_name,
+                        read_name:    from_name,
                         user_filter:  user_filter, # FIXME: this is not really helpful, it's something like [:field, :injects]
                       )
                     end
@@ -316,9 +320,10 @@ module Trailblazer
                   # Build {SetVariable::Default}
                   # {user_filter} is one of the following
                   # :instance_method
-                  options = options_for_defaulted_with_condition(
+                  options = options_with_condition_for_defaulted(
                     **options,
-                    write_name:   options[:name],
+                    write_name:   variable_name,
+                    read_name:    variable_name,
                     user_filter:  user_filter,
                   )
 
@@ -327,30 +332,38 @@ module Trailblazer
                   ]
                 end # call
 
-                def self.options_for_defaulted_with_condition(user_filter:, write_name:, **options)
-                  default_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
-
+                def self.options_with_condition(user_filter:, write_name:, name_specifier: nil, **options)
                   {
+                    name:           Filter.name_for(:Inject, write_name.inspect, name_specifier),
                     **options,
-                    name:           write_name,
                     condition:      VariablePresent.new(variable_name: write_name),
-                    default_filter: default_filter,
                     write_name:     write_name,
                     user_filter:    user_filter,
                   }
+                end
+
+                def self.options_with_condition_for_defaulted(write_name:, user_filter:, **options)
+                  default_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
+
+                  options_with_condition(
+                    **options,
+                    write_name:     write_name,
+                    default_filter: default_filter,
+                    user_filter:    user_filter,
+                    name_specifier: :default,
+                  )
                 end
               end # FiltersBuilder
             end # Inject
 
             # DISCUSS: generic, again
             module Filter
-              def self.build_for(add_variables_class:, write_name:, name:, **options)
-                circuit_step_filter = VariableFromCtx.new(variable_name: name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
+              def self.build_for(add_variables_class:, write_name:, read_name:, **options)
+                circuit_step_filter = VariableFromCtx.new(variable_name: read_name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
 
                 add_variables_class.new(
-                  filter:         circuit_step_filter,
+                  filter:      circuit_step_filter,
                   write_name:  write_name,
-                  name: name,
                   **options, # FIXME: same name here for every iteration!
                 )
               end
@@ -360,7 +373,7 @@ module Trailblazer
                   options = yield(options, from_name, to_name)
 
                   Filter.build_for(
-                    user_filter: user_filter, # FIXME: this is not really helpful
+                    user_filter: user_filter,
                     **options,
                   )
                 end
@@ -368,6 +381,10 @@ module Trailblazer
 
               def self.hash_for(ary)
                 ary.collect { |name| [name, name] }.to_h
+              end
+
+              def self.name_for(type, name, specifier=nil)
+                [type, specifier].compact.join(".") + "{#{name}}"
               end
             end # Filter
 
