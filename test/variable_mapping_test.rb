@@ -708,6 +708,26 @@ class VariableMappingTest < Minitest::Spec
     let(:proc_in)     do ->(*) { {in: 1} }   end
     let(:proc_out)    do ->(*) { {out: 99} } end
 
+    it "benchmark" do
+                      # ruby     25.745k (± 1.4%) i/s -    131.172k in   5.096090s
+
+                      # with simpler CI
+                      # ruby     25.949k (± 1.6%) i/s -    131.150k in   5.055484s
+
+                      # pass circuit_options as positional
+                      # ruby     26.526k (± 2.1%) i/s -    134.283k in   5.064631s
+
+      require "benchmark/ips"
+
+      activity = activity_for()
+
+      Benchmark.ips do |x|
+        x.report("ruby") {
+          signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{params: [], }, {}])
+        }
+      end
+    end
+
     it "filter API, order, naming" do
       activity = activity_for()
 
