@@ -633,9 +633,8 @@ class DeprecatedOutWithOuterCtxTest < Minitest::Spec
     end
 
   #@ deprecation warning!!!
-    assert_equal warning, %{[Trailblazer] The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
-Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.
-}
+    assert_equal warning.split("\n")[0..1].join("\n"), %{[Trailblazer] The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
+Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.}
   end
 
   #@ deprecation warning with Callable for {:output_with_outer_ctx}
@@ -663,9 +662,8 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
     end
 
   #@ deprecation warning!!!
-    assert_equal warning, %{[Trailblazer] The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
-Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.
-}
+    assert_equal warning.split("\n")[0..1].join("\n"), %{[Trailblazer] The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
+Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.}
   end
 
   # TODO: add warning test for {:instance_method}
