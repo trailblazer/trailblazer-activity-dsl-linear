@@ -273,7 +273,7 @@ class VariableMappingTest < Minitest::Spec
       end
     }
 
-    assert_equal err.split("\n")[0..3].join("\n"), %{[Trailblazer] You are mixing {:input=>nil, :output=>{:model=>:song}, :inject=>nil} with In(), Out() and Inject().
+    assert_equal err.split("\n").find_all { |line| line[0] != "/" }.join("\n"), %{[Trailblazer] You are mixing {:input=>nil, :output=>{:model=>:song}, :inject=>nil} with In(), Out() and Inject().
 Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.
 [Trailblazer] The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
 Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.}
