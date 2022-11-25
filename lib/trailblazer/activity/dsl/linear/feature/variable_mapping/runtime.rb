@@ -64,13 +64,6 @@ module Trailblazer
           merge_variables(default_ctx, wrap_ctx, original_args)
         end
 
-        # Input/output Pipeline step that runs the user's {filter} and adds
-        # variables to the computed ctx.
-        #
-        # Basically implements {:input}.
-        #
-
-
         # Write one particular variable to the {aggregate} using {aggregate[:name] = (value)}.
         #
         # This is much faster than merging a hash, and provides better overriding semantics. (to be done!)

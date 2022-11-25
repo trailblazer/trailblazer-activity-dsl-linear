@@ -21,8 +21,9 @@ module Trailblazer
                 "activity.wirings",
                 {
                    # In(), Out(), {:input}, Inject() feature
-                  "activity.normalize_input_output_filters" => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:normalize_input_output_filters)),
-                  "activity.input_output_dsl"               => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:input_output_dsl)),
+                  "activity.convert_and_deprecate_symbol_options" => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:convert_and_deprecate_symbol_options)),
+                  "activity.normalize_input_output_filters"       => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:normalize_input_output_filters)),
+                  "activity.input_output_dsl"                     => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:input_output_dsl)),
                 }
               )
             end
@@ -37,8 +38,36 @@ module Trailblazer
 
           # Steps that are added to the DSL normalizer.
           module Normalizer
+            # TODO: remove me once {:input} API is removed.
+            # Convert {:input}, {:output} and {:inject} to In() and friends.
+            def self.convert_and_deprecate_symbol_options(ctx, non_symbol_options:, output_with_outer_ctx: nil, **)
+              input, output, inject = ctx.delete(:input), ctx.delete(:output), ctx.delete(:inject)
+              return unless input || output || inject
+
+              # TODO: warn, deprecate etc
+              non_symbol_options.merge!(VariableMapping::DSL.In()      => input) if input
+
+              if output
+                options = {}
+                options = {with_outer_ctx: output_with_outer_ctx} unless output_with_outer_ctx.nil?
+
+                non_symbol_options.merge!(VariableMapping::DSL.Out(**options) => output)
+              end
+
+              if inject
+                inject.collect { |filter|
+                  filter = filter.is_a?(Symbol) ? [filter] : filter
+
+                  non_symbol_options.merge!(VariableMapping::DSL.Inject()  => filter)
+                }
+              end
+
+              ctx.merge!(non_symbol_options: non_symbol_options)
+            end
+
             # Process {In() => [:model], Inject() => [:current_user], Out() => [:model]}
             def self.normalize_input_output_filters(ctx, non_symbol_options:, **)
+
               input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::In) }
               output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Out) }
               inject_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Inject) }
@@ -52,7 +81,7 @@ module Trailblazer
 
             def self.input_output_dsl(ctx, extensions: [], **options)
               # no :input/:output/:inject/Input()/Output() passed.
-              return if (options.keys & [:input, :output, :inject, :inject_filters, :in_filters, :output_filters]).empty?
+              return if (options.keys & [:inject_filters, :in_filters, :output_filters]).empty?
 
               extension, normalizer_options, non_symbol_options = Linear.VariableMapping(**options)
 
@@ -82,26 +111,11 @@ module Trailblazer
             #   In,Inject
           # => input_pipe
           def merge_instructions_from_dsl(**options)
-            # The overriding {:input} option is set.
-            pipeline, has_mono_options, _ = DSL.pipe_for_mono_input(**options)
+            pipeline  = DSL.pipe_for_composable_input(**options)  # FIXME: rename filters consistently
+            input     = Pipe::Input.new(pipeline)
 
-            if ! has_mono_options
-              pipeline = DSL.pipe_for_composable_input(**options)  # FIXME: rename filters consistently
-            end
-
-            # gets wrapped by {VariableMapping::Input} and called there.
-            # API: @filter.([ctx, original_flow_options], **original_circuit_options)
-            # input = Trailblazer::Option(->(original_ctx, **) {  })
-            input  = Pipe::Input.new(pipeline)
-
-
-            output_pipeline, has_mono_options, _ = DSL.pipe_for_mono_output(**options)
-
-            if ! has_mono_options
-              output_pipeline = DSL.pipe_for_composable_output(**options)
-            end
-
-            output = Pipe::Output.new(output_pipeline)
+            output_pipeline = DSL.pipe_for_composable_output(**options)
+            output          = Pipe::Output.new(output_pipeline)
 
             return input, output,
               # normalizer_options:
