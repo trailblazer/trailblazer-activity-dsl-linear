@@ -19,7 +19,7 @@ module Trailblazer
               (original_ctx, original_flow_options), original_circuit_options = original_args
 
               # let user compute new ctx for the wrapped task.
-              pipe_ctx, _ = @pipe.({original_ctx: original_ctx}, [[original_ctx, original_flow_options], original_circuit_options])
+              pipe_ctx, _ = @pipe.({original_ctx: original_ctx}, original_args)
               input_ctx   = pipe_ctx[:input_ctx]
 
               wrap_ctx = wrap_ctx.merge(@id => original_ctx) # remember the original ctx under the key {:vm_original_ctx}.
