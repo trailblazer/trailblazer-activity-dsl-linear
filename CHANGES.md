@@ -18,6 +18,7 @@
 * Simplify the architecture in `VariableMapping`, filters are now added directly into the `Pipeline`.
   Performance increase from 17k to 25k from 1.0.0 to this version.
 * Introduce `Inject(:variable)` to supersede the version receiving a big mapping hash.
+* Introduce `Linear.Patch` as the public entry point for patching activities.
 
 # 1.0.0
 

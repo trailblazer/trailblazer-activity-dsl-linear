@@ -1,6 +1,10 @@
 class Trailblazer::Activity
   module DSL
     module Linear
+      def self.Patch(activity, instructions)
+        Patch.customize(activity, options: instructions)
+      end
+
       module Patch
       # DISCUSS: we could make this a generic DSL option, not just for Subprocess().
         # Currently, this is called from the Subprocess() helper.
@@ -21,7 +25,7 @@ class Trailblazer::Activity
 
           patch =
             if task_id
-              segment_activity = Introspect::Graph(activity).find(task_id).task # FIXME: use {Introspect.find_path} here.
+              segment_activity = Introspect::TaskMap(activity).find_by_id(task_id).task
               patched_segment_activity = call(segment_activity, path, customization)
 
               # Replace the patched subprocess.

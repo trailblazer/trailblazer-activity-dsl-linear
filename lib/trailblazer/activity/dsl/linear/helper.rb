@@ -59,7 +59,7 @@ module Trailblazer
           # @param :strict If true, all outputs of {activity} will be wired to the track named after the
           #   output's semantic.
           def Subprocess(activity, patch: {}, strict: false)
-            activity = Patch.customize(activity, options: patch)
+            activity = Linear.Patch(activity, patch)
 
             outputs  = activity.to_h[:outputs]
             options  = {}
