@@ -85,7 +85,7 @@ ctx[:year]:   #{ctx[:year].inspect}
   #@ {:something} is mapped via In
     assert_invoke XX::Create, never: true, time: "yesterday", date: "today", model: Object, something: 99, expected_ctx_variables: {
       log: %{
-ctx keys:     [:model, :thing, :current_user, :date, :time, :year, :never]
+ctx keys:     [:current_user, :date, :time, :year, :never, :model, :thing]
 time:         "yesterday"
 ctx[:time]:   "yesterday"
 date:         today
@@ -99,7 +99,7 @@ ctx[:year]:   "<Year of today>"
   #@ {:time} is defaulted in {#write}
     assert_invoke XX::Create, never: true, date: "today", model: Object, something: 99, expected_ctx_variables: {
       log: %{
-ctx keys:     [:model, :thing, :current_user, :date, :year, :never]
+ctx keys:     [:current_user, :date, :year, :never, :model, :thing]
 time:         "Time.now"
 ctx[:time]:   nil
 date:         today
@@ -114,7 +114,7 @@ ctx[:year]:   "<Year of today>"
   #@ {:year} is passed-through
     assert_invoke XX::Create, never: true, date: "today", model: Object, something: 99, year: "2022", expected_ctx_variables: {
       log: %{
-ctx keys:     [:model, :thing, :current_user, :date, :year, :never]
+ctx keys:     [:current_user, :date, :year, :never, :model, :thing]
 time:         "Time.now"
 ctx[:time]:   nil
 date:         today
@@ -128,7 +128,7 @@ ctx[:year]:   "2022"
 #@ {:current_user} passed from outside, defaulting not called
     assert_invoke XX::Create, never: true, date: "today", model: Object, current_user: Module, expected_ctx_variables: {
       log: %{
-ctx keys:     [:model, :thing, :current_user, :date, :year, :never]
+ctx keys:     [:current_user, :date, :year, :never, :model, :thing]
 time:         "Time.now"
 ctx[:time]:   nil
 date:         today

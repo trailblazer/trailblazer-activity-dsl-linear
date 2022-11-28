@@ -13,19 +13,14 @@ module Trailblazer
             # Compute pipeline for In() and Inject().
             # We allow to inject {:initial_input_pipeline} here in order to skip creating a new input pipeline and instead
             # use the inherit one.
-            def pipe_for_composable_input(in_filters: [], inject_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
-              inject_filters = DSL::Tuple.filters_from_options(inject_filters) # {Inject() => ...} the pure user input gets translated into AddVariable aggregate steps.
-              in_filters     = DSL::Tuple.filters_from_options(in_filters)
-
-              # With only injections defined, we do not filter out anything, we use the original ctx
-              # and _add_ defaulting for injected variables.
-              pipeline = add_filter_steps(initial_input_pipeline, in_filters)
-              pipeline = add_filter_steps(pipeline, inject_filters, path_prefix: "inject")
+            def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
+              in_filters  = DSL::Tuple.filters_from_options(in_filters)
+              pipeline    = add_filter_steps(initial_input_pipeline, in_filters)
             end
 
             # initial pipleline depending on whether or not we got any In() filters.
             def initial_input_pipeline_for(in_filters)
-              is_inject_only = Array(in_filters).empty?
+              is_inject_only = in_filters.find { |k, v| k.is_a?(VariableMapping::DSL::In) }.nil?
 
               initial_input_pipeline(add_default_ctx: is_inject_only)
             end

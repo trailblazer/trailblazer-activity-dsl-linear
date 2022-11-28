@@ -768,3 +768,21 @@ class IoOutDeleteReadFromAggregateTest < Minitest::Spec
     }
   end
 end
+
+#@ In() can override Inject() if it was added last.
+class InInjectSortingTest < Minitest::Spec
+  it do
+    activity = Class.new(Trailblazer::Activity::Railway) do
+      step :params,
+        Inject()  => [:params],
+        In()      => ->(ctx, **) { {params: {id: 1}}  }
+
+      def params(ctx, params:, **)
+        ctx[:captured_params] = params.inspect
+      end
+    end
+
+    assert_invoke activity, expected_ctx_variables: {captured_params: "{:id=>1}"}
+    assert_invoke activity, params: {id: nil}, expected_ctx_variables: {params: {id: nil}, captured_params: "{:id=>1}"}
+  end
+end

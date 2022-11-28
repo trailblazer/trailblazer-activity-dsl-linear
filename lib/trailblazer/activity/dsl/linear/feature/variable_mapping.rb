@@ -72,22 +72,20 @@ module Trailblazer
 
             # Process {In() => [:model], Inject() => [:current_user], Out() => [:model]}
             def self.normalize_input_output_filters(ctx, non_symbol_options:, input_output_inject_options: [], **)
-              input_exts  = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::In) }
+              in_exts     = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::In) || k.is_a?(VariableMapping::DSL::Inject) }
               output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Out) }
-              inject_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Inject) }
 
-              return unless input_exts.any? || output_exts.any? || inject_exts.any?
+              return unless in_exts.any? || output_exts.any?
 
-              deprecate_input_output_inject_option(input_output_inject_options, input_exts, output_exts, inject_exts)
+              deprecate_input_output_inject_option(input_output_inject_options, in_exts, output_exts)
 
-              ctx[:inject_filters] = inject_exts
-              ctx[:in_filters]     = input_exts
+              ctx[:in_filters]     = in_exts
               ctx[:out_filters]    = output_exts
             end
 
             def self.input_output_dsl(ctx, extensions: [], **options)
               # no :input/:output/:inject/Input()/Output() passed.
-              return if (options.keys & [:inject_filters, :in_filters, :output_filters]).empty?
+              return if (options.keys & [:in_filters, :output_filters]).empty?
 
               extension, normalizer_options, non_symbol_options = Linear.VariableMapping(**options)
 

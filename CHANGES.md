@@ -14,11 +14,15 @@
 * Adding `Strategy(termini: )`
 * For `output:` in combination with `:output_with_outer_ctx`, deprecate the second positional argument and make it
   the `:outer_ctx` keyword argument instead.
+* Introduce `Linear.Patch` as the public entry point for patching activities.
+
 ## Variable Mapping
+
 * Simplify the architecture in `VariableMapping`, filters are now added directly into the `Pipeline`.
   Performance increase from 17k to 25k from 1.0.0 to this version.
 * Introduce `Inject(:variable)` to supersede the version receiving a big mapping hash.
-* Introduce `Linear.Patch` as the public entry point for patching activities.
+* Fix a bug where `Inject()` would override `In()` filters even though the latter was added latest. This
+  is fixed by treating both filter types equally and in the order they were added by the user (and the macro).
 
 # 1.0.0
 
