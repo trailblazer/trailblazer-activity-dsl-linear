@@ -272,10 +272,11 @@ class VariableMappingTest < Minitest::Spec
         end
       end
     }
+    line_number = __LINE__ - 12
 
-    assert_equal err.split("\n").find_all { |line| line[0] != "/" }.join("\n"), %{[Trailblazer] You are mixing {:input=>nil, :output=>{:model=>:song}, :inject=>nil} with In(), Out() and Inject().
+    assert_equal err.split("\n").find_all { |line| line[0] != "/" }.join("\n"), %{[Trailblazer] #{File.realpath(__FILE__)}:#{line_number} You are mixing {:input=>nil, :output=>{:model=>:song}, :inject=>nil} with In(), Out() and Inject().
 Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.
-[Trailblazer] The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
+[Trailblazer] #{File.realpath(__FILE__)}:#{line_number} The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
 Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.}
 
     assert_invoke S::Create, time: "yesterday", model: Object, current_user: Module, expected_ctx_variables: {_private: "hi!", :song=>[Module, [:seq, :time, :model, :current_user, :private]]}
@@ -297,8 +298,9 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
         end
       end
     }
+    line_number = __LINE__ - 12
 
-    assert_equal err.split("\n")[0..1].join("\n"), %{[Trailblazer] You are mixing {:input=>[:model], :output=>nil, :inject=>nil} with In(), Out() and Inject().
+    assert_equal err.split("\n")[0..1].join("\n"), %{[Trailblazer] #{File.realpath(__FILE__)}:#{line_number} You are mixing {:input=>[:model], :output=>nil, :inject=>nil} with In(), Out() and Inject().
 Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.}
 
     assert_invoke RRRRRRRRRR::Create, time: "yesterday", model: Object, expected_ctx_variables: {:incoming=>[Object, [:current_user, :model]]}

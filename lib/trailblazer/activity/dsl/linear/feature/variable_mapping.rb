@@ -51,7 +51,7 @@ module Trailblazer
 
               if output
                 options = {}
-                options = {with_outer_ctx: output_with_outer_ctx} unless output_with_outer_ctx.nil?
+                options = options.merge(with_outer_ctx: output_with_outer_ctx) unless output_with_outer_ctx.nil?
 
                 dsl_options.merge!(VariableMapping::DSL.Out(**options) => output)
               end
@@ -104,7 +104,11 @@ module Trailblazer
 
               return if composable_options_count == deprecated_options_count
 
-              warn %{[Trailblazer] You are mixing #{options.inspect} with In(), Out() and Inject().\n#{VariableMapping.deprecation_link}}
+              # for deprecation warnings, guess the location if {:input} from the stack.
+              caller_index    = caller_locations.find_index { |location| location.to_s =~ /recompile_activity_for/ }
+              caller_location = caller_index ? caller_locations[caller_index+2] : caller_locations[0]
+
+              Activity::Deprecate.warn caller_location, %{You are mixing #{options.inspect} with In(), Out() and Inject().\n#{VariableMapping.deprecation_link}}
             end
           end
 

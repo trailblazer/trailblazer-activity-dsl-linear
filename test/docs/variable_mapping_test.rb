@@ -631,9 +631,10 @@ class DeprecatedOutWithOuterCtxTest < Minitest::Spec
 
       assert_invoke Memo, params: {id: "1"}, expected_ctx_variables: {params: {id: "1", errors: false}, :current_user=>%{User "1"}, :model=>%{User "1"}}
     end
+    line_number_for_output = __LINE__ - 16 # 618
 
   #@ deprecation warning!!!
-    assert_equal warning.split("\n")[0..1].join("\n"), %{[Trailblazer] The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
+    assert_equal warning.split("\n")[0..1].join("\n"), %{[Trailblazer] #{File.realpath(__FILE__)}:#{line_number_for_output} The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
 Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.}
   end
 
@@ -660,9 +661,10 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
 
       assert_invoke Memo2, params: {id: "1"}, expected_ctx_variables: {params: {id: "1", errors: false}, :current_user=>%{User "1"}, :model=>%{User "1"}}
     end
+    line_number_for_output = __LINE__ - 10 # 654
 
   #@ deprecation warning!!!
-    assert_equal warning.split("\n")[0..1].join("\n"), %{[Trailblazer] The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
+    assert_equal warning.split("\n")[0..1].join("\n"), %{[Trailblazer] #{File.realpath(__FILE__)}:#{line_number_for_output} The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.
 Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.}
   end
 
