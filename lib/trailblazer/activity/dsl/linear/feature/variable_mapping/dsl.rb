@@ -35,7 +35,6 @@ module Trailblazer
 
               pipe = Activity::TaskWrap::Pipeline.new(
                 [
-                  Activity::TaskWrap::Pipeline.Row("input.init_hash", VariableMapping.method(:initial_aggregate)), # very first step
                   default_ctx_row,
                   Activity::TaskWrap::Pipeline.Row("input.scope",     VariableMapping.method(:scope)), # last step
                 ].compact
@@ -66,7 +65,6 @@ module Trailblazer
 
               Activity::TaskWrap::Pipeline.new(
                 [
-                  Activity::TaskWrap::Pipeline.Row("output.init_hash", VariableMapping.method(:initial_aggregate)), # very first step
                   default_ctx_row,
                   Activity::TaskWrap::Pipeline.Row("output.merge_with_original", VariableMapping.method(:merge_with_original)), # last step
                 ].compact

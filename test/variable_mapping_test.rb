@@ -555,7 +555,6 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
 
     activity = Class.new(Trailblazer::Activity::Railway) do
       input_pipe = Trailblazer::Activity::TaskWrap::Pipeline.new([
-        Trailblazer::Activity::TaskWrap::Pipeline.Row("input.init_hash", Trailblazer::Activity::DSL::Linear::VariableMapping.method(:initial_aggregate)),
       # we use the standard input pipeline but with our own default_ctx that has UPPERCASED variables and values.
         Trailblazer::Activity::TaskWrap::Pipeline.Row("input.my_input_ctx", my_input_ctx),
         Trailblazer::Activity::TaskWrap::Pipeline.Row("input.scope", Trailblazer::Activity::DSL::Linear::VariableMapping.method(:scope)),
@@ -715,6 +714,7 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
 
     it "benchmark" do
       skip
+      require "benchmark/ips"
                       # ruby     25.745k (± 1.4%) i/s -    131.172k in   5.096090s
 
                       # with simpler CI
@@ -722,6 +722,9 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
 
                       # pass circuit_options as positional
                       # ruby     26.526k (± 2.1%) i/s -    134.283k in   5.064631s
+
+                      # don't use initial_aggregate but pass it directly.
+                      # ruby     26.349k (± 0.9%) i/s -    132.250k in   5.019630s
 
       # require "benchmark/ips"
 
@@ -739,37 +742,37 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
 
       input_pipe = activity.to_h[:config][:wrap_static][Capture].to_a[0][1].instance_variable_get(:@pipe).to_a
 
-      set_variable = input_pipe[1][1]
+      set_variable = input_pipe[0][1]
       assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :params
       assert_equal set_variable.instance_variable_get(:@write_name), :params
       assert_equal set_variable.instance_variable_get(:@name), "In{:params}"
 
-      set_variable = input_pipe[2][1]
+      set_variable = input_pipe[1][1]
       assert_equal set_variable.instance_variable_get(:@write_name), :mode
       assert_equal set_variable.instance_variable_get(:@name), "In{:mode}"
 
-      set_variable = input_pipe[3][1]
+      set_variable = input_pipe[2][1]
       assert_equal set_variable.instance_variable_get(:@write_name), :styles
       assert_equal set_variable.instance_variable_get(:@name), "In{:styles}"
 
   # {:variable_name} is what we write to ctx
-      set_variable = input_pipe[4][1]
+      set_variable = input_pipe[3][1]
       #@ test the VariableFromCtx
       assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :current_user
       assert_equal set_variable.instance_variable_get(:@write_name), :user
       assert_equal set_variable.instance_variable_get(:@name), "In{:current_user>:user}"
 
-      set_variable = input_pipe[5][1]
+      set_variable = input_pipe[4][1]
       assert_equal set_variable.name, "In.add_variables{#{proc_in.object_id}}"
 
   # Inject
-      set_variable = input_pipe[6][1]
+      set_variable = input_pipe[5][1]
       #@ test the VariableFromCtx
       assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :field
       assert_equal set_variable.instance_variable_get(:@write_name), :field
       assert_equal set_variable.instance_variable_get(:@name), "Inject.default{:field}"
 
-      set_variable = input_pipe[7][1]
+      set_variable = input_pipe[6][1]
       #@ test the VariableFromCtx
       assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :key
       assert_equal set_variable.instance_variable_get(:@write_name), :key
@@ -778,23 +781,23 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
   # Out
       output_pipe = activity.to_h[:config][:wrap_static][Capture].to_a[2][1].instance_variable_get(:@pipe).to_a
 
-      set_variable = output_pipe[1][1]
+      set_variable = output_pipe[0][1]
       assert_equal set_variable.instance_variable_get(:@write_name), :result
       assert_equal set_variable.instance_variable_get(:@name), "Out{:result}"
 
-      set_variable = output_pipe[2][1]
+      set_variable = output_pipe[1][1]
       assert_equal set_variable.instance_variable_get(:@write_name), :message
       assert_equal set_variable.instance_variable_get(:@name), "Out{:message}"
 
-      set_variable = output_pipe[3][1]
+      set_variable = output_pipe[2][1]
       assert_equal set_variable.instance_variable_get(:@write_name), :status
       assert_equal set_variable.instance_variable_get(:@name), "Out{:status}"
 
-      set_variable = output_pipe[4][1]
+      set_variable = output_pipe[3][1]
       assert_equal set_variable.instance_variable_get(:@write_name), :error_code
       assert_equal set_variable.instance_variable_get(:@name), "Out{:code>:error_code}"
 
-      set_variable = output_pipe[5][1]
+      set_variable = output_pipe[4][1]
       assert_equal set_variable.name, "Out.add_variables{#{proc_out.object_id}}"
     end
   end

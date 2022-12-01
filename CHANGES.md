@@ -15,6 +15,8 @@
 * For `output:` in combination with `:output_with_outer_ctx`, deprecate the second positional argument and make it
   the `:outer_ctx` keyword argument instead.
 * Introduce `Linear.Patch` as the public entry point for patching activities.
+* Remove `Runtime.initial_aggregate` step for the input and output pipelines which results in slightly better runtime performance and
+  less code.
 
 ## Variable Mapping
 
