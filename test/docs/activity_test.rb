@@ -357,3 +357,20 @@ class DocsActivityTest < Minitest::Spec
     _(ctx.inspect).must_equal %{{:params=>{:name=>\"Face to Face\"}, :model=>#<struct DocsActivityTest::C::Memo name={:name=>\"Face to Face\"}>}}
   end
 end
+
+class DocsActivityCallTest < Minitest::Spec
+  module Song; end
+  module Song::Activity
+    class Create < Trailblazer::Activity::Railway
+      step :model
+      include T.def_steps(:model)
+    end
+  end
+
+  it "Activity.call" do
+    signal, (ctx, _) = Trailblazer::Activity.(Song::Activity::Create, seq: [])
+
+    assert_equal signal.inspect, %{#<Trailblazer::Activity::End semantic=:success>}
+    assert_equal ctx.inspect, %{{:seq=>[:model]}}
+  end
+end
