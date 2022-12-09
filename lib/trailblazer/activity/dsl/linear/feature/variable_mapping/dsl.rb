@@ -112,7 +112,7 @@ module Trailblazer
 
                     add_variables_class_for_callable: add_variables_class_for_callable,
 
-                    tuple_options: options
+                    **options
                   }
               end
 
@@ -181,8 +181,8 @@ module Trailblazer
 
             class Out < Tuple
               class FiltersBuilder
-                def self.call(user_filter, tuple_options:, **options)
-                  if tuple_options[:with_outer_ctx]
+                def self.call(user_filter, with_outer_ctx:, **options)
+                  if with_outer_ctx
                     callable    = user_filter # FIXME: :instance_method, for fuck's sake.
                     call_method = callable.respond_to?(:arity) ? callable : callable.method(:call)
 
@@ -235,7 +235,9 @@ module Trailblazer
               Inject.new(
                 variable_name,
                 nil, # add_variables_class # DISCUSS: do we really want that here?
-                Inject::FiltersBuilder
+                Inject::FiltersBuilder,
+                nil,
+                override: override,
               )
             end
 
