@@ -102,7 +102,7 @@ module Trailblazer
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
 
             class Tuple
-              def initialize(variable_name, add_variables_class, filters_builder, add_variables_class_for_callable=nil, insert_args=nil, options={})
+              def initialize(variable_name, add_variables_class, filters_builder, add_variables_class_for_callable=nil, insert_args: nil, **options)
                 @options =
                   {
                     variable_name:        variable_name,
@@ -220,15 +220,18 @@ module Trailblazer
               add_variables_class = SetVariable::Output::Delete     if delete
               add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
 
-              Out.new(variable_name, add_variables_class, filter_builder, add_variables_class_for_callable, nil,
-                {
-                  with_outer_ctx: with_outer_ctx,
-                }
+              Out.new(
+                variable_name,
+                add_variables_class,
+                filter_builder,
+                add_variables_class_for_callable,
+
+                with_outer_ctx: with_outer_ctx,
               )
             end
 
             # Used in the DSL by you.
-            def self.Inject(variable_name = nil, **)
+            def self.Inject(variable_name = nil, override: false, **)
               Inject.new(
                 variable_name,
                 nil, # add_variables_class # DISCUSS: do we really want that here?
@@ -266,6 +269,8 @@ module Trailblazer
                       )
                     end
                   end
+
+                  puts "@@@@@ #{options.inspect}"
 
                   # Build {SetVariable::Default}
                   # {user_filter} is one of the following
