@@ -87,6 +87,7 @@ module Trailblazer
 
         # TODO: * ALL FILTERS and conditions expose circuit-step interface.
         # @param name Identifier for the pipeline
+        # Call {user_filter} and set return value as variable on aggregate.
         class SetVariable
           def initialize(write_name:, filter:, user_filter:, name:, **)
             @write_name  = write_name

@@ -61,7 +61,8 @@ class InjectTest < Minitest::Spec
           },
           In() => [:model],
           # In() => [:date],
-          In() => {:something => :thing}
+          In() => {:something => :thing},
+          Inject(:months, override: true) => :my_months
 
         def write(ctx, time: "Time.now", date:, current_user:, **) # {date} has no default configured.
           ctx[:log] = %{
@@ -73,11 +74,16 @@ current_user: #{current_user}
 ctx[:model]:  #{ctx[:model]}
 ctx[:thing]:  #{ctx[:thing].inspect}
 ctx[:year]:   #{ctx[:year].inspect}
+ctx[:months]: #{ctx[:months].inspect}
 }
         end
 
         def my_instance_method_for_current_user(ctx, model:, **)
           "<Currentuser for #{model}>"
+        end
+
+        def my_months(ctx, **)
+          [1,2,3]
         end
       end
     end # XX
@@ -85,7 +91,7 @@ ctx[:year]:   #{ctx[:year].inspect}
   #@ {:something} is mapped via In
     assert_invoke XX::Create, never: true, time: "yesterday", date: "today", model: Object, something: 99, expected_ctx_variables: {
       log: %{
-ctx keys:     [:current_user, :date, :time, :year, :never, :model, :thing]
+ctx keys:     [:current_user, :date, :time, :year, :never, :model, :thing, :months]
 time:         "yesterday"
 ctx[:time]:   "yesterday"
 date:         today
@@ -93,13 +99,14 @@ current_user: <Currentuser for Object>
 ctx[:model]:  Object
 ctx[:thing]:  99
 ctx[:year]:   "<Year of today>"
+ctx[:months]: [1, 2, 3]
 }
     }
 
   #@ {:time} is defaulted in {#write}
     assert_invoke XX::Create, never: true, date: "today", model: Object, something: 99, expected_ctx_variables: {
       log: %{
-ctx keys:     [:current_user, :date, :year, :never, :model, :thing]
+ctx keys:     [:current_user, :date, :year, :never, :model, :thing, :months]
 time:         "Time.now"
 ctx[:time]:   nil
 date:         today
@@ -107,6 +114,7 @@ current_user: <Currentuser for Object>
 ctx[:model]:  Object
 ctx[:thing]:  99
 ctx[:year]:   "<Year of today>"
+ctx[:months]: [1, 2, 3]
 }
     }
 
@@ -114,7 +122,7 @@ ctx[:year]:   "<Year of today>"
   #@ {:year} is passed-through
     assert_invoke XX::Create, never: true, date: "today", model: Object, something: 99, year: "2022", expected_ctx_variables: {
       log: %{
-ctx keys:     [:current_user, :date, :year, :never, :model, :thing]
+ctx keys:     [:current_user, :date, :year, :never, :model, :thing, :months]
 time:         "Time.now"
 ctx[:time]:   nil
 date:         today
@@ -122,13 +130,14 @@ current_user: <Currentuser for Object>
 ctx[:model]:  Object
 ctx[:thing]:  99
 ctx[:year]:   "2022"
+ctx[:months]: [1, 2, 3]
 }
     }
 
 #@ {:current_user} passed from outside, defaulting not called
     assert_invoke XX::Create, never: true, date: "today", model: Object, current_user: Module, expected_ctx_variables: {
       log: %{
-ctx keys:     [:current_user, :date, :year, :never, :model, :thing]
+ctx keys:     [:current_user, :date, :year, :never, :model, :thing, :months]
 time:         "Time.now"
 ctx[:time]:   nil
 date:         today
@@ -136,6 +145,22 @@ current_user: Module
 ctx[:model]:  Object
 ctx[:thing]:  nil
 ctx[:year]:   "<Year of today>"
+ctx[:months]: [1, 2, 3]
+}
+    }
+
+#@ {:months} passed from outside but still overridden by {Inject(:override => true)}
+    assert_invoke XX::Create, never: true, date: "today", model: Object, months: "NO! I AM IGNORED!", expected_ctx_variables: {
+      log: %{
+ctx keys:     [:current_user, :date, :year, :never, :model, :thing, :months]
+time:         "Time.now"
+ctx[:time]:   nil
+date:         today
+current_user: <Currentuser for Object>
+ctx[:model]:  Object
+ctx[:thing]:  nil
+ctx[:year]:   "<Year of today>"
+ctx[:months]: [1, 2, 3]
 }
     }
 

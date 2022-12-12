@@ -161,21 +161,30 @@ module Trailblazer
                   end
 
                   # callable, producing a hash!
-                  filter = Activity::Circuit.Step(user_filter, option: true)
 
-                  [
-                    Filter.build_for(
+                  return build_for_option(user_filter,
                       name:                 Filter.name_for(type, user_filter.object_id, :add_variables),
-                      filter:               filter,
                       write_name:           nil,
                       read_name:            nil,
-                      user_filter:          user_filter,
                       add_variables_class:  add_variables_class_for_callable, # for example, {AddVariables::Output}
                       **options
                     )
-                  ]
                   # TODO: remove {add_variables_class_for_callable} and make everything SetVariable.
                 end # call
+
+                # Simply invoke user's filter.
+                # Use this for filters without condition and default.
+                def self.build_for_option(user_filter, **options)
+                  filter = Activity::Circuit.Step(user_filter, option: true)
+
+                  [
+                    Filter.build(
+                      filter:       filter,
+                      user_filter:  user_filter,
+                      **options
+                    )
+                  ]
+                end
               end
             end # In
 
@@ -272,7 +281,17 @@ module Trailblazer
                     end
                   end
 
-                  puts "@@@@@ #{options.inspect}"
+                  if options[:override]
+                    return In::FiltersBuilder.build_for_option(
+                      user_filter,
+                      name:                 Filter.name_for(:Inject, variable_name, :add_variables),
+                      write_name:           variable_name,
+                      read_name:            nil,
+                      add_variables_class:  SetVariable,
+                      **options
+                    )
+                  end
+
 
                   # Build {SetVariable::Default}
                   # {user_filter} is one of the following
@@ -285,7 +304,7 @@ module Trailblazer
                   )
 
                   [
-                    Filter.build_for(add_variables_class: SetVariable::Default, **options)
+                    Filter.build_for_reading(add_variables_class: SetVariable::Default, **options)
                   ]
                 end # call
 
@@ -299,15 +318,14 @@ module Trailblazer
                   }
                 end
 
-                def self.options_with_condition_for_defaulted(write_name:, user_filter:, **options)
+                def self.options_with_condition_for_defaulted(user_filter:, **options)
                   default_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
 
                   options_with_condition(
                     **options,
-                    write_name:     write_name,
-                    default_filter: default_filter,
                     user_filter:    user_filter,
                     name_specifier: :default,
+                    default_filter: default_filter,
                   )
                 end
               end # FiltersBuilder
@@ -315,13 +333,18 @@ module Trailblazer
 
             # DISCUSS: generic, again
             module Filter
-              def self.build_for(add_variables_class:, write_name:, read_name:, **options)
+              def self.build(add_variables_class:, **options)
+                add_variables_class.new(
+                  **options,
+                )
+              end
+
+              def self.build_for_reading(read_name:, **options)
                 circuit_step_filter = VariableFromCtx.new(variable_name: read_name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
 
-                add_variables_class.new(
-                  filter:      circuit_step_filter,
-                  write_name:  write_name,
-                  **options, # FIXME: same name here for every iteration!
+                build(
+                  filter: circuit_step_filter,
+                  **options
                 )
               end
 
@@ -329,7 +352,7 @@ module Trailblazer
                 return user_filter.collect do |from_name, to_name|
                   options = yield(options, from_name, to_name)
 
-                  Filter.build_for(
+                  Filter.build_for_reading(
                     user_filter: user_filter,
                     **options,
                   )
