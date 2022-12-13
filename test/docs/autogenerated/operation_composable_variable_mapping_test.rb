@@ -71,6 +71,7 @@ end
 #@ In() 1.1 {:model => :model}
 class CVInMappingHashTest < Minitest::Spec
   Policy = ComposableVariableMappingDocTest::A::Policy
+  Song   = Module.new
 
   module A
     #:in-mapping
@@ -93,8 +94,8 @@ class CVInMappingHashTest < Minitest::Spec
     assert_invoke A::Create, current_user: Module, expected_ctx_variables: {model: Object}
   end
 
-  module AAA
-    #:in-mapping-keys
+  #:in-mapping-keys
+  module Song::Operation
     class Create < Trailblazer::Operation
       step :create_model
       step :show_ctx,
@@ -111,19 +112,21 @@ class CVInMappingHashTest < Minitest::Spec
       include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:in-mapping-keys end
-
-  end # A
+  end
+  #:in-mapping-keys end
 
   it "In() is only locally visible" do
-    assert_invoke AAA::Create, current_user: Module, expected_ctx_variables: {model: Object}
+    assert_invoke Song::Operation::Create, current_user: Module, expected_ctx_variables: {model: Object}
   end
+end
 
 # In() 1.2
-  module B
-    Policy = ComposableVariableMappingDocTest::A::Policy
+class CVInLimitTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+  Song   = Module.new
 
-    #:in-limit
+  #:in-limit
+  module Song::Operation
     class Create < Trailblazer::Operation
       step :create_model
       step Policy::Create,
@@ -133,22 +136,25 @@ class CVInMappingHashTest < Minitest::Spec
       include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:in-limit end
   end
+  #:in-limit end
 
   it "In() can map and limit" do
-    assert_invoke B::Create, current_user: Module, expected_ctx_variables: {model: Object}
+    assert_invoke Song::Operation::Create, current_user: Module, expected_ctx_variables: {model: Object}
   end
 
   it "Policy breach will add {ctx[:message]} and {:status}" do
-    assert_invoke B::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, status: 422, message: "Command {create} not allowed!"}
+    assert_invoke Song::Operation::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, status: 422, message: "Command {create} not allowed!"}
   end
+end
 
 # In() 1.3 (callable)
-  module BB
-    Policy = ComposableVariableMappingDocTest::A::Policy
+class CVInCallableTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+  Song   = Module.new
 
-    #:in-callable
+  #:in-callable
+  module Song::Operation
     class Create < Trailblazer::Operation
       step :create_model
       step Policy::Create,
@@ -161,26 +167,29 @@ class CVInMappingHashTest < Minitest::Spec
       include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:in-callable end
   end
+  #:in-callable end
 
   it "In() can map and limit" do
-    assert_invoke BB::Create, current_user: Module, expected_ctx_variables: {model: Object}
+    assert_invoke Song::Operation::Create, current_user: Module, expected_ctx_variables: {model: Object}
   end
 
   it "exception because we don't pass {:current_user}" do
     exception = assert_raises ArgumentError do
-      result = Trailblazer::Operation::TaskWrap.invoke(BB::Create, [{}, {}]) # no {:current_user}
+      result = Trailblazer::Operation::TaskWrap.invoke(Song::Operation::Create, [{}, {}]) # no {:current_user}
     end
 
     assert_equal exception.message, "missing keyword: #{Trailblazer::Core.symbol_inspect_for(:user)}"
   end
+end
 
 # In() 1.4 (filter method)
-  module BBB
-    Policy = ComposableVariableMappingDocTest::A::Policy
+class CVInMethodTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+  Song   = Module.new
 
-    #:in-method
+  #:in-method
+  module Song::Operation
     class Create < Trailblazer::Operation
       step :create_model
       step Policy::Create,
@@ -195,16 +204,19 @@ class CVInMappingHashTest < Minitest::Spec
       include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:in-method end
   end
+  #:in-method end
 
-  it{ assert_invoke BBB::Create, current_user: Module, expected_ctx_variables: {model: Object} }
+  it { assert_invoke Song::Operation::Create, current_user: Module, expected_ctx_variables: {model: Object} }
+end
 
 # In() 1.5 (callable with kwargs)
-  module BBBB
-    Policy = ComposableVariableMappingDocTest::A::Policy
+class CVInKwargsTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+  Song   = Module.new
 
-    #:in-kwargs
+  #:in-kwargs
+  module Song::Operation
     class Create < Trailblazer::Operation
       step :create_model
       step Policy::Create,
@@ -217,10 +229,10 @@ class CVInMappingHashTest < Minitest::Spec
       include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:in-kwargs end
   end
+  #:in-kwargs end
 
-  it{ assert_invoke BBBB::Create, current_user: Module, expected_ctx_variables: {model: Object} }
+  it { assert_invoke Song::Operation::Create, current_user: Module, expected_ctx_variables: {model: Object} }
 end
 
 # Out() 1.1
