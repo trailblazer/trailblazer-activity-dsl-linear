@@ -102,6 +102,7 @@ class NormalizerTest < Minitest::Spec
   end
 
   # FIXME: from activity/adds_test.rb
+  require "pp"
   def inspect(pipe)
     pipe.pretty_inspect.sub(/0x\w+/, "")
   end
