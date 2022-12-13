@@ -36,43 +36,42 @@ class ComposableVariableMappingDocTest < Minitest::Spec
     end
     #:policy end
   end
+end
 
 #@ 0.1 No In()
-  module AA
-    Policy = A::Policy
+class CVNoInTest < Minitest::Spec
+  Song   = Module.new
+  Policy = ComposableVariableMappingDocTest::A::Policy
 
-    #:no-in
+  #:no-in
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create # an imaginary policy step.
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:no-in end
   end
+  #:no-in end
 
   it "why do we need In() ? because we get an exception" do
     exception = assert_raises ArgumentError do
       #:no-in-invoke
-      result = Trailblazer::Activity::TaskWrap.invoke(AA::Create, [{current_user: Module}])
+      result = Trailblazer::Activity.(Song::Activity::Create, current_user: Module)
 
       #=> ArgumentError: missing keyword: :user
       #:no-in-invoke end
     end
 
-    assert_equal exception.message, "missing keyword: #{symbol_inspect_for(:user)}"
+    assert_equal exception.message, "missing keyword: #{Trailblazer::Core.symbol_inspect_for(:user)}"
   end
-
-  def symbol_inspect_for(name)
-    if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("2.7.0") || RUBY_ENGINE == 'jruby'
-      "#{name}"
-    else
-      ":#{name}"
-    end
-  end
+end
 
 #@ In() 1.1 {:model => :model}
+class CVInMappingHashTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+
   module A
     #:in-mapping
     class Create < Trailblazer::Activity::Railway
@@ -83,7 +82,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
           :model        => :model # add {:model} to the inner ctx.
         }
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
     #:in-mapping end
@@ -109,7 +108,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         #=> {:user=>#<User email:...>, :model=>#<Song name=nil>}
       end
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
     #:in-mapping-keys end
@@ -122,7 +121,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
 
 # In() 1.2
   module B
-    Policy = A::Policy
+    Policy = ComposableVariableMappingDocTest::A::Policy
 
     #:in-limit
     class Create < Trailblazer::Activity::Railway
@@ -131,7 +130,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         In() => {:current_user => :user},
         In() => [:model]
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
     #:in-limit end
@@ -147,7 +146,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
 
 # In() 1.3 (callable)
   module BB
-    Policy = A::Policy
+    Policy = ComposableVariableMappingDocTest::A::Policy
 
     #:in-callable
     class Create < Trailblazer::Activity::Railway
@@ -159,7 +158,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         end,
         In() => [:model]
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
     #:in-callable end
@@ -174,12 +173,12 @@ class ComposableVariableMappingDocTest < Minitest::Spec
       result = Trailblazer::Activity::TaskWrap.invoke(BB::Create, [{}, {}]) # no {:current_user}
     end
 
-    assert_equal exception.message, "missing keyword: #{symbol_inspect_for(:user)}"
+    assert_equal exception.message, "missing keyword: #{Trailblazer::Core.symbol_inspect_for(:user)}"
   end
 
 # In() 1.4 (filter method)
   module BBB
-    Policy = A::Policy
+    Policy = ComposableVariableMappingDocTest::A::Policy
 
     #:in-method
     class Create < Trailblazer::Activity::Railway
@@ -193,7 +192,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         ctx[:current_user].nil? ? {} : {user: ctx[:current_user]}
       end
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
     #:in-method end
@@ -203,7 +202,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
 
 # In() 1.5 (callable with kwargs)
   module BBBB
-    Policy = A::Policy
+    Policy = ComposableVariableMappingDocTest::A::Policy
 
     #:in-kwargs
     class Create < Trailblazer::Activity::Railway
@@ -215,19 +214,22 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         end,
         In() => [:model]
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
     #:in-kwargs end
   end
 
   it{ assert_invoke BBBB::Create, current_user: Module, expected_ctx_variables: {model: Object} }
+end
 
 # Out() 1.1
-  module D
-    Policy = A::Policy
+class CVOutTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+  Song = Module.new
 
-    #:out-array
+  #:out-array
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create,
@@ -235,24 +237,28 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         In() => [:model],
         Out() => [:message]
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:out-array end
   end
+  #:out-array end
 
   it "Out() can limit" do
     #= policy didn't set any message
-    assert_invoke D::Create, current_user: Module, expected_ctx_variables: {model: Object, message: nil}
+    assert_invoke Song::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object, message: nil}
     #= policy breach, {message_from_policy} set.
-    assert_invoke D::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message: "Command {create} not allowed!"}
+    assert_invoke Song::Activity::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message: "Command {create} not allowed!"}
   end
 
-# Out() 1.2
-  module C
-    Policy = A::Policy
+end
 
-    #:out-hash
+# Out() 1.2
+class CVOutHashTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+  Song = Module.new
+
+  #:out-hash
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create,
@@ -260,26 +266,28 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         In() => [:model],
         Out() => {:message => :message_from_policy}
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:out-hash end
   end
+  #:out-hash end
 
   it "Out() can map" do
     #= policy didn't set any message
-    assert_invoke C::Create, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil}
+    assert_invoke Song::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil}
     #= policy breach, {message_from_policy} set.
-    assert_invoke C::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
+    assert_invoke Song::Activity::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
   end
-
+end
 
 # Out() 1.3
-  module DD
-    Policy = A::Policy
+class CVOutCallableTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+  Song = Module.new
 
-    # Message = Struct.new(:data)
-    #:out-callable
+  # Message = Struct.new(:data)
+  #:out-callable
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create,
@@ -293,24 +301,27 @@ class ComposableVariableMappingDocTest < Minitest::Spec
           }
         end
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:out-callable end
   end
+  #:out-callable end
 
   it "Out() can map with callable" do
     #= policy didn't set any message
-    assert_invoke DD::Create, current_user: Module, expected_ctx_variables: {model: Object}
+    assert_invoke Song::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object}
     #= policy breach, {message_from_policy} set.
-    assert_invoke DD::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
+    assert_invoke Song::Activity::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
   end
+end
 
 # Out() 1.4
-  module DDD
-    Policy = A::Policy
+class CVOutKwTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+  Song   = Module.new
 
-    #:out-kw
+  #:out-kw
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create,
@@ -324,24 +335,27 @@ class ComposableVariableMappingDocTest < Minitest::Spec
           }
         end
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:out-kw end
   end
+  #:out-kw end
 
   it "Out() can map with callable" do
     #= policy didn't set any message
-    assert_invoke DDD::Create, current_user: Module, expected_ctx_variables: {model: Object}
+    assert_invoke Song::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object}
     #= policy breach, {message_from_policy} set.
-    assert_invoke DDD::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
+    assert_invoke Song::Activity::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, message_from_policy: "Command {create} not allowed!"}
   end
+end
 
 # Out() 1.6
-  module DDDD
-    Policy = A::Policy
+class CVOutOuterTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+  Song   = Module.new
 
-    #:out-outer
+  #:out-outer
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create,
@@ -355,82 +369,92 @@ class ComposableVariableMappingDocTest < Minitest::Spec
           }
         end
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:out-outer end
   end
+  #:out-outer end
 
   it "Out() with {outer_ctx}" do
     #= policy didn't set any message
-    assert_invoke DDDD::Create, current_user: Module, errors: {}, expected_ctx_variables: {:errors=>{:policy_message=>nil}, model: Object, message: nil}
+    assert_invoke Song::Activity::Create, current_user: Module, errors: {}, expected_ctx_variables: {:errors=>{:policy_message=>nil}, model: Object, message: nil}
     #= policy breach, {message_from_policy} set.
-    assert_invoke DDDD::Create, current_user: nil, errors: {}, terminus: :failure, expected_ctx_variables: {:errors=>{:policy_message=>"Command {create} not allowed!"}, :model=>Object, :message=>"Command {create} not allowed!"}
+    assert_invoke Song::Activity::Create, current_user: nil, errors: {}, terminus: :failure, expected_ctx_variables: {:errors=>{:policy_message=>"Command {create} not allowed!"}, :model=>Object, :message=>"Command {create} not allowed!"}
   end
+end
 
 # Macro 1.0
-  module DDDDD
-    Policy = A::Policy
-    #:macro
-    module Policy
-      def self.Create()
-        {
-          task: Policy::Create,
-          wrap_task: true,
-          Trailblazer::Activity::Railway.In()  => {:current_user => :user},
-          Trailblazer::Activity::Railway.In()  => [:model],
-          Trailblazer::Activity::Railway.Out() => {:message => :message_from_policy},
-        }
-      end
-    end
-    #:macro end
+class CVMacroTest < Minitest::Spec
+  Policy = ComposableVariableMappingDocTest::A::Policy
+  Song   = Module.new
 
-    #:macro-use
+  #:macro
+  module Policy
+    def self.Create()
+      {
+        task: Policy::Create,
+        wrap_task: true,
+        Trailblazer::Activity::Railway.In()  => {:current_user => :user},
+        Trailblazer::Activity::Railway.In()  => [:model],
+        Trailblazer::Activity::Railway.Out() => {:message => :message_from_policy},
+      }
+    end
+  end
+  #:macro end
+
+  #:macro-use
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create()
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:macro-use end
   end
+  #:macro-use end
 
   it "Out() with {outer_ctx}" do
     #= policy didn't set any message
-    assert_invoke DDDDD::Create, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil}
+    assert_invoke Song::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil}
     #= policy breach, {message_from_policy} set.
-    assert_invoke DDDDD::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message_from_policy=>"Command {create} not allowed!"}
+    assert_invoke Song::Activity::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message_from_policy=>"Command {create} not allowed!"}
   end
+end
 
 # Macro 1.1
-  module DDDDDD
-    Policy = DDDDD::Policy
+class CVMacroMergeTest < Minitest::Spec
+  Policy = CVMacroTest::Policy
+  Song   = Module.new
 
-    #:macro-merge
+  #:macro-merge
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Create(),
         Out() => {:message => :copied_message} # user options!
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:macro-merge end
   end
+  #:macro-merge end
 
   it do
     #= policy didn't set any message
-    assert_invoke DDDDDD::Create, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil, :copied_message=>nil}
+    assert_invoke Song::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object, message_from_policy: nil, :copied_message=>nil}
     #= policy breach, {message_from_policy} set.
-    assert_invoke DDDDDD::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message_from_policy=>"Command {create} not allowed!", :copied_message=>"Command {create} not allowed!"}
+    assert_invoke Song::Activity::Create, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message_from_policy=>"Command {create} not allowed!", :copied_message=>"Command {create} not allowed!"}
   end
+end
 
-  # Inheritance 1.0
-  module EEE
-    Policy = DDDDD::Policy
+# Inheritance 1.0
+class CVInheritanceTest < Minitest::Spec
+  Policy = CVMacroTest::Policy
+  Song   = Module.new
 
-    #:inheritance-base
+  #:inheritance-base
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       extend Trailblazer::Activity::DSL::Linear::VariableMapping::Inherit # this has to be done on the root level!
 
@@ -441,21 +465,22 @@ class ComposableVariableMappingDocTest < Minitest::Spec
         Out() => [:message],
         id: :policy
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:inheritance-base end
+  end
+  #:inheritance-base end
 
     # puts Trailblazer::Developer::Render::TaskWrap.(Create, id: :policy)
 =begin
 #:tw-render
-puts Trailblazer::Developer::Render::TaskWrap.(Song::Operation::Create, id: :policy)
+puts Trailblazer::Developer::Render::TaskWrap.(Song::Activity::Create, id: :policy)
 #:tw-render end
 =end
 
 =begin
 #:tw-render-out
-Song::Operation::Create
+Song::Activity::Create
 `-- policy
     |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
     |   |-- input.init_hash.............................. ............................................. VariableMapping.initial_aggregate
@@ -470,7 +495,8 @@ Song::Operation::Create
 #:tw-render-out end
 =end
 
-    #:inheritance-sub
+  #:inheritance-sub
+  module Song::Activity
     class Admin < Create
       step Policy::Create,
         Out() => {:message => :raw_message_for_admin},
@@ -478,14 +504,15 @@ Song::Operation::Create
         id: :policy,      # you need to reference the :id when your step
         replace: :policy
     end
-    #:inheritance-sub end
+  end
+  #:inheritance-sub end
 
     # puts Trailblazer::Developer::Render::TaskWrap.(Admin, id: :policy)
 =begin
 #:sub-pipe
-puts Trailblazer::Developer::Render::TaskWrap.(Admin, id: :policy)
+puts Trailblazer::Developer::Render::TaskWrap.(Song::Activity::Admin, id: :policy)
 
-ComposableVariableMappingDocTest::EEE::Admin
+Song::Activity::Admin
 # `-- policy
 #     |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
 #     |   |-- input.init_hash.............................. ............................................. VariableMapping.initial_aggregate
@@ -500,44 +527,47 @@ ComposableVariableMappingDocTest::EEE::Admin
 #        `-- output.merge_with_original................... ............................................. VariableMapping.merge_with_original
 #:sub-pipe end
 =end
-  end
 
   it do
     #= policy didn't set any message
-    assert_invoke EEE::Admin, current_user: Module, expected_ctx_variables: {model: Object, message: nil, :raw_message_for_admin=>nil}
-    assert_invoke EEE::Admin, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message=>"Command {create} not allowed!", :raw_message_for_admin=>"Command {create} not allowed!"}
+    assert_invoke Song::Activity::Admin, current_user: Module, expected_ctx_variables: {model: Object, message: nil, :raw_message_for_admin=>nil}
+    assert_invoke Song::Activity::Admin, current_user: nil, terminus: :failure, expected_ctx_variables: {model: Object, :message=>"Command {create} not allowed!", :raw_message_for_admin=>"Command {create} not allowed!"}
+  end
+end
+
+# Inject() 1.0
+class CVInjectTest < Minitest::Spec
+  Song   = Module.new
+
+  class ApplicationPolicy
+    def self.can?(model, user, action)
+      decision = !user.nil? && action == :create
+      Struct.new(:allowed?).new(decision)
+    end
   end
 
-  # Inject() 1.0
-  module GGG
-    class ApplicationPolicy
-      def self.can?(model, user, action)
-        decision = !user.nil? && action == :create
-        Struct.new(:allowed?).new(decision)
-      end
-    end
+  #:policy-check
+  module Policy
+    class Check
+                                      # vvvvvvvvvvvvvvv-- defaulted keyword arguments
+      def self.call(ctx, model:, user:, action: :create, **)
+        decision = ApplicationPolicy.can?(model, user, action) # FIXME: how does pundit/cancan do this exactly?
+        #~decision
 
-    #:policy-check
-    module Policy
-      class Check
-                                        # vvvvvvvvvvvvvvv-- defaulted keyword arguments
-        def self.call(ctx, model:, user:, action: :create, **)
-          decision = ApplicationPolicy.can?(model, user, action) # FIXME: how does pundit/cancan do this exactly?
-          #~decision
-
-          if decision.allowed?
-            return true
-          else
-            ctx[:message] = "Command {#{action}} not allowed!"
-            return false
-          end
-          #~decision end
+        if decision.allowed?
+          return true
+        else
+          ctx[:message] = "Command {#{action}} not allowed!"
+          return false
         end
+        #~decision end
       end
     end
-    #:policy-check end
+  end
+  #:policy-check end
 
-    #:inject
+  #:inject
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Check,
@@ -545,74 +575,80 @@ ComposableVariableMappingDocTest::EEE::Admin
         In() => [:model],
         Inject() => [:action]
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:inject end
   end
+  #:inject end
 
   it "Inject()" do
     #= {:action} defaulted to {:create}
-    assert_invoke GGG::Create, current_user: Module, expected_ctx_variables: {model: Object}
+    assert_invoke Song::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object}
 
     #= {:action} set explicitely to {:create}
-    assert_invoke GGG::Create, current_user: Module, action: :create, expected_ctx_variables: {model: Object}
+    assert_invoke Song::Activity::Create, current_user: Module, action: :create, expected_ctx_variables: {model: Object}
 
     #= {:action} set explicitely to {:update}, policy breach
-    assert_invoke GGG::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object, message: "Command {update} not allowed!"}, terminus: :failure
+    assert_invoke Song::Activity::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object, message: "Command {update} not allowed!"}, terminus: :failure
   end
+end
 
-  module GGGG
-    Policy = GGG::Policy
+class CVNoInjectTest < Minitest::Spec
+  Policy = CVInjectTest::Policy
+  Song   = Module.new
 
-    #:no-inject
+  #:no-inject
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Check,
         In() => {:current_user => :user},
         In() => [:model, :action]
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:no-inject end
   end
+  #:no-inject end
 
   it "not using Inject()" do
     #= {:action} not defaulted as In() passes nil
-    assert_invoke GGGG::Create, current_user: Module, expected_ctx_variables: {model: Object, message: "Command {} not allowed!"}, terminus: :failure
+    assert_invoke Song::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object, message: "Command {} not allowed!"}, terminus: :failure
 
     #= {:action} set explicitely to {:create}
-    assert_invoke GGGG::Create, current_user: Module, action: :create, expected_ctx_variables: {model: Object}
+    assert_invoke Song::Activity::Create, current_user: Module, action: :create, expected_ctx_variables: {model: Object}
 
     #= {:action} set explicitely to {:update}
-    assert_invoke GGGG::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object, message: "Command {update} not allowed!"}, terminus: :failure
+    assert_invoke Song::Activity::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object, message: "Command {update} not allowed!"}, terminus: :failure
   end
+end
 
-  module GGGGG
-    ApplicationPolicy = GGG::ApplicationPolicy
+class CVInjectDefaultTest < Minitest::Spec
+  ApplicationPolicy = CVInjectTest::ApplicationPolicy
+  Song   = Module.new
 
-    #:policy-check-nodef
-    module Policy
-      class Check
-                                        # vvvvvvv-- no defaulting!
-        def self.call(ctx, model:, user:, action:, **)
-          decision = ApplicationPolicy.can?(model, user, action) # FIXME: how does pundit/cancan do this exactly?
-          #~decision
+  #:policy-check-nodef
+  module Policy
+    class Check
+                                      # vvvvvvv-- no defaulting!
+      def self.call(ctx, model:, user:, action:, **)
+        decision = ApplicationPolicy.can?(model, user, action) # FIXME: how does pundit/cancan do this exactly?
+        #~decision
 
-          if decision.allowed?
-            return true
-          else
-            ctx[:message] = "Command {#{action}} not allowed!"
-            return false
-          end
-          #~decision end
+        if decision.allowed?
+          return true
+        else
+          ctx[:message] = "Command {#{action}} not allowed!"
+          return false
         end
+        #~decision end
       end
     end
-    #:policy-check-nodef end
+  end
+  #:policy-check-nodef end
 
-    #:inject-default
+  #:inject-default
+  module Song::Activity
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step Policy::Check,
@@ -620,36 +656,36 @@ ComposableVariableMappingDocTest::EEE::Admin
         In() => [:model],
         Inject(:action) => ->(ctx, **) { :create }
       #~meths
-      include Steps
+      include ComposableVariableMappingDocTest::Steps
       #~meths end
     end
-    #:inject-default end
   end
+  #:inject-default end
 
   it "Inject() with default" do
     #= {:action} defaulted by Inject()
-    assert_invoke GGGGG::Create, current_user: Module, expected_ctx_variables: {model: Object}
+    assert_invoke Song::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object}
 
     #= {:action} set explicitely to {:create}
-    assert_invoke GGGGG::Create, current_user: Module, action: :create, expected_ctx_variables: {model: Object}
+    assert_invoke Song::Activity::Create, current_user: Module, action: :create, expected_ctx_variables: {model: Object}
 
     #= {:action} set explicitely to {:update}
-    assert_invoke GGGGG::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object, message: "Command {update} not allowed!"}, terminus: :failure
+    assert_invoke Song::Activity::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object, message: "Command {update} not allowed!"}, terminus: :failure
   end
+end
 
   # def operation_for(&block)
   #   namespace = Module.new
-  #   # namespace::Policy = A::Policy
+  #   # namespace::Policy = ComposableVariableMappingDocTest::A::Policy
   #   namespace.const_set :Policy, A::Policy
 
   #   namespace.module_eval do
   #     operation = yield
   #     operation.class_eval do
-  #       include Steps
+  #       include ComposableVariableMappingDocTest::Steps
   #     end
   #   end
   # end # operation_for
-end
 
 class DefaultInjectOnlyTest < Minitest::Spec
   it "Inject(), only, without In()" do
