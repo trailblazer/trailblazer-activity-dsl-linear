@@ -1,5 +1,4 @@
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
-require "pp"
 require "trailblazer/activity/dsl/linear"
 
 require "minitest/autorun"
@@ -9,6 +8,8 @@ require "trailblazer/developer/render/circuit"
 require "trailblazer/developer/render/linear"
 
 require "trailblazer/activity/testing"
+require "trailblazer/core"
+
 T = Trailblazer::Activity::Testing
 
 Minitest::Spec.class_eval do
@@ -82,3 +83,5 @@ module Fixtures
     end
   end
 end
+
+# Trailblazer::Core.convert_operation_test("test/docs/composable_variable_mapping_test.rb")
