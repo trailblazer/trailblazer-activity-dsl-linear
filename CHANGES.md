@@ -1,4 +1,4 @@
-# 1.0.1
+# 1.1.0
 
 * Use `trailblazer-activity` 0.15.0.
 * Remove `Path::DSL.OptionsForSequenceBuilder` and move concrete code to `Path::DSL.options_for_sequence_build`
@@ -15,15 +15,14 @@
 * For `output:` in combination with `:output_with_outer_ctx`, deprecate the second positional argument and make it
   the `:outer_ctx` keyword argument instead.
 * Introduce `Linear.Patch` as the public entry point for patching activities.
-* Remove `Runtime.initial_aggregate` step for the input and output pipelines which results in slightly better runtime performance and
-  less code.
+* Remove `Runtime.initial_aggregate` step for the input and output pipelines which results in slightly better runtime performance and less code.
 
 ## Variable Mapping
 
 * Simplify the architecture in `VariableMapping`, filters are now added directly into the `Pipeline`.
   Performance increase from 17k to 25k from 1.0.0 to this version.
 * Introduce `Inject(:variable)` to supersede the version receiving a big mapping hash.
-* Add Inject(:variable, override: true) to always write a variable to ctx, regardless of its presence.
+* Add `Inject(:variable, override: true)` to always write a variable to ctx, regardless of its presence.
 * Fix a bug where `Inject()` would override `In()` filters even though the latter was added latest. This
   is fixed by treating both filter types equally and in the order they were added by the user (and the macro).
 
