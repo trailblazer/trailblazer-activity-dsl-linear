@@ -686,6 +686,50 @@ class CVInjectDefaultTest < Minitest::Spec
   end
 end
 
+class CVInjectOverrideTest < Minitest::Spec
+  Policy = CVInjectDefaultTest::Policy
+  Song   = Module.new
+
+  #:inject-override
+  module Song::Activity
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Check,
+        In() => {:current_user => :user},
+        In() => [:model],
+        #:inject_override_iso
+        Inject(:action, override: true) => ->(*) { :create } # always used.
+        #:inject_override_iso end
+      #~meths
+      include ComposableVariableMappingDocTest::Steps
+      #~meths end
+    end
+  end
+  #:inject-override end
+
+  it "Inject() with default" do
+    #= {:action} override
+    assert_invoke Song::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object}
+
+    #= {:action} still overridden
+    assert_invoke Song::Activity::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object}
+
+    current_user = Module
+
+    #:inject-override-call
+    signal, (ctx, _) = Trailblazer::Activity.(Song::Activity::Create,
+      current_user: current_user,
+      action: :update # this is always overridden.
+    )
+    #~ctx_to_result
+    puts ctx[:model] #=> #<Song id: 1, ...>
+    #~ctx_to_result end
+    #:inject-override-call end
+
+    assert_equal ctx[:model], Object
+  end
+end
+
   # def operation_for(&block)
   #   namespace = Module.new
   #   # namespace::Policy = ComposableVariableMappingDocTest::A::Policy
