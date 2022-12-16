@@ -33,10 +33,10 @@ module Trailblazer
           #   output_ctx = @filter.(returned_ctx, [original_ctx, returned_flow_options], **original_circuit_options)
           # Returns {output_ctx} that is used after taskWrap finished.
           class Output < Input
-              def call(wrap_ctx, original_args)
-                returned_ctx, returned_flow_options = wrap_ctx[:return_args]  # this is the Context returned from {call}ing the wrapped user task.
-                original_ctx                        = wrap_ctx[@id]           # grab the original ctx from before which was set in the {:input} filter.
-                _, original_circuit_options         = original_args
+            def call(wrap_ctx, original_args)
+              returned_ctx, returned_flow_options = wrap_ctx[:return_args]  # this is the Context returned from {call}ing the wrapped user task.
+              original_ctx                        = wrap_ctx[@id]           # grab the original ctx from before which was set in the {:input} filter.
+              _, original_circuit_options         = original_args
 
               # let user compute the output.
               pipe_ctx, _     = @pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx, aggregate: {}}, [[original_ctx, returned_flow_options], original_circuit_options])

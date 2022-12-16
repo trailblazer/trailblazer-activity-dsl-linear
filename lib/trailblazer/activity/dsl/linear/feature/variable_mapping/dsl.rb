@@ -15,7 +15,7 @@ module Trailblazer
             # use the inherit one.
             def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
               in_filters  = DSL::Tuple.filters_from_options(in_filters)
-              pipeline    = add_filter_steps(initial_input_pipeline, in_filters)
+              _pipeline    = add_filter_steps(initial_input_pipeline, in_filters)
             end
 
             # initial pipleline depending on whether or not we got any In() filters.
@@ -33,7 +33,7 @@ module Trailblazer
               default_ctx_row =
                 add_default_ctx ? Activity::TaskWrap::Pipeline.Row(*default_input_ctx_config) : nil
 
-              pipe = Activity::TaskWrap::Pipeline.new(
+              Activity::TaskWrap::Pipeline.new(
                 [
                   default_ctx_row,
                   Activity::TaskWrap::Pipeline.Row("input.scope",     VariableMapping.method(:scope)), # last step

@@ -97,7 +97,7 @@ module Trailblazer
             # TODO: remove for TRB 2.2.
             def self.deprecate_input_output_inject_option(input_output_inject_options, *composable_options)
               return unless input_output_inject_options.any?
-              options, dsl_options = input_output_inject_options
+              options, _dsl_options = input_output_inject_options
 
               deprecated_options_count = options.find_all { |(name, option)| option }.count + (options[:inject] ? options[:inject].count-1 : 0)
               composable_options_count = composable_options.collect { |options| options.size }.sum
