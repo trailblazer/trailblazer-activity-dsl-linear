@@ -11,8 +11,6 @@ module Trailblazer
             module_function
 
             # Compute pipeline for In() and Inject().
-            # We allow to inject {:initial_input_pipeline} here in order to skip creating a new input pipeline and instead
-            # use the inherit one.
             def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
               in_filters  = DSL::Tuple.filters_from_options(in_filters)
               _pipeline    = add_filter_steps(initial_input_pipeline, in_filters)

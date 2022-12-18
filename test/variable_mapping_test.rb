@@ -450,99 +450,7 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
   #   assert_equal ctx.inspect, %{{:model=>[], :ignore=>1, :incoming=>[[asdfasdf], {:model=>Object, :current_user=>nil}]}}
   # end
 
-  it "inherit: [:variable_mapping]" do
-    module TTTTT
-      class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
-        extend Trailblazer::Activity::DSL::Linear::VariableMapping::Inherit # this has to be done on the root level!
 
-        step :write,
-          # all filters can see the original ctx:
-          Inject() => {time: ->(ctx, **) { 99 }},
-          In() => ->(ctx,**) { {current_user: ctx[:current_user]} },
-          Out() => {:current_user => :acting_user},
-          Out() => [:incoming]
-
-        def write(ctx, current_user:, time:, **)
-          ctx[:incoming] = [ctx[:model], current_user, ctx.to_h]
-        end
-      end
-
-      # puts Trailblazer::Developer::Render::TaskWrap.(Create, id: :write)
-=begin
-`-- write
-    |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
-    |   |-- input.init_hash.................. VariableMapping.initial_aggregate
-    |   |-- input.add_variables.0.38201322097043044 #<Proc:0x0000563ccddeac00 test/variable_mapping_test.rb:477 (lambda)>
-    |   |-- input.add_variables.inject.defaulting_callable.:time #<Proc:0x0000563ccdd99d78 /home/nick/projects/trailblazer-activity-dsl-linear/lib/trailblazer/activity/dsl/linear/feature/variable_mapping/dsl.rb:265 (lambda)>
-    |   `-- input.scope...................... VariableMapping.scope
-    |-- task_wrap.call_task..............Method
-    `-- task_wrap.output.................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Output
-        |-- output.init_hash................. VariableMapping.initial_aggregate
-        |-- input.add_variables.0.3193284352064869 {:current_user=>:acting_user}
-        |-- input.add_variables.0.38710688414782224 [:incoming]
-        `-- output.merge_with_original....... VariableMapping.merge_with_original
-=end
-
-      # raise Trailblazer::Activity::Introspect::Graph(Create).find(:write).data.keys.inspect
-
-    #@ Is the taskWrap inherited?
-      class Update < Create
-      end
-
-      # TODO: allow adding/modifying the inherited settings.
-      class Upsert < Update
-        step :write, replace: :write,
-          inherit: [:variable_mapping],
-            In()  => ->(ctx, model:, action:, **) { {model: model} }, # [:model]
-            Out() => {:incoming => :output_of_write}, #
-            Out(delete: true) => [:incoming] # as this is statically set in the superclass, we have to delete to make it invisible.
-      end
-
-      # puts Trailblazer::Developer::Render::TaskWrap.(Upsert, id: :write)
-=begin
-`-- write
-    |-- task_wrap.input..................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Input
-    |   |-- input.init_hash.................. VariableMapping.initial_aggregate
-    |   |-- input.add_variables.0.20645771700848103 #<Proc:0x00005648d42b2780 test/variable_mapping_test.rb:477 (lambda)>
-    |   |-- input.add_variables.inject.defaulting_callable.:time #<Proc:0x00005648d4602db8 /home/nick/projects/trailblazer-activity-dsl-linear/lib/trailblazer/activity/dsl/linear/feature/variable_mapping/dsl.rb:265 (lambda)>
-    |   |-- input.add_variables.0.5854806761771405 #<Proc:0x00005648d45e4ef8 test/variable_mapping_test.rb:512 (lambda)>
-    |   `-- input.scope...................... VariableMapping.scope
-    |-- task_wrap.call_task..............Method
-    `-- task_wrap.output.................Trailblazer::Activity::DSL::Linear::VariableMapping::Pipe::Output
-        |-- output.init_hash................. VariableMapping.initial_aggregate
-        |-- input.add_variables.0.9107743346926569 {:current_user=>:acting_user}
-        |-- input.add_variables.0.8006623186384084 [:incoming]
-        |-- input.add_variables.0.6227212997466626 {:incoming=>:output_of_write}
-        |-- input.add_variables.0.39150656923962324 [:incoming]
-        `-- output.merge_with_original....... VariableMapping.merge_with_original
-=end
-    end
-
-  # Create
-    #= we don't see {:model} because Create doesn't have an In() for it.
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Create, [{time: "yesterday", model: Object}, {}])
-    assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :acting_user=>nil, :incoming=>[nil, nil, {:time=>"yesterday", :current_user=>nil}]}}
-    #@ {:time} is defaulted by Inject()
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Create, [{}, {}])
-    assert_equal ctx.inspect, %{{:acting_user=>nil, :incoming=>[nil, nil, {:time=>99, :current_user=>nil}]}}
-
-  # Update and Create work identically
-    #= we don't see {:model} because Create doesn't have an In() for it.
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Update, [{time: "yesterday", model: Object}, {}])
-    assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :acting_user=>nil, :incoming=>[nil, nil, {:time=>"yesterday", :current_user=>nil}]}}
-
-    #@ {:time} is defaulted by Inject()
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Update, [{}, {}])
-    assert_equal ctx.inspect, %{{:acting_user=>nil, :incoming=>[nil, nil, {:time=>99, :current_user=>nil}]}}
-
-  #= Upsert additionally sees {:model}
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Upsert, [{time: "yesterday", model: Object, action: :upsert}, {}])
-    assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :action=>:upsert, :acting_user=>nil, :output_of_write=>[Object, nil, {:time=>"yesterday", :current_user=>nil, :model=>Object}]}}
-
-    #@ {:time} is defaulted by Inject()
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TTTTT::Upsert, [{model: Object, action: :upsert}, {}])
-    assert_equal ctx.inspect, %{{:model=>Object, :action=>:upsert, :acting_user=>nil, :output_of_write=>[Object, nil, {:time=>99, :current_user=>nil, :model=>Object}]}}
-  end
 
   #@ unit test
   it "accepts :initial_input_pipeline as normalizer option" do
@@ -573,6 +481,7 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
   end
 
   #@ unit test
+  # TODO: remove this test, it's not public API anymore.
   it "accepts :initial_output_pipeline as normalizer option" do
     my_output_ctx = ->(wrap_ctx, original_args) do
       wrap_ctx[:aggregate] = wrap_ctx[:aggregate].collect { |k,v| [k.to_s.upcase, v.to_s.upcase] }.to_h
@@ -800,5 +709,83 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
       set_variable = output_pipe[4][1]
       assert_equal set_variable.name, "Out.add_variables{#{proc_out.object_id}}"
     end
+  end
+end
+
+
+class VariableMappingInheritTest < Minitest::Spec
+  it "inherit: [:variable_mapping]" do
+    class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
+      extend Trailblazer::Activity::DSL::Linear::VariableMapping::Inherit # this has to be done on the root level!
+
+      step :write,
+        # all filters can see the original ctx:
+        Inject() => {time: ->(ctx, **) { 99 }},
+        In() => ->(ctx,**) { {current_user: ctx[:current_user]} },
+        Out() => {:current_user => :acting_user},
+        Out() => [:incoming]
+
+      def write(ctx, current_user:, time:, **)
+        ctx[:incoming] = [ctx[:model], current_user, ctx.to_h]
+      end
+    end
+
+    # puts Trailblazer::Developer::Render::TaskWrap.(Create, id: :write)
+
+    # raise Trailblazer::Activity::Introspect::Graph(Create).find(:write).data.keys.inspect
+
+  #@ Is the taskWrap inherited?
+    class Update < Create
+    end
+
+    # TODO: allow adding/modifying the inherited settings.
+    class Upsert < Update
+      step :write, replace: :write,
+        inherit: [:variable_mapping],
+          In()  => ->(ctx, model:, action:, **) { {model: model} }, # [:model]
+          Out() => {:incoming => :output_of_write}, #
+          Out(delete: true) => [:incoming] # as this is statically set in the superclass, we have to delete to make it invisible.
+    end
+
+    #@ use inherit: [:variable_mapping] but don't add a filter.
+    class Upvote < Create
+      step :write, replace: :write,
+        inherit: [:variable_mapping]
+
+      def write(ctx, time:, current_user:, **)
+        ctx[:incoming] = [ctx[:model], current_user, ctx.to_h].inspect
+      end
+    end
+
+    # puts Trailblazer::Developer::Render::TaskWrap.(Upsert, id: :write)
+
+  # Create
+    #= we don't see {:model} because Create doesn't have an In() for it.
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Create, [{time: "yesterday", model: Object}, {}])
+    assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :acting_user=>nil, :incoming=>[nil, nil, {:time=>"yesterday", :current_user=>nil}]}}
+    #@ {:time} is defaulted by Inject()
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Create, [{}, {}])
+    assert_equal ctx.inspect, %{{:acting_user=>nil, :incoming=>[nil, nil, {:time=>99, :current_user=>nil}]}}
+
+  # Update and Create work identically
+    #= we don't see {:model} because Create doesn't have an In() for it.
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Update, [{time: "yesterday", model: Object}, {}])
+    assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :acting_user=>nil, :incoming=>[nil, nil, {:time=>"yesterday", :current_user=>nil}]}}
+
+    #@ {:time} is defaulted by Inject()
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Update, [{}, {}])
+    assert_equal ctx.inspect, %{{:acting_user=>nil, :incoming=>[nil, nil, {:time=>99, :current_user=>nil}]}}
+
+  #= Upsert additionally sees {:model}
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Upsert, [{time: "yesterday", model: Object, action: :upsert}, {}])
+    assert_equal ctx.inspect, %{{:time=>"yesterday", :model=>Object, :action=>:upsert, :acting_user=>nil, :output_of_write=>[Object, nil, {:time=>"yesterday", :current_user=>nil, :model=>Object}]}}
+
+    #@ {:time} is defaulted by Inject()
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Upsert, [{model: Object, action: :upsert}, {}])
+    assert_equal ctx.inspect, %{{:model=>Object, :action=>:upsert, :acting_user=>nil, :output_of_write=>[Object, nil, {:time=>99, :current_user=>nil, :model=>Object}]}}
+
+  #@ inherit works without adding filters
+    assert_invoke Upvote, expected_ctx_variables: {:acting_user=>nil, :incoming=>"[nil, nil, {:time=>99, :current_user=>nil}]"}
+    assert_invoke Upvote, current_user: Object, expected_ctx_variables: {:acting_user=>Object, :incoming=>"[nil, Object, {:time=>99, :current_user=>Object}]"}
   end
 end

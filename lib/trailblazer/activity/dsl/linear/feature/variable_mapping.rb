@@ -136,10 +136,10 @@ module Trailblazer
               },
               # non_symbol_options:
               {
-                Linear::Strategy.DataVariable() => :variable_mapping_pipelines # we want to store {:variable_mapping_pipelines} in {Row.data} for later reference.
+                # we want to store {:in_filters} and {:out_filters} in {Row.data} for later reference.
+                Linear::Strategy.DataVariable() => :in_filters,
+                Linear::Strategy.DataVariable() => :out_filters,
               }
-              # DISCUSS: should we remember the pure pipelines or get it from the compiled extension?
-              # store pipe in the extension (via TW::Extension.data)?
           end
 
           def deprecation_link
