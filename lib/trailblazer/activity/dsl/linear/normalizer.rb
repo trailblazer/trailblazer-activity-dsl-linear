@@ -151,6 +151,12 @@ module Trailblazer
           # dictate the overriding.
           def normalize_override(ctx, id:, override: false, **)
             return unless override
+
+            index = caller_locations.find_index { |location| location.to_s =~ /recompile_activity_for/ }
+            caller_location = caller_locations[index+2]
+            Activity::Deprecate.warn caller_location, "The :override option is deprecated and will be removed. Please use :replace instead."
+
+
             ctx[:replace] = (id || raise)
           end
 

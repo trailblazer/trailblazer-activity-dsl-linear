@@ -120,17 +120,25 @@ class ActivityTest < Minitest::Spec
 }
     end
 
+    # TODO: remove in 1.2.0.
     it "accepts {:override}" do
-      implementing = self.implementing
+      activity = nil
 
-      activity = Class.new(Activity::Railway) do
-        step implementing.method(:a), id: :a
-        step implementing.method(:b), id: :b
-        step(
-          {id: :a, task: implementing.method(:c)}, # macro
-          override: true
-        )
+      _, err = capture_io do
+        implementing = self.implementing
+
+        activity = Class.new(Activity::Railway) do
+          step implementing.method(:a), id: :a
+          step implementing.method(:b), id: :b
+          step(
+            {id: :a, task: implementing.method(:c)}, # macro
+            override: true
+          )
+        end
       end
+      line_number = __LINE__ - 6
+
+      assert_equal err, %{[Trailblazer] #{File.realpath(__FILE__)}:#{line_number} The :override option is deprecated and will be removed. Please use :replace instead.\n}
 
       assert_process_for activity.to_h, :success, :failure, %{
 #<Start/:default>
