@@ -18,6 +18,8 @@ class Trailblazer::Activity
       end
 
       module Deprecate
+        # Used in combination with `Activity::Deprecate.warn`. Guesses the location
+        # of the method call from the stacktrace.
         def self.dsl_caller_location
           caller_index = caller_locations.find_index { |location| location.to_s =~ /recompile_activity_for/ }
           caller_index ? caller_locations[caller_index+2] : caller_locations[0]
