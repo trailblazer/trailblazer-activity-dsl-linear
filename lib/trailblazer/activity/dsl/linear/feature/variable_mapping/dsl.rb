@@ -196,10 +196,7 @@ module Trailblazer
                     options =
                       # TODO: remove {if} and only leave {else}.
                       if call_method.arity == 3
-                        index = caller_locations.find_index { |location| location.to_s =~ /recompile_activity_for/ }
-                        caller_location = caller_locations[index+2]
-
-                        Activity::Deprecate.warn caller_location,
+                        Activity::Deprecate.warn Linear::Deprecate.dsl_caller_location,
                           "The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.\n#{VariableMapping.deprecation_link}"
 
                         options.merge(

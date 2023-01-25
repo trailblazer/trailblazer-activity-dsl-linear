@@ -16,6 +16,13 @@ class Trailblazer::Activity
           Trailblazer::Activity::Adds::Insert.method(name)
         end
       end
+
+      module Deprecate
+        def self.dsl_caller_location
+          caller_index = caller_locations.find_index { |location| location.to_s =~ /recompile_activity_for/ }
+          caller_index ? caller_locations[caller_index+2] : caller_locations[0]
+        end
+      end
     end # Linear
   end
 end
