@@ -1,3 +1,11 @@
+# 1.1.1
+
+* When using `step ..., inherit: true, replace: :find_model` you can now omit `:id`. The ID from
+  `:replace` is used automatically in that case.
+* Deprecate `:override` option for `#step`.
+* Simplify `inherit: [:variable_mapping]` by recording the `:in_filters` and `:out_filters` variables
+instead of the compiled pipelines. This fixes #61.
+
 # 1.1.0
 
 * Use `trailblazer-activity` 0.15.0.
