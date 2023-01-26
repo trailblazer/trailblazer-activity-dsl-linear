@@ -87,6 +87,7 @@ module Trailblazer
                 "activity.normalize_non_symbol_options"   => Normalizer.Task(method(:normalize_non_symbol_options)),
                 "activity.path_helper.forward_block"      => Normalizer.Task(Helper::Path::Normalizer.method(:forward_block_for_path_branch)),     # forward the "global" block
                 "activity.normalize_context"              => method(:normalize_context),
+                "activity.inherit_and_replace"            => Normalizer.Task(method(:inherit_and_replace)),
                 "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
                 "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)),
                 "activity.wrap_task_with_step_interface"  => Normalizer.Task(method(:wrap_task_with_step_interface)),
@@ -340,6 +341,15 @@ module Trailblazer
               index = Activity::Adds::Insert.find_index(sequence, id)
               sequence[index]
             end
+          end
+
+          # DISCUSS: this step could be nested in {inherit_option}.
+          def inherit_and_replace(ctx, id: nil, replace: nil, inherit: nil, **)
+            return if id
+            return unless inherit === true
+            return unless replace
+
+            ctx[:id] = replace
           end
 
           # return connections from {parent} step which are supported by current step

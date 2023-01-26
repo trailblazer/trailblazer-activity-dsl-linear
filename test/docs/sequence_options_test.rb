@@ -99,7 +99,7 @@ class DocSeqOptionsTest < Minitest::Spec
     _(output).must_equal %{[>create_model,>validate,>logger,>save_the_world]}
   end
 
-  it ":replace" do
+  it "{:replace} allows explicit {:id}" do
     Memo = Id::Memo
 
     #:replace
@@ -118,6 +118,29 @@ class DocSeqOptionsTest < Minitest::Spec
       #=> [>update_memo,>validate,>save_the_world]
       #:replace-inspect end
 
-    _(output).must_equal %{[>update_memo,>validate,>save_the_world]}
+    assert_equal output, %{[>update_memo,>validate,>save_the_world]}
+
+    assert_process_for Memo::Update, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*find_model>
+<*find_model>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Right} => <*save>
+<*save>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+  end
+
+  #@ unit test
+  it "{:replace} automatically computes {:id} from new step" do
+    activity = Class.new(Id::Memo::Create) do
+      step :find_model, replace: :create_model
+    end
+
+    output = Trailblazer::Developer.railway(activity)
+
+    assert_equal output, %{[>find_model,>validate,>save_the_world]}
   end
 end

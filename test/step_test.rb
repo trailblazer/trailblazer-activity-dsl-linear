@@ -35,7 +35,7 @@ Object
 }
   end
 
-#@ IDs for macro options
+#@ IDs in macro options
   it "allows :instance_methods with circuit interface" do
     nested_activity = Class.new(Activity::Path) do
       step task: :c
@@ -68,7 +68,6 @@ Object
     assert_equal Trailblazer::Developer.railway(activity), %{[>a,>B,>f,>d]}
     assert_invoke activity, seq: %{[:a, :b, :f, :d]}
   end
-
 
 # TODO: remove :override tests in 1.2.0.
 #@ :override
@@ -128,4 +127,39 @@ Object
 #<End/:failure>
 }
     end
+end
+
+class StepInheritOptionTest < Minitest::Spec
+  let(:create_activity) do
+    Class.new(Trailblazer::Activity::Railway) do
+      step :create_model
+      step :validate
+      step :save, id: :save_the_world
+
+      include T.def_steps(:create_model, :validate, :save)
+    end
+  end
+
+  it "{:replace} and {:inherit} automatically use {:id} from replaced step" do
+    activity = Class.new(create_activity) do
+      include T.def_steps(:find_model)
+
+      step :find_model, replace: :create_model, inherit: true  #=> id: :create_mode
+    end
+
+    assert_equal Trailblazer::Developer.railway(activity), %{[>create_model,>validate,>save_the_world]}
+    assert_invoke activity, seq: %{[:find_model, :validate, :save]}
+  end
+
+  it "{:replace} and {:inherit} allow explicit {:id}, but it has to be an existing so {:inherit} is happy" do
+    activity = Class.new(create_activity) do
+      include T.def_steps(:find_model)
+
+      step :find_model, replace: :create_model, inherit: true,
+        id: :create_model # ID has to be identical to {:replace} so inherit logic can find.
+    end
+
+    assert_equal Trailblazer::Developer.railway(activity), %{[>create_model,>validate,>save_the_world]}
+    assert_invoke activity, seq: %{[:find_model, :validate, :save]}
+  end
 end
