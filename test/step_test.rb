@@ -35,8 +35,44 @@ Object
 }
   end
 
-# TODO: remove in 1.2.0.
+#@ IDs for macro options
+  it "allows :instance_methods with circuit interface" do
+    nested_activity = Class.new(Activity::Path) do
+      step task: :c
+      include T.def_tasks(:c)
+    end
+
+    activity = Class.new(Activity::Path) do
+      step task: :a
+      step Subprocess(nested_activity)
+      step task: :b
+      include T.def_tasks(:a, :b)
+    end
+
+    assert_invoke activity, seq: %{[:a, :c, :b]}
+  end
+
+  # ID for {task: <task>}
+  # TODO: this should also test ID for {step <task>}
+  it "ID is {:task} unless specified" do
+    activity = Class.new(Activity::Path) do
+      include implementing = T.def_tasks(:a, :b, :d, :f)
+
+      step task: :a
+      step task: :b, id: :B
+      step task: method(:raise)
+      step task: implementing.method(:d), id: :d
+      step({task: implementing.method(:f), id: :f}, replace: method(:raise))
+    end
+
+    assert_equal Trailblazer::Developer.railway(activity), %{[>a,>B,>f,>d]}
+    assert_invoke activity, seq: %{[:a, :b, :f, :d]}
+  end
+
+
+# TODO: remove :override tests in 1.2.0.
 #@ :override
+  # TODO: remove in 1.2.0.
   it "accepts {:override}" do
     activity = nil
 
@@ -71,7 +107,8 @@ Object
 }
     end
 
-  it ":override with inheritance" do
+  # TODO: remove in 1.2.0.
+  it "{:override} with inheritance" do
     activity = Class.new(Activity::Railway) do
       step :a#, id: :a
     end

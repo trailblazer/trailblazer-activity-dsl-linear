@@ -1035,48 +1035,6 @@ ActivityTest::NestedWithThreeTermini
     _(ctx.inspect).must_equal     %{{:seq=>[:a, :c, :d, :b]}}
   end
 
-  it "allows instance methods with circuit interface" do
-    implementing = self.implementing
-
-    nested_activity = Class.new(Activity::Path) do
-      step task: :c
-      step task: :d
-      include T.def_tasks(:c, :d)
-    end
-
-    activity = Class.new(Activity::Path) do
-      step task: :a
-      step Subprocess(nested_activity)
-      step task: :b
-      include T.def_tasks(:a, :b)
-    end
-
-    signal, (ctx, _) = activity.([{seq: []}])
-
-    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal     %{{:seq=>[:a, :c, :d, :b]}}
-  end
-
-  it "assigns {:task} as step's {:id} unless specified" do
-    implementing = self.implementing
-
-    activity = Class.new(Activity::Path) do
-      step task: :a
-      step task: :b, id: :b
-      step task: implementing.method(:c)
-      step task: implementing.method(:d), id: :d
-      step({ task: implementing.method(:f), id: :f }, replace: implementing.method(:c))
-
-      include T.def_tasks(:a, :b)
-    end
-
-    _(Trailblazer::Developer.railway(activity)).must_equal %{[>a,>b,>f,>d]}
-
-    signal, (ctx, _) = activity.([{seq: []}])
-    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal     %{{:seq=>[:a, :b, :f, :d]}}
-  end
-
   it "provides {#to_h}" do
     activity = Class.new(Activity::Path) do
       step :a
