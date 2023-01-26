@@ -34,4 +34,61 @@ Object
 #<End/:success>
 }
   end
+
+# TODO: remove in 1.2.0.
+#@ :override
+  it "accepts {:override}" do
+    activity = nil
+
+    _, err = capture_io do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Railway) do
+        step implementing.method(:a), id: :a
+        step implementing.method(:b), id: :b
+        step(
+          {id: :a, task: implementing.method(:c)}, # macro
+          override: true
+        )
+      end
+    end
+    line_number = __LINE__ - 6
+
+    assert_equal err, %{[Trailblazer] #{File.realpath(__FILE__)}:#{line_number} The :override option is deprecated and will be removed. Please use :replace instead.\n}
+
+    assert_process_for activity.to_h, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
+#<Method: #<Module:0x>.c>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+    end
+
+  it ":override with inheritance" do
+    activity = Class.new(Activity::Railway) do
+      step :a#, id: :a
+    end
+
+    sub = Class.new(activity) do
+      step :a, override: true#, id: :a
+    end
+
+    assert_process_for sub.to_h, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+    end
 end
