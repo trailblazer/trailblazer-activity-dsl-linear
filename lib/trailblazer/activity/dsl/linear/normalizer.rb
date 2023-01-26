@@ -79,6 +79,8 @@ module Trailblazer
             pipeline = TaskWrap::Pipeline.new(
               {
                 "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)), # Makes sure {:options} is always a hash.
+                "activity.macro_options_with_symbol_task" => Normalizer.Task(method(:macro_options_with_symbol_task)),
+
                 "activity.merge_library_options"          => Normalizer.Task(method(:merge_library_options)),    # Merge "macro"/user options over library options.
                 "activity.normalize_for_macro"            => Normalizer.Task(method(:merge_user_options)),       # Merge user_options over "macro" options.
                 "activity.normalize_normalizer_options"   => Normalizer.Task(method(:merge_normalizer_options)), # Merge user_options over normalizer_options.
@@ -111,32 +113,39 @@ module Trailblazer
             pipeline
           end
 
+          # DISCUSS: should we remove this special case?
+          # This handles
+          #   step task: :instance_method_exposing_circuit_interface
+          def macro_options_with_symbol_task(ctx, options:, **)
+            return if options[:wrap_task]
+            return unless options[:task].is_a?(Symbol)
+
+            ctx[:options] = {
+              **options,
+              wrap_task:              true,
+              step_interface_builder: ->(task) { Trailblazer::Option(task) } # only wrap in Option, not {TaskAdapter}.
+            }
+          end
+
+          # @param {:options} The first argument passed to {#step}
+          # After this step, options is always a hash.
+          #
           # Specific to the "step DSL": if the first argument is a callable, wrap it in a {step_interface_builder}
           # since its interface expects the step interface, but the circuit will call it with circuit interface.
           def normalize_step_interface(ctx, options:, **)
-            options = case options
-                      when Hash
-                        # Circuit Interface
-                        task  = options.fetch(:task)
-                        id    = options[:id]
+            return if options.is_a?(Hash)
 
-                        if task.is_a?(Symbol)
-                          # step task: :find, id: :load
-                          { **options, id: (id || task), task: Trailblazer::Option(task) }
-                        else
-                          # step task: Callable, ... (Subprocess, Proc, macros etc)
-                          options # NOOP
-                        end
-                      else
-                        # Step Interface
-                        # step :find, ...
-                        # step Callable, ... (Method, Proc etc)
-                        { task: options, wrap_task: true }
-                      end
-
-            ctx[:options] = options
+            # Step Interface
+            # step :find, ...
+            # step Callable, ... (Method, Proc etc)
+            ctx[:options] = {
+              task:       options,
+              wrap_task:  true # task exposes step interface.
+            }
           end
 
+          # @param :wrap_task If true, the {:task} is wrapped using the step_interface_builder, meaning the
+          #                   task is expecting the step interface.
           def wrap_task_with_step_interface(ctx, wrap_task: false, step_interface_builder:, task:, **)
             return unless wrap_task
 
@@ -147,6 +156,7 @@ module Trailblazer
             ctx[:id] = id || task
           end
 
+          # TODO: remove {#normalize_override} in 1.2.0.
           # {:override} really only makes sense for {step Macro(), {override: true}} where the {user_options}
           # dictate the overriding.
           def normalize_override(ctx, id:, override: false, **)
