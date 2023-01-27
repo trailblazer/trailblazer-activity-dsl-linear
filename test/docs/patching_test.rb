@@ -57,9 +57,7 @@ class DocsPatchingTest < Minitest::Spec
       end
 
       class Destroy < Trailblazer::Activity::Railway
-        def self.tidy_storage(ctx, **)
-          ctx[:seq] << :tidy_storage
-        end
+        extend T.def_steps(:tidy_storage)
 
         #:patch_self
         step Subprocess(
@@ -70,8 +68,6 @@ class DocsPatchingTest < Minitest::Spec
       end
     end
 
-    signal, (ctx, _) = Trailblazer::Developer.wtf?(Asset::Destroy, [{seq: []}])
-
-    _(ctx.inspect).must_equal %{{:seq=>[:tidy_storage, :delete_model]}}
+    assert_invoke Asset::Destroy, seq: %{[:tidy_storage, :delete_model]}
   end
 end
