@@ -1,10 +1,6 @@
 class Trailblazer::Activity
   module DSL
     module Linear
-      def self.Patch(activity, instructions)
-        Patch.customize(activity, options: instructions)
-      end
-
       module Patch
       # DISCUSS: we could make this a generic DSL option, not just for Subprocess().
         # Currently, this is called from the Subprocess() helper.
@@ -20,7 +16,7 @@ class Trailblazer::Activity
           activity
         end
 
-        def self.call(activity, path, customization)
+        def self.call(activity, path, customization, patched_activity: Class.new(activity))
           task_id, *path = path
 
           patch =
@@ -34,9 +30,14 @@ class Trailblazer::Activity
               customization # apply the *actual* patch from the Subprocess() call.
             end
 
-          patched_activity = Class.new(activity)
           patched_activity.class_exec(&patch)
           patched_activity
+        end
+
+        module DSL
+          def patch(*path, &block)
+            Patch.call(self, path, block, patched_activity: self)
+          end
         end
       end # Patch
     end
