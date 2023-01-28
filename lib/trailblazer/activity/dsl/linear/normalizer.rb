@@ -87,7 +87,7 @@ module Trailblazer
                 "activity.normalize_non_symbol_options"   => Normalizer.Task(method(:normalize_non_symbol_options)),
                 "activity.path_helper.forward_block"      => Normalizer.Task(Helper::Path::Normalizer.method(:forward_block_for_path_branch)),     # forward the "global" block
                 "activity.normalize_context"              => method(:normalize_context),
-                "activity.inherit_and_replace"            => Normalizer.Task(method(:inherit_and_replace)),
+                "activity.id_with_inherit_and_replace"    => Normalizer.Task(method(:id_with_inherit_and_replace)),
                 "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
                 "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)),
                 "activity.wrap_task_with_step_interface"  => Normalizer.Task(method(:wrap_task_with_step_interface)),
@@ -345,7 +345,7 @@ module Trailblazer
 
           # Whenever {:replace} and {:inherit} are passed, automatically assign {:id}.
           # DISCUSS: this step could be nested in {inherit_option}.
-          def inherit_and_replace(ctx, id: nil, replace: nil, inherit: nil, **)
+          def id_with_inherit_and_replace(ctx, id: nil, replace: nil, inherit: nil, **)
             return if id
             return unless inherit # inherit: true and inherit: [] both work.
             return unless replace
