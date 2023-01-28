@@ -67,8 +67,7 @@ class PatchDSLTest < Minitest::Spec
       #:patch_function end
     end
 
-    Trailblazer::Developer.wtf?(Song::Operation::Erase, [{seq: []}])
-
+    # Trailblazer::Developer.wtf?(Song::Operation::Erase, [{seq: []}])
     assert_invoke Song::Operation::Destroy, seq: %{[:policy, :find_model, :delete_model, :rm_images, :rm_uploads]}
     assert_invoke Song::Operation::Erase, seq: %{[:policy, :find_model, :delete_model, :rm_images, :tidy_storage, :rm_uploads]}
   end
@@ -84,6 +83,7 @@ class DocsSubprocessPatchTest < Minitest::Spec
       class Destroy < Trailblazer::Activity::Railway
         def self.tidy_storage(ctx, **)
           # delete files from your amazing cloud
+          true
         end
         #~meths
         include T.def_steps(:policy, :find_model)
