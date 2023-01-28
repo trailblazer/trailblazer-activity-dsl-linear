@@ -343,10 +343,11 @@ module Trailblazer
             end
           end
 
+          # Whenever {:replace} and {:inherit} are passed, automatically assign {:id}.
           # DISCUSS: this step could be nested in {inherit_option}.
           def inherit_and_replace(ctx, id: nil, replace: nil, inherit: nil, **)
             return if id
-            return unless inherit === true
+            return unless inherit # inherit: true and inherit: [] both work.
             return unless replace
 
             ctx[:id] = replace

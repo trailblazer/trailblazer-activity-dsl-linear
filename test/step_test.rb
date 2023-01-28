@@ -151,6 +151,17 @@ class StepInheritOptionTest < Minitest::Spec
     assert_invoke activity, seq: %{[:find_model, :validate, :save]}
   end
 
+  it "{:id} is also infered from {:replace} if {:inherit} a value other than {true}" do
+    activity = Class.new(create_activity) do
+      include T.def_steps(:find_model)
+
+      step :find_model, replace: :create_model, inherit: [1,2,3]  #=> id: :create_mode
+    end
+
+    assert_equal Trailblazer::Developer.railway(activity), %{[>create_model,>validate,>save_the_world]}
+    assert_invoke activity, seq: %{[:find_model, :validate, :save]}
+  end
+
   it "{:replace} and {:inherit} allow explicit {:id}, but it has to be an existing so {:inherit} is happy" do
     activity = Class.new(create_activity) do
       include T.def_steps(:find_model)
