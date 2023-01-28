@@ -5,6 +5,8 @@
 * Deprecate `:override` option for `#step`.
 * Simplify `inherit: [:variable_mapping]` by recording the `:in_filters` and `:out_filters` variables
 instead of the compiled pipelines. This fixes #61.
+* Introduce `#patch` to simplify modifying nested activities. Instead of `Subprocess(<activity>, patch: ...)` you can use
+  the dedicated DSL function.
 
 # 1.1.0
 
