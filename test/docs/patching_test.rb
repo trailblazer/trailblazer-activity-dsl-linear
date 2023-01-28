@@ -2,64 +2,75 @@ require "test_helper"
 
 #@ Test {Operation.patch}
 class PatchDSLTest < Minitest::Spec
-  module Song
-    module Operation
-      #:delete_assets
-      class DeleteAssets < Trailblazer::Activity::Railway
-        step :rm_images
-        step :rm_uploads
-        #~meths
-        include T.def_steps(:rm_images, :rm_uploads)
-        #~meths end
-      end
-      #:delete_assets end
+  module Song; end
 
-      #:delete
-      class Delete < Trailblazer::Activity::Railway
-        step :delete_model
-        step Subprocess(DeleteAssets), id: :delete_assets
-        #~meths
-        include T.def_steps(:delete_model)
-        #~meths end
-      end
-      #:delete end
+  module Song::Operation
+    #:delete_assets
+    class DeleteAssets < Trailblazer::Activity::Railway
+      step :rm_images
+      step :rm_uploads
+      #~meths
+      include T.def_steps(:rm_images, :rm_uploads)
+      #~meths end
+    end
+    #:delete_assets end
 
-      class Destroy < Trailblazer::Activity::Railway
+    #:delete
+    class Delete < Trailblazer::Activity::Railway
+      step :delete_model
+      step Subprocess(DeleteAssets), id: :delete_assets
+      #~meths
+      include T.def_steps(:delete_model)
+      #~meths end
+    end
+    #:delete end
+  end
 
-        #~meths
-        include T.def_steps(:policy, :find_model)
-        #~meths end
+  module Song::Operation
+    class Destroy < Trailblazer::Activity::Railway
+      #~meths
+      include T.def_steps(:policy, :find_model)
+      #~meths end
 
-        step :policy
-        step :find_model
-        step Subprocess(Delete), id: :delete
-      end
-    end # Operation
+      step :policy
+      step :find_model
+      step Subprocess(Delete), id: :delete
+    end
   end
 
   it "provides the {#patch} function" do
     module Song::Operation
       #:patch_function
       class Erase < Destroy # we're inheriting from Song::Operation::Destroy
-        # def self.tidy_storage(ctx, **)
-        #   # delete files from your amazing cloud
-        #   true
-        # end
+        #~meths
+        module A
+        #~meths end
+        def self.tidy_storage(ctx, **)
+          # delete files from your amazing cloud
+        end
+        #~meths
+        end
         extend T.def_steps(:tidy_storage)
-
+        #~meths end
+        # These steps are inherited:
         # step :policy
         # step :find_model
-        # step Subprocess(Delete), id: "delete"
+        # step Subprocess(Delete), id: :delete
+
         extend Trailblazer::Activity::DSL::Linear::Patch::DSL
+
+        # Note the path you pass to #patch.
         patch(:delete, :delete_assets) {
-          step Erase.method(:tidy_storage), before: :rm_images
+          step Erase.method(:tidy_storage), after: :rm_images
         }
       end
       #:patch_function end
     end
 
+    Trailblazer::Developer.wtf?(Song::Operation::Erase, [{seq: []}])
+
     assert_invoke Song::Operation::Destroy, seq: %{[:policy, :find_model, :delete_model, :rm_images, :rm_uploads]}
-    assert_invoke Song::Operation::Erase, seq: %{[:policy, :find_model, :delete_model, :tidy_storage, :rm_images, :rm_uploads]}
+    assert_invoke Song::Operation::Erase, seq: %{[:policy, :find_model, :delete_model, :rm_images, :tidy_storage, :rm_uploads]}
   end
 end
 
@@ -73,12 +84,10 @@ class DocsSubprocessPatchTest < Minitest::Spec
       class Destroy < Trailblazer::Activity::Railway
         def self.tidy_storage(ctx, **)
           # delete files from your amazing cloud
-          true
         end
         #~meths
         include T.def_steps(:policy, :find_model)
         #~meths end
-
         step :policy
         step :find_model
         step Subprocess(Delete,
