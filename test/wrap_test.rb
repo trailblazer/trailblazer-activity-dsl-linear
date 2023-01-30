@@ -1,13 +1,5 @@
 require "test_helper"
 # FIXME: what is this test?
-=begin
-     # taskWrap extensions.
-    merge = [
-      [taskWrap::Pipeline.method(:insert_before), "task_wrap.call_task", ["user.add_1", method(:add_1)]],
-      [taskWrap::Pipeline.method(:insert_after),  "task_wrap.call_task", ["user.add_2", method(:add_2)]],
-    ]
-  # FIXME: deprecate this version!
-=end
 
 class TaskWrapTest < Minitest::Spec
   it "populates activity[:wrap_static] and uses it at run-time" do
@@ -15,13 +7,13 @@ class TaskWrapTest < Minitest::Spec
 
     # taskWrap extensions.
     merge = [
-      {insert: [Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"], row: taskWrap::Pipeline.Row("user.add_1", method(:add_1))},
-      {insert: [Activity::Adds::Insert.method(:Append),  "task_wrap.call_task"], row: taskWrap::Pipeline.Row("user.add_2", method(:add_2))},
+      [method(:add_1), id: "user.add_1", prepend: "task_wrap.call_task"],
+      [method(:add_2), id: "user.add_2", append:  "task_wrap.call_task"],
     ]
 
     implementing = self.implementing
     activity = Class.new(Trailblazer::Activity::Path) do
-      step task: implementing.method(:a), extensions: [taskWrap::Extension(merge: merge)]
+      step task: implementing.method(:a), extensions: [taskWrap::Extension.WrapStatic(*merge)]
       step task: implementing.method(:b)
       step task: implementing.method(:c)
     end
@@ -42,7 +34,7 @@ class TaskWrapTest < Minitest::Spec
     nested_activity = Class.new(Trailblazer::Activity::Path) do
       step task: implementing.method(:a)
       step Subprocess(activity)
-      step task: c, extensions: [taskWrap::Extension(merge: merge)]
+      step task: c, extensions: [taskWrap::Extension.WrapStatic(*merge)]
     end
 
     signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}, {}], **{})
@@ -51,14 +43,10 @@ class TaskWrapTest < Minitest::Spec
 
 # it works nested plus allows {wrap_runtime}
 
-    wrap_runtime = {c => taskWrap::Pipeline::Merge.new(*merge)}
+    wrap_runtime = {c => taskWrap::Extension(*merge)}
 
     signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}, {}], **{wrap_runtime: wrap_runtime})
 
-    _(ctx.inspect).must_equal %{{:seq=>[:a, 1, :a, 2, :b, 1, :c, 2, 1, 1, :c, 2, 2]}}
-  end
-
-  it "Ext() allows adding taskWrap extensions" do
-
+    assert_equal ctx.inspect, %{{:seq=>[:a, 1, :a, 2, :b, 1, :c, 2, 1, 1, :c, 2, 2]}}
   end
 end
