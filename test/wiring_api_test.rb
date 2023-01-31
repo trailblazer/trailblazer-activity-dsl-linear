@@ -23,4 +23,14 @@ class WiringApiTest < Minitest::Spec
 #<End/:success>
 }
   end
+
+  it "raises with unknown Output()" do
+    exception = assert_raises do
+      activity = Class.new(Activity::Path) do
+        step :find_model, Output(:unknown) => Track(:success)
+      end
+    end
+
+    assert_equal exception.message, %{No `unknown` output found for :find_model and outputs {:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}}
+  end
 end
