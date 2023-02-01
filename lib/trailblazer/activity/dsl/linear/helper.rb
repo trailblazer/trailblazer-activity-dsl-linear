@@ -6,7 +6,6 @@ module Trailblazer
         # and then get processed in the normalizer.
         #
         # @private
-        OutputSemantic = Struct.new(:value)
         Id             = Struct.new(:value)
         Track          = Struct.new(:color, :adds, :options)
         Extension      = Struct.new(:callable) do
@@ -28,9 +27,9 @@ module Trailblazer
           #   Output( Left, :failure )
           #   Output( :failure ) #=> Output::Semantic
           def Output(signal, semantic=nil)
-            return OutputSemantic.new(signal) if semantic.nil?
+            return Normalizer::OutputTuples::Output::Semantic.new(signal) if semantic.nil?
 
-            Activity.Output(signal, semantic)
+            Normalizer::OutputTuples::Output::CustomOutput.new(signal, semantic)
           end
 
           def End(semantic)
@@ -66,7 +65,7 @@ module Trailblazer
 
             if strict
               options.merge!(
-                outputs.collect { |output| [Output(output.semantic), Track(output.semantic)] }.to_h
+                outputs.collect { |output| [OutputSemantic.new(output.semantic, true), Track(output.semantic)] }.to_h
               )
             end
 

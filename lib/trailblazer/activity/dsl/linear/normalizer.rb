@@ -89,7 +89,7 @@ module Trailblazer
                 "activity.normalize_context"              => method(:normalize_context),
                 "activity.id_with_inherit_and_replace"    => Normalizer.Task(method(:id_with_inherit_and_replace)),
                 "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
-                "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)),
+                "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)), # TODO: remove!
                 "activity.wrap_task_with_step_interface"  => Normalizer.Task(method(:wrap_task_with_step_interface)),
 
                 "activity.inherit_option"                 => Normalizer.Task(method(:inherit_option)),
@@ -97,8 +97,16 @@ module Trailblazer
                 "activity.normalize_duplications"         => Normalizer.Task(method(:normalize_duplications)),
 
                 "activity.path_helper.path_to_track"       => Normalizer.Task(Helper::Path::Normalizer.method(:convert_paths_to_tracks)),
-                "activity.normalize_outputs_from_dsl"     => Normalizer.Task(method(:normalize_outputs_from_dsl)),     # Output(Signal, :semantic) => Id()
-                "activity.normalize_connections_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
+
+
+
+                "activity.normalize_output_tuples"        => Normalizer.Task(OutputTuples.method(:normalize_output_tuples)),     # Output(Signal, :semantic) => Id()
+                "activity.remember_custom_output_tuples"        => Normalizer.Task(OutputTuples.method(:remember_custom_output_tuples)),     # Output(Signal, :semantic) => Id()
+                "activity.register_additional_outputs"      => Normalizer.Task(OutputTuples.method(:register_additional_outputs)),     # Output(Signal, :semantic) => Id()
+                "activity.filter_inherited_output_tuples"   => Normalizer.Task(OutputTuples.method(:filter_inherited_output_tuples)),
+                # ...
+                 # FIXME: rename!
+                "activity.normalize_outputs_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
 
                 "activity.wirings"                            => Normalizer.Task(method(:compile_wirings)),
 
@@ -258,9 +266,9 @@ module Trailblazer
           end
 
           # Process {Output(:semantic) => target} and make them {:connections}.
-          def normalize_connections_from_dsl(ctx, connections:, adds:, non_symbol_options:, sequence:, normalizers:, **)
+          def normalize_connections_from_dsl(ctx, connections:, adds:, output_tuples:, sequence:, normalizers:, **)
             # Find all {Output() => Track()/Id()/End()}
-            output_configs = non_symbol_options.find_all{ |k,v| k.kind_of?(Linear::OutputSemantic) }
+            output_configs = output_tuples
             return unless output_configs.any?
 
             # DISCUSS: how could we add another magnetic_to to an end?
@@ -292,11 +300,11 @@ module Trailblazer
           def output_to_track(ctx, output, track)
             search_strategy = track.options[:wrap_around] ? :WrapAround : :Forward
 
-            {output.value => [Linear::Sequence::Search.method(search_strategy), track.color]}
+            {output.semantic => [Linear::Sequence::Search.method(search_strategy), track.color]}
           end
 
           def output_to_id(ctx, output, target)
-            {output.value => [Linear::Sequence::Search.method(:ById), target]}
+            {output.semantic => [Linear::Sequence::Search.method(:ById), target]}
           end
 
           # Returns ADDS for the new terminus.
@@ -306,34 +314,110 @@ module Trailblazer
             step_options[:adds]
           end
 
-          # Output(Signal, :semantic) => Id()
-          def normalize_outputs_from_dsl(ctx, non_symbol_options:, outputs:, **)
-            output_configs = non_symbol_options.find_all{ |k,v| k.kind_of?(Activity::Output) }
-            return unless output_configs.any?
-
-            dsl_options = {}
-
-            output_configs.collect do |output, cfg| # {cfg} = Track(:success)
-              outputs     = outputs.merge(output.semantic => output)
-              dsl_options = dsl_options.merge(Linear::Strategy.Output(output.semantic) => cfg)
+          # Logic related to {Output() => ...}, called "Wiring API".
+          # TODO: move to different namespace (feature/dsl)
+          module OutputTuples
+            module Output
+              Semantic      = Struct.new(:semantic, :generic?).include(Output)
+              CustomOutput  = Struct.new(:signal, :semantic, :generic?).include(Output) # generic? is always false
             end
 
-            ctx[:outputs]            = outputs
-            ctx[:non_symbol_options] = non_symbol_options.merge(dsl_options)
+
+            # 1. remember custom tuples (Output and output_semantic)
+            # 2. convert Output, and add to :outputs
+            # 3. now OutputSemantic only to be treated
+
+            def self.normalize_output_tuples(ctx, non_symbol_options:, **)
+              output_tuples = non_symbol_options.find_all { |k,v| k.is_a?(OutputTuples::Output) }
+
+              ctx.merge!(output_tuples: output_tuples)
+            end
+
+            # Remember all custom (non-generic) {:output_tuples}.
+            def self.remember_custom_output_tuples(ctx, output_tuples:, non_symbol_options:, **)
+              # We don't include generic OutputSemantic (from Subprocess(strict: true)) for inheritance, as this is not a user customization.
+              custom_output_tuples = output_tuples.reject { |k,v| k.generic? }
+
+              # save Output() tuples under {:custom_output_tuples} for inheritance.
+              ctx.merge!(
+                custom_output_tuples: custom_output_tuples.to_h,
+                non_symbol_options:   non_symbol_options.merge(Strategy.DataVariable() => :custom_output_tuples)
+              )
+            end
+
+            # Take all Output(signal, semantic), convert to OutputSemantic and extend {:outputs}.
+            # Since only users use this style, we don't have to filter.
+            def self.register_additional_outputs(ctx, output_tuples:, outputs:, **)
+              # We need to preserve the order when replacing Output with OutputSemantic,
+              # that's why we recreate {output_tuples} here.
+              output_tuples =
+                output_tuples.collect do |(output, connector)|
+                  if output.kind_of?(Output::CustomOutput)
+                    # add custom output to :outputs.
+                    outputs = outputs.merge(output.semantic => Activity.Output(output.signal, output.semantic))
+
+                    # Convert Output to OutputSemantic.
+                    [Strategy.Output(output.semantic), connector]
+                  else
+                    [output, connector]
+                  end
+                end
+
+              ctx.merge!(
+                output_tuples: output_tuples,
+                outputs:            outputs
+              )
+            end
+
+            # 1. :outputs is provided by DSL
+# 2. IF :inherit => copy inherited Output tuples
+# 3. convert Output (without semantic, btw, change that) and add to :outputs
+# 4. IF :inherit and strict == false (in step-options,not Subprocess) => throw out Output with unknown semantic
+
+            # Implements {inherit: :outputs, strict: false}
+            # return connections from {parent} step which are supported by current step
+            def self.filter_inherited_output_tuples(ctx, inherit: false, inherited_output_tuples: {}, outputs:, output_tuples:, **)
+              return unless inherit === true
+              strict_outputs = false # TODO: implement "strict outputs" for inherit! meaning we connect all inherited Output regardless of the new activity's interface
+              return if strict_outputs === true
+
+              allowed_semantics     = outputs.keys # these outputs are exposed by the inheriting step.
+              inherited_semantics   = inherited_output_tuples.collect { |output, _| output.semantic }
+              unsupported_semantics = inherited_semantics - allowed_semantics
+
+              filtered_output_tuples = output_tuples.reject do |output, _| unsupported_semantics.include?(output.semantic) end
+
+              ctx.merge!(
+                output_tuples: filtered_output_tuples.to_h
+              )
+            end
+
+            # we want this in the end:
+            # {output.semantic => search strategy}
+            def convert____connections
+
+            end
           end
 
           # Currently, the {:inherit} option copies over {:connections} from the original step
           # and merges them with the (prolly) connections passed from the user.
-          def inherit_option(ctx, inherit: false, sequence:, id:, extensions: [], **)
+          def inherit_option(ctx, inherit: false, sequence:, id:, extensions: [], non_symbol_options:, **)
             return unless inherit === true
 
             row = InheritOption.find_row(sequence, id) # from this row we're inheriting options.
 
-            inherited_connections = row.data[:connections]
+            # inherited_connections = row.data[:connections]
             inherited_extensions  = row.data[:extensions]
 
-            ctx[:connections] = get_inheritable_connections(ctx, inherited_connections)
+            # ctx[:connections] = get_inheritable_connections(ctx, inherited_connections)
             ctx[:extensions]  = Array(inherited_extensions) + Array(extensions)
+
+
+
+            inherited_output_tuples  = row.data[:custom_output_tuples] || {} # Output() tuples from superclass. (2.)
+
+            ctx[:non_symbol_options] = inherited_output_tuples.merge(non_symbol_options)
+            ctx[:inherited_output_tuples] = inherited_output_tuples
           end
 
           module InheritOption # TODO: move all inherit methods in here!
@@ -351,13 +435,6 @@ module Trailblazer
             return unless replace
 
             ctx[:id] = replace
-          end
-
-          # return connections from {parent} step which are supported by current step
-          private def get_inheritable_connections(ctx, parent_connections)
-            return parent_connections unless ctx[:outputs]
-
-            parent_connections.slice(*ctx[:outputs].keys)
           end
 
           def create_row(ctx, task:, wirings:, magnetic_to:, data:, **)
