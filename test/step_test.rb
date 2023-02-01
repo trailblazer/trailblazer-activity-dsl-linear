@@ -173,4 +173,322 @@ class StepInheritOptionTest < Minitest::Spec
     assert_equal Trailblazer::Developer.railway(activity), %{[>create_model,>validate,>save_the_world]}
     assert_invoke activity, seq: %{[:find_model, :validate, :save]}
   end
+
+#@ {:inhert} implements inheriting {:extensions}
+  let(:ext) do
+    merge = [method(:add_1), id: "user.add_1", prepend: "task_wrap.call_task"]
+    ext   = Trailblazer::Activity::TaskWrap::Extension.WrapStatic(merge)
+  end
+
+  it "{inherit: true} copies {:extensions}" do
+    _ext = ext
+
+    activity = Class.new(Activity::Path) do
+      step :a, extensions: [_ext]
+      step :b                     # no {:extensions}
+      include T.def_steps(:a, :b)
+    end
+
+    sub = Class.new(activity) do
+      step :c, inherit: true, replace: :a # this should also "inherit" the taskWrap configs for this task.
+      step :d, inherit: true, replace: :b, extensions: [_ext] # we want to "override" the original {:extensions}
+      include T.def_steps(:c, :d)
+    end
+
+    assert_invoke activity, seq: "[1, :a, :b]"
+    assert_invoke sub,      seq: "[1, :c, 1, :d]"
+  end
+
+#@ inheriting connections
+  #@ nest a FastTrack in a Railway.
+  it "{inherit: true} automatically reduces outputs fitting the new, overriding activity" do
+    fast_track = Class.new(Activity::FastTrack)
+    railway    = Class.new(Activity::Railway)
+
+    activity = Class.new(Activity::Railway) do
+      step Subprocess(fast_track), id: :fast_track
+    end
+
+    # We're replacing FastTrack with Railway.
+    sub_activity = Class.new(activity) do
+      step Subprocess(railway), inherit: true, replace: :fast_track
+    end
+
+    assert_process_for activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+    assert_process_for sub_activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
+
+  #@ Nest a FastTrack in a Railway, but both activities have a new terminus {:invalid}
+  it "{inherit: true} automatically reduces outputs fitting the new, overriding activity, part II" do
+    fast_track = Class.new(Activity::FastTrack) do terminus :invalid  end
+    railway    = Class.new(Activity::Railway)   do terminus :invalid  end
+
+    activity = Class.new(Activity::FastTrack) do
+      terminus :invalid
+      step Subprocess(fast_track, strict: true), id: :fast_track # all 5 outputs are wired.
+    end
+
+    # We're replacing FastTrack with Railway.
+    # Since we're using {strict: true}, success, failure *and invalid* are connected.
+    strict_sub_activity = Class.new(activity) do
+      step Subprocess(railway, strict: true), inherit: true, replace: :fast_track # 3 outputs are wired.
+    end
+
+    sub_activity = Class.new(activity) do
+      step Subprocess(railway), inherit: true, replace: :fast_track               # 2 outputs are wired.
+    end
+
+    assert_process_for activity, :success, :invalid, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+ {#<Trailblazer::Activity::End semantic=:invalid>} => #<End/:invalid>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
+ {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
+#<End/:success>
+
+#<End/:invalid>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+
+    assert_process_for strict_sub_activity, :success, :invalid, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+ {#<Trailblazer::Activity::End semantic=:invalid>} => #<End/:invalid>
+#<End/:success>
+
+#<End/:invalid>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+
+    assert_process_for sub_activity, :success, :invalid, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+#<End/:success>
+
+#<End/:invalid>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+  end
+
+  it "{:inherit} copies {Output}s for known {End}s only" do
+    template = Class.new(Activity::Path) do
+      step :x, Output(:success) => End(:not_found)
+      step :y, Output(:success) => End(:invalid_data)
+    end
+
+    activity = Class.new(Activity::Path) do
+      step :z, Output(:success) => End(:not_found)
+    end
+
+    sub = Class.new(Activity::Path) do
+      step Subprocess(template), id: :a,
+        Output(:not_found)    => Id(:b),
+        Output(:invalid_data) => Id(:b)
+
+      step :b
+    end
+
+    assert_process_for sub, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*b>
+ {#<Trailblazer::Activity::End semantic=:not_found>} => <*b>
+ {#<Trailblazer::Activity::End semantic=:invalid_data>} => <*b>
+<*b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+
+    sub_inherit = Class.new(sub) do
+      step Subprocess(activity), id: :a, replace: :a, inherit: true
+    end
+
+    assert_process_for sub_inherit.to_h, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*b>
+ {#<Trailblazer::Activity::End semantic=:not_found>} => <*b>
+<*b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+}
+  end
+
+  it "{inherit: true} copies custom connections from step" do
+    activity = Class.new(Activity::Railway) do
+      step :model,
+        Output(:failure)         => Track(:success),
+        Output(Module, :invalid) => Track(:failure)  # custom "terminus" and connection.
+      include T.def_steps(:model)
+    end
+
+    sub_activity = Class.new(activity) do
+      step :create_model, inherit: true, replace: :model # just inherit {:connections}
+      include T.def_steps(:create_model)
+    end
+    # TODO
+      # step :d, inherit: true, replace: :b, Output(:success) => Id(:model) # add even more to {:connections}
+
+    assert_process_for activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*model>
+<*model>
+ {Trailblazer::Activity::Left} => #<End/:success>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Module} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
+    assert_process_for sub_activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*create_model>
+<*create_model>
+ {Trailblazer::Activity::Left} => #<End/:success>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Module} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
+
+
+  it "{inherit: true} copies custom connections from nested Subprocess()" do
+
+  end
+
+  it "inherits connections if {inherit: true}" do
+    fast_track = Class.new(Activity::FastTrack)
+    railway    = Class.new(Activity::Railway)
+
+    activity = Class.new(Activity::Railway) do
+      step :model,
+        Output(:failure)         => Track(:success),
+        Output(Module, :invalid) => Track(:failure)
+
+    #@ additional outputs, 3 in total, as they got reduced to Railway
+      step Subprocess(fast_track), id: :fast_track
+
+      step :b,
+        Output(Object, :invalid) => Id(:model)
+
+      include T.def_steps(:model, :b)
+    end
+
+    sub_activity = Class.new(activity) do
+      step Subprocess(railway), inherit: true, replace: :fast_track
+
+      step :c, inherit: true, replace: :model # just inherit {:connections}
+      # step :d, inherit: true, replace: :b, Output(:success) => Id(:model) # add even more to {:connections}
+      include T.def_steps(:c, :d)
+    end
+
+    # Note: The nested FastTrack has three outputs (not five).
+    assert_process_for activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*model>
+<*model>
+ {Trailblazer::Activity::Left} => #<Class:0x>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+ {Module} => #<End/:failure>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*b>
+<*b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Object} => <*model>
+#<End/:success>
+
+#<End/:failure>
+}
+
+    assert_process_for sub_activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => #<Class:0x>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+ {Module} => #<End/:failure>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*b>
+<*b>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Object} => <*c>
+#<End/:success>
+
+#<End/:failure>
+}
+
+    # assert_invoke activity, seq: "[:model, :b]"
+    # assert_invoke sub,      seq: "[:c, :d]"
+  end
+
+  it "does not inherit connections if {:inherit} is anything other than true" do
+
+  end
 end
+
+
+# inheriting:
+# should only inherit "custom connections", and throw away the canonical_outputs hash
+
+# step :a
+#   normalizer.default/Subprocess
+#   Output(Left, :failure) => Track(:failure)
+#   Output(:failure) => Track(:invalid)
+#   Output(Leftuslefty, :failure) => Track(:failure)
+
+
+
+# This shouldn't be possible:
+# step Subprocess(fast_track), id: :fast_track, Output(Module, :invalid) => Track(:failure)
+

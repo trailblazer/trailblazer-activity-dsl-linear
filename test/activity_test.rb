@@ -336,7 +336,7 @@ class ActivityTest < Minitest::Spec
         step(id: :b, task: implementing.method(:b), adds: [
           {
             row:    row,
-            insert: [Trailblazer::Activity::DSL::Linear::Insert.method(:Prepend), :a]
+            insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), :a]
           }
         ])
       end
@@ -784,52 +784,6 @@ ActivityTest::NestedWithThreeTermini
     signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(sub, [{seq: []}, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:seq=>[1, :a, 1, :b]}}
-  end
-
-  it "{:inherit} copies settings for known {End}s only" do
-    template = Class.new(Activity::Path) do
-      step :x, Output(:success) => End(:not_found)
-      step :y, Output(:success) => End(:invalid_data)
-    end
-
-    activity = Class.new(Activity::Path) do
-      step :z, Output(:success) => End(:not_found)
-    end
-
-    sub = Class.new(Activity::Path) do
-      step Subprocess(template), id: :a,
-        Output(:not_found)    => Id(:b),
-        Output(:invalid_data) => Id(:b)
-
-      step :b
-    end
-
-    assert_process_for sub.to_h, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Class:0x>
-#<Class:0x>
- {#<Trailblazer::Activity::End semantic=:success>} => <*b>
- {#<Trailblazer::Activity::End semantic=:not_found>} => <*b>
- {#<Trailblazer::Activity::End semantic=:invalid_data>} => <*b>
-<*b>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
-
-    sub_inherit = Class.new(sub) do
-      step Subprocess(activity), id: :a, replace: :a, inherit: true
-    end
-
-    assert_process_for sub_inherit.to_h, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Class:0x>
-#<Class:0x>
- {#<Trailblazer::Activity::End semantic=:success>} => <*b>
- {#<Trailblazer::Activity::End semantic=:not_found>} => <*b>
-<*b>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
   end
 
   it "assigns default {:id}" do

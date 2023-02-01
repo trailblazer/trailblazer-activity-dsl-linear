@@ -1,6 +1,32 @@
 require "test_helper"
 
 class SubprocessTest < Minitest::Spec
+  it "does not automatically connect outputs unknown to the Strategy" do
+    sub_activity = Class.new(Activity::Railway) do
+      terminus :unknown
+    end
+
+    activity = Class.new(Activity::Railway) do
+      terminus :unknown             # even though we have a terminus magnetic_to {:unknown}...
+      step Subprocess(sub_activity) # ... only failure and success are connected.
+    end
+
+    assert_process_for activity, :success, :unknown, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+#<End/:success>
+
+#<End/:unknown>
+
+#<End/:failure>
+}
+  end
+
+  # TODO: insert {strict: true} tests here.
+
   it "" do
     implementing = self.implementing
 
