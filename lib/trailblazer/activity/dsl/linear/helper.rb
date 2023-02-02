@@ -65,7 +65,7 @@ module Trailblazer
 
             if strict
               options.merge!(
-                outputs.collect { |output| [OutputSemantic.new(output.semantic, true), Track(output.semantic)] }.to_h
+                outputs.collect { |output| [Normalizer::OutputTuples::Output::Semantic.new(output.semantic, true), Track(output.semantic)] }.to_h
               )
             end
 
