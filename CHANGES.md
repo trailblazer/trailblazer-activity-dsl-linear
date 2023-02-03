@@ -1,3 +1,17 @@
+# 1.2
+
+* `step :outputs` is a private concept.
+* Fixed a bug where Subprocess(Path) would accidentially add a {Left, :failure} connection
+  In turn, this doesn't work anymore
+
+  ```ruby
+  step Subprocess(Railway), Output(:failure) => ...
+  ```
+  `
+
+  :outputs when given (as from Subprocess) is no longer extended or overridden/defaulted once it's set.
+  The default step's outputs are set in a separate pipeline in activity.default_outputs.
+
 # 1.1.1
 
 * When using `step ..., inherit: true, replace: :find_model` you can now omit `:id`. The ID from
