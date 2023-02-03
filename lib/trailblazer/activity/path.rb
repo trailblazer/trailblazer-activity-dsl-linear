@@ -8,32 +8,38 @@ module Trailblazer
 
         module_function
 
-        def Normalizer
+        def Normalizer(prepend_to_default_outputs: [])
+          path_output_steps = {
+            "path.outputs" => Linear::Normalizer.Task(method(:add_success_output))
+          }
+
           # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
-          dsl_normalizer = Linear::Normalizer.Normalizer()
+          dsl_normalizer = Linear::Normalizer.Normalizer(
+            prepend_to_default_outputs: [*prepend_to_default_outputs, path_output_steps]
+          )
 
           Linear::Normalizer.prepend_to(
             dsl_normalizer,
             # "activity.wirings",
-            "activity.normalize_outputs_from_dsl",
+            # "activity.normalize_outputs_from_dsl",
+            "activity.inherit_option", # TODO: do this with all normalizers
+
             {
-              "path.outputs"                => Linear::Normalizer.Task(method(:merge_path_outputs)),
+              # "path.outputs"                => Linear::Normalizer.Task(method(:add_success_output)),
               "path.connections"            => Linear::Normalizer.Task(method(:merge_path_connections)),
               "path.magnetic_to"            => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
             }
           )
         end
 
-        def unary_outputs
-          {success: Activity::Output(Activity::Right, :success)}
-        end
+        SUCCESS_OUTPUT = {success: Activity::Output(Activity::Right, :success)}
 
         def unary_connections(track_name: :success)
           {success: [Linear::Sequence::Search.method(:Forward), track_name]}
         end
 
-        def merge_path_outputs(ctx, outputs: nil, **)
-          ctx[:outputs] = outputs || unary_outputs
+        def add_success_output(ctx, **)
+          ctx[:outputs] = SUCCESS_OUTPUT
         end
 
         def merge_path_connections(ctx, track_name:, connections: nil, **)
@@ -57,7 +63,7 @@ module Trailblazer
 
         # @private
         def start_sequence(track_name:)
-          Linear::Strategy::DSL.start_sequence(wirings: [Linear::Sequence::Search::Forward(unary_outputs[:success], track_name)])
+          Linear::Strategy::DSL.start_sequence(wirings: [Linear::Sequence::Search::Forward(SUCCESS_OUTPUT[:success], track_name)])
         end
 
         def options_for_sequence_build(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **)

@@ -715,7 +715,7 @@ class ActivityTest < Minitest::Spec
       end
 
       # the nested's output must be the signal from the sub_nested's terminus
-      _(Trailblazer::Activity::Introspect::Graph(sub).find(:c).outputs[1].to_h[:signal]).must_equal sub_nested.to_h[:outputs][0].to_h[:signal]
+      assert_equal Trailblazer::Activity::Introspect::Graph(sub).find(:c).outputs[1].to_h[:signal], sub_nested.to_h[:outputs][0].to_h[:signal]
 
       assert_process_for sub.to_h, :success, :failure, %{
 #<Start/:default>

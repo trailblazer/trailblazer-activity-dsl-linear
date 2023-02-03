@@ -1,7 +1,7 @@
 require "test_helper"
 
 class SubprocessTest < Minitest::Spec
-  it "does not automatically connect outputs unknown to the Strategy" do
+  it "does not automatically connect outputs unknown to the Strategy (terminus :unknown)" do
     sub_activity = Class.new(Activity::Railway) do
       terminus :unknown
     end
@@ -20,6 +20,51 @@ class SubprocessTest < Minitest::Spec
 #<End/:success>
 
 #<End/:unknown>
+
+#<End/:failure>
+}
+  end
+
+  it "does fail when using {fast_track: true} with Path because it doesn't have the expected outputs" do
+    sub_activity = Class.new(Activity::Path) do
+    end
+
+    activity = Class.new(Activity::FastTrack) do
+      step Subprocess(sub_activity), fast_track: true
+    end
+
+    assert_process_for activity, :success, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+XXXX {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
+xxxx {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+  end
+
+  it "{:outputs} provided by {Subprocess} is not overridden by step defaults" do
+    sub_activity = Class.new(Activity::Path) do
+    end
+
+    # There is no {failure} connection because sub_activity is a Path.
+    activity = Class.new(Activity::Railway) do
+      step Subprocess(sub_activity)
+    end
+
+    assert_process_for activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+#<End/:success>
 
 #<End/:failure>
 }

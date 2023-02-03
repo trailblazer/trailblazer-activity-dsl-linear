@@ -75,7 +75,26 @@ module Trailblazer
           end
 
           # The generic normalizer not tied to `step` or friends.
-          def Normalizer
+          def Normalizer(prepend_to_default_outputs: [])
+
+            # Adding steps to the output pipeline means they are only called when there
+            # are no :outputs set already.
+            outputs_pipeline = TaskWrap::Pipeline.new([])
+            prepend_to_default_outputs.each do |hsh|
+              outputs_pipeline = Linear::Normalizer.prepend_to(outputs_pipeline, nil, hsh) # DISCUSS: does it matter if we prepend FastTrack to Railway, etc?
+            end
+
+            # Call the prepend_to_outputs pipeline only if {:outputs} is not set (by Subprocess).
+            # too bad we don't have nesting here, yet.
+            defaults_for_outputs = -> (ctx, _) do
+              return [ctx, _] if ctx.key?(:outputs)
+
+              outputs_pipeline.(ctx, _)
+            end
+
+
+
+
             pipeline = TaskWrap::Pipeline.new(
               {
                 "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)), # Makes sure {:options} is always a hash.
@@ -91,6 +110,9 @@ module Trailblazer
                 "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
                 "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)), # TODO: remove!
                 "activity.wrap_task_with_step_interface"  => Normalizer.Task(method(:wrap_task_with_step_interface)),
+
+                # Nested pipeline:
+                "activity.default_outputs"           => defaults_for_outputs, # only {if :outputs.nil?}
 
                 "activity.inherit_option"                 => Normalizer.Task(method(:inherit_option)),
                 "activity.sequence_insert"                => Normalizer.Task(method(:normalize_sequence_insert)),
@@ -121,6 +143,13 @@ module Trailblazer
 
             pipeline
           end
+
+          ## OPTIONS
+          #
+          # :outputs
+          #   This dictates the outputs of the step. This will always be provided by Subprocess().
+          #   If it is set when the normalizer starts, this means we *do not* have to apply step defaults,
+          #   e.g. adding Path's success output (Left)
 
           # DISCUSS: should we remove this special case?
           # This handles

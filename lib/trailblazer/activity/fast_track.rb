@@ -12,21 +12,39 @@ module Trailblazer
 
         module_function
 
-        def Normalizer(base_normalizer=Trailblazer::Activity::Railway::DSL.Normalizer())
-          Linear::Normalizer.prepend_to(
-            base_normalizer,
+        def Normalizer(prepend_to_default_outputs: [], base_normalizer_builder: Railway::DSL.method(:Normalizer))
+          fast_track_output_steps = {
+            "fast_track.pass_fast_output" => Linear::Normalizer.Task(method(:add_pass_fast_output)),
+            "fast_track.fail_fast_output" => Linear::Normalizer.Task(method(:add_fail_fast_output)),
+          }
+
+          # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
+          step_normalizer = base_normalizer_builder.call( # E.g Railway::DSL.NormalizerForPass.
+            prepend_to_default_outputs: [fast_track_output_steps, *prepend_to_default_outputs]
+          )
+
+          normalizer = Linear::Normalizer.prepend_to(
+            step_normalizer,
             "activity.wirings",
 
             {
               "fast_track.pass_fast_option"  => Linear::Normalizer.Task(method(:pass_fast_option)),
               "fast_track.fail_fast_option"  => Linear::Normalizer.Task(method(:fail_fast_option)),
+
+            }
+          )
+
+          Linear::Normalizer.prepend_to(
+            normalizer,
+            "activity.normalize_id",
+            {
               "fast_track.fast_track_option" => Linear::Normalizer.Task(method(:fast_track_option)),
             }
           )
         end
 
         def NormalizerForFail
-          pipeline = Normalizer(Railway::DSL.NormalizerForFail())
+          pipeline = Normalizer(base_normalizer_builder: Railway::DSL.method(:NormalizerForFail))
 
           Linear::Normalizer.prepend_to(
             pipeline,
@@ -39,7 +57,7 @@ module Trailblazer
         end
 
         def NormalizerForPass
-          pipeline = Normalizer(Railway::DSL.NormalizerForPass())
+          pipeline = Normalizer(base_normalizer_builder: Railway::DSL.method(:NormalizerForPass))
 
           Linear::Normalizer.prepend_to(
             pipeline,
@@ -51,14 +69,25 @@ module Trailblazer
           )
         end
 
+        def add_pass_fast_output(ctx, outputs:, pass_fast: nil, **)
+          return unless pass_fast
+
+          ctx[:outputs] = PASS_FAST_OUTPUT.merge(outputs)
+        end
+
+        def add_fail_fast_output(ctx, outputs:, **)
+          return unless fail_fast
+
+          ctx[:outputs] = FAIL_FAST_OUTPUT.merge(outputs)
+        end
+
+        PASS_FAST_OUTPUT = {pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast)}
+        FAIL_FAST_OUTPUT = {fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast)}
+
         def pass_fast_option(ctx, **)
           ctx = merge_connections_for!(ctx, :pass_fast, :success, **ctx)
 
           ctx = merge_connections_for!(ctx, :pass_fast, :pass_fast, :pass_fast, **ctx)
-          ctx = merge_outputs_for!(ctx,
-            {pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast)},
-            **ctx
-          )
         end
 
         def pass_fast_option_for_pass(ctx, **)
@@ -70,10 +99,6 @@ module Trailblazer
           ctx = merge_connections_for!(ctx, :fail_fast, :failure, **ctx)
 
           ctx = merge_connections_for!(ctx, :fail_fast, :fail_fast, :fail_fast, **ctx)
-          ctx = merge_outputs_for!(ctx,
-            {fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast)},
-            **ctx
-          )
         end
 
         def fail_fast_option_for_fail(ctx, **)
@@ -84,25 +109,14 @@ module Trailblazer
         def fast_track_option(ctx, fast_track: false, **)
           return unless fast_track
 
-          ctx = merge_connections_for!(ctx, :fast_track, :fail_fast, :fail_fast, **ctx)
-          ctx = merge_connections_for!(ctx, :fast_track, :pass_fast, :pass_fast, **ctx)
-
-          ctx = merge_outputs_for!(ctx,
-            {pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast),
-                        fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast)},
-            **ctx
-          )
+          ctx[:pass_fast] = true
+          ctx[:fail_fast] = true
         end
 
         def merge_connections_for!(ctx, option_name, semantic, magnetic_to=option_name, connections:, **)
           return ctx unless ctx[option_name]
 
           ctx[:connections] = connections.merge(semantic => [Linear::Sequence::Search.method(:Forward), magnetic_to])
-          ctx
-        end
-
-        def merge_outputs_for!(ctx, new_outputs, outputs:, **)
-          ctx[:outputs] = new_outputs.merge(outputs)
           ctx
         end
 
