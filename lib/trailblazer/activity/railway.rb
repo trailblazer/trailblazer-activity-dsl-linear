@@ -7,15 +7,22 @@ module Trailblazer
 
         module_function
 
-        def Normalizer
-          path_normalizer =  Path::DSL.Normalizer()
+        def Normalizer(prepend_to_default_outputs: [])
+          railway_output_steps = {
+            "railway.outputs" => Linear::Normalizer.Task(method(:add_failure_output)),
+          }
+
+          # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
+          step_normalizer = Path::DSL.Normalizer(
+            prepend_to_default_outputs: [railway_output_steps, *prepend_to_default_outputs]
+          )
 
           Linear::Normalizer.prepend_to(
-            path_normalizer,
-            "activity.wirings",
+            step_normalizer,
+            # "activity.wirings",
+            "activity.inherit_option", # TODO: do this with all normalizers
             {
-              "railway.outputs"     => Linear::Normalizer.Task(method(:normalize_path_outputs)),
-              "railway.connections" => Linear::Normalizer.Task(method(:normalize_path_connections)),
+              "railway.connections" => Linear::Normalizer.Task(method(:add_failure_connection)),
             },
           )
         end
@@ -23,9 +30,9 @@ module Trailblazer
         # Change some parts of the step-{Normalizer} pipeline.
         # We're bound to using a very primitive Pipeline API, remember, we don't have
         # a DSL at this point!
-        def NormalizerForFail
+        def NormalizerForFail(**options)
           pipeline = Linear::Normalizer.prepend_to(
-            Normalizer(),
+            Normalizer(**options),
             "activity.wirings",
             {
               "railway.magnetic_to.fail" => Linear::Normalizer.Task(Fail.method(:merge_magnetic_to)),
@@ -39,9 +46,9 @@ module Trailblazer
           )
         end
 
-        def NormalizerForPass
+        def NormalizerForPass(**options)
           Linear::Normalizer.prepend_to(
-            Normalizer(),
+            Normalizer(**options),
             "activity.normalize_outputs_from_dsl",
             # "path.connections",
             {"railway.connections.pass.failure_to_success" => Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))}.to_a
@@ -69,20 +76,19 @@ module Trailblazer
         end
 
         # Add {:failure} output to {:outputs}.
+        # This is only called for non-Subprocess steps.
         # TODO: assert that failure_outputs doesn't override existing {:outputs}
-        def normalize_path_outputs(ctx, outputs:, **)
-          outputs = failure_outputs.merge(outputs)
-
-          ctx[:outputs] = outputs
+        def add_failure_output(ctx, outputs:, **)
+          ctx[:outputs] = FAILURE_OUTPUT.merge(outputs)
         end
 
-        def normalize_path_connections(ctx, connections:, **)
+        def add_failure_connection(ctx, connections:, outputs:, **)
+          return unless outputs[:failure] # do not add the default failure connection when we don't have
+                                          # a corresponding output.
           ctx[:connections] = failure_connections.merge(connections)
         end
 
-        def failure_outputs
-          {failure: Activity::Output(Activity::Left, :failure)}
-        end
+        FAILURE_OUTPUT = {failure: Activity::Output(Activity::Left, :failure)}
 
         def failure_connections
           {failure: [Linear::Sequence::Search.method(:Forward), :failure]}
