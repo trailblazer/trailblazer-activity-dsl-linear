@@ -25,29 +25,15 @@ class SubprocessTest < Minitest::Spec
 }
   end
 
-  it "does fail when using {fast_track: true} with Path because it doesn't have the expected outputs" do
-    sub_activity = Class.new(Activity::Path) do
+  # DISCUSS: maybe we can "soften" or un-strict this.
+  it "fails when using {fast_track: true} with Path because it doesn't have the expected outputs" do
+    exception = assert_raises do
+      activity = Class.new(Activity::FastTrack) do
+        step Subprocess(Activity::Path), fast_track: true
+      end
     end
 
-    activity = Class.new(Activity::FastTrack) do
-      step Subprocess(sub_activity), fast_track: true
-    end
-
-    assert_process_for activity, :success, :pass_fast, :fail_fast, :failure, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Class:0x>
-#<Class:0x>
- {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
-XXXX {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
-xxxx {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
-#<End/:success>
-
-#<End/:pass_fast>
-
-#<End/:fail_fast>
-
-#<End/:failure>
-}
+    assert_equal exception.message, %{No `pass_fast` output found for Trailblazer::Activity::Path and outputs {:success=>#<struct Trailblazer::Activity::Output signal=#<Trailblazer::Activity::End semantic=:success>, semantic=:success>}}
   end
 
   it "{:outputs} provided by {Subprocess} is not overridden by step defaults" do

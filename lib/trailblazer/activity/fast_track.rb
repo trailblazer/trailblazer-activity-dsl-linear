@@ -16,6 +16,7 @@ module Trailblazer
           fast_track_output_steps = {
             "fast_track.pass_fast_output" => Linear::Normalizer.Task(method(:add_pass_fast_output)),
             "fast_track.fail_fast_output" => Linear::Normalizer.Task(method(:add_fail_fast_output)),
+            "fast_track.fast_track_outputs" => Linear::Normalizer.Task(method(:add_fast_track_outputs)),
           }
 
           # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
@@ -30,15 +31,8 @@ module Trailblazer
             {
               "fast_track.pass_fast_option"  => Linear::Normalizer.Task(method(:pass_fast_option)),
               "fast_track.fail_fast_option"  => Linear::Normalizer.Task(method(:fail_fast_option)),
+              "fast_track.fast_track_option"  => Linear::Normalizer.Task(method(:add_fast_track_connections)),
 
-            }
-          )
-
-          Linear::Normalizer.prepend_to(
-            normalizer,
-            "activity.normalize_id",
-            {
-              "fast_track.fast_track_option" => Linear::Normalizer.Task(method(:fast_track_option)),
             }
           )
         end
@@ -75,14 +69,27 @@ module Trailblazer
           ctx[:outputs] = PASS_FAST_OUTPUT.merge(outputs)
         end
 
-        def add_fail_fast_output(ctx, outputs:, **)
+        def add_fail_fast_output(ctx, outputs:, fail_fast: nil, **)
           return unless fail_fast
 
           ctx[:outputs] = FAIL_FAST_OUTPUT.merge(outputs)
         end
 
+        def add_fast_track_outputs(ctx, outputs:, fast_track: nil, **)
+          return unless fast_track
+
+          ctx[:outputs] = FAIL_FAST_OUTPUT.merge(PASS_FAST_OUTPUT).merge(outputs)
+        end
+
         PASS_FAST_OUTPUT = {pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast)}
         FAIL_FAST_OUTPUT = {fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast)}
+
+        def add_fast_track_connections(ctx, fast_track: nil, **)
+          # return unless fast_track
+
+          ctx = merge_connections_for!(ctx, :fast_track, :pass_fast, :pass_fast, **ctx)
+          ctx = merge_connections_for!(ctx, :fast_track, :fail_fast, :fail_fast, **ctx)
+        end
 
         def pass_fast_option(ctx, **)
           ctx = merge_connections_for!(ctx, :pass_fast, :success, **ctx)
@@ -104,13 +111,6 @@ module Trailblazer
         def fail_fast_option_for_fail(ctx, **)
           ctx = merge_connections_for!(ctx, :fail_fast, :failure, **ctx)
           ctx = merge_connections_for!(ctx, :fail_fast, :success, **ctx)
-        end
-
-        def fast_track_option(ctx, fast_track: false, **)
-          return unless fast_track
-
-          ctx[:pass_fast] = true
-          ctx[:fail_fast] = true
         end
 
         def merge_connections_for!(ctx, option_name, semantic, magnetic_to=option_name, connections:, **)

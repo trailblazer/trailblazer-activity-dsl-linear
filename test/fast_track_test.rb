@@ -81,8 +81,8 @@ class FastTrackTest < Minitest::Spec
 <*#<Method: #<Module:0x>.c>>
  {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.b>>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.d>>
- {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
  {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
+ {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
 <*#<Method: #<Module:0x>.b>>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
