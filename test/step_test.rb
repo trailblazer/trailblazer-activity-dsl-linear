@@ -343,7 +343,6 @@ Trailblazer::Activity::Path
 
 #<End/:failure>
 }
-
   end
 
   it "{inherit: true} copies custom connections from step" do
@@ -424,7 +423,68 @@ Trailblazer::Activity::Path
 
 
   it "{inherit: true} copies custom connections from nested Subprocess()" do
+    nested = Class.new(Activity::Railway) do
+      terminus :invalid
+    end
 
+    activity = Class.new(Activity::Railway) do
+      step Subprocess(nested),
+        id: :model,
+        Output(:failure) => Track(:success),
+        Output(:invalid) => Track(:failure)  # custom "terminus" and connection.
+    end
+
+    new_nested = nested = Class.new(Activity::Railway) do
+      terminus :invalid
+      terminus :ok
+    end
+
+    sub_activity = Class.new(activity) do
+      step Subprocess(new_nested),
+        replace: :model,
+        inherit: true # we don't add custom Outputs here.
+    end
+
+    assert_process_for sub_activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:success>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+ {#<Trailblazer::Activity::End semantic=:invalid>} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
+
+    # Add custom Output to inherited on Subprocess().
+    sub_activity = Class.new(activity) do
+      step :authorize, before: :model
+      step :format
+      step Subprocess(new_nested), inherit: true, replace: :model,
+        Output(:success) => Id(:authorize), # new connection
+        Output(:invalid) => Id(:format)     # overriding failure=>success connection from above
+
+      include T.def_steps(:create_model, :authorize)
+    end
+
+    assert_process_for sub_activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*authorize>
+<*authorize>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => <*format>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*authorize>
+ {#<Trailblazer::Activity::End semantic=:invalid>} => <*format>
+<*format>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
   end
 
   it "inherits connections if {inherit: true}" do
