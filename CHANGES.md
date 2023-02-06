@@ -7,10 +7,11 @@
   ```ruby
   step Subprocess(Railway), Output(:failure) => ...
   ```
-  `
 
   :outputs when given (as from Subprocess) is no longer extended or overridden/defaulted once it's set.
   The default step's outputs are set in a separate pipeline in activity.default_outputs.
+
+We don't inherit :connections anymore, but the output tuples.
 
 # 1.1.1
 

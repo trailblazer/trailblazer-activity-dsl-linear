@@ -435,10 +435,8 @@ module Trailblazer
 
             row = InheritOption.find_row(sequence, id) # from this row we're inheriting options.
 
-            # inherited_connections = row.data[:connections]
             inherited_extensions  = row.data[:extensions]
 
-            # ctx[:connections] = get_inheritable_connections(ctx, inherited_connections)
             ctx[:extensions]  = Array(inherited_extensions) + Array(extensions)
 
 
