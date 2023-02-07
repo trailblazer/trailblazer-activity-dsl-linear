@@ -30,7 +30,7 @@ class RailwayTest < Minitest::Spec
       step :f
     end
 
-    assert_circuit activity, %{
+    assert_process_for activity, :success, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*a>
 <*a>

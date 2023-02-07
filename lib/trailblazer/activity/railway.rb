@@ -19,10 +19,9 @@ module Trailblazer
 
           Linear::Normalizer.prepend_to(
             step_normalizer,
-            # "activity.wirings",
-            "activity.inherit_option", # TODO: do this with all normalizers
+            Path::DSL::PREPEND_TO,
             {
-              "railway.connections" => Linear::Normalizer.Task(method(:add_failure_connection)),
+              "railway.step.add_failure_connector" => Linear::Normalizer.Task(method(:add_failure_connector)),
             },
           )
         end
@@ -33,7 +32,7 @@ module Trailblazer
         def NormalizerForFail(**options)
           pipeline = Linear::Normalizer.prepend_to(
             Normalizer(**options),
-            "activity.wirings",
+            Path::DSL::PREPEND_TO,
             {
               "railway.magnetic_to.fail" => Linear::Normalizer.Task(Fail.method(:merge_magnetic_to)),
             }
@@ -42,16 +41,15 @@ module Trailblazer
           pipeline = Linear::Normalizer.replace(
             pipeline,
             "path.connections",
-            ["railway.connections.fail.success_to_failure", Linear::Normalizer.Task(Fail.method(:connect_success_to_failure))],
+            ["railway.fail.success_to_failure", Linear::Normalizer.Task(Fail.method(:connect_success_to_failure))],
           )
         end
 
         def NormalizerForPass(**options)
-          Linear::Normalizer.prepend_to(
+          Linear::Normalizer.replace(
             Normalizer(**options),
-            "activity.normalize_outputs_from_dsl",
-            # "path.connections",
-            {"railway.connections.pass.failure_to_success" => Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))}.to_a
+            "railway.step.add_failure_connector",
+            ["railway.pass.failure_to_success", Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))]
           )
         end
 
@@ -62,36 +60,39 @@ module Trailblazer
             ctx[:magnetic_to] = :failure
           end
 
-          def connect_success_to_failure(ctx, connections: nil, **)
-            ctx[:connections] = connections || {success: [Linear::Sequence::Search.method(:Forward), :failure]}
+          SUCCESS_TO_FAILURE_CONNECTOR = {Linear::Normalizer.Output(:success) => Linear::Strategy.Track(:failure)}
+
+          def connect_success_to_failure(ctx, non_symbol_options:, **)
+            ctx[:non_symbol_options] = SUCCESS_TO_FAILURE_CONNECTOR.merge(non_symbol_options)
           end
         end
 
         module Pass
           module_function
 
-          def connect_failure_to_success(ctx, connections:, **)
-            ctx[:connections] = connections.merge({failure: [Linear::Sequence::Search.method(:Forward), :success]})
+          FAILURE_TO_SUCCESS_CONNECTOR = {Linear::Normalizer.Output(:failure) => Linear::Strategy.Track(:success)}
+
+          def connect_failure_to_success(ctx, non_symbol_options:, **)
+            ctx[:non_symbol_options] = FAILURE_TO_SUCCESS_CONNECTOR.merge(non_symbol_options)
           end
         end
 
+        FAILURE_OUTPUT    = {failure: Activity::Output(Activity::Left, :failure)}
+        FAILURE_CONNECTOR = {Linear::Normalizer.Output(:failure) => Linear::Strategy.Track(:failure)}
+        PASS_CONNECTOR    = {Linear::Normalizer.Output(:failure) => Linear::Strategy.Track(:success)}
+        FAIL_CONNECTOR    = {Linear::Normalizer.Output(:success) => Linear::Strategy.Track(:failure)}
+
         # Add {:failure} output to {:outputs}.
         # This is only called for non-Subprocess steps.
-        # TODO: assert that failure_outputs doesn't override existing {:outputs}
         def add_failure_output(ctx, outputs:, **)
           ctx[:outputs] = FAILURE_OUTPUT.merge(outputs)
         end
 
-        def add_failure_connection(ctx, connections:, outputs:, **)
+        def add_failure_connector(ctx, outputs:, non_symbol_options:, **)
           return unless outputs[:failure] # do not add the default failure connection when we don't have
                                           # a corresponding output.
-          ctx[:connections] = failure_connections.merge(connections)
-        end
 
-        FAILURE_OUTPUT = {failure: Activity::Output(Activity::Left, :failure)}
-
-        def failure_connections
-          {failure: [Linear::Sequence::Search.method(:Forward), :failure]}
+          ctx[:non_symbol_options] = FAILURE_CONNECTOR.merge(non_symbol_options)
         end
 
         Normalizers = Linear::Normalizer::Normalizers.new(

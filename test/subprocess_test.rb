@@ -33,7 +33,7 @@ class SubprocessTest < Minitest::Spec
       end
     end
 
-    assert_equal exception.message, %{No `pass_fast` output found for Trailblazer::Activity::Path and outputs {:success=>#<struct Trailblazer::Activity::Output signal=#<Trailblazer::Activity::End semantic=:success>, semantic=:success>}}
+    assert_equal exception.message, %{No `fail_fast` output found for Trailblazer::Activity::Path and outputs {:success=>#<struct Trailblazer::Activity::Output signal=#<Trailblazer::Activity::End semantic=:success>, semantic=:success>}}
   end
 
   it "{:outputs} provided by {Subprocess} is not overridden by step defaults" do
