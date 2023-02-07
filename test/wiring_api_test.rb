@@ -34,3 +34,105 @@ class WiringApiTest < Minitest::Spec
     assert_equal exception.message, %{No `unknown` output found for :find_model and outputs {:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}}
   end
 end
+
+
+###
+# Output tuples unit tests
+###
+
+class PathWiringApiTest < Minitest::Spec
+  it "custom Output(:success) overrides {#step}'s default" do
+    activity = Class.new(Activity::Path) do
+      step :catch_all
+      step :policy, Output(:success) => Id(:catch_all)
+    end
+
+    assert_process_for activity, :success, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*catch_all>
+<*catch_all>
+ {Trailblazer::Activity::Right} => <*policy>
+<*policy>
+ {Trailblazer::Activity::Right} => <*catch_all>
+#<End/:success>
+}
+  end
+end
+
+class RailwayWiringApiTest < Minitest::Spec
+  it "custom Output(:success) overrides {#step}'s default" do
+    activity = Class.new(Activity::Railway) do
+      step :catch_all
+      step :policy,
+        Output(:success) => Id(:catch_all),
+        Output(:failure) => Id(:policy)
+      pass :model,
+        Output(:success) => Id(:catch_all),
+        Output(:failure) => Id(:policy)
+      fail :error,
+        Output(:success) => Id(:catch_all),
+        Output(:failure) => Id(:policy)
+    end
+
+    assert_process_for activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*catch_all>
+<*catch_all>
+ {Trailblazer::Activity::Left} => <*error>
+ {Trailblazer::Activity::Right} => <*policy>
+<*policy>
+ {Trailblazer::Activity::Left} => <*policy>
+ {Trailblazer::Activity::Right} => <*catch_all>
+<*model>
+ {Trailblazer::Activity::Left} => <*policy>
+ {Trailblazer::Activity::Right} => <*catch_all>
+<*error>
+ {Trailblazer::Activity::Left} => <*policy>
+ {Trailblazer::Activity::Right} => <*catch_all>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
+end
+
+class FastTrackWiringApiTest < Minitest::Spec
+  it "custom Output(:success) overrides {#step}'s default" do
+    activity = Class.new(Activity::FastTrack) do
+      step :catch_all
+      step :policy,
+        Output(:success) => Id(:catch_all),
+        Output(:failure) => Id(:policy)
+      pass :model,
+        Output(:success) => Id(:catch_all),
+        Output(:failure) => Id(:policy)
+      fail :error,
+        Output(:success) => Id(:catch_all),
+        Output(:failure) => Id(:policy)
+    end
+
+    assert_process_for activity, :success, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*catch_all>
+<*catch_all>
+ {Trailblazer::Activity::Left} => <*error>
+ {Trailblazer::Activity::Right} => <*policy>
+<*policy>
+ {Trailblazer::Activity::Left} => <*policy>
+ {Trailblazer::Activity::Right} => <*catch_all>
+<*model>
+ {Trailblazer::Activity::Left} => <*policy>
+ {Trailblazer::Activity::Right} => <*catch_all>
+<*error>
+ {Trailblazer::Activity::Left} => <*policy>
+ {Trailblazer::Activity::Right} => <*catch_all>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+  end
+end
