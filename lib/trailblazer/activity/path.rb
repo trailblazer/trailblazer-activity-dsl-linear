@@ -5,6 +5,10 @@ module Trailblazer
       # Functions that help creating a path-specific sequence.
       module DSL
         Linear = Activity::DSL::Linear
+        # Always prepend all "add connectors" steps of all normalizers to normalize_output_tuples.
+        # This assures that the order is
+        #   [<default tuples>, <inherited tuples>, <user tuples>]
+        PREPEND_TO = "activity.normalize_output_tuples"
 
         module_function
 
@@ -20,13 +24,9 @@ module Trailblazer
 
           Linear::Normalizer.prepend_to(
             dsl_normalizer,
-            # "activity.wirings",
-            # "activity.normalize_outputs_from_dsl",
-            "activity.inherit_option", # TODO: do this with all normalizers
-
+            PREPEND_TO,
             {
-              # "path.outputs"                => Linear::Normalizer.Task(method(:add_success_output)),
-              "path.connections"            => Linear::Normalizer.Task(method(:merge_path_connections)),
+              "path.connections"            => Linear::Normalizer.Task(method(:add_success_connector)),
               "path.magnetic_to"            => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
             }
           )
@@ -34,16 +34,14 @@ module Trailblazer
 
         SUCCESS_OUTPUT = {success: Activity::Output(Activity::Right, :success)}
 
-        def unary_connections(track_name: :success)
-          {success: [Linear::Sequence::Search.method(:Forward), track_name]}
-        end
-
         def add_success_output(ctx, **)
           ctx[:outputs] = SUCCESS_OUTPUT
         end
 
-        def merge_path_connections(ctx, track_name:, connections: nil, **)
-          ctx[:connections] = connections || unary_connections(track_name: track_name)
+        def add_success_connector(ctx, track_name:, non_symbol_options:, **)
+          connectors = {Linear::Normalizer.Output(:success) => Linear::Strategy.Track(track_name)}
+
+          ctx[:non_symbol_options] = connectors.merge(non_symbol_options)
         end
 
         def normalize_magnetic_to(ctx, track_name:, **) # TODO: merge with Railway.merge_magnetic_to

@@ -126,8 +126,8 @@ class SubprocessTest < Minitest::Spec
 SubprocessTest::D::Memo::JustPassFast
  {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
  {#<Trailblazer::Activity::End semantic=:success>} => <*save>
- {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
  {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
 <*save>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>

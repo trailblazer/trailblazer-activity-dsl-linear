@@ -93,6 +93,12 @@ module Trailblazer
             end
 
 
+# non_symbol_options are filled as follows:
+# Always prepend all "add connectors" steps of all normalizers to normalize_output_tuples.
+# This assures that the order is
+#   [<default tuples>, <inherited tuples>, <user tuples>]
+
+# at some point (where?) we want :output_tuples
 
 
             pipeline = TaskWrap::Pipeline.new(
@@ -119,7 +125,6 @@ module Trailblazer
                 "activity.normalize_duplications"         => Normalizer.Task(method(:normalize_duplications)),
 
                 "activity.path_helper.path_to_track"       => Normalizer.Task(Helper::Path::Normalizer.method(:convert_paths_to_tracks)),
-
 
 
                 "activity.normalize_output_tuples"        => Normalizer.Task(OutputTuples.method(:normalize_output_tuples)),     # Output(Signal, :semantic) => Id()
@@ -295,13 +300,14 @@ module Trailblazer
           end
 
           # Process {Output(:semantic) => target} and make them {:connections}.
-          def normalize_connections_from_dsl(ctx, connections:, adds:, output_tuples:, sequence:, normalizers:, **)
+          def normalize_connections_from_dsl(ctx, adds:, output_tuples:, sequence:, normalizers:, **)
             # Find all {Output() => Track()/Id()/End()}
-            output_configs = output_tuples
-            return unless output_configs.any?
+            return unless output_tuples.any?
+
+            connections = {}
 
             # DISCUSS: how could we add another magnetic_to to an end?
-            output_configs.each do |output, cfg|
+            output_tuples.each do |output, cfg|
               new_connections, add =
                 if cfg.is_a?(Linear::Track)
                   [output_to_track(ctx, output, cfg), cfg.adds] # FIXME: why does Track have a {adds} field? we don't use it anywhere.
@@ -345,6 +351,10 @@ module Trailblazer
 
           # Logic related to {Output() => ...}, called "Wiring API".
           # TODO: move to different namespace (feature/dsl)
+          def Output(semantic, is_generic: true)
+            Normalizer::OutputTuples::Output::Semantic.new(semantic, is_generic)
+          end
+
           module OutputTuples
             module Output
               Semantic      = Struct.new(:semantic, :generic?).include(Output)

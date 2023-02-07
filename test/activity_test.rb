@@ -303,25 +303,6 @@ class ActivityTest < Minitest::Spec
 }
     end
 
-    it "accepts {:connections}" do
-      implementing = self.implementing
-
-      activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
-        step(id: :b, task: implementing.method(:b), connections: {success: [Trailblazer::Activity::DSL::Linear::Sequence::Search.method(:ById), :a]})
-      end
-
-      assert_process_for activity.to_h, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-#<End/:success>
-}
-    end
-
     it "accepts {:adds}" do
       implementing = self.implementing
 

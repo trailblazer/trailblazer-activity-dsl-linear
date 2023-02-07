@@ -9,6 +9,9 @@ module Trailblazer
 
       module DSL
         Linear = Activity::DSL::Linear
+        # The connector logic needs to be run before Railway's connector logic:
+        PREPEND_TO = "activity.path_helper.path_to_track"
+
 
         module_function
 
@@ -26,12 +29,12 @@ module Trailblazer
 
           normalizer = Linear::Normalizer.prepend_to(
             step_normalizer,
-            "activity.wirings",
+            PREPEND_TO,
 
             {
               "fast_track.pass_fast_option"  => Linear::Normalizer.Task(method(:pass_fast_option)),
               "fast_track.fail_fast_option"  => Linear::Normalizer.Task(method(:fail_fast_option)),
-              "fast_track.fast_track_option"  => Linear::Normalizer.Task(method(:add_fast_track_connections)),
+              "fast_track.fast_track_option"  => Linear::Normalizer.Task(method(:add_fast_track_connectors)),
 
             }
           )
@@ -42,7 +45,7 @@ module Trailblazer
 
           Linear::Normalizer.prepend_to(
             pipeline,
-            "activity.wirings",
+            PREPEND_TO,
 
             {
               "fast_track.fail_fast_option_for_fail"  => Linear::Normalizer.Task(method(:fail_fast_option_for_fail)),
@@ -55,7 +58,7 @@ module Trailblazer
 
           Linear::Normalizer.prepend_to(
             pipeline,
-            "activity.wirings",
+            PREPEND_TO,
 
             {
               "fast_track.pass_fast_option_for_pass"  => Linear::Normalizer.Task(method(:pass_fast_option_for_pass)),
@@ -84,9 +87,7 @@ module Trailblazer
         PASS_FAST_OUTPUT = {pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast)}
         FAIL_FAST_OUTPUT = {fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast)}
 
-        def add_fast_track_connections(ctx, fast_track: nil, **)
-          # return unless fast_track
-
+        def add_fast_track_connectors(ctx, fast_track: nil, **)
           ctx = merge_connections_for!(ctx, :fast_track, :pass_fast, :pass_fast, **ctx)
           ctx = merge_connections_for!(ctx, :fast_track, :fail_fast, :fail_fast, **ctx)
         end
@@ -113,10 +114,12 @@ module Trailblazer
           ctx = merge_connections_for!(ctx, :fail_fast, :success, **ctx)
         end
 
-        def merge_connections_for!(ctx, option_name, semantic, magnetic_to=option_name, connections:, **)
+        def merge_connections_for!(ctx, option_name, semantic, magnetic_to=option_name, non_symbol_options:, **)
           return ctx unless ctx[option_name]
 
-          ctx[:connections] = connections.merge(semantic => [Linear::Sequence::Search.method(:Forward), magnetic_to])
+          connector = {Linear::Strategy.Output(semantic) => Linear::Strategy.Track(magnetic_to)}
+
+          ctx[:non_symbol_options] = connector.merge(non_symbol_options)
           ctx
         end
 

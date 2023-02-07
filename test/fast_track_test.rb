@@ -81,8 +81,8 @@ class FastTrackTest < Minitest::Spec
 <*#<Method: #<Module:0x>.c>>
  {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.b>>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.d>>
- {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
  {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
+ {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
 <*#<Method: #<Module:0x>.b>>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
@@ -130,6 +130,28 @@ class FastTrackTest < Minitest::Spec
 
     end
 
+    it "{#fail} with {fail_fast: true}" do
+      activity = Class.new(Activity::FastTrack) do
+        fail :errors, fail_fast: true
+      end
+
+      assert_process_for activity, :success, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<End/:success>
+<*errors>
+ {Trailblazer::Activity::Left} => #<End/:fail_fast>
+ {Trailblazer::Activity::Right} => #<End/:fail_fast>
+ {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+    end
+
     it "provides {:pass_fast} and {:fail_fast}" do
       implementing = T.def_steps(:f, :a, :g, :c, :b, :d)
 
@@ -156,8 +178,8 @@ class FastTrackTest < Minitest::Spec
 <*#<Method: #<Module:0x>.g>>
  {Trailblazer::Activity::Left} => #<End/:fail_fast>
  {Trailblazer::Activity::Right} => #<End/:pass_fast>
- {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
  {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
+ {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
 <*#<Method: #<Module:0x>.b>>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
@@ -328,8 +350,8 @@ class FastTrackTest < Minitest::Spec
 <*g>
  {Object} => #<End/:winning>
  {Trailblazer::Activity::Right} => #<End/:pass_fast>
- {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
  {Trailblazer::Activity::FastTrack::FailFast} => #<End/:winning>
+ {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
 #<End/:success>
 
 #<End/:pass_fast>
