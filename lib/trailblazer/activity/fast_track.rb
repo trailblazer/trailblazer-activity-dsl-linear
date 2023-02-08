@@ -40,30 +40,39 @@ module Trailblazer
           )
         end
 
-        def NormalizerForFail
-          pipeline = Normalizer(base_normalizer_builder: Railway::DSL.method(:NormalizerForFail))
+        module Fail
+          module_function
 
-          Linear::Normalizer.prepend_to(
-            pipeline,
-            PREPEND_TO,
+          def Normalizer
+            pipeline = DSL.Normalizer(base_normalizer_builder: Railway::DSL::Fail.method(:Normalizer))
 
-            {
-              "fast_track.fail_fast_option_for_fail"  => Linear::Normalizer.Task(method(:fail_fast_option_for_fail)),
-            }
-          )
+            Linear::Normalizer.prepend_to(
+              pipeline,
+              PREPEND_TO,
+
+              {
+                "fast_track.fail_fast_option_for_fail"  => Linear::Normalizer.Task(DSL.method(:fail_fast_option_for_fail)),
+              }
+            )
+          end
+
         end
 
-        def NormalizerForPass
-          pipeline = Normalizer(base_normalizer_builder: Railway::DSL.method(:NormalizerForPass))
+        module Pass
+          module_function
 
-          Linear::Normalizer.prepend_to(
-            pipeline,
-            PREPEND_TO,
+          def Normalizer
+            pipeline = DSL.Normalizer(base_normalizer_builder: Railway::DSL::Pass.method(:Normalizer))
 
-            {
-              "fast_track.pass_fast_option_for_pass"  => Linear::Normalizer.Task(method(:pass_fast_option_for_pass)),
-            }
-          )
+            Linear::Normalizer.prepend_to(
+              pipeline,
+              PREPEND_TO,
+
+              {
+                "fast_track.pass_fast_option_for_pass"  => Linear::Normalizer.Task(DSL.method(:pass_fast_option_for_pass)),
+              }
+            )
+          end
         end
 
         def add_pass_fast_output(ctx, outputs:, pass_fast: nil, **)
@@ -126,8 +135,8 @@ module Trailblazer
         # Normalizer pipelines taking care of processing your DSL options.
         Normalizers = Linear::Normalizer::Normalizers.new(
           step: FastTrack::DSL.Normalizer(),
-          fail: FastTrack::DSL.NormalizerForFail(),
-          pass: FastTrack::DSL.NormalizerForPass(),
+          fail: FastTrack::DSL::Fail.Normalizer(),
+          pass: FastTrack::DSL::Pass.Normalizer(),
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
