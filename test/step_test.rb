@@ -556,6 +556,42 @@ Trailblazer::Activity::Path
     # assert_invoke sub,      seq: "[:c, :d]"
   end
 
+  it "{fast_track: true} is inherited properly" do
+    activity = Class.new(Activity::FastTrack) do
+      step :model, pass_fast: true, fail_fast: true
+    end
+
+    fast_track = Class.new(Activity::FastTrack) do
+      step :model, pass_fast: true, fail_fast: true
+
+      include T.def_steps(:model)
+    end
+
+    sub_activity = Class.new(activity) do
+      step Subprocess(fast_track), inherit: true, replace: :model
+    end
+
+    assert_process_for sub_activity, :success, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:pass_fast>
+ {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+
+    assert_invoke sub_activity, model: true,  seq: "[:model]", terminus: :pass_fast
+    assert_invoke sub_activity, model: false, seq: "[:model]", terminus: :fail_fast
+  end
+
   it "does not inherit connections if {:inherit} is anything other than true" do
 
   end

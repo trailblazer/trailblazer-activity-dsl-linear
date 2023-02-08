@@ -129,10 +129,9 @@ module Trailblazer
 #
 # The outcome is {:output_tuples} that matches the {:outputs} and can be transformed into {:wirings}
 
-
-
-
-# at some point (where?) we want :output_tuples
+# ## Test structure
+# wiring_api_test.rb Output(...) =>
+#   inherit tests are in step_test
 
 
             pipeline = TaskWrap::Pipeline.new(
@@ -465,19 +464,32 @@ module Trailblazer
             end
           end
 
-          # Currently, the {:inherit} option copies over {:connections} from the original step
-          # and merges them with the (prolly) connections passed from the user.
+          # Currently, the {:inherit} option copies over {:extensions} from the original step and merges them with new :extensions.
+          #
           def inherit_option(ctx, inherit: false, sequence:, id:, extensions: [], non_symbol_options:, **)
             return unless inherit === true
 
             row = InheritOption.find_row(sequence, id) # from this row we're inheriting options.
 
+            # FIXME: "inherit.extensions"
             inherited_extensions  = row.data[:extensions]
 
             ctx[:extensions]  = Array(inherited_extensions) + Array(extensions)
 
 
+            # FIXME: this should be part of the :inherit pipeline, but "inherit.fast_track_options"
+            inherited_fast_track_options =
+              [:pass_fast, :fail_fast, :fast_track].collect do |option|
+                row.data.key?(option) ? [option, row.data[option]] : nil
+              end.compact.to_h
 
+            inherited_fast_track_options.each do |k,v| # FIXME: we should provide this generically for all kinds of options.
+              ctx[k] = v
+            end
+
+
+
+            # FIXME: this should be part of the :inherit pipeline, but "inherit.output_tuples"
             inherited_output_tuples  = row.data[:custom_output_tuples] || {} # Output() tuples from superclass. (2.)
 
             ctx[:non_symbol_options] = inherited_output_tuples.merge(non_symbol_options)

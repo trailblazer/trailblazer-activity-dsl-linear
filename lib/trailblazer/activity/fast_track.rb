@@ -17,6 +17,7 @@ module Trailblazer
 
         def Normalizer(prepend_to_default_outputs: [], base_normalizer_builder: Railway::DSL.method(:Normalizer))
           fast_track_output_steps = {
+            "fast_track.remember_options" => Linear::Normalizer.Task(method(:remember_options)),
             "fast_track.pass_fast_output" => Linear::Normalizer.Task(method(:add_pass_fast_output)),
             "fast_track.fail_fast_output" => Linear::Normalizer.Task(method(:add_fail_fast_output)),
             "fast_track.fast_track_outputs" => Linear::Normalizer.Task(method(:add_fast_track_outputs)),
@@ -75,6 +76,20 @@ module Trailblazer
           end
         end
 
+        # inherit: true
+        REMEMBER_OPTIONS = {
+          Linear::Strategy.DataVariable() => :pass_fast,
+          Linear::Strategy.DataVariable() => :fail_fast,
+          Linear::Strategy.DataVariable() => :fast_track,
+        }
+
+        # inherit: true
+        def remember_options(ctx, non_symbol_options:, **)
+          ctx.merge!(
+            non_symbol_options: non_symbol_options.merge(REMEMBER_OPTIONS)
+          )
+        end
+
         def add_pass_fast_output(ctx, outputs:, pass_fast: nil, **)
           return unless pass_fast
 
@@ -126,7 +141,7 @@ module Trailblazer
         def merge_connections_for!(ctx, option_name, semantic, magnetic_to=option_name, non_symbol_options:, **)
           return ctx unless ctx[option_name]
 
-          connector = {Linear::Strategy.Output(semantic) => Linear::Strategy.Track(magnetic_to)}
+          connector = {Linear::Normalizer.Output(semantic) => Linear::Strategy.Track(magnetic_to)}
 
           ctx[:non_symbol_options] = connector.merge(non_symbol_options)
           ctx
