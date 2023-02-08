@@ -13,7 +13,7 @@
 
 * Removed the `:connections` option in favor of simply using output tuples for setting connections.
 We don't inherit :connections anymore, but the output tuples.
-
+* Rename `"path.connections"` to `""path.step.add_success_connector"` for consistency.
 
 # 1.1.1
 

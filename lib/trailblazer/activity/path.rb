@@ -26,8 +26,8 @@ module Trailblazer
             dsl_normalizer,
             PREPEND_TO,
             {
-              "path.connections"            => Linear::Normalizer.Task(method(:add_success_connector)),
-              "path.magnetic_to"            => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
+              "path.step.add_success_connector" => Linear::Normalizer.Task(method(:add_success_connector)),
+              "path.magnetic_to"                => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
             }
           )
         end
