@@ -30,7 +30,7 @@ module Trailblazer
         # We're bound to using a very primitive Pipeline API, remember, we don't have
         # a DSL at this point!
         def NormalizerForFail(**options)
-          pipeline = Linear::Normalizer.prepend_to(
+          pipeline = Linear::Normalizer.prepend_to( # TODO: replace path.magnetic_to???
             Normalizer(**options),
             Path::DSL::PREPEND_TO,
             {
@@ -40,7 +40,7 @@ module Trailblazer
 
           pipeline = Linear::Normalizer.replace(
             pipeline,
-            "path.connections",
+            "path.step.add_success_connector",
             ["railway.fail.success_to_failure", Linear::Normalizer.Task(Fail.method(:connect_success_to_failure))],
           )
         end
