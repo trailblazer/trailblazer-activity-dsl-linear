@@ -26,35 +26,27 @@ module Trailblazer
           )
         end
 
-        # Change some parts of the step-{Normalizer} pipeline.
-        # We're bound to using a very primitive Pipeline API, remember, we don't have
-        # a DSL at this point!
-        def NormalizerForFail(**options)
-          pipeline = Linear::Normalizer.prepend_to( # TODO: replace path.magnetic_to???
-            Normalizer(**options),
-            Path::DSL::PREPEND_TO,
-            {
-              "railway.magnetic_to.fail" => Linear::Normalizer.Task(Fail.method(:merge_magnetic_to)),
-            }
-          )
-
-          pipeline = Linear::Normalizer.replace(
-            pipeline,
-            "path.step.add_success_connector",
-            ["railway.fail.success_to_failure", Linear::Normalizer.Task(Fail.method(:connect_success_to_failure))],
-          )
-        end
-
-        def NormalizerForPass(**options)
-          Linear::Normalizer.replace(
-            Normalizer(**options),
-            "railway.step.add_failure_connector",
-            ["railway.pass.failure_to_success", Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))]
-          )
-        end
-
         module Fail
           module_function
+
+          # Change some parts of the step-{Normalizer} pipeline.
+          # We're bound to using a very primitive Pipeline API, remember, we don't have
+          # a DSL at this point!
+          def Normalizer(**options)
+            pipeline = Linear::Normalizer.prepend_to( # TODO: replace path.magnetic_to???
+              DSL.Normalizer(**options), # grab Railway::DSL::Normalizer.
+              Path::DSL::PREPEND_TO,
+              {
+                "railway.magnetic_to.fail" => Linear::Normalizer.Task(Fail.method(:merge_magnetic_to)),
+              }
+            )
+
+            pipeline = Linear::Normalizer.replace(
+              pipeline,
+              "path.step.add_success_connector",
+              ["railway.fail.success_to_failure", Linear::Normalizer.Task(Fail.method(:connect_success_to_failure))],
+            )
+          end
 
           def merge_magnetic_to(ctx, **)
             ctx[:magnetic_to] = :failure
@@ -69,6 +61,14 @@ module Trailblazer
 
         module Pass
           module_function
+
+          def Normalizer(**options)
+            Linear::Normalizer.replace(
+              DSL.Normalizer(**options), # grab Railway::DSL::Normalizer.
+              "railway.step.add_failure_connector",
+              ["railway.pass.failure_to_success", Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))]
+            )
+          end
 
           FAILURE_TO_SUCCESS_CONNECTOR = {Linear::Normalizer.Output(:failure) => Linear::Strategy.Track(:success)}
 
@@ -97,8 +97,8 @@ module Trailblazer
 
         Normalizers = Linear::Normalizer::Normalizers.new(
           step:  Railway::DSL.Normalizer(),
-          fail:  Railway::DSL.NormalizerForFail(),
-          pass:  Railway::DSL.NormalizerForPass(),
+          fail:  Railway::DSL::Fail.Normalizer(),
+          pass:  Railway::DSL::Pass.Normalizer(),
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
