@@ -358,5 +358,21 @@ class FastTrackTest < Minitest::Spec
 
 #<End/:winning>
 }
+  end
+
+  it "{fast_track: true} respects returned {FailFast} and {PassFast} signals from the step" do
+    activity = Class.new(Activity::FastTrack) do
+      step :validate, fast_track: true
+
+      def validate(ctx, fast:, railway_boolean: nil, **)
+        return railway_boolean unless railway_boolean.nil?
+        fast ? Activity::FastTrack::PassFast : Activity::FastTrack::FailFast
+      end
     end
+
+    assert_invoke activity, railway_boolean: true, fast: nil, terminus: :success
+    assert_invoke activity, railway_boolean: false, fast: nil, terminus: :failure
+    assert_invoke activity, fast: true, terminus: :pass_fast
+    assert_invoke activity, fast: false, terminus: :fail_fast
+  end
 end

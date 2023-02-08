@@ -92,11 +92,38 @@ module Trailblazer
               outputs_pipeline.(ctx, _)
             end
 
+# Normalizers are built on top of Linear::Normalizer.
+#
+# ## Outputs
+# The {:outputs} option is used in the wiring step and dictates the outputs of the step.
+# It's either set by Subprocess or by the Strategy's defaulting.
+# Note that *if* the option is already set by a macro or user, the entire defaulting described
+# here is *not* executed.
+#
+# ### Defaulting
+# There is a special outputs pipeline under {"activity.default_outputs"} which has only one
+# responsibility: set {:outputs} if it is not set already. The latter being the case when you use
+# Subprocess().
+# Each Strategy subclass now adds its {:outputs} defaulting steps (e.g. {"path.outputs"} or "railway.outputs" adding outputs[:failure]) in Railway
+# via the Normalizer(prepend_to_default_outputs: ...) keyword argument. In all defaulters (so far)
+# the {:outputs} hash is extended.
+#
+# #### FastTrack
+# Adding default outputs only happens if the respective option (e.g. {:pass_fast}) is set.
+
+
 
 # non_symbol_options are filled as follows:
 # Always prepend all "add connectors" steps of all normalizers to normalize_output_tuples.
 # This assures that the order is
 #   [<default tuples>, <inherited tuples>, <user tuples>]
+
+          ## OPTIONS
+          #
+          # :outputs
+          #   This dictates the outputs of the step. This will always be provided by Subprocess().
+          #   If it is set when the normalizer starts, this means we *do not* have to apply step defaults,
+          #   e.g. adding Path's success output (Left)
 
 # at some point (where?) we want :output_tuples
 
@@ -148,13 +175,6 @@ module Trailblazer
 
             pipeline
           end
-
-          ## OPTIONS
-          #
-          # :outputs
-          #   This dictates the outputs of the step. This will always be provided by Subprocess().
-          #   If it is set when the normalizer starts, this means we *do not* have to apply step defaults,
-          #   e.g. adding Path's success output (Left)
 
           # DISCUSS: should we remove this special case?
           # This handles
