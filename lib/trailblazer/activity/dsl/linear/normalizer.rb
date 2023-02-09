@@ -375,14 +375,16 @@ module Trailblazer
             step_options[:adds]
           end
 
-          # Logic related to {Output() => ...}, called "Wiring API".
-          # TODO: move to different namespace (feature/dsl)
-          def Output(semantic, is_generic: true)
-            Normalizer::OutputTuples::Output::Semantic.new(semantic, is_generic)
-          end
 
           module OutputTuples
+            # Logic related to {Output() => ...}, called "Wiring API".
+            # TODO: move to different namespace (feature/dsl)
+            def self.Output(semantic, is_generic: true)
+              Normalizer::OutputTuples::Output::Semantic.new(semantic, is_generic)
+            end
+
             module Output
+              # Note that both {Semantic} and {CustomOutput} are {kind_of?(Output)}
               Semantic      = Struct.new(:semantic, :generic?).include(Output)
               CustomOutput  = Struct.new(:signal, :semantic, :generic?).include(Output) # generic? is always false
             end

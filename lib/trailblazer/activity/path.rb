@@ -39,7 +39,7 @@ module Trailblazer
         end
 
         def add_success_connector(ctx, track_name:, non_symbol_options:, **)
-          connectors = {Linear::Normalizer.Output(:success) => Linear::Strategy.Track(track_name)}
+          connectors = {Linear::Normalizer::OutputTuples.Output(:success) => Linear::Strategy.Track(track_name)}
 
           ctx[:non_symbol_options] = connectors.merge(non_symbol_options)
         end

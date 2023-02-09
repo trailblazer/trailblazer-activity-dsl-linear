@@ -141,7 +141,7 @@ module Trailblazer
         def merge_connections_for!(ctx, option_name, semantic, magnetic_to=option_name, non_symbol_options:, **)
           return ctx unless ctx[option_name]
 
-          connector = {Linear::Normalizer.Output(semantic) => Linear::Strategy.Track(magnetic_to)}
+          connector = {Linear::Normalizer::OutputTuples.Output(semantic) => Linear::Strategy.Track(magnetic_to)}
 
           ctx[:non_symbol_options] = connector.merge(non_symbol_options)
           ctx
