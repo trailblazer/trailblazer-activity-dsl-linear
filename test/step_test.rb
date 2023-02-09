@@ -593,7 +593,30 @@ Trailblazer::Activity::Path
   end
 
   it "does not inherit connections if {:inherit} is anything other than true" do
+    activity = Class.new(Activity::Railway) do
+      step :model,
+        Output(:failure) => Track(:success),
+        In() => {:create_model => :user}
+    end
 
+    sub_activity = Class.new(activity) do
+      step :create_model, inherit: 1, replace: :model
+      include T.def_steps(:create_model)
+    end
+
+    # no inherited connectors:
+    assert_process_for sub_activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*create_model>
+<*create_model>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+    # no In filter applied:
+    assert_invoke sub_activity, create_model: false, seq: "[:create_model]", terminus: :failure
   end
 end
 
