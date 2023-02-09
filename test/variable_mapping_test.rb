@@ -757,7 +757,20 @@ class VariableMappingInheritTest < Minitest::Spec
       end
     end
 
-    # puts Trailblazer::Developer::Render::TaskWrap.(Upsert, id: :write)
+    #@ {inherit: true} is identical to {inherit: [:variable_mapping]} regarding copying filters.
+    class UpvoteWithTrue < Create
+      step :write_it, replace: :write,
+        inherit: true #, id: :write
+
+      def write_it(ctx, time:, current_user:, **)
+        ctx[:incoming] = [ctx[:model], "xxx #{current_user}", ctx.to_h].inspect
+      end
+    end
+
+    # puts Trailblazer::Developer::Render::TaskWrap.(UpvoteWithTrue, id: :write)
+    node, activity, _ = Trailblazer::Developer::Introspect.find_path(UpvoteWithTrue, [:write])
+    pipe = Trailblazer::Developer::Render::TaskWrap.render_for(activity, node)
+    puts pipe
 
   # Create
     #= we don't see {:model} because Create doesn't have an In() for it.
@@ -787,5 +800,9 @@ class VariableMappingInheritTest < Minitest::Spec
   #@ inherit works without adding filters
     assert_invoke Upvote, expected_ctx_variables: {:acting_user=>nil, :incoming=>"[nil, nil, {:time=>99, :current_user=>nil}]"}
     assert_invoke Upvote, current_user: Object, expected_ctx_variables: {:acting_user=>Object, :incoming=>"[nil, Object, {:time=>99, :current_user=>Object}]"}
+
+  #@ inherit works with {true}
+    assert_invoke UpvoteWithTrue, expected_ctx_variables: {:acting_user=>nil, :incoming=>"[nil, \"xxx \", {:time=>99, :current_user=>nil}]"}
+    assert_invoke UpvoteWithTrue, current_user: Object, expected_ctx_variables: {:acting_user=>Object, :incoming=>"[nil, \"xxx Object\", {:time=>99, :current_user=>Object}]"}
   end
 end

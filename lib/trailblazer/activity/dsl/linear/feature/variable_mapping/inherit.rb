@@ -22,7 +22,14 @@ module Trailblazer
               # from the original sequence and pass it on in the normalizer.
               # It will eventually get processed by {VariableMapping#pipe_for_composable_input} etc.
               def self.inherit_option(ctx, inherit: [], sequence:, id:, non_symbol_options:, **)
+                # return unless inherit.is_a?(Array)
+                if inherit  == true
+                  # here, :extensions will be copied by the superordinate :inherit mechanism.
+                  # This is, strictly speaking, not correct as it's not doing what we do here.
+                  return
+                elsif inherit.is_a?(Array)
                 return unless inherit.include?(:variable_mapping)
+              else return end
 
                 inherited_in_filters  = Linear::Normalizer::InheritOption.find_row(sequence, id).data[:in_filters]
                 inherited_out_filters = Linear::Normalizer::InheritOption.find_row(sequence, id).data[:out_filters]
