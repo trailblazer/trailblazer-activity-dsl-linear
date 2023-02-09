@@ -52,7 +52,7 @@ module Trailblazer
             ctx[:magnetic_to] = :failure
           end
 
-          SUCCESS_TO_FAILURE_CONNECTOR = {Linear::Normalizer.Output(:success) => Linear::Strategy.Track(:failure)}
+          SUCCESS_TO_FAILURE_CONNECTOR = {Linear::Normalizer::OutputTuples.Output(:success) => Linear::Strategy.Track(:failure)}
 
           def connect_success_to_failure(ctx, non_symbol_options:, **)
             ctx[:non_symbol_options] = SUCCESS_TO_FAILURE_CONNECTOR.merge(non_symbol_options)
@@ -70,7 +70,7 @@ module Trailblazer
             )
           end
 
-          FAILURE_TO_SUCCESS_CONNECTOR = {Linear::Normalizer.Output(:failure) => Linear::Strategy.Track(:success)}
+          FAILURE_TO_SUCCESS_CONNECTOR = {Linear::Normalizer::OutputTuples.Output(:failure) => Linear::Strategy.Track(:success)}
 
           def connect_failure_to_success(ctx, non_symbol_options:, **)
             ctx[:non_symbol_options] = FAILURE_TO_SUCCESS_CONNECTOR.merge(non_symbol_options)
@@ -78,9 +78,9 @@ module Trailblazer
         end
 
         FAILURE_OUTPUT    = {failure: Activity::Output(Activity::Left, :failure)}
-        FAILURE_CONNECTOR = {Linear::Normalizer.Output(:failure) => Linear::Strategy.Track(:failure)}
-        PASS_CONNECTOR    = {Linear::Normalizer.Output(:failure) => Linear::Strategy.Track(:success)}
-        FAIL_CONNECTOR    = {Linear::Normalizer.Output(:success) => Linear::Strategy.Track(:failure)}
+        FAILURE_CONNECTOR = {Linear::Normalizer::OutputTuples.Output(:failure) => Linear::Strategy.Track(:failure)}
+        PASS_CONNECTOR    = {Linear::Normalizer::OutputTuples.Output(:failure) => Linear::Strategy.Track(:success)}
+        FAIL_CONNECTOR    = {Linear::Normalizer::OutputTuples.Output(:success) => Linear::Strategy.Track(:failure)}
 
         # Add {:failure} output to {:outputs}.
         # This is only called for non-Subprocess steps.
