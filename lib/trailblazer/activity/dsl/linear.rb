@@ -33,6 +33,7 @@ require "trailblazer/activity/dsl/linear/sequence"
 require "trailblazer/activity/dsl/linear/sequence/builder"
 require "trailblazer/activity/dsl/linear/sequence/search"
 require "trailblazer/activity/dsl/linear/sequence/compiler"
+require "trailblazer/activity/dsl/linear/normalizer/inherit" # FIXME.
 require "trailblazer/activity/dsl/linear/normalizer"
 require "trailblazer/activity/dsl/linear/normalizer/terminus"
 require "trailblazer/activity/dsl/linear/helper"

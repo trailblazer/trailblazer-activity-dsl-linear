@@ -134,10 +134,11 @@ module Trailblazer
 #   inherit tests are in step_test
 
 
+
             pipeline = TaskWrap::Pipeline.new(
               {
-                "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)), # Makes sure {:options} is always a hash.
-                "activity.macro_options_with_symbol_task" => Normalizer.Task(method(:macro_options_with_symbol_task)),
+                "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)),        # Makes sure {:options} is always a hash.
+                "activity.macro_options_with_symbol_task" => Normalizer.Task(method(:macro_options_with_symbol_task)),  # DISCUSS: we might deprecate {task: :instance_method}
 
                 "activity.merge_library_options"          => Normalizer.Task(method(:merge_library_options)),    # Merge "macro"/user options over library options.
                 "activity.normalize_for_macro"            => Normalizer.Task(method(:merge_user_options)),       # Merge user_options over "macro" options.
@@ -153,7 +154,7 @@ module Trailblazer
                 # Nested pipeline:
                 "activity.default_outputs"           => defaults_for_outputs, # only {if :outputs.nil?}
 
-                "activity.inherit_option"                 => Normalizer.Task(method(:inherit_option)),
+                "activity.inherit_option"                 => Normalizer.Task(Inherit.method(:inherit_option)),
                 "activity.sequence_insert"                => Normalizer.Task(method(:normalize_sequence_insert)),
                 "activity.normalize_duplications"         => Normalizer.Task(method(:normalize_duplications)),
 
@@ -169,6 +170,9 @@ module Trailblazer
                 "activity.normalize_outputs_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
 
                 "activity.wirings"                            => Normalizer.Task(method(:compile_wirings)),
+
+                # DISCUSS: make this configurable? maybe lots of folks don't want {:inherit}?
+                "inherit.compile_recorded_options" => Normalizer.Task(Inherit.method(:compile_recorded_options)),
 
                 # TODO: make this a "Subprocess":
                 "activity.compile_data" => Normalizer.Task(method(:compile_data)),
@@ -408,7 +412,9 @@ module Trailblazer
               # save Output() tuples under {:custom_output_tuples} for inheritance.
               ctx.merge!(
                 custom_output_tuples: custom_output_tuples.to_h,
-                non_symbol_options:   non_symbol_options.merge(Strategy.DataVariable() => :custom_output_tuples)
+                non_symbol_options:   non_symbol_options.merge(
+                  Normalizer::Inherit.Record(:custom_output_tuples, type: :output_tuples)=>nil,
+                  Strategy.DataVariable() => :custom_output_tuples)
               )
             end
 
@@ -463,45 +469,6 @@ module Trailblazer
             # {output.semantic => search strategy}
             def convert____connections
 
-            end
-          end
-
-          # Currently, the {:inherit} option copies over {:extensions} from the original step and merges them with new :extensions.
-          #
-          def inherit_option(ctx, inherit: false, sequence:, id:, extensions: [], non_symbol_options:, **)
-            return unless inherit === true
-
-            row = InheritOption.find_row(sequence, id) # from this row we're inheriting options.
-
-            # FIXME: "inherit.extensions"
-            inherited_extensions  = row.data[:extensions]
-
-            ctx[:extensions]  = Array(inherited_extensions) + Array(extensions)
-
-
-            # FIXME: this should be part of the :inherit pipeline, but "inherit.fast_track_options"
-            inherited_fast_track_options =
-              [:pass_fast, :fail_fast, :fast_track].collect do |option|
-                row.data.key?(option) ? [option, row.data[option]] : nil
-              end.compact.to_h
-
-            inherited_fast_track_options.each do |k,v| # FIXME: we should provide this generically for all kinds of options.
-              ctx[k] = v
-            end
-
-
-
-            # FIXME: this should be part of the :inherit pipeline, but "inherit.output_tuples"
-            inherited_output_tuples  = row.data[:custom_output_tuples] || {} # Output() tuples from superclass. (2.)
-
-            ctx[:non_symbol_options] = inherited_output_tuples.merge(non_symbol_options)
-            ctx[:inherited_output_tuples] = inherited_output_tuples
-          end
-
-          module InheritOption # TODO: move all inherit methods in here!
-            def self.find_row(sequence, id)
-              index = Activity::Adds::Insert.find_index(sequence, id)
-              sequence[index]
             end
           end
 
