@@ -1,11 +1,12 @@
 # 1.2
 
 * `step :outputs` is a private concept.
+  What used to be the "path.outputs" step is now a separate, nested pipeline named "activity.default_outputs".
 * Fixed a bug where Subprocess(Path) would accidentially add a {Left, :failure} connection
   In turn, this doesn't work anymore
 
   ```ruby
-  step Subprocess(Railway), Output(:failure) => ...
+  step Subprocess(Path), Output(:failure) => ...
   ```
 
   :outputs when given (as from Subprocess) is no longer extended or overridden/defaulted once it's set.
