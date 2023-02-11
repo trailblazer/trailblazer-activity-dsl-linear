@@ -340,61 +340,6 @@ class ActivityTest < Minitest::Spec
       ctx[:seq] << 1
       return wrap_ctx, original_args # yay to mutable state. not.
     end
-
-    describe "{:extensions}" do
-      let(:merge) do
-        merge = [
-          {
-            insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"],
-            row:    Trailblazer::Activity::TaskWrap::Pipeline.Row("user.add_1", method(:add_1))
-          },
-        ]
-      end
-
-      it "accepts {:extensions}" do
-        implementing = self.implementing
-
-        merge = self.merge
-
-        activity = Class.new(Activity::Path) do
-          step implementing.method(:a), id: :a, extensions: [Trailblazer::Activity::TaskWrap::Extension(merge: merge)]
-          step implementing.method(:b), id: :b
-        end
-
-        assert_process_for activity.to_h, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
-
-        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
-
-        _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-        _(ctx.inspect).must_equal %{{:seq=>[1, :a, :b]}}
-      end
-
-      it "accepts {:extensions} along with {:input}" do
-        implementing = self.implementing
-
-        merge = self.merge
-
-        activity = Class.new(Activity::Path) do
-          # :extensions doesn't overwrite :input and vice-versa!
-          step implementing.method(:a), id: :a, extensions: [Trailblazer::Activity::TaskWrap::Extension(merge: merge)], input: ->(ctx, *) { {seq: ctx[:seq] += [:input]} }
-          step implementing.method(:b), id: :b
-        end
-
-        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
-
-        _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-        _(ctx.inspect).must_equal %{{:seq=>[1, :input, :a, :b]}}
-      end
-
-    end
   end
 
   it "accepts {:magnetic_to}" do
@@ -654,6 +599,7 @@ class ActivityTest < Minitest::Spec
     _(ctx.inspect).must_equal %{{:seq=>[:a, :b, :f]}}
   end
 
+  # FIXME: move to step_test.rb.
   it "{:inherit} also adds the {:extensions} from the inherited row" do
     merge = [
       {insert: [Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"], row: taskWrap::Pipeline.Row("user.add_1", method(:add_1))},
