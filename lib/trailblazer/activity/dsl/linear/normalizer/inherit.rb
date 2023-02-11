@@ -6,6 +6,8 @@ module Trailblazer
           # Implements the generic {:inherit} option.
           # Features such as variable mapping or the Wiring API can
           # use the generic behavior for their inheritance.
+
+# "generic": built by the DSL from options, options that are inherited, so you might not want to record or inherit generic options
           module Inherit
             module_function
 

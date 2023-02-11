@@ -83,20 +83,23 @@ module Trailblazer
               ctx[:out_filters]    = output_exts
             end
 
-            def self.input_output_dsl(ctx, extensions: [], in_filters: nil, out_filters: nil, non_symbol_options:, **options)
+            def self.input_output_dsl(ctx, in_filters: nil, out_filters: nil, non_symbol_options:, **options)
               # no :input/:output/:inject/Input()/Output() passed.
               return unless in_filters || out_filters
 
               extension, normalizer_options, _ = Linear.VariableMapping(in_filters: in_filters, out_filters: out_filters, **options)
 
-              ctx[:extensions] = extensions + [extension] # FIXME: allow {Extension() => extension}
+
               ctx.merge!(**normalizer_options) # DISCUSS: is there another way of merging variables into ctx?
 
 
               record = Linear::Normalizer::Inherit.Record((in_filters+out_filters).to_h, type: :variable_mapping) # FIXME: just pass one hash around?
 
               ctx.merge!(
-                non_symbol_options: non_symbol_options.merge(record => nil)
+                non_symbol_options: non_symbol_options.merge(
+                  record                                      => nil,
+                  Linear::Normalizer::Extensions.Extension(is_generic: true)  => extension,
+                )
               )
             end
 
@@ -134,7 +137,7 @@ module Trailblazer
             return input, output,
               # normalizer_options:
               {
-                variable_mapping_pipelines: [pipeline, output_pipeline], # FIXME: what is this?
+                variable_mapping_pipelines: [pipeline, output_pipeline], # FIXME: what is this? REMOVE this option.
               },
               {} # FIXME: delete.
           end
