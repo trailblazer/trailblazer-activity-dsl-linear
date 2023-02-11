@@ -716,8 +716,6 @@ end
 class VariableMappingInheritTest < Minitest::Spec
   it "inherit: [:variable_mapping]" do
     class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
-      extend Trailblazer::Activity::DSL::Linear::VariableMapping::Inherit # this has to be done on the root level!
-
       step :write,
         # all filters can see the original ctx:
         Inject() => {time: ->(ctx, **) { 99 }},
