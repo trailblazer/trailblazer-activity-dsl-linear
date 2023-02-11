@@ -17,6 +17,7 @@ We don't inherit :connections anymore, but the output tuples.
 * Rename `"path.connections"` to `""path.step.add_success_connector"` for consistency.
 * Move `Railway::DSL::NormalizerForPass` to `Railway::DSL::Pass::Normalizer` (same for `Fail`).
 * Move `FastTrack::DSL::NormalizerForPass` to `FastTrack::DSL::Pass::Normalizer` (same for `Fail`).
+* removes the `VariableMapping::Inherit` module.
 
 # 1.1.1
 

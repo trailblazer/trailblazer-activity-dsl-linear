@@ -154,6 +154,8 @@ module Trailblazer
                 # Nested pipeline:
                 "activity.default_outputs"           => defaults_for_outputs, # only {if :outputs.nil?}
 
+                "extensions.convert_extensions_option_to_tuples" => Normalizer.Task(Extensions.method(:convert_extensions_option_to_tuples)),
+
                 "inherit.recall_recorded_options"                 => Normalizer.Task(Inherit.method(:recall_recorded_options)),
                 "activity.sequence_insert"                => Normalizer.Task(method(:normalize_sequence_insert)),
                 "activity.normalize_duplications"         => Normalizer.Task(method(:normalize_duplications)),
@@ -170,6 +172,10 @@ module Trailblazer
                 "activity.normalize_outputs_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
 
                 "activity.wirings"                            => Normalizer.Task(method(:compile_wirings)),
+
+
+                "extensions.compile_extensions"           => Normalizer.Task(Extensions.method(:compile_extensions)),
+                "extensions.compile_recorded_extensions"  => Normalizer.Task(Extensions.method(:compile_recorded_extensions)),
 
                 # DISCUSS: make this configurable? maybe lots of folks don't want {:inherit}?
                 "inherit.compile_recorded_options" => Normalizer.Task(Inherit.method(:compile_recorded_options)),
