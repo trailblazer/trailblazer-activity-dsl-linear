@@ -17,22 +17,6 @@ module Trailblazer
               Record.new(option_names, type)
             end
 
-            # Figure out what to remember in {row.data[:recorded_options]}.
-            # Note that this is generic logic not tied to variable_mapping, OutputTuples or anything.
-            def compile_recorded_options(ctx, non_symbol_options:, **)
-              recorded_options = {}
-
-              non_symbol_options
-                .find_all { |k,v| k.instance_of?(Record) }
-                .collect  { |k,v| recorded_options[k.type] = ctx.slice(*k.option_names) }  # DISCUSS: we overwrite potential data with same type.
-
-              ctx.merge!(
-                recorded_options:   recorded_options,
-                # add {row.data[:recorded_options]} in Sequence:
-                non_symbol_options: non_symbol_options.merge(Strategy.DataVariable() => :recorded_options)
-              )
-            end
-
             # Currently, the {:inherit} option copies over {:extensions} from the original step and merges them with new :extensions.
             #
             def inherit_option(ctx, inherit: false, sequence:, id:, extensions: [], non_symbol_options:, **)
@@ -69,7 +53,24 @@ module Trailblazer
               index = Activity::Adds::Insert.find_index(sequence, id)
               sequence[index]
             end
-          end
+
+          ### remember
+            # Figure out what to remember in {row.data[:recorded_options]}.
+            # Note that this is generic logic not tied to variable_mapping, OutputTuples or anything.
+            def compile_recorded_options(ctx, non_symbol_options:, **)
+              recorded_options = {}
+
+              non_symbol_options
+                .find_all { |k,v| k.instance_of?(Record) }
+                .collect  { |k,v| recorded_options[k.type] = ctx.slice(*k.option_names) }  # DISCUSS: we overwrite potential data with same type.
+
+              ctx.merge!(
+                recorded_options:   recorded_options,
+                # add {row.data[:recorded_options]} in Sequence:
+                non_symbol_options: non_symbol_options.merge(Strategy.DataVariable() => :recorded_options)
+              )
+            end
+          end # Inherit
         end
       end
     end
