@@ -5,11 +5,10 @@ module Trailblazer
         # Normalizer-steps to implement {:input} and {:output}
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
         def self.VariableMapping(input_id: "task_wrap.input", output_id: "task_wrap.output", **options)
-          input, output, normalizer_options, non_symbol_options = VariableMapping.merge_instructions_from_dsl(**options)
+          input, output = VariableMapping.merge_instructions_from_dsl(**options)
+          extension     = VariableMapping.Extension(input, output)
 
-          extension = VariableMapping.Extension(input, output)
-
-          return TaskWrap::Extension::WrapStatic.new(extension: extension), normalizer_options, non_symbol_options
+          TaskWrap::Extension::WrapStatic.new(extension: extension)
         end
 
         module VariableMapping
@@ -87,11 +86,7 @@ module Trailblazer
               # no :input/:output/:inject/Input()/Output() passed.
               return unless in_filters || out_filters
 
-              extension, normalizer_options, _ = Linear.VariableMapping(in_filters: in_filters, out_filters: out_filters, **options)
-
-
-              ctx.merge!(**normalizer_options) # DISCUSS: is there another way of merging variables into ctx?
-
+              extension = Linear.VariableMapping(in_filters: in_filters, out_filters: out_filters, **options)
 
               record = Linear::Normalizer::Inherit.Record((in_filters+out_filters).to_h, type: :variable_mapping) # FIXME: just pass one hash around?
 
@@ -134,12 +129,7 @@ module Trailblazer
             output_pipeline = DSL.pipe_for_composable_output(**options)
             output          = Pipe::Output.new(output_pipeline)
 
-            return input, output,
-              # normalizer_options:
-              {
-                variable_mapping_pipelines: [pipeline, output_pipeline], # FIXME: what is this? REMOVE this option.
-              },
-              {} # FIXME: delete.
+            return input, output
           end
 
           def deprecation_link
