@@ -31,8 +31,8 @@ module Trailblazer
                 return unless inherit.include?(:variable_mapping)
               else return end
 
-                inherited_in_filters  = Linear::Normalizer::InheritOption.find_row(sequence, id).data[:in_filters]
-                inherited_out_filters = Linear::Normalizer::InheritOption.find_row(sequence, id).data[:out_filters]
+                inherited_in_filters  = Linear::Normalizer::Inherit.find_row(sequence, id).data[:in_filters]
+                inherited_out_filters = Linear::Normalizer::Inherit.find_row(sequence, id).data[:out_filters]
 
                 inherited_filters = inherited_in_filters.to_h.merge(inherited_out_filters.to_h)
 
