@@ -154,7 +154,7 @@ module Trailblazer
                 # Nested pipeline:
                 "activity.default_outputs"           => defaults_for_outputs, # only {if :outputs.nil?}
 
-                "activity.inherit_option"                 => Normalizer.Task(Inherit.method(:inherit_option)),
+                "inherit.recall_recorded_options"                 => Normalizer.Task(Inherit.method(:recall_recorded_options)),
                 "activity.sequence_insert"                => Normalizer.Task(method(:normalize_sequence_insert)),
                 "activity.normalize_duplications"         => Normalizer.Task(method(:normalize_duplications)),
 
@@ -411,10 +411,9 @@ module Trailblazer
 
               # save Output() tuples under {:custom_output_tuples} for inheritance.
               ctx.merge!(
-                custom_output_tuples: custom_output_tuples.to_h,
-                non_symbol_options:   non_symbol_options.merge(
-                  Normalizer::Inherit.Record(:custom_output_tuples, type: :output_tuples)=>nil,
-                  Strategy.DataVariable() => :custom_output_tuples)
+                non_symbol_options: non_symbol_options.merge(
+                  Normalizer::Inherit.Record(custom_output_tuples.to_h, type: :custom_output_tuples) => nil,
+                )
               )
             end
 
@@ -449,10 +448,15 @@ module Trailblazer
 
             # Implements {inherit: :outputs, strict: false}
             # return connections from {parent} step which are supported by current step
-            def self.filter_inherited_output_tuples(ctx, inherit: false, inherited_output_tuples: {}, outputs:, output_tuples:, **)
+            def self.filter_inherited_output_tuples(ctx, inherit: false, inherited_recorded_options: {}, outputs:, output_tuples:, **)
               return unless inherit === true
               strict_outputs = false # TODO: implement "strict outputs" for inherit! meaning we connect all inherited Output regardless of the new activity's interface
               return if strict_outputs === true
+
+              # Grab the inherited {:custom_output_tuples} so we can throw those out if the new activity doesn't support
+              # the respective outputs.
+              inherited_output_tuples_record  = inherited_recorded_options[:custom_output_tuples]
+              inherited_output_tuples         = inherited_output_tuples_record ? inherited_output_tuples_record.options : {}
 
               allowed_semantics     = outputs.keys # these outputs are exposed by the inheriting step.
               inherited_semantics   = inherited_output_tuples.collect { |output, _| output.semantic }
