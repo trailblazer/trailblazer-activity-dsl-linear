@@ -28,7 +28,7 @@ module Trailblazer
             prepend_to_default_outputs: [fast_track_output_steps, *prepend_to_default_outputs]
           )
 
-          normalizer = Linear::Normalizer.prepend_to(
+          _normalizer = Linear::Normalizer.prepend_to(
             step_normalizer,
             PREPEND_TO,
 
