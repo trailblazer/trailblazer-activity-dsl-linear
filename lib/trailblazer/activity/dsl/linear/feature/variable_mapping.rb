@@ -83,15 +83,21 @@ module Trailblazer
               ctx[:out_filters]    = output_exts
             end
 
-            def self.input_output_dsl(ctx, extensions: [], **options)
+            def self.input_output_dsl(ctx, extensions: [], in_filters: nil, out_filters: nil, non_symbol_options:, **options)
               # no :input/:output/:inject/Input()/Output() passed.
-              return if (options.keys & [:in_filters, :output_filters]).empty?
+              return unless in_filters || out_filters
 
-              extension, normalizer_options, non_symbol_options = Linear.VariableMapping(**options)
+              extension, normalizer_options, _ = Linear.VariableMapping(in_filters: in_filters, out_filters: out_filters, **options)
 
               ctx[:extensions] = extensions + [extension] # FIXME: allow {Extension() => extension}
               ctx.merge!(**normalizer_options) # DISCUSS: is there another way of merging variables into ctx?
-              ctx[:non_symbol_options].merge!(non_symbol_options)
+
+
+              record = Linear::Normalizer::Inherit.Record((in_filters+out_filters).to_h, type: :variable_mapping) # FIXME: just pass one hash around?
+
+              ctx.merge!(
+                non_symbol_options: non_symbol_options.merge(record => nil)
+              )
             end
 
             # TODO: remove for TRB 2.2.
@@ -128,14 +134,9 @@ module Trailblazer
             return input, output,
               # normalizer_options:
               {
-                variable_mapping_pipelines: [pipeline, output_pipeline],
+                variable_mapping_pipelines: [pipeline, output_pipeline], # FIXME: what is this?
               },
-              # non_symbol_options:
-              {
-                # we want to store {:in_filters} and {:out_filters} in {Row.data} for later reference.
-                Linear::Strategy.DataVariable() => :in_filters,
-                Linear::Strategy.DataVariable() => :out_filters,
-              }
+              {} # FIXME: delete.
           end
 
           def deprecation_link
