@@ -15,8 +15,8 @@ module Trailblazer
             # declared using Record.
             Record = Struct.new(:options, :type, :non_symbol_options?) # FIXME: i hate symbol vs. non-symbol.
 
-            def Record(options, type:, from_non_symbol_options: true)
-              Record.new(options, type, from_non_symbol_options)
+            def Record(options, type:, non_symbol_options: true)
+              Record.new(options, type, non_symbol_options)
             end
 
             # Currently, the {:inherit} option copies over {:extensions} from the original step and merges them with new :extensions.
@@ -51,21 +51,12 @@ module Trailblazer
               end
 
               ctx[:non_symbol_options] = non_symbol_options_to_merge.merge(non_symbol_options)
-              # ctx = symbol_options_to_merge.merge(ctx)  #FIXME: implement
+
+              ctx.merge!(symbol_options_to_merge)
+
               ctx.merge!(
                 inherited_recorded_options: row.data[:recorded_options]
               )
-
-
-              # FIXME: this should be part of the :inherit pipeline, but "inherit.fast_track_options"
-              inherited_fast_track_options =
-                [:pass_fast, :fail_fast, :fast_track].collect do |option|
-                  row.data.key?(option) ? [option, row.data[option]] : nil
-                end.compact.to_h
-
-              inherited_fast_track_options.each do |k,v| # FIXME: we should provide this generically for all kinds of options.
-                ctx[k] = v
-              end
             end
 
             def find_row(sequence, id)
