@@ -45,9 +45,8 @@ module Trailblazer
 
               row.data[:recorded_options].each do |type, record|
                 next unless types_to_recall[type]
-                # raise record.inspect
-                target = record.non_symbol_options? ? non_symbol_options_to_merge : symbol_options_to_merge
 
+                target = record.non_symbol_options? ? non_symbol_options_to_merge : symbol_options_to_merge
                 target.merge!(record.options)
               end
 
@@ -56,14 +55,6 @@ module Trailblazer
               ctx.merge!(
                 inherited_recorded_options: row.data[:recorded_options]
               )
-
-
-
-
-              # FIXME: "inherit.extensions"
-              inherited_extensions  = row.data[:extensions]
-
-              ctx[:extensions]  = Array(inherited_extensions) + Array(extensions)
 
 
               # FIXME: this should be part of the :inherit pipeline, but "inherit.fast_track_options"
