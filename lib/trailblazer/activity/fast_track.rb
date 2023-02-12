@@ -16,9 +16,9 @@ module Trailblazer
 
         def Normalizer(prepend_to_default_outputs: [], base_normalizer_builder: Railway::DSL.method(:Normalizer))
           fast_track_output_steps = {
-            "fast_track.pass_fast_output" => Linear::Normalizer.Task(method(:add_pass_fast_output)),
-            "fast_track.fail_fast_output" => Linear::Normalizer.Task(method(:add_fail_fast_output)),
-            "fast_track.fast_track_outputs" => Linear::Normalizer.Task(method(:add_fast_track_outputs)),
+            "fast_track.pass_fast_output"     => Linear::Normalizer.Task(method(:add_pass_fast_output)),
+            "fast_track.fail_fast_output"     => Linear::Normalizer.Task(method(:add_fail_fast_output)),
+            "fast_track.fast_track_outputs"   => Linear::Normalizer.Task(method(:add_fast_track_outputs)),
           }
 
           # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
@@ -31,9 +31,9 @@ module Trailblazer
             PREPEND_TO,
 
             {
-              "fast_track.record_options" => Linear::Normalizer.Task(method(:record_options)),
-              "fast_track.pass_fast_option"  => Linear::Normalizer.Task(method(:pass_fast_option)),
-              "fast_track.fail_fast_option"  => Linear::Normalizer.Task(method(:fail_fast_option)),
+              "fast_track.record_options"     => Linear::Normalizer.Task(method(:record_options)),
+              "fast_track.pass_fast_option"   => Linear::Normalizer.Task(method(:pass_fast_option)),
+              "fast_track.fail_fast_option"   => Linear::Normalizer.Task(method(:fail_fast_option)),
               "fast_track.fast_track_option"  => Linear::Normalizer.Task(method(:add_fast_track_connectors)),
             }
           )
@@ -54,7 +54,6 @@ module Trailblazer
               }
             )
           end
-
         end
 
         module Pass
@@ -77,7 +76,7 @@ module Trailblazer
         # inherit: true
         RECORD_OPTIONS = [:pass_fast, :fail_fast, :fast_track]
 
-        # inherit: true
+        # *If* {fast_track: true} (or :pass_fast or :fail_fast), record it using Normalizer::Inherit mechanics.
         def record_options(ctx, non_symbol_options:, **)
           recorded_options =
             RECORD_OPTIONS.collect { |option| ctx.key?(option) ? [option, ctx[option]] : nil }
