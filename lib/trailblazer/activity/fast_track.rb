@@ -12,12 +12,10 @@ module Trailblazer
         # The connector logic needs to be run before Railway's connector logic:
         PREPEND_TO = "activity.path_helper.path_to_track"
 
-
         module_function
 
         def Normalizer(prepend_to_default_outputs: [], base_normalizer_builder: Railway::DSL.method(:Normalizer))
           fast_track_output_steps = {
-            "fast_track.remember_options" => Linear::Normalizer.Task(method(:remember_options)),
             "fast_track.pass_fast_output" => Linear::Normalizer.Task(method(:add_pass_fast_output)),
             "fast_track.fail_fast_output" => Linear::Normalizer.Task(method(:add_fail_fast_output)),
             "fast_track.fast_track_outputs" => Linear::Normalizer.Task(method(:add_fast_track_outputs)),
@@ -33,10 +31,10 @@ module Trailblazer
             PREPEND_TO,
 
             {
+              "fast_track.record_options" => Linear::Normalizer.Task(method(:record_options)),
               "fast_track.pass_fast_option"  => Linear::Normalizer.Task(method(:pass_fast_option)),
               "fast_track.fail_fast_option"  => Linear::Normalizer.Task(method(:fail_fast_option)),
               "fast_track.fast_track_option"  => Linear::Normalizer.Task(method(:add_fast_track_connectors)),
-
             }
           )
         end
@@ -77,16 +75,19 @@ module Trailblazer
         end
 
         # inherit: true
-        REMEMBER_OPTIONS = {
-          Linear::Strategy.DataVariable() => :pass_fast,
-          Linear::Strategy.DataVariable() => :fail_fast,
-          Linear::Strategy.DataVariable() => :fast_track,
-        }
+        RECORD_OPTIONS = [:pass_fast, :fail_fast, :fast_track]
 
         # inherit: true
-        def remember_options(ctx, non_symbol_options:, **)
+        def record_options(ctx, non_symbol_options:, **)
+          recorded_options =
+            RECORD_OPTIONS.collect { |option| ctx.key?(option) ? [option, ctx[option]] : nil }
+            .compact
+            .to_h
+
           ctx.merge!(
-            non_symbol_options: non_symbol_options.merge(REMEMBER_OPTIONS)
+            non_symbol_options: non_symbol_options.merge(
+              Linear::Normalizer::Inherit.Record(recorded_options, type: :fast_track, non_symbol_options: false) => nil
+            )
           )
         end
 

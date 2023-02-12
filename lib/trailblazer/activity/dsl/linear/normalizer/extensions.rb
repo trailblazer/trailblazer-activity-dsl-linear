@@ -3,7 +3,8 @@ module Trailblazer
     module DSL
       module Linear
         module Normalizer
-          # Implements {:extensions} option and ... # TODO
+          # Implements {:extensions} option and allows adding taskWrap extensions using
+          # Linear::Normalizer::Extensions.Extension().
           module Extensions
             module_function
 
