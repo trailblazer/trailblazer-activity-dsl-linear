@@ -5,9 +5,11 @@ module Trailblazer
         module Normalizer
           # Implements
           module OutputTuples
+            module_function
+
             # Logic related to {Output() => ...}, called "Wiring API".
             # TODO: move to different namespace (feature/dsl)
-            def self.Output(semantic, is_generic: true)
+            def Output(semantic, is_generic: true)
               Normalizer::OutputTuples::Output::Semantic.new(semantic, is_generic)
             end
 
@@ -22,14 +24,14 @@ module Trailblazer
             # 2. convert Output, and add to :outputs
             # 3. now OutputSemantic only to be treated
 
-            def self.normalize_output_tuples(ctx, non_symbol_options:, **)
+            def normalize_output_tuples(ctx, non_symbol_options:, **)
               output_tuples = non_symbol_options.find_all { |k,v| k.is_a?(OutputTuples::Output) }
 
               ctx.merge!(output_tuples: output_tuples)
             end
 
             # Remember all custom (non-generic) {:output_tuples}.
-            def self.remember_custom_output_tuples(ctx, output_tuples:, non_symbol_options:, **)
+            def remember_custom_output_tuples(ctx, output_tuples:, non_symbol_options:, **)
               # We don't include generic OutputSemantic (from Subprocess(strict: true)) for inheritance, as this is not a user customization.
               custom_output_tuples = output_tuples.reject { |k,v| k.generic? }
 
@@ -43,7 +45,7 @@ module Trailblazer
 
             # Take all Output(signal, semantic), convert to OutputSemantic and extend {:outputs}.
             # Since only users use this style, we don't have to filter.
-            def self.register_additional_outputs(ctx, output_tuples:, outputs:, **)
+            def register_additional_outputs(ctx, output_tuples:, outputs:, **)
               # We need to preserve the order when replacing Output with OutputSemantic,
               # that's why we recreate {output_tuples} here.
               output_tuples =
@@ -61,7 +63,7 @@ module Trailblazer
 
               ctx.merge!(
                 output_tuples: output_tuples,
-                outputs:            outputs
+                outputs:       outputs
               )
             end
 
@@ -72,7 +74,7 @@ module Trailblazer
 
             # Implements {inherit: :outputs, strict: false}
             # return connections from {parent} step which are supported by current step
-            def self.filter_inherited_output_tuples(ctx, inherit: false, inherited_recorded_options: {}, outputs:, output_tuples:, **)
+            def filter_inherited_output_tuples(ctx, inherit: false, inherited_recorded_options: {}, outputs:, output_tuples:, **)
               return unless inherit === true
               strict_outputs = false # TODO: implement "strict outputs" for inherit! meaning we connect all inherited Output regardless of the new activity's interface
               return if strict_outputs === true
@@ -93,11 +95,65 @@ module Trailblazer
               )
             end
 
-            # we want this in the end:
-            # {output.semantic => search strategy}
-            def convert____connections
+            # Compile connections from tuples.
+            module Connections
+              module_function
 
-            end
+              # we want this in the end:
+              # {output.semantic => search strategy}
+              # Process {Output(:semantic) => target} and make them {:connections}.
+              def compile_connections(ctx, adds:, output_tuples:, sequence:, normalizers:, **)
+                # Find all {Output() => Track()/Id()/End()}
+                return unless output_tuples.any?
+
+                connections = {}
+
+                # DISCUSS: how could we add another magnetic_to to an end?
+                output_tuples.each do |output, cfg|
+                  new_connections, add =
+                    if cfg.is_a?(Linear::Track)
+                      [output_to_track(ctx, output, cfg), cfg.adds] # FIXME: why does Track have a {adds} field? we don't use it anywhere.
+                    elsif cfg.is_a?(Linear::Id)
+                      [output_to_id(ctx, output, cfg.value), []]
+                    elsif cfg.is_a?(Activity::End)
+                      end_id     = Activity::Railway.end_id(**cfg.to_h)
+                      end_exists = Activity::Adds::Insert.find_index(ctx[:sequence], end_id)
+
+                      _adds = end_exists ? [] : add_terminus(cfg, id: end_id, sequence: sequence, normalizers: normalizers)
+
+                      [output_to_id(ctx, output, end_id), _adds]
+                    else
+                      raise cfg.inspect
+                    end
+
+                  connections = connections.merge(new_connections)
+                  adds += add
+                end
+
+                ctx[:connections] = connections
+                ctx[:adds]        = adds
+              end
+
+              # @private
+              def output_to_track(ctx, output, track)
+                search_strategy = track.options[:wrap_around] ? :WrapAround : :Forward
+
+                {output.semantic => [Linear::Sequence::Search.method(search_strategy), track.color]}
+              end
+
+              # @private
+              def output_to_id(ctx, output, target)
+                {output.semantic => [Linear::Sequence::Search.method(:ById), target]}
+              end
+
+              # Returns ADDS for the new terminus.
+              # @private
+              def add_terminus(end_event, id:, sequence:, normalizers:)
+                step_options = Linear::Sequence::Builder.invoke_normalizer_for(:terminus, end_event, {id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
+
+                step_options[:adds]
+              end
+            end # Connections
           end # OutputTuples
         end
       end
