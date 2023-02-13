@@ -16,7 +16,7 @@ module Trailblazer
             Record = Struct.new(:options, :type, :non_symbol_options?) # FIXME: i hate symbol vs. non-symbol.
 
             def Record(options, type:, non_symbol_options: true)
-              Record.new(options, type, non_symbol_options)
+              {Record.new(options, type, non_symbol_options) => nil}
             end
 
             # Currently, the {:inherit} option copies over {:extensions} from the original step and merges them with new :extensions.

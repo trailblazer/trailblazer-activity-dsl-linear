@@ -51,7 +51,7 @@ module Trailblazer
 
               ctx.merge!(
                 non_symbol_options: non_symbol_options.merge(
-                  Normalizer::Inherit.Record(recorded_extension_tuples, type: :extensions) => nil
+                  Normalizer::Inherit.Record(recorded_extension_tuples, type: :extensions)
                 )
               )
             end

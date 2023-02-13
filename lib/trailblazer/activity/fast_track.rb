@@ -85,7 +85,7 @@ module Trailblazer
 
           ctx.merge!(
             non_symbol_options: non_symbol_options.merge(
-              Linear::Normalizer::Inherit.Record(recorded_options, type: :fast_track, non_symbol_options: false) => nil
+              Linear::Normalizer::Inherit.Record(recorded_options, type: :fast_track, non_symbol_options: false)
             )
           )
         end
