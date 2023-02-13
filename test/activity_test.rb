@@ -599,36 +599,6 @@ class ActivityTest < Minitest::Spec
     _(ctx.inspect).must_equal %{{:seq=>[:a, :b, :f]}}
   end
 
-  # FIXME: move to step_test.rb.
-  it "{:inherit} also adds the {:extensions} from the inherited row" do
-    merge = [
-      {insert: [Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"], row: taskWrap::Pipeline.Row("user.add_1", method(:add_1))},
-    ]
-
-    ext = taskWrap::Extension(merge: merge)
-
-    activity = Class.new(Activity::Path) do
-      step :a, extensions: [ext]
-      step :b # no {:extensions}
-
-      include T.def_steps(:a, :b)
-    end
-
-    sub = Class.new(activity) do
-      step :a, inherit: true, id: :a, replace: :a # this should also "inherit" the taskWrap configs for this task.
-
-      step :b, inherit: true, id: :b, replace: :b, extensions: [ext] # we want to "override" the original {:extensions}
-    end
-
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:seq=>[1, :a, :b]}}
-
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(sub, [{seq: []}, {}])
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:seq=>[1, :a, 1, :b]}}
-  end
-
   it "assigns default {:id}" do
     implementing = self.implementing
 
