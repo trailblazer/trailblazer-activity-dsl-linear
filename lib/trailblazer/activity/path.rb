@@ -8,7 +8,7 @@ module Trailblazer
         # Always prepend all "add connectors" steps of all normalizers to normalize_output_tuples.
         # This assures that the order is
         #   [<default tuples>, <inherited tuples>, <user tuples>]
-        PREPEND_TO = "activity.normalize_output_tuples"
+        PREPEND_TO = "output_tuples.normalize_output_tuples"
 
         module_function
 
