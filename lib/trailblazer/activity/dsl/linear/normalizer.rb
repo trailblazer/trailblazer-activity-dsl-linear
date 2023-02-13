@@ -418,7 +418,7 @@ module Trailblazer
               # save Output() tuples under {:custom_output_tuples} for inheritance.
               ctx.merge!(
                 non_symbol_options: non_symbol_options.merge(
-                  Normalizer::Inherit.Record(custom_output_tuples.to_h, type: :custom_output_tuples) => nil,
+                  Normalizer::Inherit.Record(custom_output_tuples.to_h, type: :custom_output_tuples),
                 )
               )
             end

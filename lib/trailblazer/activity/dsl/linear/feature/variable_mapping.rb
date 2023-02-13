@@ -92,7 +92,7 @@ module Trailblazer
 
               ctx.merge!(
                 non_symbol_options: non_symbol_options.merge(
-                  record                                      => nil,
+                  record,
                   Linear::Normalizer::Extensions.Extension(is_generic: true)  => extension,
                 )
               )
