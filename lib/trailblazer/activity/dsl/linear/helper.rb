@@ -80,6 +80,8 @@ module Trailblazer
           def Out(**kws);    VariableMapping::DSL::Out(**kws); end
           def Inject(*args, **kws); VariableMapping::DSL::Inject(*args, **kws); end
 
+          def Extension(*args, **kws); Normalizer::Extensions.Extension(*args, **kws); end
+
           def DataVariable
             DataVariableName.new
           end

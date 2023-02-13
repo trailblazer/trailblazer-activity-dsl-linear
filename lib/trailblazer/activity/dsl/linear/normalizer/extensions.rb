@@ -8,10 +8,10 @@ module Trailblazer
           module Extensions
             module_function
 
-            Extension = Struct.new(:generic?)
+            Extension = Struct.new(:generic?, :id)
 
             def Extension(is_generic: false)
-              Extension.new(is_generic)
+              Extension.new(is_generic, rand) # {id} has to be unique for every Extension instance (for Hash identity).
             end
 
             # Convert {:extensions} option to {Extension} tuples. The new way of adding extensions is
