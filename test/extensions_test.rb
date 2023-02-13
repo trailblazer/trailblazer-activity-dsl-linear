@@ -15,6 +15,8 @@ class ExtensionsTest < Minitest::Spec
     ]
   end
 
+  # This is and will remain part of the semi-public API! We need this
+  # for introspection purposes.
   it "accepts {:extensions} and exposes it in {row.data}" do
     add_1_extension = Trailblazer::Activity::TaskWrap::Extension.WrapStatic(*merge)
 
@@ -56,5 +58,23 @@ class ExtensionsTest < Minitest::Spec
     end
 
     assert_invoke activity, seq: "[1, :input, :model, :save]"
+  end
+
+  it "accepts Extension()" do
+    prepend_1_extension = Trailblazer::Activity::TaskWrap::Extension.WrapStatic(*merge)
+    suffix_1_extension  = Trailblazer::Activity::TaskWrap::Extension.WrapStatic(
+      [method(:add_1), id: "suffix_add_1", append: "task_wrap.call_task"]
+    )
+
+    activity = Class.new(Activity::Path) do
+      step :model,
+        Extension() => suffix_1_extension,
+        Extension() => prepend_1_extension
+      step :save
+
+      include T.def_steps(:model, :save)
+    end
+
+    assert_invoke activity, seq: "[1, :model, 1, :save]"
   end
 end

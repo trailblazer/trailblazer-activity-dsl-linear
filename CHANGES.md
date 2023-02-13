@@ -18,6 +18,9 @@ We don't inherit :connections anymore, but the output tuples.
 * Move `Railway::DSL::NormalizerForPass` to `Railway::DSL::Pass::Normalizer` (same for `Fail`).
 * Move `FastTrack::DSL::NormalizerForPass` to `FastTrack::DSL::Pass::Normalizer` (same for `Fail`).
 * removes the `VariableMapping::Inherit` module.
+* Finally add the `Extension() => my_ext` option to painlessly add extensions.
+  this means you don't have to manually merge `:extensions` anymore.
+  Extensions are now properly inherited (if `generic?` is false) using the     universal inheritance mechanism.
 
 # 1.1.1
 
