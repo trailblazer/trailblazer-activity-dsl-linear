@@ -163,13 +163,11 @@ module Trailblazer
                 "activity.path_helper.path_to_track"       => Normalizer.Task(Helper::Path::Normalizer.method(:convert_paths_to_tracks)),
 
 
-                "output_tuples.normalize_output_tuples"        => Normalizer.Task(OutputTuples.method(:normalize_output_tuples)),     # Output(Signal, :semantic) => Id()
-                "output_tuples.remember_custom_output_tuples"        => Normalizer.Task(OutputTuples.method(:remember_custom_output_tuples)),     # Output(Signal, :semantic) => Id()
-                "output_tuples.register_additional_outputs"      => Normalizer.Task(OutputTuples.method(:register_additional_outputs)),     # Output(Signal, :semantic) => Id()
-                "output_tuples.filter_inherited_output_tuples"   => Normalizer.Task(OutputTuples.method(:filter_inherited_output_tuples)),
-                # ...
-                 # FIXME: rename!
-                "activity.normalize_outputs_from_dsl" => Normalizer.Task(method(:normalize_connections_from_dsl)),
+                "output_tuples.normalize_output_tuples"           => Normalizer.Task(OutputTuples.method(:normalize_output_tuples)),     # Output(Signal, :semantic) => Id()
+                "output_tuples.remember_custom_output_tuples"     => Normalizer.Task(OutputTuples.method(:remember_custom_output_tuples)),     # Output(Signal, :semantic) => Id()
+                "output_tuples.register_additional_outputs"       => Normalizer.Task(OutputTuples.method(:register_additional_outputs)),     # Output(Signal, :semantic) => Id()
+                "output_tuples.filter_inherited_output_tuples"    => Normalizer.Task(OutputTuples.method(:filter_inherited_output_tuples)),
+                "output_tuples.compile_connections"               => Normalizer.Task(OutputTuples::Connections.method(:compile_connections)),
 
                 "activity.wirings"                            => Normalizer.Task(method(:compile_wirings)),
 
@@ -323,7 +321,6 @@ module Trailblazer
             ctx[:task] = task.clone if sequence.find { |row| row[1] == task }
           end
 
-
           # Move DSL user options such as {Output(:success) => Track(:found)} to
           # a new key {options[:non_symbol_options]}.
           # This allows using {options} as a {**ctx}-able hash in Ruby 2.6 and 3.0.
@@ -333,56 +330,6 @@ module Trailblazer
             # raise unless (symbol_options.size+non_symbol_options.size) == options.size
 
             ctx[:options] = symbol_options.merge(non_symbol_options: non_symbol_options)
-          end
-
-          # Process {Output(:semantic) => target} and make them {:connections}.
-          def normalize_connections_from_dsl(ctx, adds:, output_tuples:, sequence:, normalizers:, **)
-            # Find all {Output() => Track()/Id()/End()}
-            return unless output_tuples.any?
-
-            connections = {}
-
-            # DISCUSS: how could we add another magnetic_to to an end?
-            output_tuples.each do |output, cfg|
-              new_connections, add =
-                if cfg.is_a?(Linear::Track)
-                  [output_to_track(ctx, output, cfg), cfg.adds] # FIXME: why does Track have a {adds} field? we don't use it anywhere.
-                elsif cfg.is_a?(Linear::Id)
-                  [output_to_id(ctx, output, cfg.value), []]
-                elsif cfg.is_a?(Activity::End)
-                  end_id     = Activity::Railway.end_id(**cfg.to_h)
-                  end_exists = Activity::Adds::Insert.find_index(ctx[:sequence], end_id)
-
-                  _adds = end_exists ? [] : add_terminus(cfg, id: end_id, sequence: sequence, normalizers: normalizers)
-
-                  [output_to_id(ctx, output, end_id), _adds]
-                else
-                  raise cfg.inspect
-                end
-
-              connections = connections.merge(new_connections)
-              adds += add
-            end
-
-            ctx[:connections] = connections
-            ctx[:adds]        = adds
-          end
-
-          def output_to_track(ctx, output, track)
-            search_strategy = track.options[:wrap_around] ? :WrapAround : :Forward
-
-            {output.semantic => [Linear::Sequence::Search.method(search_strategy), track.color]}
-          end
-
-          def output_to_id(ctx, output, target)
-            {output.semantic => [Linear::Sequence::Search.method(:ById), target]}
-          end
-
-          # Returns ADDS for the new terminus.
-          def add_terminus(end_event, id:, sequence:, normalizers:)
-            step_options = Linear::Sequence::Builder.invoke_normalizer_for(:terminus, end_event, {id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
-
-            step_options[:adds]
           end
 
           # Whenever {:replace} and {:inherit} are passed, automatically assign {:id}.

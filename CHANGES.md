@@ -21,6 +21,7 @@ We don't inherit :connections anymore, but the output tuples.
 * Finally add the `Extension() => my_ext` option to painlessly add extensions.
   this means you don't have to manually merge `:extensions` anymore.
   Extensions are now properly inherited (if `generic?` is false) using the     universal inheritance mechanism.
+* Rename `"activity.normalize_outputs_from_dsl"` to `output_tuples.compile_connections`.
 
 # 1.1.1
 
