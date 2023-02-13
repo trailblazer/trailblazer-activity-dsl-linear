@@ -1,4 +1,4 @@
-lib = File.expand_path('../lib', __FILE__)
+lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "trailblazer/activity/dsl/linear/version"
 
@@ -27,5 +27,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "trailblazer-developer", ">= 0.0.27", "< 0.1.0"
   spec.add_development_dependency "trailblazer-core-utils", "0.0.2"
 
-  spec.required_ruby_version = '>= 2.1.0'
+  spec.required_ruby_version = ">= 2.5.0"
 end
