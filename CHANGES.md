@@ -12,6 +12,8 @@
   :outputs when given (as from Subprocess) is no longer extended or overridden/defaulted once it's set.
   The default step's outputs are set in a separate pipeline in activity.default_outputs.
 
+* `Strategy.End()` now returns an `OutputTuples::End` instance. Use `Activity.End()` for the original behavior.
+
 * Removed the `:connections` option in favor of simply using output tuples for setting connections.
 We don't inherit :connections anymore, but the output tuples.
 * Rename `"path.connections"` to `""path.step.add_success_connector"` for consistency.
