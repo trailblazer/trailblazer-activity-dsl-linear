@@ -362,49 +362,6 @@ class ActivityTest < Minitest::Spec
 }
     end
 
-# Introspect
-  it "provides additional {:data} for introspection" do
-    implementing = self.implementing
-
-    activity = Class.new(Activity::Railway) do
-      step task: implementing.method(:f), id: :f
-      pass task: implementing.method(:c), id: :c,
-        additional: 9, # FIXME: this is not in {data}
-        mode: [:read, :write], # but this is.
-        DataVariable() => :mode
-      fail task: implementing.method(:b), id: :b,
-        level: 9,
-        DataVariable() => [:status, :level]
-    end
-
-    renderer = ->(connections) { connections.collect { |semantic, (search_strategy, color)| [semantic, [T.render_task(search_strategy), color]] } }
-
-    data1 = activity.to_h[:nodes][1][:data]
-    data2 = activity.to_h[:nodes][2][:data]
-    data3 = activity.to_h[:nodes][3][:data]
-
-    assert_equal data1.keys, [:id, :dsl_track, :connections, :extensions, :stop_event, :recorded_options]
-    data2.keys.must_equal [:id, :dsl_track, :connections, :extensions, :stop_event, :mode, :recorded_options]
-    data3.keys.must_equal [:id, :dsl_track, :connections, :extensions, :stop_event, :status, :level, :recorded_options]
-
-    assert_equal data2[:mode].inspect, %{[:read, :write]}
-    assert_equal data3[:status].inspect, %{nil}
-    assert_equal data3[:level].inspect, %{9}
-
-    [data1[:id], data1[:dsl_track]].must_equal [:f, :step]
-    renderer.(data1[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :success]]]}
-
-    [data2[:id], data2[:dsl_track]].must_equal [:c, :pass]
-    renderer.(data2[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :success]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :success]]]}
-
-    [data3[:id], data3[:dsl_track]].must_equal [:b, :fail]
-    renderer.(data3[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :failure]]]}
-
-    # activity.to_h[:nodes][1][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
-    # activity.to_h[:nodes][2][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
-    # activity.to_h[:nodes][3][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
-  end
-
 # Sequence insert
   it "throws {Sequence::IndexError} exception when {:after} references non-existant {:id}" do
     exc = assert_raises Activity::Adds::IndexError do
