@@ -123,25 +123,25 @@ module Trailblazer
               # we want this in the end:
               # {output.semantic => search strategy}
               # Process {Output(:semantic) => target} and make them {:connections}.
-              def compile_connections(ctx, adds:, output_tuples:, **)
-                # Find all {Output() => Track()/Id()/End()}
-                return unless output_tuples.any?
-
-                connections = {}
-
+              # This combines {:connections} and {:outputs}
+              def compile_wirings(ctx, adds:, output_tuples:, outputs:, id:, **)
                 # DISCUSS: how could we add another magnetic_to to an end?
-                # Go through all {Output() => Connector()} tuples:
-                output_tuples.each do |output, connector|
-                  search, connector_adds = connector.to_a(ctx) # Call {#to_a} on Track/Id/End/...
+                # Go through all {Output() => Track()/Id()/End()} tuples.
+                wirings =
+                  output_tuples.collect do |output, connector|
+                    (search_builder, search_args), connector_adds = connector.to_a(ctx) # Call {#to_a} on Track/Id/End/...
 
-                  new_connections = {output.semantic => search}
+                    adds        += connector_adds
 
-                  connections = connections.merge(new_connections)
-                  adds        += connector_adds
-                end
+                    semantic = output.semantic
+                    output   = outputs[semantic] || raise("No `#{semantic}` output found for #{id.inspect} and outputs #{outputs.inspect}")
 
-                ctx[:connections] = connections
-                ctx[:adds]        = adds
+                    # return proc to be called when compiling Seq, e.g. {ById(output, :id)}
+                    search_builder.(output, *search_args)
+                  end
+
+                ctx[:wirings] = wirings
+                ctx[:adds]    = adds
               end
 
               # Returns ADDS for the new terminus.
