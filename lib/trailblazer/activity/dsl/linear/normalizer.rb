@@ -126,9 +126,8 @@ module Trailblazer
                 "output_tuples.remember_custom_output_tuples"     => Normalizer.Task(OutputTuples.method(:remember_custom_output_tuples)),     # Output(Signal, :semantic) => Id()
                 "output_tuples.register_additional_outputs"       => Normalizer.Task(OutputTuples.method(:register_additional_outputs)),     # Output(Signal, :semantic) => Id()
                 "output_tuples.filter_inherited_output_tuples"    => Normalizer.Task(OutputTuples.method(:filter_inherited_output_tuples)),
-                "output_tuples.compile_connections"               => Normalizer.Task(OutputTuples::Connections.method(:compile_connections)),
 
-                "activity.wirings"                            => Normalizer.Task(method(:compile_wirings)),
+                "activity.wirings"                            => Normalizer.Task(OutputTuples::Connections.method(:compile_wirings)),
 
 
                 "extensions.compile_extensions"           => Normalizer.Task(Extensions.method(:compile_extensions)),
@@ -225,20 +224,6 @@ module Trailblazer
             return ctx, flow_options
           end
 
-          # Compile the actual {Seq::Row}'s {wiring}.
-          # This combines {:connections} and {:outputs}
-          def compile_wirings(ctx, connections:, outputs:, id:, **)
-            ctx[:wirings] =
-              connections.collect do |semantic, (search_strategy_builder, *search_args)|
-                output = outputs[semantic] || raise("No `#{semantic}` output found for #{id.inspect} and outputs #{outputs.inspect}")
-
-                search_strategy_builder.( # return proc to be called when compiling Seq, e.g. {ById(output, :id)}
-                  output,
-                  *search_args
-                )
-              end
-          end
-
           # Processes {:before,:after,:replace,:delete} options and
           # defaults to {before: "End.success"} which, yeah.
           def normalize_sequence_insert(ctx, end_id:, **)
@@ -315,7 +300,7 @@ module Trailblazer
 
           # TODO: document DataVariable() => :name
           # Compile data that goes into the sequence row.
-          def compile_data(ctx, default_variables_for_data: [:id, :dsl_track, :connections, :extensions, :stop_event], non_symbol_options:, **)
+          def compile_data(ctx, default_variables_for_data: [:id, :dsl_track, :extensions, :stop_event], non_symbol_options:, **)
             variables_for_data = non_symbol_options.find_all { |k,v| k.instance_of?(Linear::DataVariableName) }.collect { |k,v| Array(v) }.flatten
 
             ctx[:data] = (default_variables_for_data + variables_for_data).collect { |key| [key, ctx[key]] }.to_h
