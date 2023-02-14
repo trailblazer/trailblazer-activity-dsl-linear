@@ -9,6 +9,8 @@ module Trailblazer
         #
         # They're usually invoked from {Strategy#invoke_normalizer_for!}, which is called from {Path#step},
         # {Railway#pass}, etc.
+        #
+        # Most parts of Normalizer are documented: https://trailblazer.to/2.1/docs/internals.html#internals-dsl-normalizer
         module Normalizer
           # Container for all final normalizers of a specific Strategy.
           class Normalizers
@@ -91,49 +93,6 @@ module Trailblazer
 
               outputs_pipeline.(ctx, _)
             end
-
-# Normalizers are built on top of Linear::Normalizer.
-#
-# ## Outputs
-# The {:outputs} option is used in the wiring step and dictates the outputs of the step.
-# It's either set by Subprocess or by the Strategy's defaulting.
-# Note that *if* the option is already set by a macro or user, the entire defaulting described
-# here is *not* executed.
-#
-# ### Defaulting
-# There is a special outputs pipeline under {"activity.default_outputs"} which has only one
-# responsibility: set {:outputs} if it is not set already.
-# Each Strategy subclass now adds its {:outputs} defaulting steps (e.g. {"path.outputs"} or "railway.outputs"
-# adding outputs[:failure]) in Railway
-# via the Normalizer(prepend_to_default_outputs: ...) keyword argument. In all defaulters (so far)
-# the {:outputs} hash is extended.
-#
-# #### FastTrack
-# Adding default outputs only happens if the respective option (e.g. {:pass_fast}) is set.
-#
-# ## Output Tuples
-# Once {:outputs} is finalized, the output tuples (or "connectors") come into play: Output(:success) => Track(:ok)
-# First, "activity.inherit_option" will copy over all non-generic tuples to {:non_symbol_options}
-#
-# Second, the Strategy adds its default connectors. This usually happens by prepending the defaulting
-# steps to "activity.normalize_output_tuples" (defined via {Path::DSL::PREPEND_TO}).
-# Alternatively, as with "railway.fail.success_to_failure", a particular "inherited" connector step is replaced.
-# This assures that the order in {:non_symbol_options} and the resulting order of {:output_tuples} is
-#   [<default tuples>, <inherited tuples>, <user tuples>]
-
-# Third, user tuples are merged on top.
-#
-# Normalization starts where
-#   * the {:outputs} hash might get extended if using Output(NewSignal, :semantic)
-#   * some inherited tuples might be removed (TODO: maybe more here)
-#
-# The outcome is {:output_tuples} that matches the {:outputs} and can be transformed into {:wirings}
-
-# ## Test structure
-# wiring_api_test.rb Output(...) =>
-#   inherit tests are in step_test
-
-
 
             pipeline = TaskWrap::Pipeline.new(
               {
