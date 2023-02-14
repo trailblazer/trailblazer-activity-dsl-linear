@@ -3,7 +3,8 @@ module Trailblazer
     module DSL
       module Linear
         module Normalizer
-          # Implements
+          # Implements Output(:success) => Track(:success)
+          # Internals are documented: https://trailblazer.to/2.1/docs/internals.html#internals-wiring-api-output-tuples
           module OutputTuples
             module_function
 
@@ -18,11 +19,6 @@ module Trailblazer
               Semantic      = Struct.new(:semantic, :generic?).include(Output)
               CustomOutput  = Struct.new(:signal, :semantic, :generic?).include(Output) # generic? is always false
             end
-
-
-            # 1. remember custom tuples (Output and output_semantic)
-            # 2. convert Output, and add to :outputs
-            # 3. now OutputSemantic only to be treated
 
             def normalize_output_tuples(ctx, non_symbol_options:, **)
               output_tuples = non_symbol_options.find_all { |k,v| k.is_a?(OutputTuples::Output) }
