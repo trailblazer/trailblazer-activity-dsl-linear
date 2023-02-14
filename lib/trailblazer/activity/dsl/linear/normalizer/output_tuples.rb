@@ -123,7 +123,7 @@ module Trailblazer
               # we want this in the end:
               # {output.semantic => search strategy}
               # Process {Output(:semantic) => target} and make them {:connections}.
-              def compile_connections(ctx, adds:, output_tuples:, sequence:, normalizers:, **)
+              def compile_connections(ctx, adds:, output_tuples:, **)
                 # Find all {Output() => Track()/Id()/End()}
                 return unless output_tuples.any?
 
