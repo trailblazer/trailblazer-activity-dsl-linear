@@ -8,6 +8,36 @@ module Trailblazer
           module OutputTuples
             module_function
 
+                        # Connector when using Id(:validate).
+            class Id < Struct.new(:value)
+              def to_a(*)
+                return [Linear::Sequence::Search.method(:ById), value], [] # {value} is the "target".
+              end
+            end
+
+            # Connector when using Track(:success).
+            class Track < Struct.new(:color, :adds, :options)
+              def to_a(*)
+                search_strategy = options[:wrap_around] ? :WrapAround : :Forward
+
+                return [Linear::Sequence::Search.method(search_strategy), color], adds
+              end
+            end
+
+            # Connector representing a (to-be-created?) terminus when using End(:semantic).
+            class End < Struct.new(:semantic)
+              def to_a(ctx)
+                end_id     = Linear::Strategy.end_id(semantic: semantic)
+                end_exists = Activity::Adds::Insert.find_index(ctx[:sequence], end_id)
+
+                terminus = Activity.End(semantic)
+
+                adds = end_exists ? [] : OutputTuples::Connections.add_terminus(terminus, id: end_id, sequence: ctx[:sequence], normalizers: ctx[:normalizers])
+
+                return [Linear::Sequence::Search.method(:ById), end_id], adds
+              end
+            end
+
             # Logic related to {Output() => ...}, called "Wiring API".
             # TODO: move to different namespace (feature/dsl)
             def Output(semantic, is_generic: true)
@@ -100,41 +130,18 @@ module Trailblazer
                 connections = {}
 
                 # DISCUSS: how could we add another magnetic_to to an end?
-                output_tuples.each do |output, cfg|
-                  new_connections, add =
-                    if cfg.is_a?(Linear::Track)
-                      [output_to_track(ctx, output, cfg), cfg.adds] # FIXME: why does Track have a {adds} field? we don't use it anywhere.
-                    elsif cfg.is_a?(Linear::Id)
-                      [output_to_id(ctx, output, cfg.value), []]
-                    elsif cfg.is_a?(Activity::End)
-                      end_id     = Activity::Railway.end_id(**cfg.to_h)
-                      end_exists = Activity::Adds::Insert.find_index(ctx[:sequence], end_id)
+                # Go through all {Output() => Connector()} tuples:
+                output_tuples.each do |output, connector|
+                  search, connector_adds = connector.to_a(ctx) # Call {#to_a} on Track/Id/End/...
 
-                      _adds = end_exists ? [] : add_terminus(cfg, id: end_id, sequence: sequence, normalizers: normalizers)
-
-                      [output_to_id(ctx, output, end_id), _adds]
-                    else
-                      raise cfg.inspect
-                    end
+                  new_connections = {output.semantic => search}
 
                   connections = connections.merge(new_connections)
-                  adds += add
+                  adds        += connector_adds
                 end
 
                 ctx[:connections] = connections
                 ctx[:adds]        = adds
-              end
-
-              # @private
-              def output_to_track(ctx, output, track)
-                search_strategy = track.options[:wrap_around] ? :WrapAround : :Forward
-
-                {output.semantic => [Linear::Sequence::Search.method(search_strategy), track.color]}
-              end
-
-              # @private
-              def output_to_id(ctx, output, target)
-                {output.semantic => [Linear::Sequence::Search.method(:ById), target]}
               end
 
               # Returns ADDS for the new terminus.
