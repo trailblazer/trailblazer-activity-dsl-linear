@@ -129,6 +129,37 @@ Object
     end
 end
 
+class StepDataVariableOptionTest < Minitest::Spec
+  it "For introspection, you can add {row.data} via DSL's DataVariable()" do
+    activity = Class.new(Activity::Railway) do
+      step :model
+      pass :validate,
+        additional: 9, # FIXME: this is not in {data}
+        mode: [:read, :write], # but this is.
+        DataVariable() => :mode
+      fail :save,
+        level: 9,
+        DataVariable() => [:status, :level]
+    end
+
+    data1 = activity.to_h[:nodes][1][:data]
+    data2 = activity.to_h[:nodes][2][:data]
+    data3 = activity.to_h[:nodes][3][:data]
+
+    assert_equal data1.keys, [:id, :dsl_track, :extensions, :stop_event, :recorded_options]
+    assert_equal data2.keys, [:id, :dsl_track, :extensions, :stop_event, :mode, :recorded_options]
+    assert_equal data3.keys, [:id, :dsl_track, :extensions, :stop_event, :status, :level, :recorded_options]
+
+    assert_equal data2[:mode].inspect, %{[:read, :write]}
+    assert_equal data3[:status].inspect, %{nil}
+    assert_equal data3[:level].inspect, %{9}
+
+    assert_equal [data1[:id], data1[:dsl_track]], [:model, :step]
+    assert_equal [data2[:id], data2[:dsl_track]], [:validate, :pass]
+    assert_equal [data3[:id], data3[:dsl_track]], [:save, :fail]
+  end
+end
+
 class StepInheritOptionTest < Minitest::Spec
   let(:create_activity) do
     Class.new(Trailblazer::Activity::Railway) do
