@@ -67,11 +67,6 @@ module Trailblazer
               )
             end
 
-            # 1. :outputs is provided by DSL
-# 2. IF :inherit => copy inherited Output tuples
-# 3. convert Output (without semantic, btw, change that) and add to :outputs
-# 4. IF :inherit and strict == false (in step-options,not Subprocess) => throw out Output with unknown semantic
-
             # Implements {inherit: :outputs, strict: false}
             # return connections from {parent} step which are supported by current step
             def filter_inherited_output_tuples(ctx, inherit: false, inherited_recorded_options: {}, outputs:, output_tuples:, **)
