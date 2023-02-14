@@ -1003,9 +1003,9 @@ class ActivityTest < Minitest::Spec
     end
 
     #@ IDs are automatically computed in case of no {:id} option.
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.not_found").data.inspect, %{{:id=>\"End.not_found\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found_it!").data.inspect, %{{:id=>\"End.found_it!\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found").data.inspect, %{{:id=>\"End.found\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.not_found").data.inspect, %{{:id=>\"End.not_found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found_it!").data.inspect, %{{:id=>\"End.found_it!\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found").data.inspect, %{{:id=>\"End.found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
 
     with_steps = Class.new(activity) do
       step :a,
@@ -1053,7 +1053,7 @@ class ActivityTest < Minitest::Spec
     end
 
     #@ {:task} allows passing {End} instance
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.tell_me").data.inspect, %{{:id=>\"End.tell_me\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.tell_me").data.inspect, %{{:id=>\"End.tell_me\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
     assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.tell_me").task.class, my_terminus_class
   end
 
