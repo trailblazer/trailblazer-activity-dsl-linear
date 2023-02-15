@@ -29,6 +29,7 @@ end
 class DocsInternalsNormalizerExtendTest < Minitest::Spec
   Song = Module.new
 
+  #:upcase
   module MyNormalizer
     def self.upcase_id(ctx, upcase_id: nil, id:, **)
       return unless upcase_id
@@ -36,11 +37,15 @@ class DocsInternalsNormalizerExtendTest < Minitest::Spec
       ctx[:id] = id.to_s.upcase
     end
   end
+  #:upcase end
 
-  #:record
+  #:normalizer-extend
   module Song::Activity
     class Create < Trailblazer::Activity::Railway
-      Trailblazer::Activity::DSL::Linear::Normalizer.extend!(Song::Activity::Create, :step) do |normalizer|
+      Trailblazer::Activity::DSL::Linear::Normalizer.extend!(
+        Song::Activity::Create,
+        :step
+      ) do |normalizer|
         Trailblazer::Activity::DSL::Linear::Normalizer.prepend_to(
           normalizer,
           "activity.default_outputs", # few steps after "activity.normalize_id"
@@ -50,20 +55,15 @@ class DocsInternalsNormalizerExtendTest < Minitest::Spec
         )
       end
 
-      step :create_model,
-        upcase_id: true
+      step :create_model, upcase_id: true
       step :validate
-      pass :save,
-        upcase_id: true # not applied.
+      pass :save,         upcase_id: true # not applied!
       #~meths
       include T.def_steps(:create_model, :validate, :save)
       #~meths end
     end
   end
-
-
-
-  #:record end
+  #:normalizer-extend end
 
   it "provides" do
     Trailblazer::Activity::Introspect.Graph(Song::Activity::Create)
