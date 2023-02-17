@@ -77,34 +77,48 @@ class DocsInternalsNormalizerExtendTest < Minitest::Spec
   end
 end
 
-
-
 class DocsInternalsRecordSymbolOptionTest < Minitest::Spec
   Song = Module.new
 
+  #:record-normalizer
   module MyNormalizer
+    #~meths
     def self.upcase_id(ctx, upcase_id: false, id:, **)
       return unless upcase_id
 
-      ctx[:id] = id.upcase
+      ctx[:id] = id.to_s.upcase
     end
-
+    #~meths end
     def self.record_upcase_id_flag(ctx, non_symbol_options:, upcase_id: nil, **)
       ctx.merge!(
         non_symbol_options: non_symbol_options.merge(
           Trailblazer::Activity::DSL::Linear::Normalizer::Inherit.Record(
-            {upcase_id: upcase_id}, # what do you want to record?
-            type: :upcase_id_feature,
+            {upcase_id: upcase_id},   # what do you want to record?
+            type: :upcase_id_feature, # categorize the recorded data.
             non_symbol_options: false # this is a real :symbol option.
           )
         )
       )
     end
   end
+  #:record-normalizer end
 
   #:record
   module Song::Activity
     class Create < Trailblazer::Activity::Railway
+      #:record-extend
+      Trailblazer::Activity::DSL::Linear::Normalizer.extend!(Song::Activity::Create, :step) do |normalizer|
+        Trailblazer::Activity::DSL::Linear::Normalizer.prepend_to(
+          normalizer,
+          "activity.default_outputs", # step after "activity.normalize_id"
+          {
+            "my.upcase_id"             => Trailblazer::Activity::DSL::Linear::Normalizer.Task(MyNormalizer.method(:upcase_id)),
+            "my.record_upcase_id_flag" => Trailblazer::Activity::DSL::Linear::Normalizer.Task(MyNormalizer.method(:record_upcase_id_flag)),
+          }
+        )
+      end
+      #:record-extend end
+
       step :create_model,
         upcase_id: true
       step :validate
@@ -115,34 +129,18 @@ class DocsInternalsRecordSymbolOptionTest < Minitest::Spec
   end
 
 
-  Trailblazer::Activity::DSL::Linear::Normalizer.extend!(Song::Activity::Create, :step) do |normalizer|
-    Trailblazer::Activity::DSL::Linear::Normalizer.prepend_to(
-      normalizer,
-      "activity.normalize_id", # step after "activity.normalize_id"
-      {
-        "my.upcase_id"             => Trailblazer::Activity::DSL::Linear::Normalizer.Task(MyNormalizer.method(:upcase_id)),
-        "my.record_upcase_id_flag" => Trailblazer::Activity::DSL::Linear::Normalizer.Task(MyNormalizer.method(:record_upcase_id_flag)),
-      }
-    )
-  end
-
   module Song::Activity
     class Update < Create
       step :find_model,
         inherit: true, # this adds {, upcase_id: true}
-        replace: :create_model
+        replace: "CREATE_MODEL"
     end
   end
-
   #:record end
 
   it "provides" do
-    #:record_read
-    Song::Activity::Create
-      .to_h[:nodes][1][:data][:model_class] #=> Song
-    #:record_read end
-
-    assert_equal Song::Activity::Create.to_h[:nodes][1][:data][:model_class], Song
+    assert_equal Song::Activity::Create.to_h[:nodes][1][:data][:id], "CREATE_MODEL"
+    assert_equal Song::Activity::Update.to_h[:nodes][1][:data][:id], "CREATE_MODEL" # FIXME: this test really sucks! it doesn't test anything.
   end
 end
 
