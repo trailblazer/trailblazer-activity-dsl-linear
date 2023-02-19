@@ -6,8 +6,6 @@ module Trailblazer
         # and then get processed in the normalizer.
         #
         # @private
-        Id             = Struct.new(:value)
-        Track          = Struct.new(:color, :adds, :options)
         Extension      = Struct.new(:callable) do
           def call(*args, &block)
             callable.(*args, &block)
@@ -33,7 +31,7 @@ module Trailblazer
           end
 
           def End(semantic)
-            Activity.End(semantic)
+            Normalizer::OutputTuples::End.new(semantic).freeze
           end
 
           def end_id(semantic:, **)
@@ -41,11 +39,11 @@ module Trailblazer
           end
 
           def Track(color, wrap_around: false)
-            Track.new(color, [], wrap_around: wrap_around).freeze
+            Normalizer::OutputTuples::Track.new(color, [], wrap_around: wrap_around).freeze
           end
 
           def Id(id)
-            Id.new(id).freeze
+            Normalizer::OutputTuples::Id.new(id).freeze
           end
 
           def Path(**options, &block)
@@ -79,6 +77,8 @@ module Trailblazer
           def In(**kws);     VariableMapping::DSL::In(**kws); end
           def Out(**kws);    VariableMapping::DSL::Out(**kws); end
           def Inject(*args, **kws); VariableMapping::DSL::Inject(*args, **kws); end
+
+          def Extension(*args, **kws); Normalizer::Extensions.Extension(*args, **kws); end
 
           def DataVariable
             DataVariableName.new

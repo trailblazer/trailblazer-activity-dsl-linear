@@ -115,17 +115,30 @@ class SubprocessTest < Minitest::Spec
       #:end end
 
     end
-    # here we can see that failure, success, fail_fast and pass_fast has been wired
-    expected_wiring = "
-        SubprocessTest::D::Memo::JustPassFast
-          {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
-          {#<Trailblazer::Activity::End semantic=:success>} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>
-          {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
-          {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
-      ".gsub(/\s+/, "")
 
-    _(Trailblazer::Developer::Render::Circuit.(D::Memo::Create).gsub(/\s+/, ""))
-      .must_include(expected_wiring)
+    # here we can see that failure, success, fail_fast and pass_fast has been wired
+    assert_process_for D::Memo::Create, :success, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*create_model>
+<*create_model>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => SubprocessTest::D::Memo::JustPassFast
+SubprocessTest::D::Memo::JustPassFast
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*save>
+ {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
+<*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
   end
 
 #@ Subprocess(strict: true)

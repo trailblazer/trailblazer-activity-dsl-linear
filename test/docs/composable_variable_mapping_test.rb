@@ -468,7 +468,6 @@ class CVInheritanceTest < Minitest::Spec
   #:inheritance-base
   module Song::Activity
     class Create < Trailblazer::Activity::Railway
-      extend Trailblazer::Activity::DSL::Linear::VariableMapping::Inherit # this has to be done on the root level!
 
       step :create_model
       step Policy::Create,

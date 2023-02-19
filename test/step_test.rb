@@ -129,6 +129,37 @@ Object
     end
 end
 
+class StepDataVariableOptionTest < Minitest::Spec
+  it "For introspection, you can add {row.data} via DSL's DataVariable()" do
+    activity = Class.new(Activity::Railway) do
+      step :model
+      pass :validate,
+        additional: 9, # FIXME: this is not in {data}
+        mode: [:read, :write], # but this is.
+        DataVariable() => :mode
+      fail :save,
+        level: 9,
+        DataVariable() => [:status, :level]
+    end
+
+    data1 = activity.to_h[:nodes][1][:data]
+    data2 = activity.to_h[:nodes][2][:data]
+    data3 = activity.to_h[:nodes][3][:data]
+
+    assert_equal data1.keys, [:id, :dsl_track, :extensions, :stop_event, :recorded_options]
+    assert_equal data2.keys, [:id, :dsl_track, :extensions, :stop_event, :mode, :recorded_options]
+    assert_equal data3.keys, [:id, :dsl_track, :extensions, :stop_event, :status, :level, :recorded_options]
+
+    assert_equal data2[:mode].inspect, %{[:read, :write]}
+    assert_equal data3[:status].inspect, %{nil}
+    assert_equal data3[:level].inspect, %{9}
+
+    assert_equal [data1[:id], data1[:dsl_track]], [:model, :step]
+    assert_equal [data2[:id], data2[:dsl_track]], [:validate, :pass]
+    assert_equal [data3[:id], data3[:dsl_track]], [:save, :fail]
+  end
+end
+
 class StepInheritOptionTest < Minitest::Spec
   let(:create_activity) do
     Class.new(Trailblazer::Activity::Railway) do
@@ -313,49 +344,35 @@ class StepInheritOptionTest < Minitest::Spec
 }
   end
 
-  it "{:inherit} copies {Output}s for known {End}s only" do
-    template = Class.new(Activity::Path) do
-      step :x, Output(:success) => End(:not_found)
-      step :y, Output(:success) => End(:invalid_data)
+  it "{inherit: true} filters out unsupported semantics automatically (non strict)" do
+    nested = Class.new(Activity::Railway) do
+      terminus :invalid
     end
 
-    activity = Class.new(Activity::Path) do
-      step :z, Output(:success) => End(:not_found)
+    activity = Class.new(Activity::Railway) do
+      step Subprocess(nested),
+        id: :validate,
+        Output(:failure) => Track(:success),
+        Output(:invalid) => Track(:failure),
+        Output(:success) => End(:ok) # this is the only inherited connection.
     end
 
-    sub = Class.new(Activity::Path) do
-      step Subprocess(template), id: :a,
-        Output(:not_found)    => Id(:b),
-        Output(:invalid_data) => Id(:b)
-
-      step :b
+    sub_activity = Class.new(activity) do
+      step Subprocess(Activity::Path),
+        inherit:  true,
+        replace:  :validate
     end
 
-    assert_process_for sub, :success, %{
+    assert_process_for sub_activity, :success, :ok, :failure, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Class:0x>
-#<Class:0x>
- {#<Trailblazer::Activity::End semantic=:success>} => <*b>
- {#<Trailblazer::Activity::End semantic=:not_found>} => <*b>
- {#<Trailblazer::Activity::End semantic=:invalid_data>} => <*b>
-<*b>
- {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::Right} => Trailblazer::Activity::Path
+Trailblazer::Activity::Path
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:ok>
 #<End/:success>
-}
 
-    sub_inherit = Class.new(sub) do
-      step Subprocess(activity), id: :a, replace: :a, inherit: true
-    end
+#<End/:ok>
 
-    assert_process_for sub_inherit.to_h, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Class:0x>
-#<Class:0x>
- {#<Trailblazer::Activity::End semantic=:success>} => <*b>
- {#<Trailblazer::Activity::End semantic=:not_found>} => <*b>
-<*b>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
+#<End/:failure>
 }
   end
 
@@ -398,9 +415,107 @@ class StepInheritOptionTest < Minitest::Spec
 }
   end
 
+  it "{inherit: true} allows adding custom connections while inheriting custom connections" do
+    activity = Class.new(Activity::Railway) do
+      step :model,
+        Output(:failure)         => Track(:success),
+        Output(Module, :invalid) => Track(:failure)  # custom "terminus" and connection.
+      include T.def_steps(:model)
+    end
+
+    sub_activity = Class.new(activity) do
+      step :authorize, before: :model
+      step :format
+      step :create_model, inherit: true, replace: :model,
+        Output(:success) => Id(:authorize), # new connection
+        Output(:failure) => Id(:format)     # overriding failure=>success connection from above
+
+      include T.def_steps(:create_model, :authorize)
+    end
+
+    assert_process_for sub_activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*authorize>
+<*authorize>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*create_model>
+<*create_model>
+ {Trailblazer::Activity::Left} => <*format>
+ {Trailblazer::Activity::Right} => <*authorize>
+ {Module} => #<End/:failure>
+<*format>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+  end
+
 
   it "{inherit: true} copies custom connections from nested Subprocess()" do
+    nested = Class.new(Activity::Railway) do
+      terminus :invalid
+    end
 
+    activity = Class.new(Activity::Railway) do
+      step Subprocess(nested),
+        id: :model,
+        Output(:failure) => Track(:success),
+        Output(:invalid) => Track(:failure)  # custom "terminus" and connection.
+    end
+
+    new_nested = nested = Class.new(Activity::Railway) do
+      terminus :invalid
+      terminus :ok
+    end
+
+    sub_activity = Class.new(activity) do
+      step Subprocess(new_nested),
+        replace: :model,
+        inherit: true # we don't add custom Outputs here.
+    end
+
+    assert_process_for sub_activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:success>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+ {#<Trailblazer::Activity::End semantic=:invalid>} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
+
+    # Add custom Output to inherited on Subprocess().
+    sub_activity = Class.new(activity) do
+      step :authorize, before: :model
+      step :format
+      step Subprocess(new_nested), inherit: true, replace: :model,
+        Output(:success) => Id(:authorize), # new connection
+        Output(:invalid) => Id(:format)     # overriding failure=>success connection from above
+
+      include T.def_steps(:create_model, :authorize)
+    end
+
+    assert_process_for sub_activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*authorize>
+<*authorize>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => <*format>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*authorize>
+ {#<Trailblazer::Activity::End semantic=:invalid>} => <*format>
+<*format>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
   end
 
   it "inherits connections if {inherit: true}" do
@@ -472,8 +587,95 @@ class StepInheritOptionTest < Minitest::Spec
     # assert_invoke sub,      seq: "[:c, :d]"
   end
 
-  it "does not inherit connections if {:inherit} is anything other than true" do
+  it "{fast_track: true} is inherited properly" do
+  #@ test {pass_fast: true} and {fail_fast: true}
+    activity = Class.new(Activity::FastTrack) do
+      step :model, pass_fast: true, fail_fast: true
+    end
 
+    fast_track = Class.new(Activity::FastTrack) do
+      step :model, pass_fast: true, fail_fast: true
+
+      include T.def_steps(:model)
+    end
+
+    sub_activity = Class.new(activity) do
+      step Subprocess(fast_track), inherit: true, replace: :model
+    end
+
+    assert_process_for sub_activity, :success, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:pass_fast>
+ {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+
+    assert_invoke sub_activity, model: true,  seq: "[:model]", terminus: :pass_fast
+    assert_invoke sub_activity, model: false, seq: "[:model]", terminus: :fail_fast
+
+  #@ fast_track: true
+    activity = Class.new(Activity::FastTrack) do
+      step :model, fast_track: true
+    end
+
+    sub_activity = Class.new(activity) do
+      step Subprocess(fast_track), inherit: true, replace: :model
+    end
+
+    assert_process_for sub_activity, :success, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+ {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+
+  end
+
+  it "does not inherit connections if {:inherit} is anything other than true" do
+    activity = Class.new(Activity::Railway) do
+      step :model,
+        Output(:failure) => Track(:success),
+        In() => {:create_model => :user}
+    end
+
+    sub_activity = Class.new(activity) do
+      step :create_model, inherit: 1, replace: :model
+      include T.def_steps(:create_model)
+    end
+
+    # no inherited connectors:
+    assert_process_for sub_activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*create_model>
+<*create_model>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+    # no In filter applied:
+    assert_invoke sub_activity, create_model: false, seq: "[:create_model]", terminus: :failure
   end
 end
 

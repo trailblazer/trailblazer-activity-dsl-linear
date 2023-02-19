@@ -303,25 +303,6 @@ class ActivityTest < Minitest::Spec
 }
     end
 
-    it "accepts {:connections}" do
-      implementing = self.implementing
-
-      activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
-        step(id: :b, task: implementing.method(:b), connections: {success: [Trailblazer::Activity::DSL::Linear::Sequence::Search.method(:ById), :a]})
-      end
-
-      assert_process_for activity.to_h, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-#<End/:success>
-}
-    end
-
     it "accepts {:adds}" do
       implementing = self.implementing
 
@@ -359,61 +340,6 @@ class ActivityTest < Minitest::Spec
       ctx[:seq] << 1
       return wrap_ctx, original_args # yay to mutable state. not.
     end
-
-    describe "{:extensions}" do
-      let(:merge) do
-        merge = [
-          {
-            insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"],
-            row:    Trailblazer::Activity::TaskWrap::Pipeline.Row("user.add_1", method(:add_1))
-          },
-        ]
-      end
-
-      it "accepts {:extensions}" do
-        implementing = self.implementing
-
-        merge = self.merge
-
-        activity = Class.new(Activity::Path) do
-          step implementing.method(:a), id: :a, extensions: [Trailblazer::Activity::TaskWrap::Extension(merge: merge)]
-          step implementing.method(:b), id: :b
-        end
-
-        assert_process_for activity.to_h, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
-
-        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
-
-        _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-        _(ctx.inspect).must_equal %{{:seq=>[1, :a, :b]}}
-      end
-
-      it "accepts {:extensions} along with {:input}" do
-        implementing = self.implementing
-
-        merge = self.merge
-
-        activity = Class.new(Activity::Path) do
-          # :extensions doesn't overwrite :input and vice-versa!
-          step implementing.method(:a), id: :a, extensions: [Trailblazer::Activity::TaskWrap::Extension(merge: merge)], input: ->(ctx, *) { {seq: ctx[:seq] += [:input]} }
-          step implementing.method(:b), id: :b
-        end
-
-        signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
-
-        _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-        _(ctx.inspect).must_equal %{{:seq=>[1, :input, :a, :b]}}
-      end
-
-    end
   end
 
   it "accepts {:magnetic_to}" do
@@ -435,49 +361,6 @@ class ActivityTest < Minitest::Spec
 #<End/:success>
 }
     end
-
-# Introspect
-  it "provides additional {:data} for introspection" do
-    implementing = self.implementing
-
-    activity = Class.new(Activity::Railway) do
-      step task: implementing.method(:f), id: :f
-      pass task: implementing.method(:c), id: :c,
-        additional: 9, # FIXME: this is not in {data}
-        mode: [:read, :write], # but this is.
-        DataVariable() => :mode
-      fail task: implementing.method(:b), id: :b,
-        level: 9,
-        DataVariable() => [:status, :level]
-    end
-
-    renderer = ->(connections) { connections.collect { |semantic, (search_strategy, color)| [semantic, [T.render_task(search_strategy), color]] } }
-
-    data1 = activity.to_h[:nodes][1][:data]
-    data2 = activity.to_h[:nodes][2][:data]
-    data3 = activity.to_h[:nodes][3][:data]
-
-    assert_equal data1.keys, [:id, :dsl_track, :connections, :extensions, :stop_event]
-    data2.keys.must_equal [:id, :dsl_track, :connections, :extensions, :stop_event, :mode]
-    data3.keys.must_equal [:id, :dsl_track, :connections, :extensions, :stop_event, :status, :level]
-
-    assert_equal data2[:mode].inspect, %{[:read, :write]}
-    assert_equal data3[:status].inspect, %{nil}
-    assert_equal data3[:level].inspect, %{9}
-
-    [data1[:id], data1[:dsl_track]].must_equal [:f, :step]
-    renderer.(data1[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :success]]]}
-
-    [data2[:id], data2[:dsl_track]].must_equal [:c, :pass]
-    renderer.(data2[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :success]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :success]]]}
-
-    [data3[:id], data3[:dsl_track]].must_equal [:b, :fail]
-    renderer.(data3[:connections]).inspect.must_equal %{[[:failure, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :failure]], [:success, [\"#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>\", :failure]]]}
-
-    # activity.to_h[:nodes][1][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :success]}, :id=>:f, :dsl_track=>:step}}
-    # activity.to_h[:nodes][2][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :success], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :success]}, :id=>:c, :dsl_track=>:pass}}
-    # activity.to_h[:nodes][3][:data].inspect.must_equal %{{:connections=>{:failure=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :failure], :success=>[#<Method: Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward>, :failure]}, :id=>:b, :dsl_track=>:fail}}
-  end
 
 # Sequence insert
   it "throws {Sequence::IndexError} exception when {:after} references non-existant {:id}" do
@@ -671,119 +554,6 @@ class ActivityTest < Minitest::Spec
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:seq=>[:a, :b, :f]}}
-  end
-
-  it "{:inherit} copies over additional user settings like {Output => Track}" do
-      nested = Class.new(Activity::Path) do
-        step :c_c
-
-        include T.def_steps(:c_c)
-      end
-
-      sub_nested = Class.new(Activity::Path) do
-      end
-
-      class NestedWithThreeTermini < Activity::Railway
-        step :x, Output(:success) => End(:legit)
-        include T.def_steps(:x)
-
-        class Sub < Trailblazer::Activity::Railway
-          step :z, Output(:success) => End(:legit)
-          include T.def_steps(:z)
-        end
-      end
-
-      activity = Class.new(Activity::Railway) do
-        step Subprocess(nested), id: :c,
-          Output(:failure) => Id(:b) # this must not be inherited to {sub}!
-
-        step Subprocess(NestedWithThreeTermini), id: :d,
-          Output(:legit) => Id(:b) # this must be inherited to {sub}!
-
-        step :a, Output(:failure) => Track(:success)
-        step :b, Output("Bla", :bla) => Track(:failure)
-
-        include T.def_steps(:b)
-      end
-
-      sub = Class.new(activity) do
-        # TODO: what if we want to inherit outputs AND provide wirings?
-        # {sub_nested} doesn't inherit failure wirings as it's a simple {Path}.
-        step Subprocess(sub_nested), inherit: true, id: :c, replace: :c, Output(:yo, :bla)=>Track(:success) # DISCUSS: inherit is a replace, isn't it?
-        step :a, inherit: true, id: :a, replace: :a
-        # step :b, inherit: true, id: :b, replace: :b
-      end
-
-      # the nested's output must be the signal from the sub_nested's terminus
-      _(Trailblazer::Activity::Introspect::Graph(sub).find(:c).outputs[1].to_h[:signal]).must_equal sub_nested.to_h[:outputs][0].to_h[:signal]
-
-      assert_process_for sub.to_h, :success, :failure, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<Class:0x>
-#<Class:0x>
- {Trailblazer::Activity::Left} => #<End/:failure>
- {#<Trailblazer::Activity::End semantic=:success>} => ActivityTest::NestedWithThreeTermini
- {yo} => ActivityTest::NestedWithThreeTermini
-ActivityTest::NestedWithThreeTermini
- {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
- {#<Trailblazer::Activity::End semantic=:success>} => <*a>
- {#<Trailblazer::Activity::End semantic=:legit>} => <*b>
-<*a>
- {Trailblazer::Activity::Left} => <*b>
- {Trailblazer::Activity::Right} => <*b>
-<*b>
- {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => #<End/:success>
- {Bla} => #<End/:failure>
-#<End/:success>
-
-#<End/:failure>
-}
-
-
-    # we want to replace {NestedWithTreeTermini} (step :d) but inherit the {End.legit => :b} wiring.
-    sub = Class.new(activity) do
-      step Subprocess(NestedWithThreeTermini::Sub), inherit: true, id: :d, replace: :d
-    end
-
-    ctx = {seq: []}
-    signal, (ctx, _) = Trailblazer::Developer.wtf?(sub, [ctx])
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx[:seq].inspect).must_equal %{[:c_c, :z, :b]}
-
-    ctx = {seq: [], z: false}
-    signal, (ctx, _) = Trailblazer::Developer.wtf?(sub, [ctx])
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
-    _(ctx[:seq].inspect).must_equal %{[:c_c, :z]}
-  end
-
-  it "{:inherit} also adds the {:extensions} from the inherited row" do
-    merge = [
-      {insert: [Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"], row: taskWrap::Pipeline.Row("user.add_1", method(:add_1))},
-    ]
-
-    ext = taskWrap::Extension(merge: merge)
-
-    activity = Class.new(Activity::Path) do
-      step :a, extensions: [ext]
-      step :b # no {:extensions}
-
-      include T.def_steps(:a, :b)
-    end
-
-    sub = Class.new(activity) do
-      step :a, inherit: true, id: :a, replace: :a # this should also "inherit" the taskWrap configs for this task.
-
-      step :b, inherit: true, id: :b, replace: :b, extensions: [ext] # we want to "override" the original {:extensions}
-    end
-
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:seq=>[1, :a, :b]}}
-
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(sub, [{seq: []}, {}])
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:seq=>[1, :a, 1, :b]}}
   end
 
   it "assigns default {:id}" do
@@ -1233,9 +1003,9 @@ ActivityTest::NestedWithThreeTermini
     end
 
     #@ IDs are automatically computed in case of no {:id} option.
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.not_found").data.inspect, %{{:id=>\"End.not_found\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found_it!").data.inspect, %{{:id=>\"End.found_it!\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found").data.inspect, %{{:id=>\"End.found\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.not_found").data.inspect, %{{:id=>\"End.not_found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found_it!").data.inspect, %{{:id=>\"End.found_it!\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found").data.inspect, %{{:id=>\"End.found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
 
     with_steps = Class.new(activity) do
       step :a,
@@ -1283,7 +1053,7 @@ ActivityTest::NestedWithThreeTermini
     end
 
     #@ {:task} allows passing {End} instance
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.tell_me").data.inspect, %{{:id=>\"End.tell_me\", :dsl_track=>:terminus, :connections=>nil, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.tell_me").data.inspect, %{{:id=>\"End.tell_me\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
     assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.tell_me").task.class, my_terminus_class
   end
 

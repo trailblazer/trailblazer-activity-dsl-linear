@@ -33,6 +33,9 @@ require "trailblazer/activity/dsl/linear/sequence"
 require "trailblazer/activity/dsl/linear/sequence/builder"
 require "trailblazer/activity/dsl/linear/sequence/search"
 require "trailblazer/activity/dsl/linear/sequence/compiler"
+require "trailblazer/activity/dsl/linear/normalizer/inherit" # DISCUSS. should we add normalizer/options/... or something?
+require "trailblazer/activity/dsl/linear/normalizer/extensions"
+require "trailblazer/activity/dsl/linear/normalizer/output_tuples"
 require "trailblazer/activity/dsl/linear/normalizer"
 require "trailblazer/activity/dsl/linear/normalizer/terminus"
 require "trailblazer/activity/dsl/linear/helper"
@@ -45,7 +48,6 @@ require "trailblazer/activity/dsl/linear/feature/variable_mapping"
 require "trailblazer/activity/dsl/linear/feature/variable_mapping/dsl"
 require "trailblazer/activity/dsl/linear/feature/variable_mapping/runtime"
 require "trailblazer/activity/dsl/linear/feature/patch"
-require "trailblazer/activity/dsl/linear/feature/variable_mapping/inherit"
 
 # feature/variable_mapping
 Trailblazer::Activity::DSL::Linear::VariableMapping.extend!(Trailblazer::Activity::Path, :step)

@@ -56,7 +56,7 @@ module Trailblazer
 
             def _normalize_task_for_symbol(ctx, task:, semantic: task, **)
               ctx.merge!(
-                task:     Strategy.End(semantic),
+                task:     Activity.End(semantic),
                 semantic: semantic,
               )
             end

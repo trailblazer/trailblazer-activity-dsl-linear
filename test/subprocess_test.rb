@@ -1,7 +1,7 @@
 require "test_helper"
 
 class SubprocessTest < Minitest::Spec
-  it "does not automatically connect outputs unknown to the Strategy" do
+  it "does not automatically connect outputs unknown to the Strategy (terminus :unknown)" do
     sub_activity = Class.new(Activity::Railway) do
       terminus :unknown
     end
@@ -20,6 +20,37 @@ class SubprocessTest < Minitest::Spec
 #<End/:success>
 
 #<End/:unknown>
+
+#<End/:failure>
+}
+  end
+
+  # DISCUSS: maybe we can "soften" or un-strict this.
+  it "fails when using {fast_track: true} with Path because it doesn't have the expected outputs" do
+    exception = assert_raises do
+      activity = Class.new(Activity::FastTrack) do
+        step Subprocess(Activity::Path), fast_track: true
+      end
+    end
+
+    assert_equal exception.message, %{No `fail_fast` output found for Trailblazer::Activity::Path and outputs {:success=>#<struct Trailblazer::Activity::Output signal=#<Trailblazer::Activity::End semantic=:success>, semantic=:success>}}
+  end
+
+  it "{:outputs} provided by {Subprocess} is not overridden by step defaults" do
+    sub_activity = Class.new(Activity::Path) do
+    end
+
+    # There is no {failure} connection because sub_activity is a Path.
+    activity = Class.new(Activity::Railway) do
+      step Subprocess(sub_activity)
+    end
+
+    assert_process_for activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+#<End/:success>
 
 #<End/:failure>
 }
