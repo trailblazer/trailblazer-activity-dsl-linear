@@ -91,7 +91,7 @@ module Trailblazer
               record = Linear::Normalizer::Inherit.Record((in_filters+out_filters).to_h, type: :variable_mapping) # FIXME: just pass one hash around?
 
               non_symbol_options = non_symbol_options.merge(record)
-              non_symbol_options = non_symbol_options.merge(Linear::Normalizer::Extensions.Extension(is_generic: true)  => extension)
+              non_symbol_options = non_symbol_options.merge(Linear::Strategy.Extension(is_generic: true)  => extension)
 
               ctx.merge!(
                 non_symbol_options: non_symbol_options
