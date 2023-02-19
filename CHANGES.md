@@ -1,29 +1,33 @@
 # 1.2
 
-* `step :outputs` is a private concept.
-  What used to be the "path.outputs" step is now a separate, nested pipeline named "activity.default_outputs".
-* Fixed a bug where Subprocess(Path) would accidentially add a {Left, :failure} connection
-  In turn, this doesn't work anymore
+## Normalizer
 
-  ```ruby
-  step Subprocess(Path), Output(:failure) => ...
-  ```
-
-  :outputs when given (as from Subprocess) is no longer extended or overridden/defaulted once it's set.
-  The default step's outputs are set in a separate pipeline in activity.default_outputs.
-
-* `Strategy.End()` now returns an `OutputTuples::End` instance. Use `Activity.End()` for the original behavior.
-
-* Removed the `:connections` option in favor of simply using output tuples for setting connections.
-We don't inherit :connections anymore, but the output tuples.
-* Rename `"path.connections"` to `""path.step.add_success_connector"` for consistency.
+* Extract `normalizer/extension.rb` to implement `Extension() => myext`
+* Extract `normalizer/inherit.rb` to implement `inherit: true`.
+* Extract `normalizer/output_tuples.rb` which represents code for the Wiring API.
+* Connectors (`Track()`, `Id()` and `End()`) now contain the logic that returns the search builder. This used to sit in `#normalize_connections_from_dsl`.
+* What used to be the `"path.outputs"` step is now a separate, nested pipeline named `"activity.default_outputs"`. See https://trailblazer.to/2.1/docs/internals#internals-wiring-api-outputs-defaulting
+    Basically, The default step's outputs are set in that separate pipeline under `"activity.default_outputs"`.
+* Rename `"path.connections"` to `"path.step.add_success_connector"` for consistency.
 * Move `Railway::DSL::NormalizerForPass` to `Railway::DSL::Pass::Normalizer` (same for `Fail`).
 * Move `FastTrack::DSL::NormalizerForPass` to `FastTrack::DSL::Pass::Normalizer` (same for `Fail`).
-* removes the `VariableMapping::Inherit` module.
-* Finally add the `Extension() => my_ext` option to painlessly add extensions.
-  this means you don't have to manually merge `:extensions` anymore.
-  Extensions are now properly inherited (if `generic?` is false) using the     universal inheritance mechanism.
-* Rename `"activity.normalize_outputs_from_dsl"` to `"output_tuples.compile_connections"`.
+* Remove `"activity.normalize_outputs_from_dsl"` as this all happens in `#compile_wirings` now.
+
+## Various
+
+* Fixed a bug where `Subprocess(Path)` would accidentially add a `:failure` connection.
+    As a result, this doesn't work anymore
+
+    ```ruby
+    step Subprocess(Path), Output(:failure) => ...
+    ```
+* Allow inheriting of `:fail_fast`, `:pass_fast` and `:fast_track`.
+* The `:outputs` option for `#step` is now a private concept.  When passed explicitely to the normalizer (as it happens with `Subprocess()`) it's no longer extended or defaulted.
+* `Strategy.End()` now returns an `OutputTuples::End` instance. Use `Activity.End()` for the original behavior.
+* Removed the `:connections` option in favor of simply using output tuples for setting connections. We also don't inherit `:connections` anymore, but the output tuples.
+* Removed the `VariableMapping::Inherit` module as we can use generic inheritance logic.
+* Finally add the `Extension() => my_ext` option to painlessly add extensions. This means you don't have to manually merge `:extensions` anymore.
+* Extensions are now properly inherited (if `generic?` is false) using the universal inheritance mechanism.
 
 # 1.1.1
 
