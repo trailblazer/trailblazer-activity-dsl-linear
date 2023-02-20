@@ -375,4 +375,36 @@ class FastTrackTest < Minitest::Spec
     assert_invoke activity, fast: true, terminus: :pass_fast
     assert_invoke activity, fast: false, terminus: :fail_fast
   end
+
+  it "without {fast_track: true} there is {Output(:pass_fast)} for Subprocess, only" do
+    activity = Class.new(Activity::FastTrack) do
+      step Subprocess(Activity::FastTrack), Output(:pass_fast) => Track(:success)
+    end
+
+    assert_process_for activity, :success, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => Trailblazer::Activity::FastTrack
+Trailblazer::Activity::FastTrack
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:success>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+  end
+
+  it "without {fast_track: true} there is no {Output(:pass_fast)} for scalar task" do
+    exception = assert_raises do
+      activity = Class.new(Activity::FastTrack) do
+        step :model, Output(:pass_fast) => Track(:success)
+      end
+    end
+
+    assert_equal exception.message, %{No `pass_fast` output found for :model and outputs {:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}}
+  end
 end

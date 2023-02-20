@@ -15,11 +15,11 @@
 
 ## Various
 
-* `FastTrack` outputs are only added when `fast_track: true` is set.
-    As a result, this will throw an exception
+* `FastTrack` outputs for non-Subprocess()es are only added when `fast_track: true` is set.
+    As a result, this will throw an exception `No `pass_fast` output found for :find_model`.
 
     ```ruby
-    step :find_model, Output(:pass_fast) # throws unknown output exception.
+    step :find_model, Output(:pass_fast) # throws "no output" exception.
     ```
 
     and needs to be changed to
