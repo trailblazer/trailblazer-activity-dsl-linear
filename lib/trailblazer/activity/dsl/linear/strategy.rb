@@ -105,8 +105,8 @@ module Trailblazer
               )
             end
 
-            def invoke(*args)
-              TaskWrap.invoke(self, *args)
+            def invoke(*args, **kws)
+              TaskWrap.invoke(self, *args, **kws)
             end
           end # class << self
           # FIXME: do we want class << self?!

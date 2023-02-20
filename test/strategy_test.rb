@@ -72,4 +72,23 @@ EOS
 #<End/:success>
 }
   end
+
+  it "{Strategy.invoke} runs activity using taskWrap" do
+    activity = Class.new(Activity::Railway) do
+      step :dont_run_me
+      step :find_model, Out() => [:model]
+      step :save
+
+      include T.def_steps(:find_model, :save)
+    end
+
+    start_task = Activity::Introspect::TaskMap(activity).find_by_id(:find_model).task
+    ctx = {seq: []}
+    #@ Positionals and kwargs are passed on:
+    signal, (ctx, _) = activity.invoke([ctx, {}], start_task: start_task)
+
+    assert_equal signal.to_h[:semantic], :success
+    # The presence of {:model} here means taskWrap extensions have been run.
+    assert_equal ctx.inspect, %{{:seq=>[:find_model, :save], :model=>nil}}
+  end
 end
