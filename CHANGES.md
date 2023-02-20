@@ -15,6 +15,21 @@
 
 ## Various
 
+* `FastTrack` outputs are only added when `fast_track: true` is set.
+    As a result, this will throw an exception
+
+    ```ruby
+    step :find_model, Output(:pass_fast) # throws unknown output exception.
+    ```
+
+    and needs to be changed to
+
+
+    ```ruby
+    step :find_model,
+      fast_track: true,
+      Output(:pass_fast)
+    ```
 * Fixed a bug where `Subprocess(Path)` would accidentially add a `:failure` connection.
     As a result, this doesn't work anymore
 
@@ -28,6 +43,7 @@
 * Removed the `VariableMapping::Inherit` module as we can use generic inheritance logic.
 * Finally add the `Extension() => my_ext` option to painlessly add extensions. This means you don't have to manually merge `:extensions` anymore.
 * Extensions are now properly inherited (if `generic?` is false) using the universal inheritance mechanism.
+* `Strategy.invoke` now passes on keyword arguments, too.
 
 # 1.1.1
 
