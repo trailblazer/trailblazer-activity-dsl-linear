@@ -72,8 +72,8 @@ module Trailblazer
 
           FAILURE_TO_SUCCESS_CONNECTOR = {Linear::Normalizer::OutputTuples.Output(:failure) => Linear::Strategy.Track(:success)}
 
-          def connect_failure_to_success(ctx, non_symbol_options:, **)
-            ctx[:non_symbol_options] = FAILURE_TO_SUCCESS_CONNECTOR.merge(non_symbol_options)
+          def connect_failure_to_success(ctx, **options)
+            Railway::DSL.add_failure_connector(ctx, **options, failure_connector: FAILURE_TO_SUCCESS_CONNECTOR)
           end
         end
 
@@ -88,11 +88,11 @@ module Trailblazer
           ctx[:outputs] = FAILURE_OUTPUT.merge(outputs)
         end
 
-        def add_failure_connector(ctx, outputs:, non_symbol_options:, **)
+        def add_failure_connector(ctx, outputs:, non_symbol_options:, failure_connector: FAILURE_CONNECTOR, **)
           return unless outputs[:failure] # do not add the default failure connection when we don't have
                                           # a corresponding output.
 
-          ctx[:non_symbol_options] = FAILURE_CONNECTOR.merge(non_symbol_options)
+          ctx[:non_symbol_options] = failure_connector.merge(non_symbol_options)
         end
 
         Normalizers = Linear::Normalizer::Normalizers.new(

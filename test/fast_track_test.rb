@@ -50,6 +50,32 @@ class FastTrackTest < Minitest::Spec
     end
   end
 
+  it "#step, #fail and #pass do not add a {:failure} connection if no {:failure} output exists" do
+    activity = Class.new(Activity::FastTrack) do
+      step Subprocess(Class.new(Activity::Path))
+      pass Subprocess(Class.new(Activity::Path))
+      fail Subprocess(Class.new(Activity::Path))
+    end
+
+    assert_process_for activity, :success, :pass_fast, :fail_fast, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:failure>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+}
+  end
+
   describe "Activity::FastTrack" do
 
     it "provides defaults" do

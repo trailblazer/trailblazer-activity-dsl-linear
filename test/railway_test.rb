@@ -4,10 +4,10 @@ class RailwayTest < Minitest::Spec
   Implementing = T.def_steps(:a, :b, :c, :d, :e, :f, :g)
 
   it "empty subclass" do
-    path = Class.new(Activity::Railway) do
+    activity = Class.new(Activity::Railway) do
     end
 
-    assert_circuit path, %{
+    assert_process_for activity, :success, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
@@ -15,7 +15,7 @@ class RailwayTest < Minitest::Spec
 #<End/:failure>
 }
 
-    assert_call path
+    assert_call activity
   end
 
 
@@ -76,6 +76,28 @@ class RailwayTest < Minitest::Spec
 
 #@ {:f} fails
     assert_call activity, terminus: :failure, seq: "[:a, :c, :d, :f]", f: false
+  end
+
+  it "#step, #fail and #pass do not add a {:failure} connection if no {:failure} output exists" do
+    activity = Class.new(Activity::Railway) do
+      step Subprocess(Class.new(Activity::Path))
+      pass Subprocess(Class.new(Activity::Path))
+      fail Subprocess(Class.new(Activity::Path))
+    end
+
+    assert_process_for activity, :success, :failure, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>
+}
   end
 
   describe "Activity::Railway" do

@@ -126,7 +126,7 @@ Object
 
 #<End/:failure>
 }
-    end
+  end
 end
 
 class StepDataVariableOptionTest < Minitest::Spec
