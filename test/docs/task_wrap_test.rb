@@ -79,3 +79,101 @@ class DocsTaskWrapTest < Minitest::Spec
     ctx.inspect.must_equal %{{:seq=>[:model, :save], :log=>[\"Before DocsTaskWrapTest::Create\", \"Before #<Trailblazer::Activity::Start semantic=:default>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=model>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>\", \"Before #<Trailblazer::Activity::End semantic=:success>\"]}}
   end
 end
+
+class DocsRuntimeExtensionTest < Minitest::Spec
+  module Song
+  end
+
+  module MyAPM # Advanced performance monitoring, done right!
+    Store = []
+    Span = Struct.new(:name, :payload, :finish_data) do
+      def finish(data:)
+        self.finish_data = data
+      end
+    end
+
+    def self.start_span(name, payload:)
+      Store << span = Span.new(name, payload)
+      span
+    end
+  end
+
+  module MyAPM # Advanced performance monitoring, done right!
+    module Extension
+      def self.start_instrumentation(wrap_ctx, original_args)
+        (ctx, _flow_options), circuit_options = original_args
+
+        activity  = circuit_options[:activity] # currently running Activity.
+        task      = wrap_ctx[:task]            # the current "step".
+
+        task_id   = Trailblazer::Activity::Introspect.Nodes(activity, task: task).id
+
+        span      = MyAPM.start_span("operation.step", payload: {id: task_id})
+
+        wrap_ctx[:span] = span
+
+        return wrap_ctx, original_args
+      end
+    end
+  end
+
+  module MyAPM # Advanced performance monitoring, done right!
+    module Extension
+      def self.finish_instrumentation(wrap_ctx, original_args)
+        ctx   = original_args[0][0]
+        span  = wrap_ctx[:span]
+
+        span.finish(data: ctx.inspect)
+
+        return wrap_ctx, original_args
+      end
+    end
+  end
+
+  # APM, instrumentation
+
+  module Song::Activity
+    class Create < Trailblazer::Activity::Railway
+      step :model
+      step :validate
+      step :save
+      #~meths
+      include T.def_steps(:model, :validate, :save)
+      #~meths end
+    end
+  end
+
+
+  it "runs new taskWrap steps" do
+    ext = Trailblazer::Activity::TaskWrap::Extension(
+      [MyAPM::Extension.method(:start_instrumentation),  id: "my_apm.start_span",  prepend: "task_wrap.call_task"],
+      [MyAPM::Extension.method(:finish_instrumentation), id: "my_apm.finish_span", append: "task_wrap.call_task"],
+    )
+
+    ctx = {song: {title: "Timebomb"}, seq: []}
+
+    my_wrap = Hash.new(ext)
+
+    signal, (ctx, _) = Song::Activity::Create.invoke([ctx, {}], wrap_runtime: my_wrap)
+
+    assert_equal signal.to_h[:semantic], :success
+    assert_equal ctx.inspect, %{{:song=>{:title=>\"Timebomb\"}, :seq=>[:model, :validate, :save]}}
+    assert_equal MyAPM::Store.collect { |span| span.payload }.inspect, %{[{:id=>nil}, {:id=>\"Start.default\"}, {:id=>:model}, {:id=>:validate}, {:id=>:save}, {:id=>\"End.success\"}]}
+  end
+end
+
+class DocsWrapStaticExtensionTest < Minitest::Spec
+  module Song
+  end
+
+  module Song::Activity
+    class Create < Trailblazer::Activity::Railway
+      step :model
+      step :validate
+      step :save
+      #~meths
+      include T.def_steps(:model, :validate, :save)
+      #~meths end
+    end
+  end
+end

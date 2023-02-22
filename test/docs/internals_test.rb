@@ -139,8 +139,8 @@ class DocsInternalsRecordSymbolOptionTest < Minitest::Spec
   #:record end
 
   it "provides" do
-    assert_equal Song::Activity::Create.to_h[:nodes][1][:data][:id], "CREATE_MODEL"
-    assert_equal Song::Activity::Update.to_h[:nodes][1][:data][:id], "CREATE_MODEL" # FIXME: this test really sucks! it doesn't test anything.
+    assert_equal Activity::Introspect.Nodes(Song::Activity::Create).values[1][:data][:id], "CREATE_MODEL"
+    assert_equal Activity::Introspect.Nodes(Song::Activity::Update).values[1][:data][:id], "CREATE_MODEL" # FIXME: this test really sucks! it doesn't test anything.
   end
 end
 

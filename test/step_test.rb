@@ -53,7 +53,6 @@ Object
   end
 
   # ID for {task: <task>}
-  # TODO: this should also test ID for {step <task>}
   it "ID is {:task} unless specified" do
     activity = Class.new(Activity::Path) do
       include implementing = T.def_tasks(:a, :b, :d, :f)
@@ -68,6 +67,23 @@ Object
     assert_equal Trailblazer::Developer.railway(activity), %{[>a,>B,>f,>d]}
     assert_invoke activity, seq: %{[:a, :b, :f, :d]}
   end
+
+  it "assigns default {:id}" do
+    implementing = T.def_tasks(:a, :b, :d, :c)
+
+    activity = Class.new(Activity::Path) do
+      include T.def_tasks(:c, :d)
+
+      step implementing.method(:a), id: :a
+      step implementing.method(:b)
+      step :c
+      step :d, id: :D
+    end
+
+    assert_equal Trailblazer::Developer.railway(activity), %{[>a,>#{implementing.method(:b)},>c,>D]}
+    assert_invoke activity, seq: %{[:a, :b, :c, :d]}
+  end
+
 
 # TODO: remove :override tests in 1.2.0.
 #@ :override
@@ -142,9 +158,9 @@ class StepDataVariableOptionTest < Minitest::Spec
         DataVariable() => [:status, :level]
     end
 
-    data1 = activity.to_h[:nodes][1][:data]
-    data2 = activity.to_h[:nodes][2][:data]
-    data3 = activity.to_h[:nodes][3][:data]
+    data1 = Activity::Introspect.Nodes(activity).values[1][:data]
+    data2 = Activity::Introspect.Nodes(activity).values[2][:data]
+    data3 = Activity::Introspect.Nodes(activity).values[3][:data]
 
     assert_equal data1.keys, [:id, :dsl_track, :extensions, :stop_event, :recorded_options]
     assert_equal data2.keys, [:id, :dsl_track, :extensions, :stop_event, :mode, :recorded_options]
