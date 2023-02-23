@@ -305,7 +305,7 @@ class DocsActivityTest < Minitest::Spec
     flow_options    = {}
     #:circuit-interface-start-call
     circuit_options = {
-      start_task: Trailblazer::Activity::Introspect::Graph(B::Create).find { |node| node.id == :validate  }.task
+      start_task: Trailblazer::Activity::Introspect::Nodes(B::Create, id: :validate).task
     }
 
     signal, (ctx, flow_options) = B::Create.([ctx, flow_options], **circuit_options)

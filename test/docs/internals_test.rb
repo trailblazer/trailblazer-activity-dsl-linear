@@ -18,11 +18,11 @@ class DocsInternalsDataVariableTest < Minitest::Spec
 
   it "provides DataVariable() to store in {row.data}" do
     #:data_variable_read
-    Trailblazer::Activity::Introspect.Graph(Song::Activity::Create)
-      .find(:create_model).data[:model_class] #=> Song
+    Trailblazer::Activity::Introspect.Nodes(Song::Activity::Create, id: :create_model)
+      .data[:model_class] #=> Song
     #:data_variable_read end
 
-    assert_equal Trailblazer::Activity::Introspect.Graph(Song::Activity::Create).find(:create_model).data[:model_class], Song
+    assert_equal Trailblazer::Activity::Introspect.Nodes(Song::Activity::Create, id: :create_model).data[:model_class], Song
   end
 end
 
@@ -66,14 +66,13 @@ class DocsInternalsNormalizerExtendTest < Minitest::Spec
   #:normalizer-extend end
 
   it "provides" do
-    Trailblazer::Activity::Introspect.Graph(Song::Activity::Create)
-      .find("CREATE_MODEL") #=> #<Node id="CREATE_MODEL"...>
+    Trailblazer::Activity::Introspect.Nodes(Song::Activity::Create, id: "CREATE_MODEL") #=> #<Node id="CREATE_MODEL"...>
 
     Trailblazer::Developer.wtf?(Song::Activity::Create, [{seq: []}])
 
-    assert Trailblazer::Activity::Introspect.Graph(Song::Activity::Create).find("CREATE_MODEL")
-    assert Trailblazer::Activity::Introspect.Graph(Song::Activity::Create).find(:validate)
-    assert Trailblazer::Activity::Introspect.Graph(Song::Activity::Create).find(:save)
+    assert Trailblazer::Activity::Introspect.Nodes(Song::Activity::Create, id: "CREATE_MODEL")
+    assert Trailblazer::Activity::Introspect.Nodes(Song::Activity::Create, id: :validate)
+    assert Trailblazer::Activity::Introspect.Nodes(Song::Activity::Create, id: :save)
   end
 end
 

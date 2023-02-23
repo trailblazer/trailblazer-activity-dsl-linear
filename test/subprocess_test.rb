@@ -198,7 +198,7 @@ class SubprocessTest < Minitest::Spec
   end
 
   def find(activity, id)
-    Trailblazer::Activity::Introspect::Graph(activity).find(id).task
+    Trailblazer::Activity::Introspect::Nodes(activity, id: id).task
   end
 end
 

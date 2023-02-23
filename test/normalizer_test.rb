@@ -30,23 +30,20 @@ class NormalizerTest < Minitest::Spec
       step :create
     end
 
-    graph = Trailblazer::Activity::Introspect.Graph(application_operation)
-
     #@ we don't find a row named {:model}
-    assert_equal graph.find(:model), nil
+    assert_equal Activity::Introspect.Nodes(application_operation, id: :model), nil
     #@ we find a {"MODEL"} row
-    assert_equal graph.find("MODEL").id, "MODEL"
+    assert_equal Activity::Introspect.Nodes(application_operation, id: "MODEL").id, "MODEL"
     #@ {#pass} still has lowercase ID.
-    assert_equal graph.find(:find_id).id, :find_id
+    assert_equal Activity::Introspect.Nodes(application_operation, id: :find_id).id, :find_id
     #@ we find uppercased LOG for {fail}
-    assert_equal graph.find("LOG").id, "LOG"
+    assert_equal Activity::Introspect.Nodes(application_operation, id: "LOG").id, "LOG"
 
   #@ inheritance
-    graph = Trailblazer::Activity::Introspect.Graph(create_operation)
-    assert_equal graph.find("MODEL").id, "MODEL"
-    assert_equal graph.find(:find_id).id, :find_id
-    assert_equal graph.find("CREATE").id, "CREATE"
-    assert_equal graph.find("LOG").id, "LOG"
+    assert_equal Activity::Introspect.Nodes(create_operation, id: "MODEL").id, "MODEL"
+    assert_equal Activity::Introspect.Nodes(create_operation, id: :find_id).id, :find_id
+    assert_equal Activity::Introspect.Nodes(create_operation, id: "CREATE").id, "CREATE"
+    assert_equal Activity::Introspect.Nodes(create_operation, id: "LOG").id, "LOG"
   end
 
   it "#prepend_to  and #replace" do

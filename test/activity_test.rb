@@ -992,9 +992,9 @@ class ActivityTest < Minitest::Spec
     end
 
     #@ IDs are automatically computed in case of no {:id} option.
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.not_found").data.inspect, %{{:id=>\"End.not_found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found_it!").data.inspect, %{{:id=>\"End.found_it!\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.found").data.inspect, %{{:id=>\"End.found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.not_found").data.inspect, %{{:id=>\"End.not_found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.found_it!").data.inspect, %{{:id=>\"End.found_it!\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.found").data.inspect, %{{:id=>\"End.found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
 
     with_steps = Class.new(activity) do
       step :a,
@@ -1042,8 +1042,8 @@ class ActivityTest < Minitest::Spec
     end
 
     #@ {:task} allows passing {End} instance
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.tell_me").data.inspect, %{{:id=>\"End.tell_me\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
-    assert_equal Trailblazer::Activity::Introspect.Graph(activity).find("End.tell_me").task.class, my_terminus_class
+    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.tell_me").data.inspect, %{{:id=>\"End.tell_me\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
+    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.tell_me").task.class, my_terminus_class
   end
 
   it "what" do
@@ -1058,4 +1058,15 @@ class ActivityTest < Minitest::Spec
   # merge!
   # :step_method
   # :extension API/state for taskWrap, also in Path()
+end
+
+class GraphDeprecationTest < Minitest::Spec
+  it "deprecates {Activity::Introspect::Graph()}" do
+    _, warning = capture_io do
+      graph = Activity::Introspect.Graph(Activity::Railway)
+    end
+    line_no = __LINE__ - 2
+
+    assert_equal warning, %{[Trailblazer] #{File.realpath(__FILE__)}:#{line_no} `Trailblazer::Activity::Introspect::Graph` is deprecated. Please use `Trailblazer::Developer::Introspect.Graph`\n}
+  end
 end
