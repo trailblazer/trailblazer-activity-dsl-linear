@@ -12,6 +12,8 @@ require "trailblazer/core"
 
 T = Trailblazer::Activity::Testing
 
+Minitest::Spec::Activity = Trailblazer::Activity
+
 Minitest::Spec.class_eval do
   Implementing = T.def_steps(:a, :b, :c, :d, :e, :f, :g)
 
