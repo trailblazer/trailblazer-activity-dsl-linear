@@ -7,7 +7,7 @@ module Trailblazer
           # Features such as variable mapping or the Wiring API can
           # use the generic behavior for their inheritance.
 
-# "generic": built by the DSL from options, options that are inherited, so you might not want to record or inherit generic options
+          # "generic": built by the DSL from options, options that are inherited, so you might not want to record or inherit generic options
           module Inherit
             module_function
 
@@ -21,16 +21,16 @@ module Trailblazer
 
             # Currently, the {:inherit} option copies over {:extensions} from the original step and merges them with new :extensions.
             #
-          ### Recall
+            ### Recall
             # Fetch remembered options and add them to the processed options.
-            def recall_recorded_options(ctx, non_symbol_options:, sequence:, inherit: nil, id:, extensions:[],**)
+            def recall_recorded_options(ctx, non_symbol_options:, sequence:, id:, inherit: nil, extensions: [], **)
               return unless inherit === true || inherit.is_a?(Array)
 
               # E.g. {variable_mapping: true, wiring_api: true}
               types_to_recall =
                 if inherit === true
                   # we want to inherit "everything": extensions, output_tuples, variable_mapping
-                  Hash.new {true}
+                  Hash.new { true }
                 else
                   inherit.collect { |type| [type, true] }.to_h
                 end
@@ -64,15 +64,15 @@ module Trailblazer
               sequence[index]
             end
 
-          ### Record
+            ### Record
             # Figure out what to remember from the options and store it in {row.data[:recorded_options]}.
             # Note that this is generic logic not tied to variable_mapping, OutputTuples or anything.
             def compile_recorded_options(ctx, non_symbol_options:, **)
               recorded_options = {}
 
               non_symbol_options
-                .find_all { |k,v| k.instance_of?(Record) }
-                .collect  do |k,v|
+                .find_all { |k, v| k.instance_of?(Record) }
+                .collect  do |k, v|
                   recorded_options[k.type] = k   # DISCUSS: we overwrite potential data with same type.
                 end
 

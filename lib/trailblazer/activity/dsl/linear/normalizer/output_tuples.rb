@@ -8,7 +8,7 @@ module Trailblazer
           module OutputTuples
             module_function
 
-                        # Connector when using Id(:validate).
+            # Connector when using Id(:validate).
             class Id < Struct.new(:value)
               def to_a(*)
                 return [Linear::Sequence::Search.method(:ById), value], [] # {value} is the "target".
@@ -45,13 +45,13 @@ module Trailblazer
             end
 
             module Output
-              # Note that both {Semantic} and {CustomOutput} are {kind_of?(Output)}
+              # Note that both {Semantic} and {CustomOutput} are {is_a?(Output)}
               Semantic      = Struct.new(:semantic, :generic?).include(Output)
               CustomOutput  = Struct.new(:signal, :semantic, :generic?).include(Output) # generic? is always false
             end
 
             def normalize_output_tuples(ctx, non_symbol_options:, **)
-              output_tuples = non_symbol_options.find_all { |k,v| k.is_a?(OutputTuples::Output) }
+              output_tuples = non_symbol_options.find_all { |k, v| k.is_a?(OutputTuples::Output) }
 
               ctx.merge!(output_tuples: output_tuples)
             end
@@ -59,7 +59,7 @@ module Trailblazer
             # Remember all custom (non-generic) {:output_tuples}.
             def remember_custom_output_tuples(ctx, output_tuples:, non_symbol_options:, **)
               # We don't include generic OutputSemantic (from Subprocess(strict: true)) for inheritance, as this is not a user customization.
-              custom_output_tuples = output_tuples.reject { |k,v| k.generic? }
+              custom_output_tuples = output_tuples.reject { |k, v| k.generic? }
 
               # save Output() tuples under {:custom_output_tuples} for inheritance.
               ctx.merge!(
@@ -76,7 +76,7 @@ module Trailblazer
               # that's why we recreate {output_tuples} here.
               output_tuples =
                 output_tuples.collect do |(output, connector)|
-                  if output.kind_of?(Output::CustomOutput)
+                  if output.is_a?(Output::CustomOutput)
                     # add custom output to :outputs.
                     outputs = outputs.merge(output.semantic => Activity.Output(output.signal, output.semantic))
 
@@ -95,7 +95,7 @@ module Trailblazer
 
             # Implements {inherit: :outputs, strict: false}
             # return connections from {parent} step which are supported by current step
-            def filter_inherited_output_tuples(ctx, inherit: false, inherited_recorded_options: {}, outputs:, output_tuples:, **)
+            def filter_inherited_output_tuples(ctx, outputs:, output_tuples:, inherit: false, inherited_recorded_options: {}, **)
               return unless inherit === true
               strict_outputs = false # TODO: implement "strict outputs" for inherit! meaning we connect all inherited Output regardless of the new activity's interface
               return if strict_outputs === true
@@ -109,7 +109,7 @@ module Trailblazer
               inherited_semantics   = inherited_output_tuples.collect { |output, _| output.semantic }
               unsupported_semantics = inherited_semantics - allowed_semantics
 
-              filtered_output_tuples = output_tuples.reject do |output, _| unsupported_semantics.include?(output.semantic) end
+              filtered_output_tuples = output_tuples.reject { |output, _| unsupported_semantics.include?(output.semantic) }
 
               ctx.merge!(
                 output_tuples: filtered_output_tuples.to_h
@@ -131,7 +131,7 @@ module Trailblazer
                   output_tuples.collect do |output, connector|
                     (search_builder, search_args), connector_adds = connector.to_a(ctx) # Call {#to_a} on Track/Id/End/...
 
-                    adds        += connector_adds
+                    adds += connector_adds
 
                     semantic = output.semantic
                     output   = outputs[semantic] || raise("No `#{semantic}` output found for #{id.inspect} and outputs #{outputs.inspect}")

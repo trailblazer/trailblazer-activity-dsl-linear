@@ -2,7 +2,6 @@ module Trailblazer
   class Activity
     # Implementation of the "FastTrack" layout that is also used for `Operation`.
     class FastTrack < Activity::DSL::Linear::Strategy
-
       # Signals
       FailFast = Class.new(Signal)
       PassFast = Class.new(Signal)
@@ -29,7 +28,6 @@ module Trailblazer
           _normalizer = Linear::Normalizer.prepend_to(
             step_normalizer,
             PREPEND_TO,
-
             {
               "fast_track.record_options"     => Linear::Normalizer.Task(method(:record_options)),
               "fast_track.pass_fast_option"   => Linear::Normalizer.Task(method(:pass_fast_option)),
@@ -48,7 +46,6 @@ module Trailblazer
             Linear::Normalizer.prepend_to(
               pipeline,
               PREPEND_TO,
-
               {
                 "fast_track.fail_fast_option_for_fail"  => Linear::Normalizer.Task(DSL.method(:fail_fast_option_for_fail)),
               }
@@ -65,7 +62,6 @@ module Trailblazer
             Linear::Normalizer.prepend_to(
               pipeline,
               PREPEND_TO,
-
               {
                 "fast_track.pass_fast_option_for_pass"  => Linear::Normalizer.Task(DSL.method(:pass_fast_option_for_pass)),
               }
@@ -80,8 +76,8 @@ module Trailblazer
         def record_options(ctx, non_symbol_options:, **)
           recorded_options =
             RECORD_OPTIONS.collect { |option| ctx.key?(option) ? [option, ctx[option]] : nil }
-            .compact
-            .to_h
+              .compact
+              .to_h
 
           ctx.merge!(
             non_symbol_options: non_symbol_options.merge(

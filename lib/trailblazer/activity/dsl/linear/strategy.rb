@@ -28,10 +28,15 @@ module Trailblazer
             end
 
             # @public
-              # We forward `step` to the Dsl (State) object.
-              # Recompiling the activity/sequence is a matter specific to Strategy (Railway etc).
-            def step(*args, &block); recompile_activity_for(:step, *args, &block); end
-            def terminus(*args);     recompile_activity_for(:terminus, *args); end
+            # We forward `step` to the Dsl (State) object.
+            # Recompiling the activity/sequence is a matter specific to Strategy (Railway etc).
+            def step(*args, &block)
+              recompile_activity_for(:step, *args, &block)
+            end
+
+            def terminus(*args)
+              recompile_activity_for(:terminus, *args)
+            end
 
             private def recompile_activity_for(type, *args, &block)
               sequence = apply_step_on_sequence_builder(type, *args, &block)
@@ -41,16 +46,14 @@ module Trailblazer
 
             # TODO: make {rescue} optional, only in dev mode.
             # @return Sequence
-            private def apply_step_on_sequence_builder(type, arg, options={}, &block)
-              return Sequence::Builder.(type, arg, options,
+            private def apply_step_on_sequence_builder(type, arg, options = {}, &block)
+              Sequence::Builder.(type, arg, options,
                 sequence:           @state.get(:sequence),
                 normalizers:        @state.get(:normalizers),
 
                 normalizer_options: @state.get(:normalizer_options),
 
-                 &block
-              )
-
+                &block)
             rescue Activity::Adds::IndexError
               # re-raise this exception with activity class prepended
               # to the message this time.
@@ -90,7 +93,7 @@ module Trailblazer
 
               activity.to_h.to_h.merge(
                 activity: activity,
-                sequence: @state.get(:sequence),
+                sequence: @state.get(:sequence)
               )
             end
 
@@ -124,7 +127,7 @@ module Trailblazer
               Class.new(strategy) do
                 compile_strategy!(strategy::DSL, normalizers: @state.get(:normalizers), **options)
 
-                class_exec(&block) if block_given?
+                class_exec(&block) if block
               end
             end
 
@@ -153,7 +156,7 @@ module Trailblazer
                 sequence = append_terminus(sequence, task, **options_for_append_terminus, **terminus_options)
               end
 
-              return sequence
+              sequence
             end
 
             def append_terminus(sequence, task, normalizers:, **options)
@@ -166,7 +169,6 @@ module Trailblazer
               Activity::Circuit::TaskAdapter.for_step(user_step, option: true)
             end
           end # DSL
-
 
           # FIXME: move to State#dup
           def self.copy(value, **) # DISCUSS: should that be here?
@@ -195,5 +197,3 @@ module Trailblazer
     end
   end
 end
-
-

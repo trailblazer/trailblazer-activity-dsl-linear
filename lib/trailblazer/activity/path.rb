@@ -89,14 +89,3 @@ module Trailblazer
     end
   end
 end
-
-=begin
-class Operation
-  def self.subclassed(track_name:) # FIXME: it should be run in SubOperation context.
-    # initialize code here
-  end
-
-end
-
-SubOperation = Class.new(Operation, track_name: :green)
-=end

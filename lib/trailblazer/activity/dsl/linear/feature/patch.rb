@@ -2,11 +2,10 @@ class Trailblazer::Activity
   module DSL
     module Linear
       module Patch
-      # DISCUSS: we could make this a generic DSL option, not just for Subprocess().
         # Currently, this is called from the Subprocess() helper.
         def self.customize(activity, options:)
           options = options.is_a?(Proc) ?
-            { [] => options } : # hash-wrapping with empty path, for patching given activity itself
+            {[] => options} : # hash-wrapping with empty path, for patching given activity itself
             options
 
           options.each do |path, patch|

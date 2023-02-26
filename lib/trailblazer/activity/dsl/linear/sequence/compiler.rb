@@ -27,7 +27,7 @@ module Trailblazer
                   connections = find_connections(seq_row, connections, sequence)
 
                   # FIXME: {:extensions} should be initialized
-                  implementations += [[id, Schema::Implementation::Task(task, connections.collect { |output, _| output }, data[:extensions] || []) ]]
+                  implementations += [[id, Schema::Implementation::Task(task, connections.collect { |output, _| output }, data[:extensions] || [])]]
 
                   intermediates += [
                     [
@@ -43,8 +43,8 @@ module Trailblazer
               start_task_ids = find_start.(intermediate_wiring)
               stop_task_refs = find_stops.(intermediate_wiring)
 
-              intermediate   = Schema::Intermediate.new(Hash[intermediate_wiring], stop_task_refs, start_task_ids)
-              implementation = Hash[_implementations]
+              intermediate   = Schema::Intermediate.new(intermediate_wiring.to_h, stop_task_refs, start_task_ids)
+              implementation = _implementations.to_h
 
               Schema::Intermediate.(intermediate, implementation) # implemented in the generic {trailblazer-activity} gem.
             end

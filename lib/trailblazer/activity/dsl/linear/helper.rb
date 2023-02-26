@@ -6,7 +6,7 @@ module Trailblazer
         # and then get processed in the normalizer.
         #
         # @private
-        Extension      = Struct.new(:callable) do
+        Extension = Struct.new(:callable) do
           def call(*args, &block)
             callable.(*args, &block)
           end
@@ -24,7 +24,7 @@ module Trailblazer
 
           #   Output( Left, :failure )
           #   Output( :failure ) #=> Output::Semantic
-          def Output(signal, semantic=nil)
+          def Output(signal, semantic = nil)
             return Normalizer::OutputTuples::Output::Semantic.new(signal) if semantic.nil?
 
             Normalizer::OutputTuples::Output::CustomOutput.new(signal, semantic)
@@ -47,7 +47,7 @@ module Trailblazer
           end
 
           def Path(**options, &block)
-            options = options.merge(block: block) if block_given?
+            options = options.merge(block: block) if block
 
             Linear::PathBranch.new(options) # picked up by normalizer.
           end
@@ -70,15 +70,25 @@ module Trailblazer
             {
               task:    activity,
               outputs: outputs.collect { |output| [output.semantic, output] }.to_h,
-            }.
-            merge(options)
+            }
+              .merge(options)
           end
 
-          def In(**kws);     VariableMapping::DSL::In(**kws); end
-          def Out(**kws);    VariableMapping::DSL::Out(**kws); end
-          def Inject(*args, **kws); VariableMapping::DSL::Inject(*args, **kws); end
+          def In(**kws)
+            VariableMapping::DSL::In(**kws)
+          end
 
-          def Extension(*args, **kws); Normalizer::Extensions.Extension(*args, **kws); end
+          def Out(**kws)
+            VariableMapping::DSL::Out(**kws)
+          end
+
+          def Inject(*args, **kws)
+            VariableMapping::DSL::Inject(*args, **kws)
+          end
+
+          def Extension(*args, **kws)
+            Normalizer::Extensions.Extension(*args, **kws)
+          end
 
           def DataVariable
             DataVariableName.new

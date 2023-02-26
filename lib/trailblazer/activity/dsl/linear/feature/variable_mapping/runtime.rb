@@ -97,8 +97,7 @@ module Trailblazer
 
           attr_reader :name # TODO: used when adding to pipeline, change to to_h
 
-          def call(wrap_ctx, original_args, filter=@filter)
-
+          def call(wrap_ctx, original_args, filter = @filter)
             wrap_ctx = self.class.set_variable_for_filter(filter, @write_name, wrap_ctx, original_args)
 
             return wrap_ctx, original_args
@@ -193,8 +192,7 @@ module Trailblazer
           end
         end # SetVariable
 
-
-  # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
+        # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
         # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
 
         # Add a hash of variables to aggregate after running a filter (which returns a hash!).

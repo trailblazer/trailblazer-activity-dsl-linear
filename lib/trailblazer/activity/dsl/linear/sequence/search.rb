@@ -11,7 +11,7 @@ class Trailblazer::Activity
           # Note that we only go forward, no back-references are done here.
           def Forward(output, target_color)
             ->(sequence, me) do
-              target_seq_row = find_in_range(sequence[sequence.index(me)+1..-1], target_color)
+              target_seq_row = find_in_range(sequence[sequence.index(me) + 1..-1], target_color)
 
               return output, target_seq_row
             end
@@ -23,7 +23,7 @@ class Trailblazer::Activity
             ->(sequence, me) do
               my_index      = sequence.index(me)
               # First, try all elements after me, then go through the elements preceding myself.
-              wrapped_range = sequence[my_index+1..-1] + sequence[0..my_index-1]
+              wrapped_range = sequence[my_index + 1..-1] + sequence[0..my_index - 1]
 
               target_seq_row = find_in_range(wrapped_range, target_color)
 
@@ -33,7 +33,7 @@ class Trailblazer::Activity
 
           def Noop(output)
             ->(sequence, me) do
-              return output, [nil,nil,nil,{}] # FIXME
+              return output, [nil, nil, nil, {}] # FIXME
             end
           end
 

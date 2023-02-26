@@ -13,7 +13,7 @@ module Trailblazer
             # @private
             # Run a specific normalizer (e.g. for `#step`), apply the adds to the sequence and return the latter.
             # DISCUSS: where does this method belong? Sequence + Normalizers?
-            def self.update_sequence_for(type, task, options={}, sequence:, **kws, &block)
+            def self.update_sequence_for(type, task, options = {}, sequence:, **kws, &block)
               step_options = invoke_normalizer_for(type, task, options, sequence: sequence, **kws, &block)
 
               _sequence = Activity::Adds.apply_adds(sequence, step_options[:adds])
@@ -32,7 +32,8 @@ module Trailblazer
                 sequence:    sequence,
               }
 
-              _step_options = normalizers.(type,
+              _step_options = normalizers.(
+                type,
                 normalizer_options: normalizer_options, # class-level Strategy configuration, such as :step_interface_builder
                 options:            task,               # macro-options
                 user_options:       options,            # user-specified options from the DSL method

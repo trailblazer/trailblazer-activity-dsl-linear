@@ -8,9 +8,9 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Nick Sutterer"]
   spec.email         = ["apotonick@gmail.com"]
 
-  spec.summary       = %q(Simple DSL to define Trailblazer activities.)
-  spec.description   = %q(Simple DSL to define Trailblazer activities with arbitrary wirings.)
-  spec.homepage      = "http://trailblazer.to"
+  spec.summary       = %(Simple DSL to define Trailblazer activities.)
+  spec.description   = %(Simple DSL to define Trailblazer activities with arbitrary wirings.)
+  spec.homepage      = "https://trailblazer.to"
   spec.licenses      = ["LGPL-3.0"]
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|

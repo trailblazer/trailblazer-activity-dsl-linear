@@ -17,6 +17,7 @@ module Trailblazer
             def initialize(**options)
               @normalizers = options
             end
+
             # Execute the specific normalizer (step, fail, pass) for a particular option set provided
             # by the DSL user. Usually invoked when you call {#step}.
             def call(name, ctx)
@@ -59,7 +60,6 @@ module Trailblazer
                   [name, new_normalizer]
                 end.to_h
 
-
               Normalizers.new(**hsh.merge(new_normalizers))
             end
           end
@@ -78,7 +78,6 @@ module Trailblazer
 
           # The generic normalizer not tied to `step` or friends.
           def Normalizer(prepend_to_default_outputs: [])
-
             # Adding steps to the output pipeline means they are only called when there
             # are no :outputs set already.
             outputs_pipeline = TaskWrap::Pipeline.new([])
@@ -88,13 +87,13 @@ module Trailblazer
 
             # Call the prepend_to_outputs pipeline only if {:outputs} is not set (by Subprocess).
             # too bad we don't have nesting here, yet.
-            defaults_for_outputs = -> (ctx, _) do
-              return [ctx, _] if ctx.key?(:outputs)
+            defaults_for_outputs = ->(ctx, args) do
+              return [ctx, args] if ctx.key?(:outputs)
 
-              outputs_pipeline.(ctx, _)
+              outputs_pipeline.(ctx, args)
             end
 
-            pipeline = TaskWrap::Pipeline.new(
+            TaskWrap::Pipeline.new(
               {
                 "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)),        # Makes sure {:options} is always a hash.
                 "activity.macro_options_with_symbol_task" => Normalizer.Task(method(:macro_options_with_symbol_task)),  # DISCUSS: we might deprecate {task: :instance_method}
@@ -111,15 +110,15 @@ module Trailblazer
                 "activity.wrap_task_with_step_interface"  => Normalizer.Task(method(:wrap_task_with_step_interface)),
 
                 # Nested pipeline:
-                "activity.default_outputs"           => defaults_for_outputs, # only {if :outputs.nil?}
+                "activity.default_outputs"                => defaults_for_outputs, # only {if :outputs.nil?}
 
                 "extensions.convert_extensions_option_to_tuples" => Normalizer.Task(Extensions.method(:convert_extensions_option_to_tuples)),
 
-                "inherit.recall_recorded_options"                 => Normalizer.Task(Inherit.method(:recall_recorded_options)),
+                "inherit.recall_recorded_options"         => Normalizer.Task(Inherit.method(:recall_recorded_options)),
                 "activity.sequence_insert"                => Normalizer.Task(method(:normalize_sequence_insert)),
                 "activity.normalize_duplications"         => Normalizer.Task(method(:normalize_duplications)),
 
-                "activity.path_helper.path_to_track"       => Normalizer.Task(Helper::Path::Normalizer.method(:convert_paths_to_tracks)),
+                "activity.path_helper.path_to_track"      => Normalizer.Task(Helper::Path::Normalizer.method(:convert_paths_to_tracks)),
 
 
                 "output_tuples.normalize_output_tuples"           => Normalizer.Task(OutputTuples.method(:normalize_output_tuples)),     # Output(Signal, :semantic) => Id()
@@ -127,25 +126,23 @@ module Trailblazer
                 "output_tuples.register_additional_outputs"       => Normalizer.Task(OutputTuples.method(:register_additional_outputs)),     # Output(Signal, :semantic) => Id()
                 "output_tuples.filter_inherited_output_tuples"    => Normalizer.Task(OutputTuples.method(:filter_inherited_output_tuples)),
 
-                "activity.wirings"                            => Normalizer.Task(OutputTuples::Connections.method(:compile_wirings)),
+                "activity.wirings"                        => Normalizer.Task(OutputTuples::Connections.method(:compile_wirings)),
 
 
                 "extensions.compile_extensions"           => Normalizer.Task(Extensions.method(:compile_extensions)),
                 "extensions.compile_recorded_extensions"  => Normalizer.Task(Extensions.method(:compile_recorded_extensions)),
 
                 # DISCUSS: make this configurable? maybe lots of folks don't want {:inherit}?
-                "inherit.compile_recorded_options" => Normalizer.Task(Inherit.method(:compile_recorded_options)),
+                "inherit.compile_recorded_options"        => Normalizer.Task(Inherit.method(:compile_recorded_options)),
 
                 # TODO: make this a "Subprocess":
                 "activity.compile_data" => Normalizer.Task(method(:compile_data)),
                 "activity.create_row" => Normalizer.Task(method(:create_row)),
                 "activity.create_add" => Normalizer.Task(method(:create_add)),
                 "activity.create_adds" => Normalizer.Task(method(:create_adds)),
-              }.
-                collect { |id, task| TaskWrap::Pipeline.Row(id, task) }
+              }
+                .collect { |id, task| TaskWrap::Pipeline.Row(id, task) }
             )
-
-            pipeline
           end
 
           # DISCUSS: should we remove this special case?
@@ -181,13 +178,13 @@ module Trailblazer
 
           # @param :wrap_task If true, the {:task} is wrapped using the step_interface_builder, meaning the
           #                   task is expecting the step interface.
-          def wrap_task_with_step_interface(ctx, wrap_task: false, step_interface_builder:, task:, **)
+          def wrap_task_with_step_interface(ctx, step_interface_builder:, task:, wrap_task: false, **)
             return unless wrap_task
 
             ctx[:task] = step_interface_builder.(task)
           end
 
-          def normalize_id(ctx, id: false, task:, **)
+          def normalize_id(ctx, task:, id: false, **)
             ctx[:id] = id || task
           end
 
@@ -239,10 +236,10 @@ module Trailblazer
           # @private
           def sequence_insert_options
             {
-              :before  => :Prepend,
-              :after   => :Append,
-              :replace => :Replace,
-              :delete  => :Delete,
+              before:   :Prepend,
+              after:    :Append,
+              replace:  :Replace,
+              delete:   :Delete
             }
           end
 
@@ -300,13 +297,14 @@ module Trailblazer
 
           # TODO: document DataVariable() => :name
           # Compile data that goes into the sequence row.
-          def compile_data(ctx, default_variables_for_data: [:id, :dsl_track, :extensions, :stop_event], non_symbol_options:, **)
-            variables_for_data = non_symbol_options.find_all { |k,v| k.instance_of?(Linear::DataVariableName) }.collect { |k,v| Array(v) }.flatten
+          def compile_data(ctx, non_symbol_options:, default_variables_for_data: [:id, :dsl_track, :extensions, :stop_event], **)
+            variables_for_data = non_symbol_options
+              .find_all { |k, v| k.instance_of?(Linear::DataVariableName) }
+              .flat_map { |k, v| Array(v) }
 
             ctx[:data] = (default_variables_for_data + variables_for_data).collect { |key| [key, ctx[key]] }.to_h
           end
         end
-
       end # Normalizer
     end
   end

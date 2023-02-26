@@ -1,7 +1,6 @@
 module Trailblazer
   class Activity
     class Railway < DSL::Linear::Strategy
-
       module DSL
         Linear = Activity::DSL::Linear
 

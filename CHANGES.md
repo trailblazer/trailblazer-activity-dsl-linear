@@ -1,5 +1,10 @@
 # 1.2
 
+## Introspect
+
+
+activity.to_h[:nodes] => Activity::Introspect.Nodes(activity)
+
 ## Normalizer
 
 * Extract `normalizer/extension.rb` to implement `Extension() => myext`
@@ -15,7 +20,7 @@
 
 ## Various
 
-* `FastTrack` outputs for non-Subprocess()es are only added when `fast_track: true` is set.
+* `FastTrack` outputs for non-`Subprocess()` are only added when `fast_track: true` is set.
     As a result, this will throw an exception `No `pass_fast` output found for :find_model`.
 
     ```ruby
@@ -23,7 +28,6 @@
     ```
 
     and needs to be changed to
-
 
     ```ruby
     step :find_model,
@@ -44,6 +48,7 @@
 * Finally add the `Extension() => my_ext` option to painlessly add extensions. This means you don't have to manually merge `:extensions` anymore.
 * Extensions are now properly inherited (if `generic?` is false) using the universal inheritance mechanism.
 * `Strategy.invoke` now passes on keyword arguments, too.
+
 
 # 1.1.1
 

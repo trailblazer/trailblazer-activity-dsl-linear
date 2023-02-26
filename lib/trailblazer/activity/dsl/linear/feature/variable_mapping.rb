@@ -19,7 +19,7 @@ module Trailblazer
                 normalizer,
                 "activity.wirings",
                 {
-                   # In(), Out(), {:input}, Inject() feature
+                  # In(), Out(), {:input}, Inject() feature
                   "activity.convert_symbol_options"           => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:convert_symbol_options)),
                   "activity.normalize_input_output_filters"   => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:normalize_input_output_filters)),
                   "activity.input_output_dsl"                 => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:input_output_dsl)),
@@ -59,7 +59,7 @@ module Trailblazer
                 inject.collect do |filter|
                   filter = filter.is_a?(Symbol) ? [filter] : filter
 
-                  dsl_options.merge!(VariableMapping::DSL.Inject()  => filter)
+                  dsl_options.merge!(VariableMapping::DSL.Inject() => filter)
                 end
               end
 
@@ -71,24 +71,24 @@ module Trailblazer
 
             # Process {In() => [:model], Inject() => [:current_user], Out() => [:model]}
             def self.normalize_input_output_filters(ctx, non_symbol_options:, input_output_inject_options: [], **)
-              in_exts     = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::In) || k.is_a?(VariableMapping::DSL::Inject) }
-              output_exts = non_symbol_options.find_all { |k,v| k.is_a?(VariableMapping::DSL::Out) }
+              in_exts     = non_symbol_options.find_all { |k, v| k.is_a?(VariableMapping::DSL::In) || k.is_a?(VariableMapping::DSL::Inject) }
+              output_exts = non_symbol_options.find_all { |k, v| k.is_a?(VariableMapping::DSL::Out) }
 
               return unless in_exts.any? || output_exts.any?
 
               deprecate_input_output_inject_option(input_output_inject_options, in_exts, output_exts)
 
-              ctx[:in_filters]     = in_exts
-              ctx[:out_filters]    = output_exts
+              ctx[:in_filters]  = in_exts
+              ctx[:out_filters] = output_exts
             end
 
-            def self.input_output_dsl(ctx, in_filters: nil, out_filters: nil, non_symbol_options:, **options)
+            def self.input_output_dsl(ctx, non_symbol_options:, in_filters: nil, out_filters: nil, **options)
               # no :input/:output/:inject/Input()/Output() passed.
               return unless in_filters || out_filters
 
               extension = Linear.VariableMapping(in_filters: in_filters, out_filters: out_filters, **options)
 
-              record = Linear::Normalizer::Inherit.Record((in_filters+out_filters).to_h, type: :variable_mapping) # FIXME: just pass one hash around?
+              record = Linear::Normalizer::Inherit.Record((in_filters + out_filters).to_h, type: :variable_mapping)
 
               non_symbol_options = non_symbol_options.merge(record)
               non_symbol_options = non_symbol_options.merge(Linear::Strategy.Extension(is_generic: true)  => extension)
@@ -103,12 +103,12 @@ module Trailblazer
               return unless input_output_inject_options.any?
               options, _dsl_options = input_output_inject_options
 
-              deprecated_options_count = options.find_all { |(name, option)| option }.count + (options[:inject] ? options[:inject].count-1 : 0)
+              deprecated_options_count = options.find_all { |(name, option)| option }.count + (options[:inject] ? options[:inject].count - 1 : 0)
               composable_options_count = composable_options.collect { |options| options.size }.sum
 
               return if composable_options_count == deprecated_options_count
 
-              Activity::Deprecate.warn Linear::Deprecate.dsl_caller_location, %{You are mixing #{options.inspect} with In(), Out() and Inject().\n#{VariableMapping.deprecation_link}}
+              Activity::Deprecate.warn Linear::Deprecate.dsl_caller_location, %(You are mixing #{options.inspect} with In(), Out() and Inject().\n#{VariableMapping.deprecation_link})
             end
           end
 
@@ -133,7 +133,7 @@ module Trailblazer
           end
 
           def deprecation_link
-            %{Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.}
+            %(Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.)
           end
         end # VariableMapping
       end

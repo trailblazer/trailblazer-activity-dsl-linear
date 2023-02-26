@@ -10,28 +10,28 @@ module Trailblazer
             def Normalizer
               normalizer_steps =
                 {
-                "activity.normalize_step_interface"       => Normalizer.Task(Normalizer.method(:normalize_step_interface)),      # first
-                "activity.merge_library_options"          => Normalizer.Task(Normalizer.method(:merge_library_options)),    # Merge "macro"/user options over library options.
-                "activity.normalize_for_macro"            => Normalizer.Task(Normalizer.method(:merge_user_options)),
-                "activity.normalize_normalizer_options"   => Normalizer.Task(Normalizer.method(:merge_normalizer_options)),
-                "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),
-                "activity.normalize_context"              => Normalizer.method(:normalize_context),
-                "terminus.normalize_task"                 => Normalizer.Task(Terminus.method(:normalize_task)),
-                "terminus.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
-                "terminus.normalize_magnetic_to"          => Normalizer.Task(Terminus.method(:normalize_magnetic_to)),
-                "terminus.append_end"                     => Normalizer.Task(Terminus.method(:append_end)),
+                  "activity.normalize_step_interface"       => Normalizer.Task(Normalizer.method(:normalize_step_interface)),      # first
+                  "activity.merge_library_options"          => Normalizer.Task(Normalizer.method(:merge_library_options)),    # Merge "macro"/user options over library options.
+                  "activity.normalize_for_macro"            => Normalizer.Task(Normalizer.method(:merge_user_options)),
+                  "activity.normalize_normalizer_options"   => Normalizer.Task(Normalizer.method(:merge_normalizer_options)),
+                  "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),
+                  "activity.normalize_context"              => Normalizer.method(:normalize_context),
+                  "terminus.normalize_task"                 => Normalizer.Task(Terminus.method(:normalize_task)),
+                  "terminus.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
+                  "terminus.normalize_magnetic_to"          => Normalizer.Task(Terminus.method(:normalize_magnetic_to)),
+                  "terminus.append_end"                     => Normalizer.Task(Terminus.method(:append_end)),
 
-                "activity.compile_data" => Normalizer.Task(Normalizer.method(:compile_data)), # FIXME
-                "activity.create_row" => Normalizer.Task(Normalizer.method(:create_row)),
-                "activity.create_add" => Normalizer.Task(Normalizer.method(:create_add)),
-                "activity.create_adds" => Normalizer.Task(Normalizer.method(:create_adds)),
+                  "activity.compile_data" => Normalizer.Task(Normalizer.method(:compile_data)), # FIXME
+                  "activity.create_row" => Normalizer.Task(Normalizer.method(:create_row)),
+                  "activity.create_add" => Normalizer.Task(Normalizer.method(:create_add)),
+                  "activity.create_adds" => Normalizer.Task(Normalizer.method(:create_adds)),
                 }
 
               TaskWrap::Pipeline.new(normalizer_steps.to_a)
             end
 
             # @private
-            def normalize_id(ctx, id: nil, semantic:, **)
+            def normalize_id(ctx, semantic:, id: nil, **)
               ctx.merge!(
                 id: id || Strategy.end_id(semantic: semantic)
               )
@@ -40,11 +40,11 @@ module Trailblazer
             # @private
             # Set {:task} and {:semantic}.
             def normalize_task(ctx, task:, **)
-              if task.kind_of?(Activity::End) # DISCUSS: do we want this check?
-                ctx = _normalize_task_for_end_event(ctx, **ctx)
+              if task.is_a?(Activity::End) # DISCUSS: do we want this check?
+                _ctx = _normalize_task_for_end_event(ctx, **ctx)
               else
                 # When used such as {terminus :found}, create the end event automatically.
-                ctx = _normalize_task_for_symbol(ctx, **ctx)
+                _ctx = _normalize_task_for_symbol(ctx, **ctx)
               end
             end
 
@@ -57,7 +57,7 @@ module Trailblazer
             def _normalize_task_for_symbol(ctx, task:, semantic: task, **)
               ctx.merge!(
                 task:     Activity.End(semantic),
-                semantic: semantic,
+                semantic: semantic
               )
             end
 

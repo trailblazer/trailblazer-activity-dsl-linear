@@ -30,12 +30,12 @@ module Trailblazer
             def compile_extensions(ctx, non_symbol_options:, **)
               extensions_ary =
                 non_symbol_options
-                  .find_all { |k,v| k.instance_of?(Extension) }
+                  .find_all { |k, v| k.instance_of?(Extension) }
                   .to_h
                   .values
 
               ctx.merge!(
-                extensions: extensions_ary,
+                extensions: extensions_ary
               )
             end
 
@@ -45,8 +45,8 @@ module Trailblazer
             def compile_recorded_extensions(ctx, non_symbol_options:, **)
               recorded_extension_tuples =
                 non_symbol_options
-                  .find_all { |k,v| k.instance_of?(Extension) }
-                  .reject   { |k,v| k.generic? }
+                  .find_all { |k, v| k.instance_of?(Extension) }
+                  .reject   { |k, v| k.generic? }
                   .to_h
 
               ctx.merge!(
