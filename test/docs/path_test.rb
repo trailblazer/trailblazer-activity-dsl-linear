@@ -47,48 +47,54 @@ class DocsPathTest < Minitest::Spec
 }
 
     module B
+      module Song
+      end
+
       #:path-join
-      class Charge < Trailblazer::Activity::Path
-        #~meths
-        include T.def_steps(:validate, :decide_type, :direct_debit, :finalize, :authorize, :charge)
-        #~meths end
-        step :validate
-        step :decide_type, Output(Trailblazer::Activity::Left, :credit_card) => Path(connect_to: Id(:finalize)) do
-          step :authorize
-          step :charge
+      module Song::Activity
+        class Charge < Trailblazer::Activity::Railway
+          #~meths
+          include T.def_steps(:validate, :decide_type, :direct_debit, :finalize, :authorize, :charge)
+          #~meths end
+          step :validate
+          step :decide_type, Output(:failure) => Path(connect_to: Id(:finalize)) do
+            step :authorize
+            step :charge
+          end
+          step :direct_debit
+          step :finalize
         end
-        step :direct_debit
-        step :finalize
       end
       #:path-join end
     end
 
-    assert_process_for B::Charge, :success, %{
+    assert_process_for B::Song::Activity::Charge, :success, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => <*decide_type>
 <*decide_type>
- {Trailblazer::Activity::Right} => <*direct_debit>
  {Trailblazer::Activity::Left} => <*authorize>
+ {Trailblazer::Activity::Right} => <*direct_debit>
 <*authorize>
  {Trailblazer::Activity::Right} => <*charge>
 <*charge>
  {Trailblazer::Activity::Right} => <*finalize>
 <*direct_debit>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => <*finalize>
 <*finalize>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:failure>
 }
 
-    ctx = {seq: []}
+    assert_invoke B::Song::Activity::Charge, seq: "[:validate, :decide_type, :direct_debit, :finalize]"
 
-    signal, (ctx, flow_options) = B::Charge.([ctx, {}])
-    _(ctx.inspect).must_equal %{{:seq=>[:validate, :decide_type, :direct_debit, :finalize]}}
-
-    signal, (ctx, flow_options) = B::Charge.([{seq: [], decide_type: false}, {}])
-    _(ctx.inspect).must_equal %{{:seq=>[:validate, :decide_type, :authorize, :charge, :finalize], :decide_type=>false}}
+    assert_invoke B::Song::Activity::Charge, decide_type: false, seq: "[:validate, :decide_type, :authorize, :charge, :finalize]"
   end
 
   it "works in Railway" do

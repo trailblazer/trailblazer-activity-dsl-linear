@@ -89,3 +89,4 @@ end
 # Trailblazer::Core.convert_operation_test("test/docs/composable_variable_mapping_test.rb")
 # Trailblazer::Core.convert_operation_test("test/docs/patching_test.rb")
 # Trailblazer::Core.convert_operation_test("test/docs/introspect_test.rb")
+# Trailblazer::Core.convert_operation_test("test/docs/path_test.rb")
