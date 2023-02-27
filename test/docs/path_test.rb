@@ -93,38 +93,42 @@ class DocsPathTest < Minitest::Spec
 
   it "works in Railway" do
     module C
+      module Song
+      end
       CreditCard = Class.new
       DebitCard  = Class.new
 
       #:path-railway
-      class Charge < Trailblazer::Activity::Railway
-        MySignal = Class.new(Trailblazer::Activity::Signal)
-        #~meths
-        include T.def_steps(:validate, :decide_type, :direct_debit, :finalize, :authorize, :charge)
-        #:path-decider
-        def decide_type(ctx, model:, **)
-          if model.is_a?(CreditCard)
-            return MySignal # go the Path() way!
-          elsif model.is_a?(DebitCard)
-            return true
-          else
-            return false
+      module Song::Activity
+        class Charge < Trailblazer::Activity::Railway
+          MySignal = Class.new(Trailblazer::Activity::Signal)
+          #~meths
+          include T.def_steps(:validate, :decide_type, :direct_debit, :finalize, :authorize, :charge)
+          #:path-decider
+          def decide_type(ctx, model:, **)
+            if model.is_a?(CreditCard)
+              return MySignal # go the Path() way!
+            elsif model.is_a?(DebitCard)
+              return true
+            else
+              return false
+            end
           end
+          #:path-decider end
+          #~meths end
+          step :validate
+          step :decide_type, Output(MySignal, :credit_card) => Path(connect_to: Id(:finalize)) do
+            step :authorize
+            step :charge
+          end
+          step :direct_debit
+          step :finalize
         end
-        #:path-decider end
-        #~meths end
-        step :validate
-        step :decide_type, Output(MySignal, :credit_card) => Path(connect_to: Id(:finalize)) do
-          step :authorize
-          step :charge
-        end
-        step :direct_debit
-        step :finalize
       end
       #:path-railway end
     end
 
-    assert_process_for C::Charge, :success, :failure, %{
+    assert_process_for C::Song::Activity::Charge, :success, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
@@ -133,7 +137,7 @@ class DocsPathTest < Minitest::Spec
 <*decide_type>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => <*direct_debit>
- {DocsPathTest::C::Charge::MySignal} => <*authorize>
+ {DocsPathTest::C::Song::Activity::Charge::MySignal} => <*authorize>
 <*authorize>
  {Trailblazer::Activity::Right} => <*charge>
 <*charge>
@@ -149,14 +153,11 @@ class DocsPathTest < Minitest::Spec
 #<End/:failure>
 }
 
-    signal, (ctx, flow_options) = C::Charge.([{seq: [], model: C::DebitCard.new}, {}])
-    _(ctx.inspect.gsub(/0x\w+/, "")).must_equal %{{:seq=>[:validate, :direct_debit, :finalize], :model=>#<DocsPathTest::C::DebitCard:>}}
+    assert_invoke C::Song::Activity::Charge, model: C::DebitCard.new, seq: "[:validate, :direct_debit, :finalize]"
 
-    signal, (ctx, flow_options) = C::Charge.([{seq: [], model: C::CreditCard.new}, {}])
-    _(ctx.inspect.gsub(/0x\w+/, "")).must_equal %{{:seq=>[:validate, :authorize, :charge, :finalize], :model=>#<DocsPathTest::C::CreditCard:>}}
+    assert_invoke C::Song::Activity::Charge, model: C::CreditCard.new, seq: "[:validate, :authorize, :charge, :finalize]"
 
-    signal, (ctx, flow_options) = C::Charge.([{seq: [], model: nil}, {}])
-    _(ctx.inspect.gsub(/0x\w+/, "")).must_equal %{{:seq=>[:validate], :model=>nil}}
+    assert_invoke C::Song::Activity::Charge, model: nil, seq: "[:validate]", terminus: :failure
   end
 
   it "allows multiple Path()s per step" do
