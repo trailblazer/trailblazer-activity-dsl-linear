@@ -51,7 +51,7 @@ module Trailblazer
               options =
                 if end_task = options[:end_task] # TODO: remove in 2.0.
                   Activity::Deprecate.warn Linear::Deprecate.dsl_caller_location,
-                    %(Using `:end_task` and `:end_id` in Path() is deprecated, use `:terminus` instead. Please refer to LINK #TODO)
+                    %(Using `:end_task` and `:end_id` in Path() is deprecated, use `:terminus` instead. Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-wiring-api-path-end_task-end_id-deprecation)
 
                   options.merge(
                     end_task: Activity.End(end_task.to_h[:semantic]),

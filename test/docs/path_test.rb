@@ -3,38 +3,47 @@ require "test_helper"
 class DocsPathTest < Minitest::Spec
   it do
     module A
+      module Song
+      end
+
       #:path
-      class Charge < Trailblazer::Activity::Path
-        #~meths
-        include T.def_tasks(:a, :b, :c, :d, :e)
-        #~meths end
-        step :validate
-        step :decide_type, Output(Trailblazer::Activity::Left, :credit_card) => Path(terminus: :with_cc) do
-          step :authorize
-          step :charge
+      module Song::Activity
+        class Charge < Trailblazer::Activity::Railway
+          #~meths
+          include T.def_tasks(:a, :b, :c, :d, :e)
+          #~meths end
+          step :validate
+          step :decide_type, Output(:failure) => Path(terminus: :with_cc) do
+            step :authorize
+            step :charge
+          end
+          step :direct_debit
         end
-        step :direct_debit
       end
       #:path end
     end
 
-    assert_process_for A::Charge, :success, :with_cc, %{
+    assert_process_for A::Song::Activity::Charge, :success, :with_cc, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => <*decide_type>
 <*decide_type>
- {Trailblazer::Activity::Right} => <*direct_debit>
  {Trailblazer::Activity::Left} => <*authorize>
+ {Trailblazer::Activity::Right} => <*direct_debit>
 <*authorize>
  {Trailblazer::Activity::Right} => <*charge>
 <*charge>
  {Trailblazer::Activity::Right} => #<End/:with_cc>
 <*direct_debit>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
 #<End/:with_cc>
+
+#<End/:failure>
 }
 
     module B
