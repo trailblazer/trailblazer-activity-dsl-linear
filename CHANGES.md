@@ -20,6 +20,7 @@ activity.to_h[:nodes] => Activity::Introspect.Nodes(activity)
 
 ## Various
 
+* Deprecate `Path(end_id:, end_task:)` options in favor of `Path(terminus: :semantic)`.
 * `FastTrack` outputs for non-`Subprocess()` are only added when `fast_track: true` is set.
     As a result, this will throw an exception `No `pass_fast` output found for :find_model`.
 

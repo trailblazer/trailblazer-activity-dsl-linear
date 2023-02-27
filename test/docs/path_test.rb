@@ -9,7 +9,7 @@ class DocsPathTest < Minitest::Spec
         include T.def_tasks(:a, :b, :c, :d, :e)
         #~meths end
         step :validate
-        step :decide_type, Output(Trailblazer::Activity::Left, :credit_card) => Path(end_id: "End.cc", end_task: End(:with_cc)) do
+        step :decide_type, Output(Trailblazer::Activity::Left, :credit_card) => Path(terminus: :with_cc) do
           step :authorize
           step :charge
         end

@@ -3,7 +3,7 @@ module Trailblazer
     module DSL
       module Linear
         module Helper
-          # Normalizer logic for {Path() do end}.
+          # Normalizer logic for {Path() do ... end}.
           #
           # TODO: it would be cool to be able to connect an (empty) path to specific termini,
           #       this would work if we could add multiple magnetic_to.
@@ -47,11 +47,26 @@ module Trailblazer
 
             module_function
 
-            def convert_path_to_track(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, **options)
-              if (end_task = options[:end_task]) && end_task.is_a?(Linear::Normalizer::OutputTuples::End)
-                # TODO: deprecate end_task for Path(...) do .. end
-                options = options.merge(end_task: Activity.End(end_task.semantic))
-              end
+            def convert_path_to_track(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, terminus: nil, **options)
+              options =
+                if end_task = options[:end_task] # TODO: remove in 2.0.
+                  Activity::Deprecate.warn Linear::Deprecate.dsl_caller_location,
+                    %(Using `:end_task` and `:end_id` in Path() is deprecated, use `:terminus` instead. Please refer to LINK #TODO)
+
+                  options.merge(
+                    end_task: Activity.End(end_task.to_h[:semantic]),
+                    end_id:   options[:end_id]
+                  )
+                elsif connect_to
+                  {}
+                elsif terminus
+                  options.merge(
+                    end_task: Activity.End(terminus),
+                    end_id:   "End.#{terminus}"
+                  )
+                else # Path() with End() inside block.
+                  {}
+                end
 
               # DISCUSS:  if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.
 
