@@ -5,6 +5,12 @@ class SequenceBuilderTest < Minitest::Spec
 
   let(:helper) { Activity::Railway }
 
+  def assert_process(sequence, *args)
+    process = Trailblazer::Activity::DSL::Linear::Sequence::Compiler.(sequence)
+
+    assert_process_for(process, *args)
+  end
+
   it "builds a Sequence" do
     options            = Activity::DSL::Linear::Strategy::DSL.OptionsForSequenceBuilder(Activity::Path::DSL, normalizers: Activity::Path::DSL::Normalizers)
     normalizer_options = options.reject { |k, v| [:normalizers, :sequence].include?(k) }

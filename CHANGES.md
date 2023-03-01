@@ -49,7 +49,17 @@ activity.to_h[:nodes] => Activity::Introspect.Nodes(activity)
 * Finally add the `Extension() => my_ext` option to painlessly add extensions. This means you don't have to manually merge `:extensions` anymore.
 * Extensions are now properly inherited (if `generic?` is false) using the universal inheritance mechanism.
 * `Strategy.invoke` now passes on keyword arguments, too.
+* A terminus step no longer maintains any wirings (as per `trailblazer-activity-0.16.0`), resulting in a terminus `Sequence` row as follows.
 
+    ```ruby
+    [
+      :success,
+      implementing::Success,
+      [], # no outputs anymore!
+      {id: "End.success", stop_event: true, semantic: :success}, # instead, {:semantic} is passed as a data option.
+    ]
+    ```
+* Remove `Search::Noop` as an empty wirings array in `Sequence` are allowed now.
 
 # 1.1.1
 

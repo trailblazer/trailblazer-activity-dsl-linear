@@ -162,9 +162,9 @@ class StepDataVariableOptionTest < Minitest::Spec
     data2 = Activity::Introspect.Nodes(activity).values[2][:data]
     data3 = Activity::Introspect.Nodes(activity).values[3][:data]
 
-    assert_equal data1.keys, [:id, :dsl_track, :extensions, :stop_event, :recorded_options]
-    assert_equal data2.keys, [:id, :dsl_track, :extensions, :stop_event, :mode, :recorded_options]
-    assert_equal data3.keys, [:id, :dsl_track, :extensions, :stop_event, :status, :level, :recorded_options]
+    assert_equal data1.keys, [:id, :dsl_track, :extensions, :recorded_options]
+    assert_equal data2.keys, [:id, :dsl_track, :extensions, :mode, :recorded_options]
+    assert_equal data3.keys, [:id, :dsl_track, :extensions, :status, :level, :recorded_options]
 
     assert_equal data2[:mode].inspect, %{[:read, :write]}
     assert_equal data3[:status].inspect, %{nil}

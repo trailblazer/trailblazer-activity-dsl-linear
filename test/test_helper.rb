@@ -17,24 +17,10 @@ Minitest::Spec::Activity = Trailblazer::Activity
 Minitest::Spec.class_eval do
   Implementing = T.def_steps(:a, :b, :c, :d, :e, :f, :g)
 
-  # TODO: use everywhere!!!
-  def assert_activity(activity, *args)
-    assert_process_for(activity, *args)
-  end
-
   def assert_sequence(sequence, *args)
     assert_process_for Activity::DSL::Linear::Sequence::Compiler.(sequence), *args
   end
 
-  def compile_process(sequence)
-    _process = Trailblazer::Activity::DSL::Linear::Sequence::Compiler.(sequence)
-  end
-
-  def assert_process(seq, *args)
-    process = compile_process(seq)
-
-    assert_process_for(process, *args)
-  end
 
   let(:implementing) do
     implementing = Module.new do

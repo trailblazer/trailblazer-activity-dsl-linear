@@ -297,7 +297,7 @@ module Trailblazer
 
           # TODO: document DataVariable() => :name
           # Compile data that goes into the sequence row.
-          def compile_data(ctx, non_symbol_options:, default_variables_for_data: [:id, :dsl_track, :extensions, :stop_event], **)
+          def compile_data(ctx, non_symbol_options:, default_variables_for_data: [:id, :dsl_track, :extensions], **)
             variables_for_data = non_symbol_options
               .find_all { |k, v| k.instance_of?(Linear::DataVariableName) }
               .flat_map { |k, v| Array(v) }

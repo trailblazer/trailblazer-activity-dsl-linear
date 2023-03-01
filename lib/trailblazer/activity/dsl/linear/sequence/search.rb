@@ -31,12 +31,6 @@ class Trailblazer::Activity
             end
           end
 
-          def Noop(output)
-            ->(sequence, me) do
-              return output, [nil, nil, nil, {}] # FIXME
-            end
-          end
-
           # Find the seq_row with {id} and connect the current node to it.
           def ById(output, id)
             ->(sequence, me) do

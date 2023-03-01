@@ -8,16 +8,19 @@ module Trailblazer
             module_function
 
             # Default strategy to find out what's a stop event is to inspect the TaskRef's {data[:stop_event]}.
-            def find_stop_task_ids(intermediate_wiring)
-              intermediate_wiring.collect { |task_ref, outs| task_ref.data[:stop_event] ? task_ref.id : nil }.compact
+            def find_termini(intermediate_wiring)
+              intermediate_wiring
+                .find_all { |task_ref, _| task_ref.data[:stop_event] }
+                .collect  { |task_ref, _| [task_ref.id, task_ref.data.fetch(:semantic)] }
+                .to_h
             end
 
             # The first task in the wiring is the default start task.
-            def find_start_task_ids(intermediate_wiring)
-              [intermediate_wiring.first.first.id]
+            def find_start_task_id(intermediate_wiring) # FIXME: shouldn't we use sequence here? and Row#id?
+              intermediate_wiring.first.first.id
             end
 
-            def call(sequence, find_stops: method(:find_stop_task_ids), find_start: method(:find_start_task_ids))
+            def call(sequence, find_stops: method(:find_termini), find_start: method(:find_start_task_id))
               _implementations, intermediate_wiring =
                 sequence.inject([[], []]) do |(implementations, intermediates), seq_row|
                   _magnetic_to, task, connections, data = seq_row

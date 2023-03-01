@@ -100,4 +100,14 @@ EOS
 
     assert_equal Activity::Introspect.Nodes(activity, id: :a).id, :a
   end
+
+  it "all strategies expose correct terminus data" do
+    assert_equal Activity::Introspect.Nodes(Activity::Path, id: "End.success").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:success})
+    assert_equal Activity::Introspect.Nodes(Activity::Railway, id: "End.success").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:success})
+    assert_equal Activity::Introspect.Nodes(Activity::Railway, id: "End.failure").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:failure})
+    assert_equal Activity::Introspect.Nodes(Activity::FastTrack, id: "End.success").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:success})
+    assert_equal Activity::Introspect.Nodes(Activity::FastTrack, id: "End.failure").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:failure})
+    assert_equal Activity::Introspect.Nodes(Activity::FastTrack, id: "End.fail_fast").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:fail_fast})
+    assert_equal Activity::Introspect.Nodes(Activity::FastTrack, id: "End.pass_fast").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:pass_fast})
+  end
 end

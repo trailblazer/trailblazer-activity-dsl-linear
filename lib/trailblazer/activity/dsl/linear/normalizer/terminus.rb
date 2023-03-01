@@ -21,7 +21,7 @@ module Trailblazer
                   "terminus.normalize_magnetic_to"          => Normalizer.Task(Terminus.method(:normalize_magnetic_to)),
                   "terminus.append_end"                     => Normalizer.Task(Terminus.method(:append_end)),
 
-                  "activity.compile_data" => Normalizer.Task(Normalizer.method(:compile_data)), # FIXME
+                  "activity.compile_data" => Normalizer.Task(Normalizer.method(:compile_data)), # FIXME: redundant with {Linear::Normalizer}.
                   "activity.create_row" => Normalizer.Task(Normalizer.method(:create_row)),
                   "activity.create_add" => Normalizer.Task(Normalizer.method(:create_add)),
                   "activity.create_adds" => Normalizer.Task(Normalizer.method(:create_adds)),
@@ -68,19 +68,16 @@ module Trailblazer
             end
 
             # @private
-            def append_end(ctx, task:, semantic:, append_to: "End.success", **)
+            def append_end(ctx, task:, append_to: "End.success", non_symbol_options:, **)
               terminus_args = {
-                sequence_insert: [Activity::Adds::Insert.method(:Append), append_to],
-                stop_event:      true
+                sequence_insert:    [Activity::Adds::Insert.method(:Append), append_to],
+                stop_event:         true,
+                non_symbol_options: non_symbol_options.merge(Strategy.DataVariable() => [:stop_event, :semantic])
               }
 
               ctx.merge!(
-                wirings: [
-                  Linear::Sequence::Search::Noop(
-                    Activity::Output.new(task, semantic), # DISCUSS: do we really want to transport the semantic "in" the object?
-                  )
-                ],
-                adds: [],
+                wirings: [],
+                adds:    [],
                 **terminus_args
               )
             end

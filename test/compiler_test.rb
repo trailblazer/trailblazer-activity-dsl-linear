@@ -88,22 +88,14 @@ class CompilerTest < Minitest::Spec
       [
         :success,
         implementing::Success,
-        [
-          Lin::Sequence::Search::Noop(
-            Act::Output(implementing::Success, :success)
-          )
-        ],
-        {id: "End.success", stop_event: true},
+        [],
+        {id: "End.success", stop_event: true, semantic: :success},
       ],
       [
         :failure,
         implementing::Failure,
-        [
-          Lin::Sequence::Search::Noop(
-            Act::Output(implementing::Failure, :failure)
-          )
-        ],
-        {id: "End.failure", stop_event: true},
+        [],
+        {id: "End.failure", stop_event: true, semantic: :failure},
       ],
     ]
 

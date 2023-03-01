@@ -120,35 +120,7 @@ class ActivityTest < Minitest::Spec
 }
     end
 
-    it "allows setting a custom, new end" do
-      implementing = self.implementing
-
-      new_end = Activity::End(:new)
-
-      activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
-
-        step task: new_end, id: :new_end,
-          # by providing {:stop_event} and {:outputs} options, we can create an End.
-          stop_event: true,
-          outputs:    {success: Activity::Output.new(new_end, new_end.to_h[:semantic])}
-
-        step implementing.method(:b), id: :b, magnetic_to: nil
-      end
-
-      assert_process_for activity.to_h, :new, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<End/:new>
-#<End/:new>
-
-<*#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
-    end
-
+# FIXME: wiring api tests/output tuples
     it "accepts {Output() => End()}" do
       implementing = self.implementing
 
@@ -157,7 +129,7 @@ class ActivityTest < Minitest::Spec
         step(id: :b, task: implementing.method(:b), before: :a, Output(:success) => End(:new))
       end
 
-      assert_process_for activity.to_h, :success, :new, %{
+      assert_process activity, :success, :new, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.b>
@@ -179,7 +151,7 @@ class ActivityTest < Minitest::Spec
         step implementing.method(:b), Output(:success) => End(:new)
       end
 
-      assert_process_for activity.to_h, :success, :new, :failure, %{
+      assert_process activity, :success, :new, :failure, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
 <*#<Method: #<Module:0x>.a>>
@@ -762,69 +734,6 @@ class ActivityTest < Minitest::Spec
     assert_equal hsh[:activity].class, Trailblazer::Activity
     assert_equal hsh[:sequence].class, Trailblazer::Activity::DSL::Linear::Sequence
     assert_equal hsh[:sequence].size, 3
-  end
-
-  it "#terminus allows adding end events" do
-    activity = Class.new(Activity::Railway) do
-      terminus :not_found #@ id, magnetic_to computed automatically
-
-      terminus :found,    magnetic_to: :shipment_found #@ id computed automatically
-      terminus :found_it, magnetic_to: :shipment_found_it, id: "End.found_it!" #@ all options provided explicitly
-    end
-
-    #@ IDs are automatically computed in case of no {:id} option.
-    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.not_found").data.inspect, %{{:id=>\"End.not_found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
-    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.found_it!").data.inspect, %{{:id=>\"End.found_it!\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
-    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.found").data.inspect, %{{:id=>\"End.found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
-
-    with_steps = Class.new(activity) do
-      step :a,
-        Output(:failure) => Track(:not_found),
-        Output(:success) => Track(:shipment_found)
-    end
-
-    assert_process_for activity, :success, :found_it, :found, :not_found, :failure, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-
-#<End/:found_it>
-
-#<End/:found>
-
-#<End/:not_found>
-
-#<End/:failure>
-}
-
-    assert_process_for with_steps, :success, :found_it, :found, :not_found, :failure, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => <*a>
-<*a>
- {Trailblazer::Activity::Left} => #<End/:not_found>
- {Trailblazer::Activity::Right} => #<End/:found>
-#<End/:success>
-
-#<End/:found_it>
-
-#<End/:found>
-
-#<End/:not_found>
-
-#<End/:failure>
-}
-  end
-
-  it "#terminus accepts {:task}" do
-    my_terminus_class = Class.new(Trailblazer::Activity::End)
-
-    activity = Class.new(Activity::Railway) do
-      terminus :not_sure, task: my_terminus_class.new(semantic: :tell_me)
-    end
-
-    #@ {:task} allows passing {End} instance
-    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.tell_me").data.inspect, %{{:id=>\"End.tell_me\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true}}
-    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.tell_me").task.class, my_terminus_class
   end
 
   it "what" do
