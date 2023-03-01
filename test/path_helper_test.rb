@@ -22,8 +22,10 @@ class PathHelperTest < Minitest::Spec
     end
     line_no = __LINE__ - 9
 
-    assert_equal warning, %([Trailblazer] #{File.realpath(__FILE__)}:#{line_no} Using `:end_task` and `:end_id` in Path() is deprecated, use `:terminus` instead. Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-wiring-api-path-end_task-end_id-deprecation
-)
+    warnings = warning.split("\n") # FIXME: weird hash duplication warnings in JRuby.
+    warning = warnings.find { |w| w =~ /end_task/ }
+
+    assert_equal warning, %([Trailblazer] #{File.realpath(__FILE__)}:#{line_no} Using `:end_task` and `:end_id` in Path() is deprecated, use `:terminus` instead. Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-wiring-api-path-end_task-end_id-deprecation)
 
       assert_circuit activity, %{
 #<Start/:default>

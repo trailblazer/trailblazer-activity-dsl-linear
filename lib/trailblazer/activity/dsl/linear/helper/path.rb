@@ -38,7 +38,7 @@ module Trailblazer
               def convert_paths_to_tracks(ctx, non_symbol_options:, block: false, **)
                 new_tracks = non_symbol_options
                   .find_all { |output, cfg| cfg.is_a?(Linear::PathBranch) }
-                  .collect {  |output, cfg| [output, Path.convert_path_to_track(block: ctx[:block], **cfg.options)]  }
+                  .collect {  |output, cfg| [output, Path.convert_path_to_track(block: block, **cfg.options)]  }
                   .to_h
 
                 ctx[:non_symbol_options] = non_symbol_options.merge(new_tracks)
