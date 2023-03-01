@@ -765,11 +765,6 @@ class VariableMappingInheritTest < Minitest::Spec
       end
     end
 
-    # puts Trailblazer::Developer::Render::TaskWrap.(UpvoteWithTrue, id: :write)
-    node, activity, _ = Trailblazer::Developer::Introspect.find_path(UpvoteWithTrue, [:write])
-    pipe = Trailblazer::Developer::Render::TaskWrap.render_for(activity, node)
-    puts pipe
-
   # Create
     #= we don't see {:model} because Create doesn't have an In() for it.
     signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Create, [{time: "yesterday", model: Object}, {}])

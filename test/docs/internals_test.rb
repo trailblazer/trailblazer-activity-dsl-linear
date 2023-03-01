@@ -68,7 +68,7 @@ class DocsInternalsNormalizerExtendTest < Minitest::Spec
   it "provides" do
     Trailblazer::Activity::Introspect.Nodes(Song::Activity::Create, id: "CREATE_MODEL") #=> #<Node id="CREATE_MODEL"...>
 
-    Trailblazer::Developer.wtf?(Song::Activity::Create, [{seq: []}])
+    # Trailblazer::Developer.wtf?(Song::Activity::Create, [{seq: []}]) # FIXME: what were we testing here?
 
     assert Trailblazer::Activity::Introspect.Nodes(Song::Activity::Create, id: "CREATE_MODEL")
     assert Trailblazer::Activity::Introspect.Nodes(Song::Activity::Create, id: :validate)

@@ -40,9 +40,11 @@ class DocsBasicTest < Minitest::Spec
       #:upsert end
 
     end
+=begin
     #:render
     Trailblazer::Developer.render(A::Upsert)
     #:render end
+=end
 
     #:upsert-call
     ctx = {id: 1, params: {text: "Hydrate!"}}
@@ -109,8 +111,22 @@ class DocsBasicTest < Minitest::Spec
       #:pay-nosignal end
     end
 
-    _(Trailblazer::Developer.render(A::Execute)).must_equal Trailblazer::Developer.render(B::Execute)
-    _(Trailblazer::Developer.render(B::Execute)).must_equal Trailblazer::Developer.render(C::Execute)
+    assert_process B::Execute, :success, :failure, b_execute_circuit = %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*find_provider>
+<*find_provider>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*charge_creditcard>
+<*charge_creditcard>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+)
+
+    assert_process A::Execute, :success, :failure, b_execute_circuit
+    assert_process C::Execute, :success, :failure, b_execute_circuit
 
     module D
       #:pay-add
@@ -127,20 +143,20 @@ class DocsBasicTest < Minitest::Spec
       #:pay-add end
     end
 
-    _(Trailblazer::Developer.render(D::Execute)).must_equal %{
+    assert_process D::Execute, :success, :failure, %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+ {Trailblazer::Activity::Right} => <*find_provider>
+<*find_provider>
  {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+ {Trailblazer::Activity::Right} => <*charge_creditcard>
  {DocsBasicTest::D::Execute::UsePaypal} => #<End/:failure>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+<*charge_creditcard>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
 #<End/:failure>
-}
+)
 
     module E
       #:pay-end
@@ -155,13 +171,13 @@ class DocsBasicTest < Minitest::Spec
       #:pay-end end
     end
 
-    _(Trailblazer::Developer.render(E::Execute)).must_equal %{
+    assert_process E::Execute, :success, :declined, :failure,  %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+ {Trailblazer::Activity::Right} => <*find_provider>
+<*find_provider>
  {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+ {Trailblazer::Activity::Right} => <*charge_creditcard>
+<*charge_creditcard>
  {Trailblazer::Activity::Left} => #<End/:declined>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
@@ -169,7 +185,7 @@ class DocsBasicTest < Minitest::Spec
 #<End/:declined>
 
 #<End/:failure>
-}
+)
 
     module F
       #:pay-endex
@@ -184,19 +200,19 @@ class DocsBasicTest < Minitest::Spec
       #:pay-endex end
     end
 
-    _(Trailblazer::Developer.render(F::Execute)).must_equal %{
+    assert_process F::Execute, :success, :failure,  %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+ {Trailblazer::Activity::Right} => <*find_provider>
+<*find_provider>
  {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+ {Trailblazer::Activity::Right} => <*charge_creditcard>
+<*charge_creditcard>
  {Trailblazer::Activity::Left} => #<End/:success>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
 #<End/:failure>
-}
+)
 
     module G
       #:pay-id
@@ -211,19 +227,19 @@ class DocsBasicTest < Minitest::Spec
       #:pay-id end
     end
 
-    _(Trailblazer::Developer.render(G::Execute)).must_equal %{
+    assert_process G::Execute, :success, :failure,  %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+ {Trailblazer::Activity::Right} => <*find_provider>
+<*find_provider>
  {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
- {Trailblazer::Activity::Left} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
+ {Trailblazer::Activity::Right} => <*charge_creditcard>
+<*charge_creditcard>
+ {Trailblazer::Activity::Left} => <*find_provider>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
 #<End/:failure>
-}
+)
 
     module H
       #:pay-track
@@ -239,22 +255,22 @@ class DocsBasicTest < Minitest::Spec
       #:pay-track end
     end
 
-    _(Trailblazer::Developer.render(H::Execute)).must_equal %{
+    assert_process H::Execute, :success, :failure,  %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
- {Trailblazer::Activity::Left} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=notify>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=notify>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
- {Trailblazer::Activity::Left} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=notify>
+ {Trailblazer::Activity::Right} => <*find_provider>
+<*find_provider>
+ {Trailblazer::Activity::Left} => <*notify>
+ {Trailblazer::Activity::Right} => <*notify>
+<*charge_creditcard>
+ {Trailblazer::Activity::Left} => <*notify>
  {Trailblazer::Activity::Right} => #<End/:success>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=notify>
+<*notify>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
 #<End/:success>
 
 #<End/:failure>
-}
+)
 
     module I
       #:pay-magneticto
@@ -270,22 +286,21 @@ class DocsBasicTest < Minitest::Spec
       #:pay-magneticto end
     end
 
-    _(Trailblazer::Developer.render(I::Execute)).must_equal %{
+    assert_process I::Execute, :success, :failure,  %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=find_provider>
- {Trailblazer::Activity::Left} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_paypal>
- {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_creditcard>
+ {Trailblazer::Activity::Right} => <*find_provider>
+<*find_provider>
+ {Trailblazer::Activity::Left} => <*charge_paypal>
+ {Trailblazer::Activity::Right} => <*charge_creditcard>
+<*charge_creditcard>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
-#<Trailblazer::Activity::TaskBuilder::Task user_proc=charge_paypal>
+<*charge_paypal>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
 #<End/:failure>
-}
-
+)
   end
 end

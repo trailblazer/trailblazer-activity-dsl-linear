@@ -28,13 +28,26 @@ class DocSeqOptionsTest < Minitest::Spec
 
   it ":id shows up in introspect" do
     Memo = Id::Memo
+=begin
     output =
       #:id-inspect
       Trailblazer::Developer.railway(Memo::Create)
       #=> [>create_model,>validate,>save_the_world]
       #:id-inspect end
+=end
 
-    _(output).must_equal %{[>create_model,>validate,>save_the_world]}
+    assert_process Id::Memo::Create, :success, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*create_model>
+<*create_model>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Right} => <*save>
+<*save>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+)
+    assert Activity::Introspect.Nodes(Id::Memo::Create, id: :save_the_world)
   end
 
   it ":delete removes step" do
@@ -46,13 +59,23 @@ class DocSeqOptionsTest < Minitest::Spec
     end
     #:delete end
 
+=begin
      output =
       #:delete-inspect
       Trailblazer::Developer.railway(Memo::Create::Admin)
       #=> [>create_model,>save_the_world]
       #:delete-inspect end
+=end
 
-    _(output).must_equal %{[>create_model,>save_the_world]}
+    assert_process Id::Memo::Create::Admin, :success, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*create_model>
+<*create_model>
+ {Trailblazer::Activity::Right} => <*save>
+<*save>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+)
   end
 
   it ":before" do
@@ -68,13 +91,27 @@ class DocSeqOptionsTest < Minitest::Spec
     end
     #:before end
 
+=begin
     output =
       #:before-inspect
       Trailblazer::Developer.railway(Memo::Create::Authorized)
       #=> [>policy,>create_model,>validate,>save_the_world]
       #:before-inspect end
+=end
 
-    _(output).must_equal %{[>policy,>create_model,>validate,>save_the_world]}
+    assert_process Id::Memo::Create::Authorized, :success, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*policy>
+<*policy>
+ {Trailblazer::Activity::Right} => <*create_model>
+<*create_model>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Right} => <*save>
+<*save>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+)
   end
 
   it ":after" do
@@ -90,13 +127,27 @@ class DocSeqOptionsTest < Minitest::Spec
     end
     #:after end
 
+=begin
     output =
       #:after-inspect
       Trailblazer::Developer.railway(Memo::Create::Logging)
       #=> [>create_model,>validate,>logger,>save_the_world]
       #:after-inspect end
+=end
 
-    _(output).must_equal %{[>create_model,>validate,>logger,>save_the_world]}
+    assert_process Id::Memo::Create::Logging, :success, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*create_model>
+<*create_model>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Right} => <*logger>
+<*logger>
+ {Trailblazer::Activity::Right} => <*save>
+<*save>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+)
   end
 
   it "{:replace} allows explicit {:id}" do
@@ -112,15 +163,17 @@ class DocSeqOptionsTest < Minitest::Spec
     end
     #:replace end
 
+=begin
     output =
       #:replace-inspect
       Trailblazer::Developer.railway(Memo::Update)
       #=> [>update_memo,>validate,>save_the_world]
       #:replace-inspect end
+=end
 
-    assert_equal output, %{[>update_memo,>validate,>save_the_world]}
+    assert Activity::Introspect.Nodes(Memo::Update, id: :update_memo)
 
-    assert_process_for Memo::Update, :success, %{
+    assert_process Memo::Update, :success, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*find_model>
 <*find_model>
@@ -130,7 +183,7 @@ class DocSeqOptionsTest < Minitest::Spec
 <*save>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
-}
+)
   end
 
   #@ unit test
@@ -139,8 +192,16 @@ class DocSeqOptionsTest < Minitest::Spec
       step :find_model, replace: :create_model
     end
 
-    output = Trailblazer::Developer.railway(activity)
-
-    assert_equal output, %{[>find_model,>validate,>save_the_world]}
+    assert_process activity, :success, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*find_model>
+<*find_model>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Right} => <*save>
+<*save>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+)
   end
 end

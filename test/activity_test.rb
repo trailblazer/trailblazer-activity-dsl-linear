@@ -751,6 +751,15 @@ class ActivityTest < Minitest::Spec
 end
 
 class GraphDeprecationTest < Minitest::Spec
+  module Trailblazer::Developer
+    module Introspect
+      module Graph
+        def self.new(*)
+        end
+      end
+    end
+  end
+
   it "deprecates {Activity::Introspect::Graph()}" do
     _, warning = capture_io do
       graph = Activity::Introspect.Graph(Activity::Railway)

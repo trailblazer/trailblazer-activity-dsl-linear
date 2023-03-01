@@ -33,6 +33,33 @@ class WiringApiTest < Minitest::Spec
 
     assert_equal exception.message, %{No `unknown` output found for :find_model and outputs {:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}}
   end
+
+  it "accepts {Output() => End()}" do
+    nested_activity = Class.new(Activity::Railway) do
+      step :validate,
+        Output(:failure) => End(:invalid)
+    end
+
+    activity = Class.new(Activity::Railway) do
+      step Subprocess(nested_activity).merge(Output(:invalid) => End(:failure)),
+
+        Output(:invalid) => End(:validation_error)
+    end
+
+    assert_process activity, :success, :validation_error, :failure, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Class:0x>
+#<Class:0x>
+ {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
+ {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
+ {#<Trailblazer::Activity::End semantic=:invalid>} => #<End/:validation_error>
+#<End/:success>
+
+#<End/:validation_error>
+
+#<End/:failure>
+)
+  end
 end
 
 

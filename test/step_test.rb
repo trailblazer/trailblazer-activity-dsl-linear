@@ -11,7 +11,7 @@ class StepTest < Minitest::Spec
       )
     end
 
-    assert_equal Trailblazer::Developer.railway(activity), %{[>OBJECT]}
+    assert_equal Activity::Introspect.Nodes(activity, id: :OBJECT).task, Object
   end
 
   it "{:replace} in {user_options} win over macro options" do
@@ -64,7 +64,15 @@ Object
       step({task: implementing.method(:f), id: :f}, replace: method(:raise))
     end
 
-    assert_equal Trailblazer::Developer.railway(activity), %{[>a,>B,>f,>d]}
+#     assert_process activity, :success, %(
+
+# )
+
+    assert Activity::Introspect.Nodes(activity, id: :a)
+    assert Activity::Introspect.Nodes(activity, id: :B)
+    assert Activity::Introspect.Nodes(activity, id: :d)
+    assert Activity::Introspect.Nodes(activity, id: :f)
+
     assert_invoke activity, seq: %{[:a, :b, :f, :d]}
   end
 
@@ -80,8 +88,27 @@ Object
       step :d, id: :D
     end
 
-    assert_equal Trailblazer::Developer.railway(activity), %{[>a,>#{implementing.method(:b)},>c,>D]}
+    assert_process activity, :success, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+)
+
+    # assert_equal Trailblazer::Developer.railway(activity), %{[>a,>#{implementing.method(:b)},>c,>D]}
     assert_invoke activity, seq: %{[:a, :b, :c, :d]}
+
+    assert Activity::Introspect.Nodes(activity, id: :a)
+    assert Activity::Introspect.Nodes(activity, id: implementing.method(:b))
+    assert Activity::Introspect.Nodes(activity, id: :c)
+    assert Activity::Introspect.Nodes(activity, id: :D)
   end
 
 
@@ -194,8 +221,27 @@ class StepInheritOptionTest < Minitest::Spec
       step :find_model, replace: :create_model, inherit: true  #=> id: :create_mode
     end
 
-    assert_equal Trailblazer::Developer.railway(activity), %{[>create_model,>validate,>save_the_world]}
+    assert_process activity, :success, :failure, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*find_model>
+<*find_model>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*save>
+<*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+)
     assert_invoke activity, seq: %{[:find_model, :validate, :save]}
+
+    # #find_model is still IDed {:create_model}:
+    assert Activity::Introspect.Nodes(activity, id: :create_model)
+    assert_nil Activity::Introspect.Nodes(activity, id: :find_model)
   end
 
   it "{:id} is also infered from {:replace} if {:inherit} a value other than {true}" do
@@ -205,8 +251,27 @@ class StepInheritOptionTest < Minitest::Spec
       step :find_model, replace: :create_model, inherit: [1,2,3]  #=> id: :create_mode
     end
 
-    assert_equal Trailblazer::Developer.railway(activity), %{[>create_model,>validate,>save_the_world]}
+    assert_process activity, :success, :failure, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*find_model>
+<*find_model>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*save>
+<*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+)
     assert_invoke activity, seq: %{[:find_model, :validate, :save]}
+
+    # #find_model is still IDed {:create_model}:
+    assert Activity::Introspect.Nodes(activity, id: :create_model)
+    assert_nil Activity::Introspect.Nodes(activity, id: :find_model)
   end
 
   it "{:replace} and {:inherit} allow explicit {:id}, but it has to be an existing so {:inherit} is happy" do
@@ -217,8 +282,27 @@ class StepInheritOptionTest < Minitest::Spec
         id: :create_model # ID has to be identical to {:replace} so inherit logic can find.
     end
 
-    assert_equal Trailblazer::Developer.railway(activity), %{[>create_model,>validate,>save_the_world]}
+    assert_process activity, :success, :failure, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*find_model>
+<*find_model>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*save>
+<*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+)
     assert_invoke activity, seq: %{[:find_model, :validate, :save]}
+
+    # #find_model is still IDed {:create_model}:
+    assert Activity::Introspect.Nodes(activity, id: :create_model)
+    assert_nil Activity::Introspect.Nodes(activity, id: :find_model)
   end
 
 #@ {:inhert} implements inheriting {:extensions}

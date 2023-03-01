@@ -162,12 +162,7 @@ class SubprocessTest < Minitest::Spec
 #<End/:success>
 }
 
-    # signal, (ctx, _) = my_controller.([{seq: []}])
-    # ctx.inspect.must_equal %{{:seq=>[:c, :g, :f, :d]}}
-
-    # signal, (ctx, _) = our_controller.([{seq: []}])
-    signal, (ctx, _) = Trailblazer::Developer.wtf?(our_controller, [{seq: []}])
-    _(ctx.inspect).must_equal %{{:seq=>[:c, :g, :a, :f, :d]}}
+    assert_invoke our_controller, seq: "[:c, :g, :a, :f, :d]"
   end
 
   it "retains wirings in patched activity" do
@@ -192,9 +187,7 @@ class SubprocessTest < Minitest::Spec
       include T.def_steps(:c)
     end
 
-    signal, (ctx, _) = Trailblazer::Developer.wtf?(my_controller, [{seq: [], g: false }])
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:g_failure>}
-    _(ctx.inspect).must_equal %{{:seq=>[:c, :g], :g=>false}}
+    assert_invoke my_controller, g: false, terminus: :g_failure, seq: "[:c, :g]"
   end
 
   def find(activity, id)

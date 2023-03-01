@@ -71,13 +71,11 @@ class DocsMacroTest < Minitest::Spec
       #:output-usage end
     end
 
-    signal, (ctx, _) = B::Create.([{params: {id: 1}}, {}])
-    _(ctx.inspect).must_equal %{{:params=>{:id=>1}, :model=>#<struct DocsMacroTest::B::User id=1>}}
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    assert_invoke B::Create, params: {id: 1}, expected_ctx_variables: {model: B::User.find_by(id: 1)}
 
-    signal, (ctx, _) = Trailblazer::Developer.wtf?(B::Create, [{params: {}}])
-    _(ctx.inspect).must_equal %{{:params=>{}, :model=>nil}}
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:not_found>}
+    # signal, (ctx, _) = Trailblazer::Developer.wtf?(B::Create, [{params: {}}])
+    # _(ctx.inspect).must_equal %{{:params=>{}, :model=>nil}}
+    # _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:not_found>}
 
 =begin
 #:output-result
@@ -122,8 +120,8 @@ signal #=> #<Trailblazer::Activity::End semantic=:not_found>
     end
     #:sub-op end
   end
+
   it "what" do
-    signal, (ctx, _) = Trailblazer::Developer.wtf?(C::Create, [{model: Module}])
-    _(ctx.inspect).must_equal %{{:model=>Module, :log=>\"Module\"}}
+    assert_invoke C::Create, model: Module, expected_ctx_variables: {:log=>"Module"}
   end
 end

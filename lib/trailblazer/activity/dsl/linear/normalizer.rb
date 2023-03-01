@@ -188,7 +188,7 @@ module Trailblazer
             ctx[:id] = id || task
           end
 
-          # TODO: remove {#normalize_override} in 1.2.0.
+          # TODO: remove {#normalize_override} in 1.2.0 (Used in macro-contract tests).
           # {:override} really only makes sense for {step Macro(), {override: true}} where the {user_options}
           # dictate the overriding.
           def normalize_override(ctx, id:, override: false, **)
