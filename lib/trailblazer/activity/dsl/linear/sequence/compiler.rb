@@ -49,7 +49,7 @@ module Trailblazer
               intermediate   = Schema::Intermediate.new(intermediate_wiring.to_h, stop_task_refs, start_task_ids)
               implementation = _implementations.to_h
 
-              Schema::Intermediate.(intermediate, implementation) # implemented in the generic {trailblazer-activity} gem.
+              Schema::Intermediate::Compiler.(intermediate, implementation) # implemented in the generic {trailblazer-activity} gem.
             end
 
             # private
