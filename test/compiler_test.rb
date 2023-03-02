@@ -13,7 +13,7 @@ class CompilerTest < Minitest::Spec
 
   it "simple linear approach where a {Sequence} is compiled into an Intermediate/Implementation" do
     seq = [
-      [
+      Activity::DSL::Linear::Sequence::Row.new([
         nil,
         implementing::Start,
         [
@@ -23,8 +23,8 @@ class CompilerTest < Minitest::Spec
           ),
         ],
         {id: "Start.default"},
-      ],
-      [
+      ]),
+      Activity::DSL::Linear::Sequence::Row.new([
         :success, # MinusPole
         # [Search::Forward(:success), Search::ById(:a)]
         implementing.method(:a),
@@ -39,8 +39,8 @@ class CompilerTest < Minitest::Spec
           ),
         ],
         {id: :a},
-      ],
-      [
+      ]),
+      Activity::DSL::Linear::Sequence::Row.new([
         :success,
         implementing.method(:b),
         [
@@ -54,8 +54,8 @@ class CompilerTest < Minitest::Spec
           )
         ],
         {id: :b},
-      ],
-      [
+      ]),
+      Activity::DSL::Linear::Sequence::Row.new([
         :failure,
         implementing.method(:c),
         [
@@ -69,8 +69,8 @@ class CompilerTest < Minitest::Spec
          )
         ],
         {id: :c},
-      ],
-      [
+      ]),
+      Activity::DSL::Linear::Sequence::Row.new([
         :success,
         implementing.method(:d),
         [
@@ -84,19 +84,19 @@ class CompilerTest < Minitest::Spec
           )
         ],
         {id: :d},
-      ],
-      [
+      ]),
+      Activity::DSL::Linear::Sequence::Row.new([
         :success,
         implementing::Success,
         [],
         {id: "End.success", stop_event: true, semantic: :success},
-      ],
-      [
+      ]),
+      Activity::DSL::Linear::Sequence::Row.new([
         :failure,
         implementing::Failure,
         [],
         {id: "End.failure", stop_event: true, semantic: :failure},
-      ],
+      ]),
     ]
 
     schema = Lin::Sequence::Compiler.(seq)

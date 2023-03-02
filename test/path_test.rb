@@ -36,10 +36,16 @@ class PathTest < Minitest::Spec
 
   it "accepts {:adds}" do
     path = Activity.Path() do
+      row = Activity::DSL::Linear::Sequence.create_row(
+        magnetic_to: :success,
+        task: Implementing.method(:g),
+        wirings: [Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)]
+      )
+
       step :f,
         adds: [
           {
-            row:    [:success, Implementing.method(:g), [Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}],
+            row:    row,
             insert: [Activity::Adds::Insert.method(:Prepend), :f]
           }
         ]

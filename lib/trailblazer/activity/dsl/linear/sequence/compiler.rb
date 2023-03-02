@@ -62,7 +62,7 @@ module Trailblazer
 
                 [
                   output,                                     # implementation
-                  target_seq_row[3][:id],  # intermediate   # FIXME. this sucks.
+                  target_seq_row.id,
                   target_seq_row # DISCUSS: needed?
                 ]
               end.compact
