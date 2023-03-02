@@ -43,10 +43,10 @@ module Trailblazer
                   [implementations, intermediates]
                 end
 
-              start_task_ids = find_start.(intermediate_wiring)
-              stop_task_refs = find_stops.(intermediate_wiring)
+              start_task_id         = find_start.(intermediate_wiring)
+              terminus_to_semantic  = find_stops.(intermediate_wiring)
 
-              intermediate   = Schema::Intermediate.new(intermediate_wiring.to_h, stop_task_refs, start_task_ids)
+              intermediate   = Schema::Intermediate.new(intermediate_wiring.to_h, terminus_to_semantic, start_task_id)
               implementation = _implementations.to_h
 
               Schema::Intermediate::Compiler.(intermediate, implementation) # implemented in the generic {trailblazer-activity} gem.
