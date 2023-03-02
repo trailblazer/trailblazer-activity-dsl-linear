@@ -54,18 +54,19 @@ module Trailblazer
 
             # private
 
-            def find_connections(seq_row, strategies, sequence)
-              strategies.collect do |search|
+            # Execute all search strategies for a row, retrieve outputs and
+            # their respective target IDs.
+            def find_connections(seq_row, searches, sequence)
+              searches.collect do |search|
                 output, target_seq_row = search.(sequence, seq_row) # invoke the node's "connection search" strategy.
 
                 target_seq_row = sequence[-1] if target_seq_row.nil? # connect to an End if target unknown. # DISCUSS: make this configurable, maybe?
 
                 [
-                  output,                                     # implementation
-                  target_seq_row.id,
-                  target_seq_row # DISCUSS: needed?
+                  output,
+                  target_seq_row.id
                 ]
-              end.compact
+              end
             end
           end # Compiler
         end # Sequence
