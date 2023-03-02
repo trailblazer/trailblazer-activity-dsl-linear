@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %(Simple DSL to define Trailblazer activities.)
   spec.description   = %(Simple DSL to define Trailblazer activities with arbitrary wirings.)
-  spec.homepage      = "https://trailblazer.to"
+  spec.homepage      = "https://trailblazer.to/2.1/docs/activity"
   spec.licenses      = ["LGPL-3.0"]
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   end
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "trailblazer-activity", ">= 0.15.1", "< 0.16.0"
+  spec.add_dependency "trailblazer-activity", ">= 0.16.0", "< 0.17.0"
   spec.add_dependency "trailblazer-declarative", ">= 0.0.1", "< 0.1.0"
 
   spec.add_development_dependency "bundler"
