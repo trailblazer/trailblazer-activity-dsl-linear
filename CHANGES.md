@@ -2,8 +2,7 @@
 
 ## Introspect
 
-
-activity.to_h[:nodes] => Activity::Introspect.Nodes(activity)
+* As `Activity::Introspect::TaskMap` got removed, use `Activity::Introspect.Nodes(activity)` for introspecting. See https://trailblazer.to/2.1/docs/activity#activity-internals-introspection-api
 
 ## Normalizer
 
