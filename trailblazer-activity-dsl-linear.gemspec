@@ -8,8 +8,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Nick Sutterer"]
   spec.email         = ["apotonick@gmail.com"]
 
-  spec.summary       = %(Simple DSL to define Trailblazer activities.)
-  spec.description   = %(Simple DSL to define Trailblazer activities with arbitrary wirings.)
+  spec.summary       = %(The #step DSL for Trailblazer activities.)
   spec.homepage      = "https://trailblazer.to/2.1/docs/activity"
   spec.licenses      = ["LGPL-3.0"]
 
