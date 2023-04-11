@@ -1,4 +1,8 @@
-# 1.2
+# 1.2.1
+
+* Bugfix: `output_with_outer_ctx: :instance_method` no longer breaks.
+
+# 1.2.0
 
 ## Introspect
 
