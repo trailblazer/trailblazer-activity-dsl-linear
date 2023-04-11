@@ -203,6 +203,32 @@ class DocsIOTest < Minitest::Spec
       signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(F::Memo, [{params: {id: "1"}}.freeze, {}])
       signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
       ctx.inspect.must_equal %{{:params=>{:id=>\"1\", :errors=>false}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
+
+      module G
+        class Memo < Trailblazer::Activity::Path
+          step :authorize, output: :authorize_output, output_with_outer_ctx: true
+          step :create_model
+
+          def authorize(ctx, params:, **)
+            ctx[:user] = User.find(params[:id])
+          end
+
+          def authorize_output(inner_ctx, outer_ctx:, user:, **)
+            {
+              current_user: user,
+              params:       outer_ctx[:params].merge(errors: false)
+            }
+          end
+
+          def create_model(ctx, current_user:, **)
+            ctx[:model] = current_user
+          end
+        end
+
+      end
+      signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(F::Memo, [{params: {id: "1"}}.freeze, {}])
+      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      ctx.inspect.must_equal %{{:params=>{:id=>\"1\", :errors=>false}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
     end
 
 
