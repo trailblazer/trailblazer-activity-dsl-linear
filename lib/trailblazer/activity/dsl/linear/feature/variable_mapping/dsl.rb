@@ -188,17 +188,21 @@ module Trailblazer
               class FiltersBuilder
                 def self.call(user_filter, with_outer_ctx:, **options)
                   if with_outer_ctx
-                    callable    = user_filter # FIXME: :instance_method
-                    call_method = callable.respond_to?(:arity) ? callable : callable.method(:call)
+                    callable = Trailblazer::Option(user_filter) # FIXME: :instance_method
+                    arity = case user_filter
+                            when Symbol then nil
+                            when Proc then user_filter.arity
+                            else user_filter.method(:call).arity
+                            end
 
                     options =
                       # TODO: remove {if} and only leave {else}.
-                      if call_method.arity == 3
+                      if arity == 3
                         Activity::Deprecate.warn Linear::Deprecate.dsl_caller_location,
                           "The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.\n#{VariableMapping.deprecation_link}"
 
                         options.merge(
-                          filter:                           Trailblazer::Option(user_filter),
+                          filter:                           callable,
                           add_variables_class_for_callable: AddVariables::Output::WithOuterContext_Deprecated, # old positional arg
                         )
                       else
