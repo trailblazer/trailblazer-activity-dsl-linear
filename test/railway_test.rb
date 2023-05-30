@@ -227,6 +227,78 @@ class RailwayTest < Minitest::Spec
   # pass returns false
       assert_call activity, seq: "[:f, :c, :b]", c: Activity::Left
     end
+
+    it "provides {fail}" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Railway) do
+        step task: implementing.method(:f), id: :f
+        fail task: implementing.method(:a), id: :a
+        step task: implementing.method(:g), id: :g
+      end
+
+      assert_circuit activity, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+      # right track
+      assert_call activity, seq: "[:f, :g]"
+
+      # f returns false
+      assert_call activity, f: Activity::Left, seq: "[:f, :a]", terminus: :failure
+
+      # g returns false
+      assert_call activity, g: Activity::Left, seq: "[:f, :g]", terminus: :failure
+    end
+
+    it "provides {failure} alias for {fail}" do
+      implementing = self.implementing
+
+      activity = Class.new(Activity::Railway) do
+        step task: implementing.method(:f), id: :f
+        left task: implementing.method(:a), id: :a
+        step task: implementing.method(:g), id: :g
+      end
+
+      assert_circuit activity, %{
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.f>
+#<Method: #<Module:0x>.f>
+ {Trailblazer::Activity::Left} => #<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.g>
+#<Method: #<Module:0x>.a>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<Method: #<Module:0x>.g>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+}
+
+      # right track
+      assert_call activity, seq: "[:f, :g]"
+
+      # f returns false
+      assert_call activity, f: Activity::Left, seq: "[:f, :a]", terminus: :failure
+
+      # g returns false
+      assert_call activity, g: Activity::Left, seq: "[:f, :g]", terminus: :failure
+    end
   end
 
 
