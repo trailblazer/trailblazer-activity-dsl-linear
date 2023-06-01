@@ -114,6 +114,7 @@ module Trailblazer
         def fail(*args, &block)
           recompile_activity_for(:fail, *args, &block)
         end
+        alias left fail
 
         def pass(*args, &block)
           recompile_activity_for(:pass, *args, &block)
