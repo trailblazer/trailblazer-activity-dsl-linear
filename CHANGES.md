@@ -1,3 +1,7 @@
+# 1.2.2
+
+* Add `#left` alias for `#fail`.
+
 # 1.2.1
 
 * Bugfix: `output_with_outer_ctx: :instance_method` no longer breaks.
