@@ -216,6 +216,25 @@ class DocsStrategyTest < Minitest::Spec
   end
 
   it do
+    module E_Left
+      #:railway-left
+      class Create < Trailblazer::Activity::Railway
+        step :validate
+        left :log_error
+        #~mod
+        step :create
+        include T.def_steps(:validate, :log_error, :create)
+        #~mod end
+      end
+      #:railway-left end
+    end
+
+    ctx = {params: {text: "Hydrate!"}, create: true}
+    assert_invoke E_Left::Create, seq: "[:validate, :create]"
+    assert_invoke E_Left::Create, validate: false, seq: "[:validate, :log_error]", terminus: :failure
+  end
+
+  it do
     module F
 
       #:railway-fail
