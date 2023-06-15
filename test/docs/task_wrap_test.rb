@@ -238,15 +238,39 @@ end
 class DocsWrapStaticExtensionTest < Minitest::Spec
   module Song
   end
+  MyAPM = DocsRuntimeExtensionTest::MyAPM
 
+  #:static
   module Song::Activity
     class Create < Trailblazer::Activity::Railway
-      step :model
-      step :validate
-      step :save
+      step :create_model
+      step :validate,
+        Extension() => Trailblazer::Activity::TaskWrap::Extension::WrapStatic(
+          [MyAPM::Extension.method(:start_instrumentation),  id: "my_apm.start_span",  prepend: "task_wrap.call_task"],
+          [MyAPM::Extension.method(:finish_instrumentation), id: "my_apm.finish_span", append: "task_wrap.call_task"],
+        )
+      left :handle_errors
+      step :notify
       #~meths
-      include T.def_steps(:model, :validate, :save)
+      include T.def_steps(:create_model, :validate, :notify)
       #~meths end
     end
+  end
+  #:static end
+
+  it "runs taskWrap extension only for {#validate}" do
+    MyAPM::Store = []
+
+    assert_invoke Song::Activity::Create,
+      song: {title: "Timebomb"},
+      seq: "[:create_model, :validate, :notify]"
+
+    assert_equal MyAPM::Store.collect { |span| span.payload }.inspect, %{[{:id=>:validate}]}
+
+    ctx = {song: {title: "Timebomb"}, seq: []}
+
+    #:static_invoke
+    signal, (ctx, _) = Song::Activity::Create.invoke([ctx, {}])
+    #:static_invoke end
   end
 end
