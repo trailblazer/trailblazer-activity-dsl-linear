@@ -1,3 +1,8 @@
+# 1.2.3
+
+* Add `FastTrack.left` alias.
+* Fix a bug where an operation using `Path()` would wrongly emit a deprecation warning.
+
 # 1.2.2
 
 * Add `#left` alias for `#fail`.
