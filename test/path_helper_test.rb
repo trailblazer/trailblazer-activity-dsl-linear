@@ -54,6 +54,29 @@ class PathHelperTest < Minitest::Spec
 
 #<End/:failure>
 }
+
+
+    # :terminus is not deprecated!
+    _, warning = capture_io do
+      activity = Class.new(Activity::Railway) do
+        step :a, Output(:failure) => Path(terminus: :roundtrip) do
+          step :f
+        end
+      end
+    end
+
+    assert_equal warning, ""
+
+    # :connect_to is not deprecated!
+    _, warning = capture_io do
+      activity = Class.new(Activity::Railway) do
+        step :a, Output(:failure) => Path(connect_to: Id(:a)) do
+          step :f
+        end
+      end
+    end
+
+    assert_equal warning, ""
   end
 
   it "accepts {:terminus}" do

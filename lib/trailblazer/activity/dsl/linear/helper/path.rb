@@ -49,15 +49,7 @@ module Trailblazer
 
             def convert_path_to_track(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, terminus: nil, **options)
               options =
-                if end_task = options[:end_task] # TODO: remove in 2.0.
-                  Activity::Deprecate.warn Linear::Deprecate.dsl_caller_location,
-                    %(Using `:end_task` and `:end_id` in Path() is deprecated, use `:terminus` instead. Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-wiring-api-path-end_task-end_id-deprecation)
-
-                  options.merge(
-                    end_task: Activity.End(end_task.to_h[:semantic]),
-                    end_id:   options[:end_id]
-                  )
-                elsif connect_to
+                if connect_to
                   {}
                 elsif terminus
                   options.merge(
@@ -65,7 +57,7 @@ module Trailblazer
                     end_id:   "End.#{terminus}"
                   )
                 else # Path() with End() inside block.
-                  {}
+                  options
                 end
 
               # DISCUSS:  if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.

@@ -46,9 +46,18 @@ module Trailblazer
             Normalizer::OutputTuples::Id.new(id).freeze
           end
 
-          def Path(**options, &block)
-            options = options.merge(block: block) if block
+          def Path(end_task: nil, end_id: nil, **options, &block)
+            if end_task # TODO: remove in 2.0.
+              Activity::Deprecate.warn caller_locations[0],
+                %(Using `:end_task` and `:end_id` in Path() is deprecated, use `:terminus` instead. Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-wiring-api-path-end_task-end_id-deprecation)
 
+              options = options.merge(
+                end_task: Activity.End(end_task.to_h[:semantic]),
+                end_id:   end_id
+              )
+            end
+
+            options = options.merge(block: block) if block
             Linear::PathBranch.new(options) # picked up by normalizer.
           end
 
