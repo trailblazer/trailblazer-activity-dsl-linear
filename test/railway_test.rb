@@ -264,7 +264,7 @@ class RailwayTest < Minitest::Spec
       assert_call activity, g: Activity::Left, seq: "[:f, :g]", terminus: :failure
     end
 
-    it "provides {failure} alias for {fail}" do
+    it "provides {left} alias for {fail}" do
       implementing = self.implementing
 
       activity = Class.new(Activity::Railway) do

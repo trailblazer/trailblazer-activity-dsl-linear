@@ -433,4 +433,37 @@ Trailblazer::Activity::FastTrack
 
     assert_equal exception.message, %{No `pass_fast` output found for :model and outputs {:failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>, :success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}}
   end
+
+  it "provides {left} alias for {fail}" do
+    activity = Class.new(Activity::FastTrack) do
+      step :f
+      left :a
+      include T.def_steps(:f, :a)
+    end
+
+    assert_circuit activity, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Left} => <*a>
+ {Trailblazer::Activity::Right} => #<End/:success>
+<*a>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<End/:success>
+
+#<End/:pass_fast>
+
+#<End/:fail_fast>
+
+#<End/:failure>
+)
+
+    # right track
+    assert_call activity, seq: "[:f]"
+
+
+    # f returns false
+    assert_call activity, f: Activity::Left, seq: "[:f, :a]", terminus: :failure
+  end
 end

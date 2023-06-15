@@ -165,6 +165,7 @@ module Trailblazer
         private def fail(*args, &block)
           recompile_activity_for(:fail, *args, &block) # from Path::Strategy
         end
+        alias left fail
 
         private def pass(*args, &block)
           recompile_activity_for(:pass, *args, &block) # from Path::Strategy
