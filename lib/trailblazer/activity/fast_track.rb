@@ -112,10 +112,11 @@ module Trailblazer
           ctx = merge_connections_for!(ctx, :fast_track, :fail_fast, :fail_fast, **ctx)
         end
 
-        def pass_fast_option(ctx, **)
+        def pass_fast_option(ctx, outputs:, **)
           ctx = merge_connections_for!(ctx, :pass_fast, :success, **ctx)
 
-          ctx = merge_connections_for!(ctx, :pass_fast, :pass_fast, :pass_fast, **ctx)
+          ctx = merge_connections_for!(ctx, :pass_fast, :pass_fast, :pass_fast, **ctx) if outputs[:pass_fast]
+          ctx
         end
 
         def pass_fast_option_for_pass(ctx, **)
@@ -123,10 +124,11 @@ module Trailblazer
           ctx = merge_connections_for!(ctx, :pass_fast, :success, **ctx)
         end
 
-        def fail_fast_option(ctx, **)
+        def fail_fast_option(ctx, outputs:, **)
           ctx = merge_connections_for!(ctx, :fail_fast, :failure, **ctx)
 
-          ctx = merge_connections_for!(ctx, :fail_fast, :fail_fast, :fail_fast, **ctx)
+          ctx = merge_connections_for!(ctx, :fail_fast, :fail_fast, :fail_fast, **ctx) if outputs[:fail_fast]
+          ctx
         end
 
         def fail_fast_option_for_fail(ctx, **)
