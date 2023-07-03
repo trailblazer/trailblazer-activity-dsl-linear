@@ -1,3 +1,8 @@
+# 1.2.4
+
+* Fix a bug where using `fail_fast: true` (same with `:pass_fast`) would result in a
+  compile time exception `No fail_fast output found`. See  https://github.com/trailblazer/trailblazer/issues/256
+
 # 1.2.3
 
 * Add `FastTrack.left` alias.

@@ -127,6 +127,7 @@ module Trailblazer
         def fail_fast_option(ctx, outputs:, **)
           ctx = merge_connections_for!(ctx, :fail_fast, :failure, **ctx)
 
+          # DISCUSS: instead of checking outputs here, we could introduce something like Output(non_strict: true)
           ctx = merge_connections_for!(ctx, :fail_fast, :fail_fast, :fail_fast, **ctx) if outputs[:fail_fast]
           ctx
         end
