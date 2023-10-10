@@ -3,7 +3,11 @@ require "test_helper"
 module X
   class DocsActivityTest < Minitest::Spec
     it "basic activity" do
-      Memo = Class.new
+      Memo = Struct.new(:options) do
+        def save
+          true
+        end
+      end
 
       #:memo-create
       module Memo::Activity
@@ -16,9 +20,14 @@ module X
           #~meths
           include T.def_steps(:validate, :save, :handle_errors, :notify)
 
-          def save(ctx, **)
-            true
+          #:save
+          def save(ctx, params:, **)
+            memo = Memo.new(params[:memo])
+            memo.save
+
+            ctx[:model] = memo # you can write to the {ctx}.
           end
+          #:save end
 
           def notify(ctx, **)
             true
@@ -45,9 +54,22 @@ module X
       puts signal.to_h[:semantic] #=> :success
       #:memo-call end
 
-      assert_equal signal.inspect, %(#<Trailblazer::Activity::End semantic=:success>)
+      #:memo-call-model
+      signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create,
+        params: {memo: {text: "Do not forget!"}}
+      )
 
-      assert_invoke Memo::Activity::Create, seq: "[]", params: {memo: {text: "do not forget!"}}
+      #~ctx_to_result
+      puts ctx[:model] #=> #<Memo id: 1 text: "Do not forget!">
+      #:memo-call-model end
+      #~ctx_to_result end
+
+      assert_equal signal.inspect, %(#<Trailblazer::Activity::End semantic=:success>)
+      assert_equal ctx.inspect, %({:params=>{:memo=>{:text=>\"Do not forget!\"}}, :model=>#<struct X::DocsActivityTest::Memo options={:text=>\"Do not forget!\"}>})
+
+      model = ctx[:model]
+
+      assert_invoke Memo::Activity::Create, seq: "[]", params: {memo: {text: "Do not forget!"}}, expected_ctx_variables: {model: model}
       assert_invoke Memo::Activity::Create, seq: "[:handle_errors]", params: {}, terminus: :failure
     end
   end
