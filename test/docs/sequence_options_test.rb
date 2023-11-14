@@ -11,9 +11,9 @@ module A
         step :validate
         step :save, id: :save_the_world
         step :notify
-        #~id-methods
+        #~meths
         include T.def_steps(:validate, :save, :notify)
-        #~id-methods end
+        #~meths end
       end
     end
     #:id end
@@ -193,9 +193,9 @@ module E
         step :validate
         step :save
         step :notify
-        #~id-methods
+        #~meths
         include T.def_steps(:validate, :save, :notify)
-        #~id-methods end
+        #~meths end
       end
     end
 
@@ -204,9 +204,9 @@ module E
       module Memo::Activity
         class Update < Create
           step :update, replace: :save
-          #~replace-methods
+          #~meths
           include T.def_steps(:update)
-          #~replace-methods end
+          #~meths end
         end
 
       end
@@ -249,9 +249,9 @@ module E_2
         step :validate
         step :save
         step :notify
-        #~id-methods
+        #~meths
         include T.def_steps(:validate, :save, :notify)
-        #~id-methods end
+        #~meths end
       end
     end
 
@@ -260,9 +260,9 @@ module E_2
       module Memo::Activity
         class Update < Create
           step :update, replace: :save, id: :update_memo
-          #~replace-methods
+          #~meths
           include T.def_steps(:update)
-          #~replace-methods end
+          #~meths end
         end
 
       end

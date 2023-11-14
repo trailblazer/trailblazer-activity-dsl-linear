@@ -17,26 +17,30 @@ class DocsStrategyTest < Minitest::Spec
 
   it do
     module A
-      #:step
-      class Create < Trailblazer::Activity::Path
-        step :validate
-        step :create
-        #~mod
-        def validate(ctx, params:, **)
-          ctx[:input] = Form.validate(params)
-        end
+      Memo = DocsStrategyTest::Memo
 
-        def create(ctx, input:, **)
-          Memo.create(input)
+      #:step
+      module Memo::Activity
+        class Create < Trailblazer::Activity::Path
+          step :validate
+          step :create
+          #~mod
+          def validate(ctx, params:, **)
+            ctx[:input] = Form.validate(params)
+          end
+
+          def create(ctx, input:, **)
+            Memo.create(input)
+          end
+          #~mod end
         end
-        #~mod end
       end
       #:step end
     end
 
     ctx = {params: {text: "Hydrate!"}}
 
-    signal, (ctx, flow_options) = A::Create.([ctx, {}])
+    signal, (ctx, flow_options) = A::Memo::Activity::Create.([ctx, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}}}
@@ -127,49 +131,6 @@ class DocsStrategyTest < Minitest::Spec
     def error(*); end
   end
 
-  it do
-    module D
-
-      #:railway
-      class Create < Trailblazer::Activity::Railway
-        #~flow
-        step :validate
-        fail :log_error
-        step :create
-        #~flow end
-        #~mod
-        def validate(ctx, params:, **)
-          ctx[:input] = Form.validate(params) # true/false
-        end
-
-        def create(ctx, input:, create:, **)
-          create
-        end
-
-        def log_error(ctx, logger:, params:, **)
-          logger.error("wrong params: #{params.inspect}")
-        end
-        #~mod end
-      end
-      #:railway end
-    end
-
-    ctx = {params: {text: "Hydrate!"}, create: true}
-    signal, (ctx, _flow_options) = D::Create.([ctx, {}])
-
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :create=>true, :input=>{:text=>\"Hydrate!\"}}}
-
-    ctx = {params: nil, logger: Logger.new}
-    signal, (ctx, _flow_options) = D::Create.([ctx, {}])
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
-    _(ctx.inspect.sub(/0x\w+/, "0x")).must_equal %{{:params=>nil, :logger=>#<DocsStrategyTest::Logger:0x>, :input=>nil}}
-
-    ctx = {params: {}, create: false}
-    signal, (ctx, _flow_options) = D::Create.([ctx, {}])
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:failure>}
-    _(ctx.inspect).must_equal %{{:params=>{}, :create=>false, :input=>{}}}
-  end
 
   it do
     module E
@@ -215,24 +176,6 @@ class DocsStrategyTest < Minitest::Spec
     _(ctx.inspect).must_equal %{{:params=>{}, :create=>false, :input=>{}}}
   end
 
-  it do
-    module E_Left
-      #:railway-left
-      class Create < Trailblazer::Activity::Railway
-        step :validate
-        left :log_error
-        #~mod
-        step :create
-        include T.def_steps(:validate, :log_error, :create)
-        #~mod end
-      end
-      #:railway-left end
-    end
-
-    ctx = {params: {text: "Hydrate!"}, create: true}
-    assert_invoke E_Left::Create, seq: "[:validate, :create]"
-    assert_invoke E_Left::Create, validate: false, seq: "[:validate, :log_error]", terminus: :failure
-  end
 
   it do
     module F
