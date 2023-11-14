@@ -27,7 +27,9 @@ module A
         #:id-inspect end
 =end
 
-      assert_process Memo::Activity::Create, :success, :failure, %(
+#~ignore
+      assert_process Memo::Activity::Create, :success, :failure, #!hint assert_process Memo::Operation::Create, :fail_fast, :failure, :pass_fast, :success,
+%(
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
@@ -43,6 +45,8 @@ module A
 
 #<End/:failure>
 )
+#~ignore end
+
       assert Activity::Introspect.Nodes(Memo::Activity::Create, id: :save_the_world)
       #:id-introspect
       puts Activity::Introspect.Nodes(Memo::Activity::Create, id: :save_the_world)
@@ -73,6 +77,7 @@ module B
       #:delete-inspect end
 =end
 
+#~ignore
       assert_process Memo::Activity::Admin, :success, :failure, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*save>
@@ -86,6 +91,7 @@ module B
 
 #<End/:failure>
 )
+#~ignore end
     end
   end
 end
@@ -113,6 +119,7 @@ module C
       #:before-inspect end
 =end
 
+#~ignore
       assert_process Memo::Activity::Authorized, :success, :failure, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*policy>
@@ -132,6 +139,7 @@ module C
 
 #<End/:failure>
 )
+#~ignore end
     end
 
   end
@@ -162,6 +170,7 @@ module D
       #:after-inspect end
 =end
 
+#~ignore
       assert_process Memo::Activity::Authorized, :success, :failure, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*validate>
@@ -181,6 +190,7 @@ module D
 
 #<End/:failure>
 )
+#~ignore end
     end
   end
 end
@@ -220,6 +230,7 @@ module E
 =end
       assert Activity::Introspect.Nodes(Memo::Activity::Update, id: :update)
 
+#~ignore
       assert_process Memo::Activity::Update, :success, :failure, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*validate>
@@ -236,6 +247,7 @@ module E
 
 #<End/:failure>
 )
+#~ignore end
     end
   end
 end
@@ -272,6 +284,7 @@ module E_2
 
       assert Activity::Introspect.Nodes(Memo::Activity::Update, id: :update_memo)
 
+#~ignore
       assert_process Memo::Activity::Update, :success, :failure, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*validate>
@@ -288,6 +301,7 @@ module E_2
 
 #<End/:failure>
 )
+#~ignore end
     end
   end
 end
