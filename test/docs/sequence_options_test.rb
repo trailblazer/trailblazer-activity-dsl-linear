@@ -1,7 +1,6 @@
 require "test_helper"
-=begin
-:before, :after, :replace, :delete, :group, :id
-=end
+require "trailblazer/developer"
+
 module A
   class Id_DocSeqOptionsTest < Minitest::Spec
     Memo = Struct.new(:text)
@@ -24,7 +23,7 @@ module A
       output =
         #:id-inspect
         Trailblazer::Developer.railway(Memo::Activity::Create)
-        #=> [>create_model,>validate,>save_the_world]
+        #=> [>validate,>save_the_world,>notify]
         #:id-inspect end
 =end
 
@@ -69,8 +68,8 @@ module B
 =begin
      output =
       #:delete-inspect
-      Trailblazer::Developer.railway(Memo::Create::Admin)
-      #=> [>create_model,>save_the_world]
+      Trailblazer::Developer.railway(Memo::Activity::Admin)
+      #=> [>save_the_world,>notify]
       #:delete-inspect end
 =end
 
@@ -100,12 +99,17 @@ module C
       module Memo::Activity
         class Authorized < Memo::Activity::Create
           step :policy, before: :validate
-          #~before-methods
+          #~meths
           include T.def_steps(:policy)
-          #~before-methods end
+          #~meths end
         end
       end
       #:before end
+
+      #:before-inspect
+      Trailblazer::Developer.railway(Memo::Activity::Authorized)
+      #=> [>policy,>validate,>save_the_world,>notify]
+      #:before-inspect end
 
       assert_process Memo::Activity::Authorized, :success, :failure, %(
 #<Start/:default>
@@ -133,7 +137,7 @@ end
 
 module D
   class After_DocsSequenceOptionsTest < Minitest::Spec
-    it ":before" do
+    it ":after" do
       Memo = Class.new(A::Id_DocSeqOptionsTest::Memo)
       Memo::Activity = Module.new
       Memo::Activity::Create = Class.new(A::Id_DocSeqOptionsTest::Memo::Activity::Create)
@@ -142,15 +146,19 @@ module D
       module Memo::Activity
         class Authorized < Memo::Activity::Create
           step :policy, after: :validate
-          #~before-methods
+          #~meths
           include T.def_steps(:policy)
-          #~before-methods end
+          #~meths end
         end
       end
       #:after end
 
+      #:after-inspect
+      Trailblazer::Developer.railway(Memo::Activity::Authorized)
+      #=> [>validate,>policy,>save_the_world,>notify]
+      #:after-inspect end
 
-    assert_process Memo::Activity::Authorized, :success, :failure, %(
+      assert_process Memo::Activity::Authorized, :success, :failure, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
@@ -200,6 +208,11 @@ module E
       end
       #:replace end
 
+      #:replace-inspect
+      Trailblazer::Developer.railway(Memo::Activity::Update)
+      #=> [>validate,>update,>notify]
+      #:replace-inspect end
+
       assert Activity::Introspect.Nodes(Memo::Activity::Update, id: :update)
 
       assert_process Memo::Activity::Update, :success, :failure, %(
@@ -237,8 +250,8 @@ module E_2
       end
     end
 
-    it "{:replace} automatically assigns ID" do
-      #:replace
+    it "{:replace} allows explicit ID" do
+      #:replace-id
       module Memo::Activity
         class Update < Create
           step :update, replace: :save, id: :update_memo
@@ -248,7 +261,9 @@ module E_2
         end
 
       end
-      #:replace end
+      #:replace-id end
+
+      assert_equal Trailblazer::Developer.railway(Memo::Activity::Update), %([>validate,>update_memo,>notify])
 
       assert Activity::Introspect.Nodes(Memo::Activity::Update, id: :update_memo)
 
