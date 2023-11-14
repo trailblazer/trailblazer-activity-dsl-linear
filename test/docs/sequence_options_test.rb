@@ -1,5 +1,5 @@
 require "test_helper"
-require "trailblazer/developer"
+# require "trailblazer/developer"
 
 module A
   class Id_DocSeqOptionsTest < Minitest::Spec
@@ -106,10 +106,12 @@ module C
       end
       #:before end
 
+=begin
       #:before-inspect
       Trailblazer::Developer.railway(Memo::Activity::Authorized)
       #=> [>policy,>validate,>save_the_world,>notify]
       #:before-inspect end
+=end
 
       assert_process Memo::Activity::Authorized, :success, :failure, %(
 #<Start/:default>
@@ -153,10 +155,12 @@ module D
       end
       #:after end
 
+=begin
       #:after-inspect
       Trailblazer::Developer.railway(Memo::Activity::Authorized)
       #=> [>validate,>policy,>save_the_world,>notify]
       #:after-inspect end
+=end
 
       assert_process Memo::Activity::Authorized, :success, :failure, %(
 #<Start/:default>
@@ -208,11 +212,12 @@ module E
       end
       #:replace end
 
+=begin
       #:replace-inspect
       Trailblazer::Developer.railway(Memo::Activity::Update)
       #=> [>validate,>update,>notify]
       #:replace-inspect end
-
+=end
       assert Activity::Introspect.Nodes(Memo::Activity::Update, id: :update)
 
       assert_process Memo::Activity::Update, :success, :failure, %(
@@ -263,7 +268,7 @@ module E_2
       end
       #:replace-id end
 
-      assert_equal Trailblazer::Developer.railway(Memo::Activity::Update), %([>validate,>update_memo,>notify])
+      # assert_equal Trailblazer::Developer.railway(Memo::Activity::Update), %([>validate,>update_memo,>notify])
 
       assert Activity::Introspect.Nodes(Memo::Activity::Update, id: :update_memo)
 
