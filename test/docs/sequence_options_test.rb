@@ -2,62 +2,69 @@ require "test_helper"
 =begin
 :before, :after, :replace, :delete, :group, :id
 =end
-class DocSeqOptionsTest < Minitest::Spec
-  module Id
-    class Memo < Struct.new(:text)
-    end
+module A
+  class Id_DocSeqOptionsTest < Minitest::Spec
+    Memo = Struct.new(:text)
 
     #:id
-    class Memo::Create < Trailblazer::Activity::Path
-      step :create_model
-      step :validate
-      step :save, id: :save_the_world
-      #~id-methods
-      def create_model(options, **)
+    module Memo::Activity
+      class Create < Trailblazer::Activity::Railway
+        step :validate
+        step :save, id: :save_the_world
+        step :notify
+        #~id-methods
+        include T.def_steps(:validate, :save, :notify)
+        #~id-methods end
       end
-
-      def validate(options, **)
-      end
-
-      def save(options, **)
-      end
-      #~id-methods end
     end
     #:id end
-  end
 
-  it ":id shows up in introspect" do
-    Memo = Id::Memo
+    it ":id shows up in introspect" do
 =begin
-    output =
-      #:id-inspect
-      Trailblazer::Developer.railway(Memo::Create)
-      #=> [>create_model,>validate,>save_the_world]
-      #:id-inspect end
+      output =
+        #:id-inspect
+        Trailblazer::Developer.railway(Memo::Activity::Create)
+        #=> [>create_model,>validate,>save_the_world]
+        #:id-inspect end
 =end
 
-    assert_process Id::Memo::Create, :success, %(
+      assert_process Memo::Activity::Create, :success, :failure, %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*create_model>
-<*create_model>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => <*save>
 <*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*notify>
+<*notify>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:failure>
 )
-    assert Activity::Introspect.Nodes(Id::Memo::Create, id: :save_the_world)
-  end
-
-  it ":delete removes step" do
-    Memo = Id::Memo
-
-    #:delete
-    class Memo::Create::Admin < Memo::Create
-      step nil, delete: :validate
+      assert Activity::Introspect.Nodes(Memo::Activity::Create, id: :save_the_world)
+      #:id-introspect
+      puts Activity::Introspect.Nodes(Memo::Activity::Create, id: :save_the_world)
+      #=> #<struct Trailblazer::Activity::Schema::Nodes::Attributes id=:save_the_world, ...>
+      #:id-introspect end
     end
-    #:delete end
+  end
+end
+
+module B
+  class Delete_DocsSequenceOptionsTest < Minitest::Spec
+    Memo = A::Id_DocSeqOptionsTest::Memo
+
+    it ":delete removes step" do
+      #:delete
+      module Memo::Activity
+        class Admin < Create
+          step nil, delete: :validate
+        end
+      end
+      #:delete end
 
 =begin
      output =
@@ -67,141 +74,200 @@ class DocSeqOptionsTest < Minitest::Spec
       #:delete-inspect end
 =end
 
-    assert_process Id::Memo::Create::Admin, :success, %(
+      assert_process Memo::Activity::Admin, :success, :failure, %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*create_model>
-<*create_model>
  {Trailblazer::Activity::Right} => <*save>
 <*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*notify>
+<*notify>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:failure>
 )
-  end
-
-  it ":before" do
-    Memo = Id::Memo
-
-    #:before
-    class Memo::Create::Authorized < Memo::Create
-      step :policy, before: :create_model
-      #~before-methods
-      def policy(options, **)
-      end
-      #~before-methods end
     end
-    #:before end
+  end
+end
 
-=begin
-    output =
-      #:before-inspect
-      Trailblazer::Developer.railway(Memo::Create::Authorized)
-      #=> [>policy,>create_model,>validate,>save_the_world]
-      #:before-inspect end
-=end
+module C
+  class Before_DocsSequenceOptionsTest < Minitest::Spec
+    it ":before" do
+      Memo = A::Id_DocSeqOptionsTest::Memo
 
-    assert_process Id::Memo::Create::Authorized, :success, %(
+      #:before
+      module Memo::Activity
+        class Authorized < Memo::Activity::Create
+          step :policy, before: :validate
+          #~before-methods
+          include T.def_steps(:policy)
+          #~before-methods end
+        end
+      end
+      #:before end
+
+      assert_process Memo::Activity::Authorized, :success, :failure, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*policy>
 <*policy>
- {Trailblazer::Activity::Right} => <*create_model>
-<*create_model>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => <*save>
 <*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*notify>
+<*notify>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:failure>
 )
+    end
+
   end
+end
 
-  it ":after" do
-    Memo = Id::Memo
+module D
+  class After_DocsSequenceOptionsTest < Minitest::Spec
+    it ":before" do
+      Memo = Class.new(A::Id_DocSeqOptionsTest::Memo)
+      Memo::Activity = Module.new
+      Memo::Activity::Create = Class.new(A::Id_DocSeqOptionsTest::Memo::Activity::Create)
 
-    #:after
-    class Memo::Create::Logging < Memo::Create
-      step :logger, after: :validate
-      #~after-methods
-      def logger(options, **)
+      #:after
+      module Memo::Activity
+        class Authorized < Memo::Activity::Create
+          step :policy, after: :validate
+          #~before-methods
+          include T.def_steps(:policy)
+          #~before-methods end
+        end
       end
-      #~after-methods end
-    end
-    #:after end
+      #:after end
 
-=begin
-    output =
-      #:after-inspect
-      Trailblazer::Developer.railway(Memo::Create::Logging)
-      #=> [>create_model,>validate,>logger,>save_the_world]
-      #:after-inspect end
-=end
 
-    assert_process Id::Memo::Create::Logging, :success, %(
+    assert_process Memo::Activity::Authorized, :success, :failure, %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*create_model>
-<*create_model>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
- {Trailblazer::Activity::Right} => <*logger>
-<*logger>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*policy>
+<*policy>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => <*save>
 <*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*notify>
+<*notify>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:failure>
 )
+    end
   end
+end
 
-  it "{:replace} allows explicit {:id}" do
-    Memo = Id::Memo
-
-    #:replace
-    class Memo::Update < Memo::Create
-      step :find_model, replace: :create_model, id: :update_memo
-      #~replace-methods
-      def find_model(options, **)
+module E
+  class Replace_DocsSequenceOptionsTest < Minitest::Spec
+    Memo = Class.new
+    module Memo::Activity
+      class Create < Trailblazer::Activity::Railway
+        step :validate
+        step :save
+        step :notify
+        #~id-methods
+        include T.def_steps(:validate, :save, :notify)
+        #~id-methods end
       end
-      #~replace-methods end
     end
-    #:replace end
 
-=begin
-    output =
-      #:replace-inspect
-      Trailblazer::Developer.railway(Memo::Update)
-      #=> [>update_memo,>validate,>save_the_world]
-      #:replace-inspect end
-=end
+    it "{:replace} automatically assigns ID" do
+      #:replace
+      module Memo::Activity
+        class Update < Create
+          step :update, replace: :save
+          #~replace-methods
+          include T.def_steps(:update)
+          #~replace-methods end
+        end
 
-    assert Activity::Introspect.Nodes(Memo::Update, id: :update_memo)
+      end
+      #:replace end
 
-    assert_process Memo::Update, :success, %(
+      assert Activity::Introspect.Nodes(Memo::Activity::Update, id: :update)
+
+      assert_process Memo::Activity::Update, :success, :failure, %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*find_model>
-<*find_model>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
- {Trailblazer::Activity::Right} => <*save>
-<*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*update>
+<*update>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*notify>
+<*notify>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:failure>
 )
+    end
   end
+end
 
-  #@ unit test
-  it "{:replace} automatically computes {:id} from new step" do
-    activity = Class.new(Id::Memo::Create) do
-      step :find_model, replace: :create_model
+#@ {#replace} with {:id}
+module E_2
+  class Replace_With_ID_DocsSequenceOptionsTest < Minitest::Spec
+    Memo = Class.new
+    module Memo::Activity
+      class Create < Trailblazer::Activity::Railway
+        step :validate
+        step :save
+        step :notify
+        #~id-methods
+        include T.def_steps(:validate, :save, :notify)
+        #~id-methods end
+      end
     end
 
-    assert_process activity, :success, %(
+    it "{:replace} automatically assigns ID" do
+      #:replace
+      module Memo::Activity
+        class Update < Create
+          step :update, replace: :save, id: :update_memo
+          #~replace-methods
+          include T.def_steps(:update)
+          #~replace-methods end
+        end
+
+      end
+      #:replace end
+
+      assert Activity::Introspect.Nodes(Memo::Activity::Update, id: :update_memo)
+
+      assert_process Memo::Activity::Update, :success, :failure, %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*find_model>
-<*find_model>
  {Trailblazer::Activity::Right} => <*validate>
 <*validate>
- {Trailblazer::Activity::Right} => <*save>
-<*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*update>
+<*update>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*notify>
+<*notify>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:failure>
 )
+    end
   end
 end
