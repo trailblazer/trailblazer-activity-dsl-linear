@@ -55,7 +55,7 @@ class WiringApiDocsTest < Minitest::Spec
   it { assert_invoke B::Payment::Operation::Create, find_provider: false, seq: "[:find_provider]", terminus: :provider_invalid }
 
   it do
-    signal, (ctx, _) = B::Payment::Operation::Create.([{find_provider: false, seq: []}, {}])
+    signal, (ctx, _) = Trailblazer::Activity.(B::Payment::Operation::Create, find_provider: false, seq: [])
     assert_equal signal.to_h[:semantic], :provider_invalid
 =begin
     #:terminus-invalid
@@ -63,6 +63,48 @@ class WiringApiDocsTest < Minitest::Spec
     puts signal.to_h[:semantic] #=> :provider_invalid
     #:terminus-invalid end
 =end
+
+  end
+end
+
+#@ :magnetic_to
+module A
+  class MagneticTo_DocsTest < Minitest::Spec
+    Memo = Class.new
+    #:magnetic_to
+    module Memo::Activity
+      class Create < Trailblazer::Activity::Railway
+        step :validate
+        step :payment_provider, Output(:failure) => Track(:paypal)
+        step :charge_paypal, magnetic_to: :paypal
+        step :save
+      end
+    end
+    #:magnetic_to end
+
+    it "what" do
+#~ignore
+      assert_process Memo::Activity::Create, :success, :failure,  %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*validate>
+<*validate>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*payment_provider>
+<*payment_provider>
+ {Trailblazer::Activity::Left} => <*charge_paypal>
+ {Trailblazer::Activity::Right} => <*save>
+<*charge_paypal>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*save>
+<*save>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+)
+#~ignore end
+    end
 
   end
 end
