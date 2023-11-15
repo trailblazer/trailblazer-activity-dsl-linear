@@ -86,3 +86,23 @@ class ActivityPath_DocsTest < Minitest::Spec
 =end
   end
 end
+
+module R
+  class RailwayTest < Minitest::Spec
+    Memo = Class.new
+    #:memo-create
+      module Memo::Activity
+        class Create < Trailblazer::Activity::Railway
+          step :validate
+          #~body
+          step :save
+          left :handle_errors
+          step :notify
+          #~meths
+          include T.def_steps(:validate, :save, :handle_errors, :notify)
+          #~meths end
+        end
+      end
+      #:memo-create end
+  end
+end
