@@ -240,9 +240,23 @@ class ReturnSignal_DocsMechanicsTest < Minitest::Spec
     signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil, network_broken: false})
     assert_equal signal.to_h[:semantic], :success #!hint assert_equal result.success?, true
 
-    signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil, network_broken: true})
+    #:terminus
+    signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil, network_broken: true}) #!hint result = Memo::Operation::Create.(params: {memo: nil, network_broken: true})
+
+    signal.to_h[:semantic] #=> :network_error #!hint result.terminus.to_h[:semantic] #=> :network_error
+    #:terminus end
     assert_equal signal.to_h[:semantic], :network_error #!hint assert_equal result.success?, false
-    assert_equal signal.inspect, %(#<Trailblazer::Activity::End semantic=:network_error>) #!hint assert_equal result.event.inspect, %(#<Trailblazer::Activity::End semantic=:network_error>)
+    assert_equal signal.inspect, %(#<Trailblazer::Activity::End semantic=:network_error>) #!hint assert_equal result.terminus.to_h[:semantic], :network_error
+
+    #:terminus-subprocess
+    module Endpoint
+      class API < Trailblazer::Activity::Railway
+        step Subprocess(Memo::Activity::Create),
+          Output(:network_error) => Track(:failure)
+        # ...
+      end
+    end
+    #:terminus-subprocess end
   end
 end
 
