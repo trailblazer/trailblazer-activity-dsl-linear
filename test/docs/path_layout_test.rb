@@ -1,7 +1,23 @@
+require "test_helper"
+
+class ActivityPath_DocsTest < Minitest::Spec
+  class Form
+    def self.validate(input)
+      raise if input == :raise
+      input
+    end
+  end
+
+  Memo = Struct.new(:text) do
+    def self.create(options)
+      return options if options == false
+      new(options)
+    end
+  end
+
   it do
     module A
-      Memo = DocsStrategyTest::Memo
-
+      Memo = ActivityPath_DocsTest::Memo
       #:step
       module Memo::Activity
         class Create < Trailblazer::Activity::Path
@@ -69,3 +85,4 @@
     #:validate-call end
 =end
   end
+end
