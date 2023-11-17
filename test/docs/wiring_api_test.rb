@@ -121,6 +121,64 @@ class ExplicitOutput_WiringApiDocsTest < Minitest::Spec
   end
 end
 
+#@ Output => End
+class OutputToEnd_WiringApiDocsTest < Minitest::Spec
+  Memo = Class.new
+  #:output-end
+  module Memo::Activity
+    class Create < Trailblazer::Activity::Railway
+      step :validate
+      step :save,
+        Output(:failure) => End(:db_error)
+      left :handle_errors
+      step :notify
+      #~meths
+      include T.def_steps(:validate, :save, :handle_errors, :notify)
+      #~meths end
+    end
+  end
+  #:output-end end
+
+  it "what" do
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :notify]"
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save]", save: false, terminus: :db_error
+  end
+end
+
+#@ #terminus
+class Terminus_WiringApiDocsTest < Minitest::Spec
+  Memo = Class.new
+  #:terminus
+  module Memo::Activity
+    class CRUD < Trailblazer::Activity::Railway
+      step :validate
+      step :save
+      terminus :db_error
+      #~meths
+      include T.def_steps(:validate, :save, :handle_errors, :notify)
+      #~meths end
+    end
+  end
+  #:terminus end
+
+  #:terminus-sub
+  module Memo::Activity
+    class Create < CRUD
+      step :notify,
+        Output(:failure) => End(:db_error)
+      #~meths
+      include T.def_steps(:validate, :save, :handle_errors, :notify)
+      #~meths end
+    end
+  end
+  #:terminus-sub end
+
+  it "what" do
+    # assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :notify]"
+    # assert_invoke Memo::Activity::Create, seq: "[:validate, :save]", save: false, terminus: :db_error
+  end
+end
+
 class WiringApiDocsTest < Minitest::Spec
 # {#terminus} 1.0
   module A
@@ -129,7 +187,7 @@ class WiringApiDocsTest < Minitest::Spec
       end
     end
 
-    #:terminus
+    #:terminus-
     module Payment::Operation
       class Create < Trailblazer::Activity::Railway
         step :find_provider
@@ -140,7 +198,7 @@ class WiringApiDocsTest < Minitest::Spec
         #~meths end
       end
     end
-    #:terminus end
+    #:terminus- end
     # @diagram wiring-terminus
   end
 
