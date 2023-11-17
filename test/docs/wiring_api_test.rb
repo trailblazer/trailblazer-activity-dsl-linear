@@ -174,8 +174,9 @@ class Terminus_WiringApiDocsTest < Minitest::Spec
   #:terminus-sub end
 
   it "what" do
-    # assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :notify]"
-    # assert_invoke Memo::Activity::Create, seq: "[:validate, :save]", save: false, terminus: :db_error
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :notify]"
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save]", save: false, terminus: :failure
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :notify]", notify: false, terminus: :db_error
   end
 end
 
