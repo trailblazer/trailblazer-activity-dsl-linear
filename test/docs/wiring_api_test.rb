@@ -13,6 +13,32 @@ class Vanilla_WiringApiDocsTest < Minitest::Spec
       include T.def_steps(:validate, :save, :handle_errors, :notify)
     end
   end
+
+  it "what" do
+=begin
+#:render
+puts Trailblazer::Developer.render(Memo::Activity::Create)
+
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=validate>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=validate>
+ {Trailblazer::Activity::Left} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=handle_errors>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=save>
+ {Trailblazer::Activity::Left} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=handle_errors>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::TaskBuilder::Task user_proc=notify>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=handle_errors>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:failure>
+#<Trailblazer::Activity::TaskBuilder::Task user_proc=notify>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+#:render end
+=end
+  end
 end
 
 #@ Output => End
@@ -193,7 +219,6 @@ class Track_WiringApiDocsTest < Minitest::Spec
       step :charge_paypal,
         magnetic_to: :paypal, Output(:success) => Track(:paypal)
       step :charge_default
-
       #~meths
       include T.def_steps(:validate, :find_provider, :charge_paypal, :charge_default)
       #~meths end
@@ -205,6 +230,90 @@ class Track_WiringApiDocsTest < Minitest::Spec
     assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_default]"
     assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_paypal]", find_provider: false, terminus: :paypal
     assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_paypal]", find_provider: false, charge_paypal: false, terminus: :failure
+  end
+end
+
+#@ Path()
+class Path_WiringApiDocsTest < Minitest::Spec
+  Memo = Class.new
+  #:path-helper
+  module Memo::Activity
+    class Charge < Trailblazer::Activity::Railway
+      step :validate
+      step :find_provider,
+        Output(:failure) => Path(terminus: :paypal) do
+          # step :authorize # you can have multiple steps on a path.
+          step :charge_paypal
+        end
+      step :charge_default
+      #~meths
+      include T.def_steps(:validate, :find_provider, :charge_paypal, :charge_default)
+      #~meths end
+    end
+  end
+  #:path-helper end
+
+  it "what" do
+    assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_default]"
+    assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_paypal]", find_provider: false, terminus: :paypal
+    # TODO: this doesn't add a {failure} output.
+    # assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_paypal]", find_provider: false, charge_paypal: false, terminus: :failure
+  end
+end
+
+#@ Path() with error handling: Output()
+# class Path_WiringApiDocsTest < Minitest::Spec
+#   Memo = Class.new
+#   #:path-helper-failure
+#   module Memo::Activity
+#     class Charge < Trailblazer::Activity::Railway
+#       step :validate
+#       step :find_provider,
+#         Output(:failure) => Path(terminus: :paypal) do
+#           step :charge_paypal, Output(:failure) => Track(:failure) # route to the "global" failure track.
+#         end
+#       step :charge_default
+
+#       #~meths
+#       include T.def_steps(:validate, :find_provider, :charge_paypal, :charge_default)
+#       #~meths end
+#     end
+#   end
+#   #:path-helper-failure end
+
+#   it "what" do
+#     assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_default]"
+#     assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_paypal]", find_provider: false, terminus: :paypal
+#     assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_paypal]", find_provider: false, charge_paypal: false, terminus: :failure
+#   end
+# end
+
+#@ Path(:connect_to)
+class PathConnectTo_WiringApiDocsTest < Minitest::Spec
+  Memo = Class.new
+  #:path-helper-connect-to
+  module Memo::Activity
+    class Charge < Trailblazer::Activity::Railway
+      step :validate
+      step :find_provider,
+        Output(:failure) => Path(connect_to: Id(:finalize)) do
+          # step :authorize # you can have multiple steps on a path.
+          step :charge_paypal
+        end
+      step :charge_default
+      step :finalize
+      #~meths
+      include T.def_steps(:validate, :find_provider, :charge_paypal, :charge_default, :finalize)
+      #~meths end
+    end
+  end
+  #:path-helper-connect-to end
+
+  it "what" do
+    assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_default, :finalize]"
+    assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_paypal, :finalize]", find_provider: false
+    # TODO: this doesn't add a {failure} output.
+    # assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_paypal]", find_provider: false, charge_paypal: false, terminus: :failure
   end
 end
 
