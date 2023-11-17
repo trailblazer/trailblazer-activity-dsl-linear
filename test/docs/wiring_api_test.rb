@@ -180,6 +180,34 @@ class Terminus_WiringApiDocsTest < Minitest::Spec
   end
 end
 
+#@ Track()
+class Track_WiringApiDocsTest < Minitest::Spec
+  Memo = Class.new
+  #:custom-track
+  module Memo::Activity
+    class Charge < Trailblazer::Activity::Railway
+      terminus :paypal # add a custom terminus (if you need it)
+      step :validate
+      step :find_provider,
+        Output(:failure) => Track(:paypal)
+      step :charge_paypal,
+        magnetic_to: :paypal, Output(:success) => Track(:paypal)
+      step :charge_default
+
+      #~meths
+      include T.def_steps(:validate, :find_provider, :charge_paypal, :charge_default)
+      #~meths end
+    end
+  end
+  #:custom-track end
+
+  it "what" do
+    assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_default]"
+    assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_paypal]", find_provider: false, terminus: :paypal
+    assert_invoke Memo::Activity::Charge, seq: "[:validate, :find_provider, :charge_paypal]", find_provider: false, charge_paypal: false, terminus: :failure
+  end
+end
+
 class WiringApiDocsTest < Minitest::Spec
 # {#terminus} 1.0
   module A
