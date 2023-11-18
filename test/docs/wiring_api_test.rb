@@ -62,25 +62,28 @@ class Output_WiringApiDocsTest < Minitest::Spec
   end
 end
 
-#@ Output => End
+#@ failure/Output => End
 class OutputOnLeft_WiringApiDocsTest < Minitest::Spec
   Memo = Class.new
+  #:left
   module Memo::Activity
     class Create < Trailblazer::Activity::Railway
       step :validate
       step :save
-      left :fix_errors,
+      left :handle_errors,
         Output(:success) => Track(:success)
       step :notify
       #~meths
-      include T.def_steps(:validate, :save, :fix_errors, :notify)
+      include T.def_steps(:validate, :save, :handle_errors, :notify)
+      #~meths end
     end
   end
+  #:left end
 
   it "what" do
     assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :notify]"
-    assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :fix_errors, :notify]", save: false
-    assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :fix_errors]", save: false, fix_errors: false, terminus: :failure
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :handle_errors, :notify]", save: false
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :handle_errors]", save: false, handle_errors: false, terminus: :failure
   end
 end
 
