@@ -108,6 +108,30 @@ class OutputToSuccess_WiringApiDocsTest < Minitest::Spec
   end
 end
 
+#@ Output => Id
+class OutputToId_WiringApiDocsTest < Minitest::Spec
+  Memo = Class.new
+  #:output-id
+  module Memo::Activity
+    class Create < Trailblazer::Activity::Railway
+      step :validate,
+        Output(:failure) => Id(:notify)
+      step :save
+      left :handle_errors
+      step :notify
+      #~meths
+      include T.def_steps(:validate, :save, :handle_errors, :notify)
+      #~meths end
+    end
+  end
+  #:output-id end
+
+  it "what" do
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :notify]"
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :notify]", validate: false
+  end
+end
+
 #@ Output(semantic, Signal) => Track
 class ExplicitOutput_WiringApiDocsTest < Minitest::Spec
   Memo = Struct.new(:save_result) do
