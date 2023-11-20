@@ -1,38 +1,44 @@
 require "test_helper"
 
+class SubprocessDocsTest < Minitest::Spec
+  Memo = Class.new
+  #:nested
+  module Memo::Activity
+    class Validate < Trailblazer::Activity::Railway
+      step :check_params
+      step :text_present?
+      #~meths
+      include T.def_steps(:check_params, :text_present?)
+      #~meths end
+    end
+  end
+  #:nested end
+
+  #:container
+  module Memo::Activity
+    class Create < Trailblazer::Activity::Railway
+      step Subprocess(Validate)
+      step :save
+      left :handle_errors
+      step :notify
+      #~meths
+      include T.def_steps(:validate, :save, :handle_errors, :notify)
+      #~meths end
+    end
+  end
+  #:container end
+
+  it "what" do
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :save, :notify]"
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :save, :handle_errors]", save: false, terminus: :failure
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :handle_errors]", text_present?: false, terminus: :failure
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :handle_errors]", check_params: false, terminus: :failure
+  end
+end
+
+
 class SubprocessTest < Minitest::Spec
   it do
-    module A
-      Memo = Class.new
-
-      #:nested
-      class Memo::Validate < Trailblazer::Activity::Railway
-        step :check_params
-        step :check_attributes
-        #~methods
-        include T.def_steps(:check_params, :check_attributes)
-        #~methods end
-      end
-      #:nested end
-
-      #:container
-      class Memo::Create < Trailblazer::Activity::Railway
-        step :create_model
-        step Subprocess(Memo::Validate)
-        step :save
-        #~methods
-        include T.def_steps(:create_model, :save)
-        #~methods
-      end
-      #:container end
-
-    end
-
-    _signal, (ctx, _) = A::Memo::Create.([{seq: []}, {}])
-    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params, :check_attributes, :save]}}
-
-    _signal, (ctx, _) = A::Memo::Create.([{seq: [], check_params: false}, {}])
-    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params], :check_params=>false}}
 
     module B
       Memo = Class.new
