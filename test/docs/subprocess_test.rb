@@ -110,6 +110,84 @@ class SubprocessDocsTest < Minitest::Spec
   end
 end
 
+class Strict_Exception_SubprocessDocsTest < Minitest::Spec
+  Memo = Class.new
+
+  module Memo::Activity
+    class Validate < Trailblazer::Activity::Railway
+      step :check_params,
+        Output(:failure) => End(:invalid)
+      step :text_present?
+      #~meths
+      include T.def_steps(:check_params, :text_present?)
+      #~meths end
+    end
+  end
+
+  module Memo::Activity
+    class Create < Trailblazer::Activity::Railway
+      step Subprocess(Validate) # no wiring of {:invalid} terminus.
+      step :save
+      left :handle_errors
+      step :notify
+      #~meths
+      include T.def_steps(:validate, :save, :handle_errors, :notify)
+      #~meths end
+    end
+  end
+
+  it "raises {IllegalSignalError} at runtime when not connected" do
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :save, :notify]"
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :save, :handle_errors]", save: false, terminus: :failure
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :handle_errors]", text_present?: false, terminus: :failure
+    exception = assert_raises Trailblazer::Activity::Circuit::IllegalSignalError do
+      assert_invoke Memo::Activity::Create, seq: "[:check_params, :handle_errors]", check_params: false, terminus: :failure
+    end
+
+    assert_equal exception.message.split("\n")[1][0..82], %(\e[31mUnrecognized Signal `#<Trailblazer::Activity::End semantic=:invalid>` returned)
+  end
+end
+
+class Strict_SubprocessDocsTest < Minitest::Spec
+  Memo = Class.new
+
+  module Memo::Activity
+    class Validate < Trailblazer::Activity::Railway
+      step :check_params,
+        Output(:failure) => End(:invalid)
+      step :text_present?
+      #~meths
+      include T.def_steps(:check_params, :text_present?)
+      #~meths end
+    end
+  end
+
+  module Memo::Activity
+    class Create < Trailblazer::Activity::Railway
+      step Subprocess(Validate, strict: true) # no wiring of {:invalid} terminus.
+      step :save
+      left :handle_errors
+      step :notify
+      #~meths
+      include T.def_steps(:validate, :save, :handle_errors, :notify)
+      #~meths end
+    end
+  end
+
+  it "raises {IllegalSignalError} at runtime when not connected" do
+    skip "see https://github.com/trailblazer/trailblazer-activity-dsl-linear/issues/59"
+
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :save, :notify]"
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :save, :handle_errors]", save: false, terminus: :failure
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :handle_errors]", text_present?: false, terminus: :failure
+    # exception = assert_raises Trailblazer::Activity::Circuit::IllegalSignalError do
+      assert_invoke Memo::Activity::Create, seq: "[:check_params, :handle_errors]", check_params: false, terminus: :failure
+    # end
+
+    # assert_equal exception.message.split("\n")[1][0..82], %(\e[31mUnrecognized Signal `#<Trailblazer::Activity::End semantic=:invalid>` returned)
+  end
+end
+
 class SubprocessTest < Minitest::Spec
 
 
