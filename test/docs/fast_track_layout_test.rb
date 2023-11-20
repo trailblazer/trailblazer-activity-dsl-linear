@@ -55,7 +55,7 @@ class FastTrack_Layout_FastTrack_DocTest < Minitest::Spec
           fail :handle_errors
 
           def validate(ctx, params:, **)
-            return Trailblazer::Activity::FastTrack::FailFast if params.nil?
+            return Trailblazer::Activity::FastTrack::FailFast if params.nil? #!hint return Railway.fail_fast! if params.nil?
 
             params.key?(:memo)
           end
