@@ -36,66 +36,83 @@ class SubprocessDocsTest < Minitest::Spec
   end
 end
 
+class Output_SubprocessDocsTest < Minitest::Spec
+  Memo = Class.new
+
+  module Memo::Activity
+    class Validate < Trailblazer::Activity::Railway
+      step :check_params
+      step :text_present?
+      #~meths
+      include T.def_steps(:check_params, :text_present?)
+      #~meths end
+    end
+  end
+
+  #:container-output
+  module Memo::Activity
+    class Create < Trailblazer::Activity::Railway
+      step Subprocess(Validate),
+        Output(:failure) => Id(:notify)
+      step :save
+      left :handle_errors
+      step :notify
+      #~meths
+      include T.def_steps(:validate, :save, :handle_errors, :notify)
+      #~meths end
+    end
+  end
+  #:container-output end
+
+  it "what" do
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :save, :notify]"
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :save, :handle_errors]", save: false, terminus: :failure
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :notify]", text_present?: false
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :notify]", check_params: false
+  end
+end
+
+class SubprocessDocsTest < Minitest::Spec
+  Memo = Class.new
+  #:nested-terminus
+  module Memo::Activity
+    class Validate < Trailblazer::Activity::Railway
+      step :check_params,
+        Output(:failure) => End(:invalid)
+      step :text_present?
+      #~meths
+      include T.def_steps(:check_params, :text_present?)
+      #~meths end
+    end
+  end
+  #:nested-terminus end
+
+  #:container-terminus
+  module Memo::Activity
+    class Create < Trailblazer::Activity::Railway
+      step Subprocess(Validate),
+        Output(:invalid) => Track(:failure)
+      step :save
+      left :handle_errors
+      step :notify
+      #~meths
+      include T.def_steps(:validate, :save, :handle_errors, :notify)
+      #~meths end
+    end
+  end
+  #:container-terminus end
+
+  it "what" do
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :save, :notify]"
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :save, :handle_errors]", save: false, terminus: :failure
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :text_present?, :handle_errors]", text_present?: false, terminus: :failure
+    assert_invoke Memo::Activity::Create, seq: "[:check_params, :handle_errors]", check_params: false, terminus: :failure
+  end
+end
 
 class SubprocessTest < Minitest::Spec
-  it do
 
-    module B
-      Memo = Class.new
-      Memo::Validate = A::Memo::Validate
 
-      #:reconnect
-      class Memo::Create < Trailblazer::Activity::Railway
-        step :create_model
-        step Subprocess(Memo::Validate), Output(:failure) => Track(:success)
-        step :save
-        #~methods
-        include T.def_steps(:create_model, :save)
-        #~methods end
-      end
-      #:reconnect end
-
-    end
-    signal, (ctx, _) = B::Memo::Create.([{seq: []}, {}])
-    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params, :check_attributes, :save]}}
-
-    signal, (ctx, _) = B::Memo::Create.([{seq: [], check_params: false}, {}])
-    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params, :save], :check_params=>false}}
-  end
-
-  it do
-    module C
-      Memo = Class.new
-
-      #:end-nested
-      class Memo::Validate < Trailblazer::Activity::Railway
-        step :check_params, Output(:failure) => End(:invalid_params)
-        step :check_attributes
-        #~methods
-        include T.def_steps(:check_params, :check_attributes)
-        #~methods end
-      end
-      #:end-nested end
-
-      #:end
-      class Memo::Create < Trailblazer::Activity::Railway
-        step :create_model
-        step Subprocess(Memo::Validate), Output(:invalid_params) => Track(:failure)
-        step :save
-        #~methods
-        include T.def_steps(:create_model, :save)
-        #~methods end
-      end
-      #:end end
-
-    end
-
-    _signal, (ctx, _) = C::Memo::Create.([{seq: []}, {}])
-    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params, :check_attributes, :save]}}
-
-    _signal, (ctx, _) = C::Memo::Create.([{seq: [], check_params: false}, {}])
-    _(ctx.inspect).must_equal %{{:seq=>[:create_model, :check_params], :check_params=>false}}
-  end
 
   it "subprocess automatically does not wire all termini of a nested activity, you need to configure it" do
     module D
