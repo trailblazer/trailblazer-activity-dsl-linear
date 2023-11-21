@@ -188,6 +188,110 @@ class Strict_SubprocessDocsTest < Minitest::Spec
   end
 end
 
+class FixmeSubprocess_FailFast_DocsTest < Minitest::Spec
+  Memo = Class.new
+  module Memo::Activity
+    class Create < Trailblazer::Activity::FastTrack
+      step :validate,
+        fail_fast: true
+      step :save
+      #~meths
+      include T.def_steps(:validate, :save)
+      #~meths end
+    end
+  end
+
+  it do
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save]"
+    assert_invoke Memo::Activity::Create, seq: "[:validate]", terminus: :fail_fast, validate: false
+  end
+end
+
+class Subprocess_FailFast_DocsTest < Minitest::Spec
+  Memo = Struct.new(:id)
+
+  module Memo::Activity
+    class Validate < Trailblazer::Activity::Railway # Validate is a {Railway}
+      step :validate
+      include T.def_steps(:validate)
+    end
+  end
+
+  module Memo::Activity
+    class Create < Trailblazer::Activity::FastTrack
+      step Subprocess(Validate), fail_fast: true
+      step :save
+      #~meths
+      include T.def_steps(:save)
+      #~meths end
+    end
+  end
+
+  it do
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save]"
+    assert_invoke Memo::Activity::Create, seq: "[:validate]", terminus: :fail_fast, validate: false
+  end
+end
+
+class Subprocess_PassFast_DocsTest < Minitest::Spec
+  Memo = Struct.new(:id)
+
+  module Memo::Activity
+    class Validate < Trailblazer::Activity::Railway
+      step :validate
+      include T.def_steps(:validate)
+    end
+  end
+
+  module Memo::Activity
+    class Create < Trailblazer::Activity::FastTrack
+      step Subprocess(Validate), pass_fast: true
+      step :save
+      #~meths
+      include T.def_steps(:save)
+      #~meths end
+    end
+  end
+
+  it do
+    assert_invoke Memo::Activity::Create, seq: "[:validate]", terminus: :pass_fast
+    assert_invoke Memo::Activity::Create, seq: "[:validate]", terminus: :failure, validate: false
+  end
+end
+
+class Subprocess_FastTrack_DocsTest < Minitest::Spec
+  Memo = Struct.new(:id)
+
+  module Memo::Activity
+    class Validate < Trailblazer::Activity::FastTrack
+      step :validate, fast_track: true
+      include T.def_steps(:validate)
+    end
+  end
+
+  #:subprocess-fast-track
+  module Memo::Activity
+    class Create < Trailblazer::Activity::FastTrack
+      step Subprocess(Validate), fast_track: true
+      step :save
+      left :handle_errors
+      step :notify
+      #~meths
+      include T.def_steps(:save, :handle_errors, :notify)
+      #~meths end
+    end
+  end
+  #:subprocess-fast-track end
+
+  it do
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :save, :notify]" # validate returns {true}.
+    assert_invoke Memo::Activity::Create, seq: "[:validate, :handle_errors]", validate: false, terminus: :failure # validate returns {false}.
+    assert_invoke Memo::Activity::Create, seq: "[:validate]", validate: Trailblazer::Activity::FastTrack::PassFast, terminus: :pass_fast # validate returns {pass_fast!}.
+    assert_invoke Memo::Activity::Create, seq: "[:validate]", validate: Trailblazer::Activity::FastTrack::FailFast, terminus: :fail_fast # validate returns {fail_fast!}.
+  end
+end
+
+
 class SubprocessTest < Minitest::Spec
 
 
