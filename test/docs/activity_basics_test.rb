@@ -51,7 +51,7 @@ module X
       )
 
       puts signal #=> #<Trailblazer::Activity::End semantic=:success>
-      puts signal.to_h[:semantic] #=> :success
+      puts signal.to_h[:semantic] #=> :success #!hint puts result.terminus.to_h[:semantic] #=> :success
       #:memo-call end
 
       #:memo-call-model
