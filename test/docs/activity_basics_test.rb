@@ -64,13 +64,15 @@ module X
       #:memo-call-model end
       #~ctx_to_result end
 
-      assert_equal signal.inspect, %(#<Trailblazer::Activity::End semantic=:success>)
+      assert_equal signal.inspect, %(#<Trailblazer::Activity::End semantic=:success>) #!hint assert_equal result.terminus.inspect, %(#<Trailblazer::Activity::Railway::End::Success semantic=:success>)
+      #~ignore
       assert_equal ctx.inspect, %({:params=>{:memo=>{:text=>\"Do not forget!\"}}, :model=>#<struct X::DocsActivityTest::Memo options={:text=>\"Do not forget!\"}>})
 
       model = ctx[:model]
 
       assert_invoke Memo::Activity::Create, seq: "[]", params: {memo: {text: "Do not forget!"}}, expected_ctx_variables: {model: model}
       assert_invoke Memo::Activity::Create, seq: "[:handle_errors]", params: {}, terminus: :failure
+      #~ignore end
     end
   end
 end

@@ -1,5 +1,6 @@
 require "test_helper"
 
+# FIXME: delete this test at some point.
 class DocsStrategyTest < Minitest::Spec
   class Form
     def self.validate(input)

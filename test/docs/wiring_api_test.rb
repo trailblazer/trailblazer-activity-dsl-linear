@@ -144,7 +144,7 @@ class ExplicitOutput_WiringApiDocsTest < Minitest::Spec
   #:output-explicit
   module Memo::Activity
     class Create < Trailblazer::Activity::Railway
-      class DbError < Trailblazer::Activity::Signal; end
+      class DbError < Trailblazer::Activity::Signal; end #!hint class DbError < Trailblazer::Activity::Signal; end
 
       step :validate
       step :save,

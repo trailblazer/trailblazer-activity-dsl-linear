@@ -176,7 +176,7 @@ class CVInCallableTest < Minitest::Spec
 
   it "exception because we don't pass {:current_user}" do
     exception = assert_raises ArgumentError do
-      result = Trailblazer::Activity::TaskWrap.invoke(Memo::Activity::Create, [{}, {}]) # no {:current_user}
+      result = Trailblazer::Activity.(Memo::Activity::Create, {}) # no {:current_user}
     end
 
     assert_equal exception.message, "missing keyword: #{Trailblazer::Core.symbol_inspect_for(:user)}"
@@ -406,9 +406,9 @@ class CVMacroTest < Minitest::Spec
       {
         task: Policy::Create,
         wrap_task: true,
-        Trailblazer::Activity::Railway.In()  => {:current_user => :user},
-        Trailblazer::Activity::Railway.In()  => [:model],
-        Trailblazer::Activity::Railway.Out() => {:message => :message_from_policy},
+        Trailblazer::Activity::Railway.In()  => {:current_user => :user}, #!hint Trailblazer::Activity::Railway.In()  => {:current_user => :user},
+        Trailblazer::Activity::Railway.In()  => [:model], #!hint Trailblazer::Activity::Railway.In()  => [:model],
+        Trailblazer::Activity::Railway.Out() => {:message => :message_from_policy}, #!hint Trailblazer::Activity::Railway.Out() => {:message => :message_from_policy},
       }
     end
   end
@@ -863,7 +863,7 @@ end
 #@ In() can override Inject() if it was added last.
 class InInjectSortingTest < Minitest::Spec
   it do
-    activity = Class.new(Trailblazer::Activity::Railway) do
+    activity = Class.new(Trailblazer::Activity::Railway) do #!hint activity = Class.new(Trailblazer::Activity::Railway) do
       step :params,
         Inject()  => [:params],
         In()      => ->(ctx, **) { {params: {id: 1}}  }

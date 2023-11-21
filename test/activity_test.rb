@@ -753,7 +753,7 @@ end
 class GraphDeprecationTest < Minitest::Spec
   module Trailblazer::Developer
     module Introspect
-      module Graph
+      class Graph
         def self.new(*)
         end
       end
