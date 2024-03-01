@@ -312,3 +312,39 @@ class DocsPathTest < Minitest::Spec
 }
   end
 end
+
+class DocsPathWithRailwayOptionTest < Minitest::Spec
+  Memo = Class.new
+
+  module Memo::Activity
+    class Attach < Trailblazer::Activity::Railway
+      step :upload_exists?,
+        Output(:failure) => Path(connect_to: Track(:success)) do
+          step :aws_signin,
+            Output(Trailblazer::Activity::Left, :failure) => Track(:failure)
+          step :upload,
+            Output(Trailblazer::Activity::Left, :failure) => Track(:failure) # FIXME: this configuration gets lost.
+        end
+    end
+  end
+
+  it "we can explicitly connect {:failure} outputs in a Path(), even the last one" do
+    assert_process_for Memo::Activity::Attach, :success, :failure, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*upload_exists?>
+<*upload_exists?>
+ {Trailblazer::Activity::Left} => <*aws_signin>
+ {Trailblazer::Activity::Right} => #<End/:success>
+<*aws_signin>
+ {Trailblazer::Activity::Right} => <*upload>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+<*upload>
+ {Trailblazer::Activity::Right} => #<End/:success>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+#<End/:success>
+
+#<End/:failure>)
+  end
+end
+
+# TODO: add {Path(railway: true)}
