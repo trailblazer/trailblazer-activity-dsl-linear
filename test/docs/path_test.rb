@@ -343,7 +343,8 @@ class DocsPathWithRailwayOptionTest < Minitest::Spec
  {Trailblazer::Activity::Left} => #<End/:failure>
 #<End/:success>
 
-#<End/:failure>)
+#<End/:failure>
+)
   end
 end
 
