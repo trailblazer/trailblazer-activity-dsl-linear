@@ -1,3 +1,15 @@
+# 1.2.5
+
+* Fix a bug where, within a helper `Path()`, the last step couldn't
+explicitly define additional `Output()`, e.g. for `:failure`.
+
+```ruby
+... => Path(connect_to: Track(:success)) do
+  step :upload,
+    Output(Trailblazer::Activity::Left, :failure) => Track(:failure) # FIXME: this configuration gets lost.
+end
+```
+
 # 1.2.4
 
 * Fix a bug where using `fail_fast: true` (same with `:pass_fast`) would result in a
