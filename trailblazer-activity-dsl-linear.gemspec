@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "trailblazer-declarative", ">= 0.0.1", "< 0.1.0"
 
   spec.add_development_dependency "bundler"
-  spec.add_development_dependency "minitest", ">= 5.15.0", "< 5.16.0"
+  spec.add_development_dependency "minitest"#, ">= 5.15.0", "< 5.16.0"
   spec.add_development_dependency "rake"
   spec.add_development_dependency "trailblazer-core-utils", "0.0.2"
 
