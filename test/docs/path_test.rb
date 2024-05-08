@@ -168,45 +168,84 @@ class DocsPathTest < Minitest::Spec
 
   it "allows multiple Path()s per step" do
     module D
+      #:path-switch
       class Charge < Trailblazer::Activity::Railway
-        include T.def_steps(:validate, :decide_type, :direct_debit, :finalize, :authorize, :charge)
+        UseStripe     = Class.new(Trailblazer::Activity::Signal)
+        UseBraintree  = Class.new(Trailblazer::Activity::Signal)
+        Unknown       = Class.new(Trailblazer::Activity::Signal)
 
-        failure_path = ->(*) { step :go }
-        success_path = ->(*) { step :surf }
+        StripeTrack = lambda do
+          step :stripe
+          step :stripe_invoice
+        end
 
-        step :validate
-        step :decide_type,
-          Output(:failure) => Path(connect_to: Id(:finalize), &failure_path),
-          Output(:success) => Path(connect_to: Id(:finalize), &success_path)
-        step :direct_debit
-        step :finalize
+        BraintreeTrack = lambda do
+          step :braintree
+          step :braintree_invoice
+        end
+
+        UnknownTrack = lambda do
+          step :log_error
+        end
+
+        step :gateway_type,
+          Output(UseStripe, :stripe) => Path(end_id: "End.stripe", end_task: End(:stripe), &StripeTrack),
+          Output(UseBraintree, :braintree) => Path(end_id: "End.braintree", end_task: End(:braintree), &BraintreeTrack),
+          Output(Unknown, :unknown) => Path(end_id: "End.invalid", end_task: End(:invalid), &UnknownTrack)
+
+        def gateway_type(ctx, params:, **)
+          case params[:gateway_type]
+          when :stripe then UseStripe
+          when :braintree then UseBraintree
+          else Unknown
+          end
+        end
+
+        #~meths
+        include T.def_steps(:stripe, :stripe_invoice, :braintree, :braintree_invoice, :log_error)
+        #~meths-end
       end
-      #:path-railway end
+      #:path-switch-end
     end
 
-    assert_process_for D::Charge, :success, :failure, %{
+    assert_process_for D::Charge, :success, :invalid, :braintree, :stripe, :failure, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*validate>
-<*validate>
- {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => <*decide_type>
-<*decide_type>
- {Trailblazer::Activity::Left} => <*go>
- {Trailblazer::Activity::Right} => <*surf>
-<*go>
- {Trailblazer::Activity::Right} => <*finalize>
-<*surf>
- {Trailblazer::Activity::Right} => <*finalize>
-<*direct_debit>
- {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => <*finalize>
-<*finalize>
+ {Trailblazer::Activity::Right} => <*gateway_type>
+<*gateway_type>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
+ {DocsPathTest::D::Charge::UseStripe} => <*stripe>
+ {DocsPathTest::D::Charge::UseBraintree} => <*braintree>
+ {DocsPathTest::D::Charge::Unknown} => <*log_error>
+<*stripe>
+ {Trailblazer::Activity::Right} => <*stripe_invoice>
+<*stripe_invoice>
+ {Trailblazer::Activity::Right} => #<End/:stripe>
+<*braintree>
+ {Trailblazer::Activity::Right} => <*braintree_invoice>
+<*braintree_invoice>
+ {Trailblazer::Activity::Right} => #<End/:braintree>
+<*log_error>
+ {Trailblazer::Activity::Right} => #<End/:invalid>
 #<End/:success>
+
+#<End/:invalid>
+
+#<End/:braintree>
+
+#<End/:stripe>
 
 #<End/:failure>
 }
+
+    signal, (ctx, flow_options) = D::Charge.([ { seq: [], params: { gateway_type: :stripe } }, {} ])
+    _(ctx[:seq]).must_equal([:stripe, :stripe_invoice])
+
+    signal, (ctx, flow_options) = D::Charge.([ { seq: [], params: { gateway_type: :braintree } }, {} ])
+    _(ctx[:seq]).must_equal([:braintree, :braintree_invoice])
+
+    signal, (ctx, flow_options) = D::Charge.([ { seq: [], params: { gateway_type: :dummy } }, {} ])
+    _(ctx[:seq]).must_equal([:log_error])
   end
 
   it "Path() => Track(:success) will connect the path's end to a track" do
