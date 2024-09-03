@@ -60,8 +60,15 @@ module Trailblazer
               raise $!, "#{self}:#{$!.message}"
             end
 
+            # COMPILER_FIXME = Sequence::Compiler::WithIntermediate
+            @@Compiler___Fixme = Sequence::Compiler
+            def Compiler___Fixme=(value)
+              @@Compiler___Fixme = value
+            end
+
             private def recompile_activity(sequence)
-              schema = Sequence::Compiler.(sequence)
+              # schema = Sequence::Compiler.(sequence)
+              schema = @@Compiler___Fixme.(sequence)
               Activity.new(schema)
             end
 
@@ -112,7 +119,6 @@ module Trailblazer
               TaskWrap.invoke(self, *args, **kws)
             end
           end # class << self
-          # FIXME: do we want class << self?!
 
           module DSL
             module_function
