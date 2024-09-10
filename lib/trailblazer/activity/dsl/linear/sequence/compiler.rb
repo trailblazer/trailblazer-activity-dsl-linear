@@ -61,12 +61,9 @@ module Trailblazer
 
               config = Activity::Schema::Intermediate::Compiler::DEFAULT_CONFIG
 
-              return circuit,
-                activity_outputs,
-                Schema::Nodes(nodes_attributes),
-                config
+              nodes = Schema::Nodes(nodes_attributes)
 
-              Schema.new(circuit, outputs, nodes, config)
+              Schema.new(circuit, activity_outputs, nodes, config)
             end
 
             # Execute all search strategies for a row, retrieve outputs and
