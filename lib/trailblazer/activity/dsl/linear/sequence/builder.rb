@@ -3,7 +3,8 @@ module Trailblazer
     module DSL
       module Linear
         class Sequence
-          # Implements a DSL Builder pattern.
+          # Run a normalizer for a user DSL input, and then apply the new step using the ADDS interface
+          # to the sequence.
           module Builder
             # @return Sequence
             def self.call(method, argument, options, **kws, &block)
