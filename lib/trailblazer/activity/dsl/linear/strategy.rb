@@ -60,15 +60,9 @@ module Trailblazer
               raise $!, "#{self}:#{$!.message}"
             end
 
-            # COMPILER_FIXME = Sequence::Compiler::WithIntermediate
-            @@Compiler___Fixme = Sequence::Compiler
-            def Compiler___Fixme=(value)
-              @@Compiler___Fixme = value
-            end
-
             private def recompile_activity(sequence)
-              # schema = Sequence::Compiler.(sequence)
-              schema = @@Compiler___Fixme.(sequence)
+              schema = Sequence::Compiler.(sequence)
+
               Activity.new(schema)
             end
 
