@@ -42,7 +42,7 @@ class ActivityPath_DocsTest < Minitest::Spec
     signal, (ctx, flow_options) = A::Memo::Activity::Create.([ctx, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}}}
+    assert_equal CU.inspect(ctx), %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}}}
   end
 
   it do
@@ -70,12 +70,12 @@ class ActivityPath_DocsTest < Minitest::Spec
     signal, (ctx, _flow_options) = B::Create.([ctx, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}}}
+    assert_equal CU.inspect(ctx), %{{:params=>{:text=>\"Hydrate!\"}, :input=>{:text=>\"Hydrate!\"}}}
 
     ctx = {params: nil}
     signal, (ctx, _flow_options) = B::Create.([ctx, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:invalid>}
-    _(ctx.inspect).must_equal %{{:params=>nil, :input=>nil}}
+    assert_equal CU.inspect(ctx), %{{:params=>nil, :input=>nil}}
 =begin
     #:validate-call
     ctx = {params: nil}

@@ -10,9 +10,9 @@ class TerminusTest < Minitest::Spec
     end
 
     #@ IDs are automatically computed in case of no {:id} option.
-    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.not_found").data.inspect, %{{:id=>\"End.not_found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true, :semantic=>:not_found}}
-    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.found_it!").data.inspect, %{{:id=>\"End.found_it!\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true, :semantic=>:found_it}}
-    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.found").data.inspect, %{{:id=>\"End.found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true, :semantic=>:found}}
+    assert_equal CU.inspect(Trailblazer::Activity::Introspect.Nodes(activity, id: "End.not_found").data), %{{:id=>\"End.not_found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true, :semantic=>:not_found}}
+    assert_equal CU.inspect(Trailblazer::Activity::Introspect.Nodes(activity, id: "End.found_it!").data), %{{:id=>\"End.found_it!\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true, :semantic=>:found_it}}
+    assert_equal CU.inspect(Trailblazer::Activity::Introspect.Nodes(activity, id: "End.found").data), %{{:id=>\"End.found\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true, :semantic=>:found}}
 
     with_steps = Class.new(activity) do
       step :a,
@@ -60,7 +60,7 @@ class TerminusTest < Minitest::Spec
     end
 
     #@ {:task} allows passing {End} instance
-    assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.tell_me").data.inspect, %{{:id=>\"End.tell_me\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true, :semantic=>:tell_me}}
+    assert_equal CU.inspect(Trailblazer::Activity::Introspect.Nodes(activity, id: "End.tell_me").data), %({:id=>\"End.tell_me\", :dsl_track=>:terminus, :extensions=>nil, :stop_event=>true, :semantic=>:tell_me})
     assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.tell_me").task.class, my_terminus_class
   end
 end

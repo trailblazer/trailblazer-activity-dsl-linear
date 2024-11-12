@@ -173,12 +173,12 @@ class ActivityTest < Minitest::Spec
       signal, (ctx, _) = activity.([{seq: [], a: false}])
 
       _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:new>}
-      _(ctx.inspect).must_equal     %{{:seq=>[:a], :a=>false}}
+      CU.inspect(ctx).must_equal     %{{:seq=>[:a], :a=>false}}
 
       new_signal, (ctx, _) = activity.([{seq: [], b: true}])
 
       _(new_signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:new>}
-      _(ctx.inspect).must_equal %{{:seq=>[:a, :c, :b], :b=>true}}
+      CU.inspect(ctx).must_equal %{{:seq=>[:a, :c, :b], :b=>true}}
   # End.new is always the same instance
       _(signal).must_equal new_signal
 
@@ -382,11 +382,11 @@ class ActivityTest < Minitest::Spec
 
     signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:seq=>[1, :a]}}
+    CU.inspect(ctx).must_equal %{{:seq=>[1, :a]}}
 
     signal, (ctx, _) = Activity::TaskWrap.invoke(sub, [{seq: []}, {}])
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:seq=>[1, :a]}}
+    CU.inspect(ctx).must_equal %{{:seq=>[1, :a]}}
 
   #@ When changing subclass, superclass doesn't change
 
@@ -520,12 +520,12 @@ class ActivityTest < Minitest::Spec
     signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:seq=>[:a, :b]}}
+    CU.inspect(ctx).must_equal %{{:seq=>[:a, :b]}}
 
     signal, (ctx, _) = Activity::TaskWrap.invoke(sub_activity, [{seq: []}, {}])
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:seq=>[:a, :b, :f]}}
+    CU.inspect(ctx).must_equal %{{:seq=>[:a, :b, :f]}}
   end
 
   describe "#merge!" do
@@ -604,13 +604,13 @@ class ActivityTest < Minitest::Spec
         signal, (ctx, _) = activity.([{seq: []}])
 
         _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-        _(ctx.inspect).must_equal     %{{:seq=>[:a, :b, :c]}}
+        CU.inspect(ctx).must_equal     %{{:seq=>[:a, :b, :c]}}
 
   # a --> Nested(b) --> :failure
         signal, (ctx, _) = activity.([{seq: [], b: false}])
 
         _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-        _(ctx.inspect).must_equal     %{{:seq=>[:a, :b], :b=>false}}
+        CU.inspect(ctx).must_equal     %{{:seq=>[:a, :b], :b=>false}}
       end
 
       scenario "manual wiring with Subprocess()" do
@@ -624,14 +624,14 @@ class ActivityTest < Minitest::Spec
           signal, (ctx, _) = activity.([{seq: []}])
 
           _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-          _(ctx.inspect).must_equal     %{{:seq=>[:a, :b]}}
+          CU.inspect(ctx).must_equal     %{{:seq=>[:a, :b]}}
         end
 
         test "Nested's :failure goes to outer :failure per default" do
           signal, (ctx, _) = activity.([{seq: [], b: false}])
 
           _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-          _(ctx.inspect).must_equal     %{{:seq=>[:a, :b], :b=>false}}
+          CU.inspect(ctx).must_equal     %{{:seq=>[:a, :b], :b=>false}}
         end
       end
     end
@@ -717,7 +717,7 @@ class ActivityTest < Minitest::Spec
     signal, (ctx, _) = activity.([{seq: []}])
 
     _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal     %{{:seq=>[:a, :c, :d, :b]}}
+    CU.inspect(ctx).must_equal     %{{:seq=>[:a, :c, :d, :b]}}
   end
 
   it "provides {#to_h}" do

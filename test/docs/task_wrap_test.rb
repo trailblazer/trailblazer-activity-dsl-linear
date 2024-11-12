@@ -45,7 +45,7 @@ class DocsTaskWrapTest < Minitest::Spec
     #:run-merge end
 
     signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(Create, [{seq: [], log: []}, {}], wrap_runtime: wrap_runtime)
-    ctx.inspect.must_equal %{{:seq=>[:model, :save], :log=>[\"Before DocsTaskWrapTest::Create\", \"Before #<Trailblazer::Activity::Start semantic=:default>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=model>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>\", \"Before #<Trailblazer::Activity::End semantic=:success>\"]}}
+    CU.inspect(ctx).must_equal %{{:seq=>[:model, :save], :log=>[\"Before DocsTaskWrapTest::Create\", \"Before #<Trailblazer::Activity::Start semantic=:default>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=model>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>\", \"Before #<Trailblazer::Activity::End semantic=:success>\"]}}
 =begin
     #:run-invoke
     signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(
@@ -76,7 +76,7 @@ class DocsTaskWrapTest < Minitest::Spec
     wrap_runtime = Hash.new(default_ext) # wrap_runtime[...] will always return the same wrap
 
     signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(Create, [{seq: [], log: []}, {}], wrap_runtime: wrap_runtime)
-    ctx.inspect.must_equal %{{:seq=>[:model, :save], :log=>[\"Before DocsTaskWrapTest::Create\", \"Before #<Trailblazer::Activity::Start semantic=:default>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=model>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>\", \"Before #<Trailblazer::Activity::End semantic=:success>\"]}}
+    assert_equal CU.inspect(ctx), %{{:seq=>[:model, :save], :log=>[\"Before DocsTaskWrapTest::Create\", \"Before #<Trailblazer::Activity::Start semantic=:default>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=model>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>\", \"Before #<Trailblazer::Activity::End semantic=:success>\"]}}
   end
 end
 
@@ -177,7 +177,7 @@ class DocsRuntimeExtensionTest < Minitest::Spec
       song: {title: "Timebomb"},
       seq: "[:create_model, :validate, :notify]"
 
-    assert_equal MyAPM::Store.collect { |span| span.payload }.inspect, %{[{:id=>nil}, {:id=>\"Start.default\"}, {:id=>:create_model}, {:id=>:validate}, {:id=>:notify}, {:id=>\"End.success\"}]}
+    assert_equal CU.inspect(MyAPM::Store.collect { |span| span.payload }.inspect), %([{:id=>nil}, {:id=>\"Start.default\"}, {:id=>:create_model}, {:id=>:validate}, {:id=>:notify}, {:id=>\"End.success\"}])
 
     #:runtime
     my_wrap = Hash.new(apm_extension)
@@ -215,7 +215,7 @@ class DocsRuntimeExtensionTest < Minitest::Spec
       song: {title: "Timebomb"},
       seq: "[:create_model, :validate, :notify]"
 
-    assert_equal MyAPM::Store.collect { |span| span.payload }.inspect, %{[{:id=>:validate}]}
+    assert_equal MyAPM::Store.collect { |span| span.payload }, [{:id=>:validate}]
 
   # the called activity itself is also taskWrapped!
     #:wrap_create
@@ -229,7 +229,7 @@ class DocsRuntimeExtensionTest < Minitest::Spec
       song: {title: "Timebomb"},
       seq: "[:create_model, :validate, :notify]"
 
-    assert_equal MyAPM::Store.collect { |span| span.payload }.inspect, %{[{:id=>nil}]}
+    assert_equal MyAPM::Store.collect { |span| span.payload }, [{:id=>nil}]
 
     my_wrap = {Song::Activity::Create => apm_extension}
   end
@@ -265,7 +265,7 @@ class DocsWrapStaticExtensionTest < Minitest::Spec
       song: {title: "Timebomb"},
       seq: "[:create_model, :validate, :notify]"
 
-    assert_equal MyAPM::Store.collect { |span| span.payload }.inspect, %{[{:id=>:validate}]}
+    assert_equal MyAPM::Store.collect { |span| span.payload }, [{:id=>:validate}]
 
     ctx = {song: {title: "Timebomb"}, seq: []}
 

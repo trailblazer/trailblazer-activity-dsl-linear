@@ -30,7 +30,7 @@ class DocsMacroTest < Minitest::Spec
 
     signal, (ctx, _) = A::Create.([{params: {user: "Adam"}}, {}])
 
-    _(ctx.inspect).must_equal %{{:params=>{:user=>\"Adam\"}, :myparams=>{:user=>\"Adam\", :role=>\"sailor\"}}}
+    assert_equal CU.inspect(ctx), %({:params=>{:user=>\"Adam\"}, :myparams=>{:user=>\"Adam\", :role=>\"sailor\"}})
   end
 
   it "what" do

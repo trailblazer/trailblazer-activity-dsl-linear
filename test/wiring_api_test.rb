@@ -31,7 +31,7 @@ class WiringApiTest < Minitest::Spec
       end
     end
 
-    assert_equal exception.message, %{No `unknown` output found for :find_model and outputs {:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}}
+    assert_equal CU.inspect(exception.message), %(No `unknown` output found for :find_model and outputs {:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>})
   end
 
   it "accepts {Output() => End()}" do

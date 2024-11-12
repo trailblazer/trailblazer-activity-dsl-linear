@@ -66,7 +66,7 @@ module X
 
       assert_equal signal.inspect, %(#<Trailblazer::Activity::End semantic=:success>) #!hint assert_equal result.terminus.inspect, %(#<Trailblazer::Activity::Railway::End::Success semantic=:success>)
       #~ignore
-      assert_equal ctx.inspect, %({:params=>{:memo=>{:text=>\"Do not forget!\"}}, :model=>#<struct X::DocsActivityTest::Memo options={:text=>\"Do not forget!\"}>})
+      assert_equal CU.inspect(ctx), %({:params=>{:memo=>{:text=>\"Do not forget!\"}}, :model=>#<struct X::DocsActivityTest::Memo options={:text=>\"Do not forget!\"}>})
 
       model = ctx[:model]
 

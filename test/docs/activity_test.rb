@@ -246,8 +246,7 @@ class DocsActivityTest < Minitest::Spec
       event, (ctx, *) = Memo::Update.([ctx, {}])
       #:overview-call end
 
-      _(ctx.inspect).must_equal '{:id=>1, :params=>{:body=>"Awesome!"}, :model=>#<struct DocsActivityTest::Memo body=nil>, :errors=>"body not long enough"}'
-
+      assert_equal CU.inspect(ctx), '{:id=>1, :params=>{:body=>"Awesome!"}, :model=>#<struct DocsActivityTest::Memo body=nil>, :errors=>"body not long enough"}'
     end
   end
 
@@ -283,7 +282,7 @@ class DocsActivityTest < Minitest::Spec
     #:circuit-interface-call end
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal '{:name=>"Face to Face", :validate_outcome=>true}'
+    assert_equal CU.inspect(ctx),  '{:name=>"Face to Face", :validate_outcome=>true}'
   end
 
   # circuit interface: :start_task
@@ -311,7 +310,7 @@ class DocsActivityTest < Minitest::Spec
     signal, (ctx, flow_options) = B::Create.([ctx, flow_options], **circuit_options)
     #:circuit-interface-start-call end
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal '{:name=>"Face to Face", :seq=>[:validate, :save]}'
+    assert_equal CU.inspect(ctx),  '{:name=>"Face to Face", :seq=>[:validate, :save]}'
   end
 
   # circuit interface: :exec_context
@@ -354,7 +353,7 @@ class DocsActivityTest < Minitest::Spec
     #:circuit-interface-exec-call end
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    _(ctx.inspect).must_equal %{{:params=>{:name=>\"Face to Face\"}, :model=>#<struct DocsActivityTest::C::Memo name={:name=>\"Face to Face\"}>}}
+    assert_equal CU.inspect(ctx),  %{{:params=>{:name=>\"Face to Face\"}, :model=>#<struct DocsActivityTest::C::Memo name={:name=>\"Face to Face\"}>}}
   end
 end
 
@@ -371,6 +370,6 @@ class DocsActivityCallTest < Minitest::Spec
     signal, (ctx, _) = Trailblazer::Activity.(Song::Activity::Create, seq: [])
 
     assert_equal signal.inspect, %{#<Trailblazer::Activity::End semantic=:success>}
-    assert_equal ctx.inspect, %{{:seq=>[:model]}}
+    assert_equal CU.inspect(ctx), %{{:seq=>[:model]}}
   end
 end

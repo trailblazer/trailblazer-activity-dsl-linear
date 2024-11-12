@@ -4,7 +4,7 @@ class StrategyTest < Minitest::Spec
   it "empty Strategy" do
     strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy)
 
-    assert_equal strategy.to_h[:sequence].inspect, %{[[nil, #<Trailblazer::Activity::Start semantic=:default>, [], {:id=>"Start.default"}]]}
+    assert_equal strategy.to_h[:sequence].inspect, %{[[nil, #<Trailblazer::Activity::Start semantic=:default>, [], #{{:id=>"Start.default"}}]]}
 
     assert_circuit strategy.to_h, %{
 #<Start/:default>
@@ -23,8 +23,8 @@ class StrategyTest < Minitest::Spec
 
   #= initial is empty
     assert_equal strategy.instance_variable_get(:@state).get(:fields).inspect, "{}"
-    assert_equal sub.instance_variable_get(:@state).get(:fields).inspect, "{:representer=>Module}"
-    assert_equal subsub.instance_variable_get(:@state).get(:fields).inspect, "{:representer=>Module, :policy=>Object}"
+    assert_equal CU.inspect(sub.instance_variable_get(:@state).get(:fields)), "{:representer=>Module}"
+    assert_equal CU.inspect(subsub.instance_variable_get(:@state).get(:fields)), "{:representer=>Module, :policy=>Object}"
   end
 
 #@ DSL tests
@@ -89,7 +89,7 @@ EOS
 
     assert_equal signal.to_h[:semantic], :success
     # The presence of {:model} here means taskWrap extensions have been run.
-    assert_equal ctx.inspect, %{{:seq=>[:find_model, :save], :model=>nil}}
+    assert_equal CU.inspect(ctx), %{{:seq=>[:find_model, :save], :model=>nil}}
   end
 
 
@@ -102,12 +102,12 @@ EOS
   end
 
   it "all strategies expose correct terminus data" do
-    assert_equal Activity::Introspect.Nodes(Activity::Path, id: "End.success").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:success})
-    assert_equal Activity::Introspect.Nodes(Activity::Railway, id: "End.success").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:success})
-    assert_equal Activity::Introspect.Nodes(Activity::Railway, id: "End.failure").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:failure})
-    assert_equal Activity::Introspect.Nodes(Activity::FastTrack, id: "End.success").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:success})
-    assert_equal Activity::Introspect.Nodes(Activity::FastTrack, id: "End.failure").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:failure})
-    assert_equal Activity::Introspect.Nodes(Activity::FastTrack, id: "End.fail_fast").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:fail_fast})
-    assert_equal Activity::Introspect.Nodes(Activity::FastTrack, id: "End.pass_fast").data.slice(:stop_event, :semantic).inspect, %({:stop_event=>true, :semantic=>:pass_fast})
+    assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::Path, id: "End.success").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:success})
+    assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::Railway, id: "End.success").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:success})
+    assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::Railway, id: "End.failure").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:failure})
+    assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::FastTrack, id: "End.success").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:success})
+    assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::FastTrack, id: "End.failure").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:failure})
+    assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::FastTrack, id: "End.fail_fast").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:fail_fast})
+    assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::FastTrack, id: "End.pass_fast").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:pass_fast})
   end
 end

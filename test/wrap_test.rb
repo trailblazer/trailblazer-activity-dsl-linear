@@ -20,12 +20,12 @@ class TaskWrapTest < Minitest::Spec
 
     signal, (ctx, flow_options) = taskWrap.invoke(activity, [{seq: []}, {}])
 
-    _(ctx.inspect).must_equal %{{:seq=>[1, :a, 2, :b, :c]}}
+    assert_equal CU.inspect(ctx), %{{:seq=>[1, :a, 2, :b, :c]}}
 
 # {Activity.invoke} is an alias for {TaskWrap.invoke}
     signal, (ctx, flow_options) = activity.invoke([{seq: []}, {}], **{})
 
-    _(ctx.inspect).must_equal %{{:seq=>[1, :a, 2, :b, :c]}}
+    assert_equal CU.inspect(ctx), %{{:seq=>[1, :a, 2, :b, :c]}}
 
 # it works nested as well
 
@@ -39,7 +39,7 @@ class TaskWrapTest < Minitest::Spec
 
     signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}, {}], **{})
 
-    _(ctx.inspect).must_equal %{{:seq=>[:a, 1, :a, 2, :b, :c, 1, :c, 2]}}
+    assert_equal CU.inspect(ctx), %{{:seq=>[:a, 1, :a, 2, :b, :c, 1, :c, 2]}}
 
 # it works nested plus allows {wrap_runtime}
 
@@ -47,6 +47,6 @@ class TaskWrapTest < Minitest::Spec
 
     signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}, {}], **{wrap_runtime: wrap_runtime})
 
-    assert_equal ctx.inspect, %{{:seq=>[:a, 1, :a, 2, :b, 1, :c, 2, 1, 1, :c, 2, 2]}}
+    assert_equal CU.inspect(ctx), %{{:seq=>[:a, 1, :a, 2, :b, 1, :c, 2, 1, 1, :c, 2, 2]}}
   end
 end
