@@ -145,6 +145,7 @@ module Trailblazer
             )
           end
 
+          # TODO: remove this! it doesn't receive correct ciruit_options.
           # DISCUSS: should we remove this special case?
           # This handles
           #   step task: :instance_method_exposing_circuit_interface
