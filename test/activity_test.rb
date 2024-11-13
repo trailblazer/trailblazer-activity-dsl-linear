@@ -362,11 +362,9 @@ class ActivityTest < Minitest::Spec
 
   #@ When inheriting and changing we don't bleed into associated classes.
   it "inheritance copies {config}" do
-    merge = [
-      {insert: [Activity::Adds::Insert.method(:Prepend), "task_wrap.call_task"], row: taskWrap::Pipeline.Row("user.add_1", method(:add_1))},
-    ]
-
-    ext = taskWrap::Extension(merge: merge)
+    ext = taskWrap::Extension.WrapStatic(
+      [method(:add_1), id: "user.add_1", prepend: "task_wrap.call_task"],
+    )
 
     activity = Class.new(Activity::Path) do
       step :a, extensions: [ext]
@@ -734,38 +732,5 @@ class ActivityTest < Minitest::Spec
     assert_equal hsh[:activity].class, Trailblazer::Activity
     assert_equal hsh[:sequence].class, Trailblazer::Activity::DSL::Linear::Sequence
     assert_equal hsh[:sequence].size, 3
-  end
-
-  it "what" do
-    skip
-    raise "make sure options don't get mutated"
-  end
-
-
-  # inheritance
-  # macaroni
-  # Path() with macaroni
-  # merge!
-  # :step_method
-  # :extension API/state for taskWrap, also in Path()
-end
-
-class GraphDeprecationTest < Minitest::Spec
-  module Trailblazer::Developer
-    module Introspect
-      class Graph
-        def self.new(*)
-        end
-      end
-    end
-  end
-
-  it "deprecates {Activity::Introspect::Graph()}" do
-    _, warning = capture_io do
-      graph = Activity::Introspect.Graph(Activity::Railway)
-    end
-    line_no = __LINE__ - 2
-
-    assert_equal warning, %{[Trailblazer] #{File.realpath(__FILE__)}:#{line_no} `Trailblazer::Activity::Introspect::Graph` is deprecated. Please use `Trailblazer::Developer::Introspect.Graph`\n}
   end
 end
