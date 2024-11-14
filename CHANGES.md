@@ -1,3 +1,9 @@
+# 1.2.6
+
+* Speed up compile time of activities by ~ 1.3x by not using `Intermediate::Compiler`
+  but compiling the `Activity::Circuit` and `Schema` directly. This also saves runtime
+  memory.
+
 # 1.2.5
 
 * Fix a bug where, within a helper `Path()`, the last step couldn't
