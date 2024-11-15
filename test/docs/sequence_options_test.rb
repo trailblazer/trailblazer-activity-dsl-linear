@@ -47,9 +47,9 @@ module A
 )
 #~ignore end
 
-      assert Activity::Introspect.Nodes(Memo::Activity::Create, id: :save_the_world)
+      assert Activity::Introspect.Nodes(Memo::Activity::Create, id: :save_the_world) #!hint assert Trailblazer::Activity::Introspect.Nodes(Memo::Operation::Create, id: :save_the_world)
       #:id-introspect
-      puts Activity::Introspect.Nodes(Memo::Activity::Create, id: :save_the_world)
+      puts Activity::Introspect.Nodes(Memo::Activity::Create, id: :save_the_world) #!hint puts Trailblazer::Activity::Introspect.Nodes(Memo::Operation::Create, id: :save_the_world)
       #=> #<struct Trailblazer::Activity::Schema::Nodes::Attributes id=:save_the_world, ...>
       #:id-introspect end
     end
@@ -228,7 +228,7 @@ module E
       #=> [>validate,>update,>notify]
       #:replace-inspect end
 =end
-      assert Activity::Introspect.Nodes(Memo::Activity::Update, id: :update)
+      assert Trailblazer::Activity::Introspect.Nodes(Memo::Activity::Update, id: :update) #!hint assert Trailblazer::Activity::Introspect.Nodes(Memo::Operation::Update, id: :update)
 
 #~ignore
       assert_process Memo::Activity::Update, :success, :failure, %(
@@ -282,7 +282,7 @@ module E_2
 
       # assert_equal Trailblazer::Developer.railway(Memo::Activity::Update), %([>validate,>update_memo,>notify])
 
-      assert Activity::Introspect.Nodes(Memo::Activity::Update, id: :update_memo)
+      assert Trailblazer::Activity::Introspect.Nodes(Memo::Activity::Update, id: :update_memo) #!hint Trailblazer::Activity::Introspect.Nodes(Memo::Operation::Update, id: :update_memo)
 
 #~ignore
       assert_process Memo::Activity::Update, :success, :failure, %(

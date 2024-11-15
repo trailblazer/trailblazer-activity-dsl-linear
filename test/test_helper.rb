@@ -14,7 +14,7 @@ CU = Trailblazer::Core::Utils
 
 T = Trailblazer::Activity::Testing
 
-Minitest::Spec::Activity = Trailblazer::Activity
+Minitest::Spec::Activity = Trailblazer::Activity # TODO: remove this.
 
 Minitest::Spec.class_eval do
   Implementing = T.def_steps(:a, :b, :c, :d, :e, :f, :g)
