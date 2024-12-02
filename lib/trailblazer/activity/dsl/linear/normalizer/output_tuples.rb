@@ -18,7 +18,7 @@ module Trailblazer
             # Connector when using Track(:success).
             class Track < Struct.new(:color, :adds, :options)
               def to_a(*)
-                search_strategy = options[:wrap_around] ? :WrapAround : :Forward
+                search_strategy = options&.key?(:wrap_around) ? :WrapAround : :Forward
 
                 return [Linear::Sequence::Search.method(search_strategy), color], adds
               end
