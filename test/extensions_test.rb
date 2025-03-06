@@ -46,7 +46,7 @@ class ExtensionsTest < Minitest::Spec
     assert_invoke activity, seq: "[1, :model, :save]"
 
     #@ we can access extensions via the Sequence:
-    assert_equal activity.to_h[:sequence][0].data[:extensions], nil #[] # FIXME: this should always be an array!
+    assert_nil activity.to_h[:sequence][0].data[:extensions] #[] # FIXME: this should always be an array!
     assert_equal activity.to_h[:sequence][1].data[:extensions], [add_1_extension]
   end
 

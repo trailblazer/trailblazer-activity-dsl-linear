@@ -172,7 +172,7 @@ class DocsIOTest < Minitest::Spec
       end
 
       signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(E::Memo::Create, [{parameters: {id: "1"}}.freeze, {}])
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      assert_equal signal.inspect, %{#<Trailblazer::Activity::End semantic=:success>}
       assert_equal CU.inspect(ctx), %{{:parameters=>{:id=>\"1\"}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
 
     # {:output} with {inner_ctx, outer_ctx, **} using {:output_with_outer_ctx}
@@ -202,7 +202,7 @@ class DocsIOTest < Minitest::Spec
 
       end
       signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(F::Memo, [{params: {id: "1"}}.freeze, {}])
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      assert_equal signal.inspect, %{#<Trailblazer::Activity::End semantic=:success>}
       assert_equal CU.inspect(ctx), %{{:params=>{:id=>\"1\", :errors=>false}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
 
       module G
@@ -228,7 +228,7 @@ class DocsIOTest < Minitest::Spec
 
       end
       signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(F::Memo, [{params: {id: "1"}}.freeze, {}])
-      signal.inspect.must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+      assert_equal signal.inspect, %{#<Trailblazer::Activity::End semantic=:success>}
       assert_equal CU.inspect(ctx), %{{:params=>{:id=>\"1\", :errors=>false}, :current_user=>\"User \\\"1\\\"\", :model=>\"User \\\"1\\\"\"}}
 
 
@@ -561,7 +561,7 @@ class DocsIOTest < Minitest::Spec
       assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :log=>\"Called @ yesterday!\"}}
 
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Log, [{}, {}])
-      CU.inspect(ctx)[0..18].must_equal '{:log=>"Called @ 20'
+      assert_equal CU.inspect(ctx)[0..18], '{:log=>"Called @ 20'
 
       module Z
         #:write-defaulted
@@ -589,7 +589,7 @@ class DocsIOTest < Minitest::Spec
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Z::Create, [{model: Object, time: "yesterday"}, {}])
       assert_equal CU.inspect(ctx), %{{:model=>Object, :time=>\"yesterday\", :log=>\"Called @ yesterday!\"}}
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Z::Create, [{model: Object, }, {}])
-      CU.inspect(ctx)[0..33].must_equal '{:model=>Object, :log=>"Called @ 2'
+      assert_equal CU.inspect(ctx)[0..33], '{:model=>Object, :log=>"Called @ 2'
 
       module Q
         #:write-required
@@ -613,9 +613,9 @@ require "date"
       end
 
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Q::Create, [{time: "yesterday", model: Object}, {}])
-      CU.inspect(ctx)[0..68].must_equal '{:time=>"yesterday", :model=>Object, :log=>"Called @ yesterday and 20'
+      assert_equal CU.inspect(ctx)[0..68], '{:time=>"yesterday", :model=>Object, :log=>"Called @ yesterday and 20'
       signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Q::Create, [{model: Object}, {}])
-      CU.inspect(ctx)[0..33].must_equal '{:model=>Object, :log=>"Called @ 2'
+      assert_equal CU.inspect(ctx)[0..33], '{:model=>Object, :log=>"Called @ 2'
 
     end # it
   end

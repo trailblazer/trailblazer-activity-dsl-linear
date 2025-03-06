@@ -31,7 +31,7 @@ class NormalizerTest < Minitest::Spec
     end
 
     #@ we don't find a row named {:model}
-    assert_equal Activity::Introspect.Nodes(application_operation, id: :model), nil
+    assert_nil Activity::Introspect.Nodes(application_operation, id: :model)
     #@ we find a {"MODEL"} row
     assert_equal Activity::Introspect.Nodes(application_operation, id: "MODEL").id, "MODEL"
     #@ {#pass} still has lowercase ID.
