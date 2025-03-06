@@ -220,11 +220,11 @@ class VariableMappingTest < Minitest::Spec
     end
 
     # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+    _signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :model=>"<[Module, [:time, :model, :current_user, :private]]>", :current_user=>Module, :private=>"XXX"}}
 
     # no {:model} in original ctx
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+    _signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :current_user=>Module, :model=>"<[Module, [:time, :current_user, :private]]>", :private=>"XXX"}}
   end
 
@@ -233,13 +233,13 @@ class VariableMappingTest < Minitest::Spec
     module RRRRRRRR
       class Create < Trailblazer::Activity::Railway
         step :create_model,
-          Out() => -> (inner_ctx, model:, private:, **) {
+          Out() => -> (_inner_ctx, model:, private:, **) {
             {
               :model    => model,
               :private  => private.gsub(/./, "X") # CC number should be Xs outside.
             }
           },
-          Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx, model:, **) { {:song => model, private: outer_ctx[:private].to_i + 1} }
+          Out(with_outer_ctx: true) => ->(_inner_ctx, outer_ctx, model:, **) { {:song => model, private: outer_ctx[:private].to_i + 1} }
 
         def create_model(ctx, current_user:, **)
           ctx[:private] = "hi!"
@@ -544,7 +544,7 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
       bla: 1)
 
     # signal.must_equal activity.outputs[:success].signal
-    CU.inspect(ctx).must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3}}
+    assert_equal CU.inspect(ctx), %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3}}
   end
 
   it "allows procs, too" do
@@ -587,7 +587,7 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
 
     signal, (ctx, flow_options) = Activity::TaskWrap.invoke(activity, [ctx, flow_options], **{})
 
-    CU.inspect(ctx.to_hash).must_equal %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3, :model_add=>\"1\", :model_from_a=>1}}
+    assert_equal CU.inspect(ctx.to_hash), %{{:a=>0, :b=>108, :model_a=>1, :model_b=>3, :model_add=>\"1\", :model_from_a=>1}}
   end
 
   #@ unit test

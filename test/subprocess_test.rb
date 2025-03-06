@@ -213,7 +213,7 @@ class WithCustomSignalReturnedInSubprocess < Minitest::Spec
     end
 
     signal, (ctx, _) = Memo::Create.([{seq: [], validate: InvalidParams}])
-    ctx[:seq].must_equal([:create_model, :validate, :handle_invalid_params, :save])
+    assert_equal ctx[:seq], ([:create_model, :validate, :handle_invalid_params, :save])
   end
 end
 
