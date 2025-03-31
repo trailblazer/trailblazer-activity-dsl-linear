@@ -25,17 +25,20 @@ module Trailblazer
 
             # Adds the default_ctx step as per option {:add_default_ctx}
             def initial_input_pipeline(add_default_ctx: false)
-              # No In() or {:input}. Use default ctx, which is the original ctxx.
+              # No In() or {:input}. Use default ctx, which is the original ctx.
               # When using Inject without In/:input, we also need a {default_input} ctx.
-              default_ctx_row =
-                add_default_ctx ? Activity::TaskWrap::Pipeline.Row(*default_input_ctx_config) : nil
+              pipeline_steps = [
+                Activity::TaskWrap::Pipeline.Row("input.scope", VariableMapping.method(:scope)), # last step
+              ]
 
-              Activity::TaskWrap::Pipeline.new(
-                [
-                  default_ctx_row,
-                  Activity::TaskWrap::Pipeline.Row("input.scope", VariableMapping.method(:scope)), # last step
-                ].compact
-              )
+              if add_default_ctx
+                pipeline_steps = [
+                  Activity::TaskWrap::Pipeline.Row(*default_input_ctx_config),
+                  *pipeline_steps
+                ]
+              end
+
+              Activity::TaskWrap::Pipeline.new(pipeline_steps)
             end
 
             def default_input_ctx_config # almost a Row.
