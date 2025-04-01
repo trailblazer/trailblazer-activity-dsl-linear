@@ -73,7 +73,6 @@ module Trailblazer
             def self.normalize_input_output_filters(ctx, non_symbol_options:, input_output_inject_options: [], **)
               in_exts     = non_symbol_options.find_all { |k, v| k.is_a?(VariableMapping::DSL::In) || k.is_a?(VariableMapping::DSL::Inject) }
               output_exts = non_symbol_options.find_all { |k, v| k.is_a?(VariableMapping::DSL::Out) }
-
               return unless in_exts.any? || output_exts.any?
 
               deprecate_input_output_inject_option(input_output_inject_options, in_exts, output_exts)
@@ -82,13 +81,15 @@ module Trailblazer
               ctx[:out_filters] = output_exts
             end
 
-            def self.input_output_dsl(ctx, non_symbol_options:, in_filters: nil, out_filters: nil, **options)
-              # no :input/:output/:inject/Input()/Output() passed.
-              return unless in_filters || out_filters
+            def self.input_output_dsl(ctx, non_symbol_options:, **options)
+              # no :input/:output/:inject/Input()/Output()/:initial_input_pipeline passed.
+              return unless ctx[:in_filters] || ctx[:out_filters] || ctx[:initial_input_pipeline]
 
-              extension = Linear.VariableMapping(in_filters: in_filters, out_filters: out_filters, **options)
+              extension = Linear.VariableMapping(**options) # {in_filters:}, {out_filters:} and {:initial_input_pipeline}.
 
-              record = Linear::Normalizer::Inherit.Record((in_filters + out_filters).to_h, type: :variable_mapping)
+              # TODO: remember {:initial_input_pipeline} when inherit: true.
+              # FIXME: defaulting here sucks and should be done above.
+              record = Linear::Normalizer::Inherit.Record(((ctx[:in_filters] || []) + (ctx[:out_filters] || [])).to_h, type: :variable_mapping)
 
               non_symbol_options = non_symbol_options.merge(record)
               non_symbol_options = non_symbol_options.merge(Linear::Strategy.Extension(is_generic: true)  => extension)
@@ -97,6 +98,7 @@ module Trailblazer
                 non_symbol_options: non_symbol_options
               )
             end
+
 
             # TODO: remove for TRB 2.2.
             def self.deprecate_input_output_inject_option(input_output_inject_options, *composable_options)

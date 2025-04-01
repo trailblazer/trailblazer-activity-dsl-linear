@@ -453,7 +453,7 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
 
 
   #@ unit test
-  it "accepts :initial_input_pipeline as normalizer option" do
+  it "accepts {:initial_input_pipeline} as normalizer option" do
     my_input_ctx = ->(wrap_ctx, original_args) do
     # The default ctx is the original ctx but with uppercased values.
       default_ctx = wrap_ctx[:original_ctx].collect { |k,v| [k.to_s.upcase, v.to_s.upcase] }.to_h
@@ -478,6 +478,25 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
 
     signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{time: "yesterday", model: Object}, {}])
     assert_equal CU.inspect(ctx), %{{:time=>"yesterday", :model=>Object, :incoming=>[Object, {:TIME=>"YESTERDAY", :MODEL=>"OBJECT", :model=>Object}]}}
+  end
+
+  #@ unit test
+  it "providing {:initial_input_pipeline} even without In() or Inject() will use that very input pipeline" do
+
+    activity = Class.new(Trailblazer::Activity::Railway) do
+      input_pipe = Trailblazer::Activity::DSL::Linear::VariableMapping::DSL.initial_input_pipeline(add_default_ctx: true)
+
+      step :write,
+        initial_input_pipeline: input_pipe # NO In() or Inject() provided, but we still get a separate ctx that is visible after termination.
+
+      def write(ctx, model:, **)
+        ctx[:incoming] = ctx.inspect
+      end
+    end
+
+    # We see a {Trailblazer::Context} in #write from the :initial_input_pipeline, even though we're not using In().
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{model: Object}, {}])
+    assert_equal CU.inspect(ctx), %({:model=>Object, :incoming=>\"#<Trailblazer::Context::Container wrapped_options={:model=>Object} mutable_options={}>\"})
   end
 
   #@ unit test
