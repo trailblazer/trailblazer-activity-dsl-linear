@@ -1,3 +1,8 @@
+# 1.2.7
+
+* In the DSL, passing only `:initial_input_pipeline` without `In()`` or `Inject()`` will
+still create a variable mapping pipeline.
+
 # 1.2.6
 
 * Speed up compile time of activities by ~ 1.3x by not using `Intermediate::Compiler`
