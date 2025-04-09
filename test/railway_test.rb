@@ -332,14 +332,31 @@ class RailwayTest < Minitest::Spec
 }
   end
 
+  # DISCUSS: do we need this option as a tested public interface?
   it "accepts {:adds}" do
     linear = Trailblazer::Activity::DSL::Linear
 
+    row_options = {initial_task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP}
+
     activity = Class.new(Activity::Railway) do
       step :f, adds: [
-        {row: linear::Sequence::Row[:success, Implementing.method(:g), [linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {id: :g}], insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), :f]}]
+        {
+          row: linear::Sequence::Row[
+            :success,
+            Implementing.method(:g),
+            [linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)],
+            {id: :g, **row_options}],
+          insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), :f]
+        }]
       fail :a, adds: [
-        {row: linear::Sequence::Row[:failure, Implementing.method(:b), [linear::Sequence::Search.Forward(Activity.Output("f/signal", :failure), :failure)], {}], insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), :g]}]
+        {
+          row: linear::Sequence::Row[
+            :failure,
+            Implementing.method(:b),
+            [linear::Sequence::Search.Forward(Activity.Output("f/signal", :failure), :failure)],
+            {**row_options}],
+          insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), :g]
+        }]
     # seq = state.pass implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}], Linear::Insert.method(:Prepend), :f]]
     end
 

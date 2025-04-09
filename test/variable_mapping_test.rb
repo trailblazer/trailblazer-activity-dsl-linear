@@ -481,6 +481,7 @@ Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-
   end
 
   #@ unit test
+  # This is used in trailblazer-dependency (specifically, class dependencies).
   it "providing {:initial_input_pipeline} even without In() or Inject() will use that very input pipeline" do
 
     activity = Class.new(Trailblazer::Activity::Railway) do

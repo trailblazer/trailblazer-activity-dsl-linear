@@ -21,13 +21,15 @@ module Trailblazer
                   "terminus.normalize_magnetic_to"          => Normalizer.Task(Terminus.method(:normalize_magnetic_to)),
                   "terminus.append_end"                     => Normalizer.Task(Terminus.method(:append_end)),
 
+                  "step.initial_task_wrap" => Normalizer.Task(TaskWrap.method(:normalize_initial_task_wrap)),
+
                   "activity.compile_data" => Normalizer.Task(Normalizer.method(:compile_data)), # FIXME: redundant with {Linear::Normalizer}.
                   "activity.create_row" => Normalizer.Task(Normalizer.method(:create_row)),
                   "activity.create_add" => Normalizer.Task(Normalizer.method(:create_add)),
                   "activity.create_adds" => Normalizer.Task(Normalizer.method(:create_adds)),
                 }
 
-              TaskWrap::Pipeline.new(normalizer_steps.to_a)
+              Activity::TaskWrap::Pipeline.new(normalizer_steps.to_a)
             end
 
             # @private

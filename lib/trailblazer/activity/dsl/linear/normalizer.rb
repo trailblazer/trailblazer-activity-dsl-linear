@@ -80,7 +80,7 @@ module Trailblazer
           def Normalizer(prepend_to_default_outputs: [])
             # Adding steps to the output pipeline means they are only called when there
             # are no :outputs set already.
-            outputs_pipeline = TaskWrap::Pipeline.new([])
+            outputs_pipeline = Activity::TaskWrap::Pipeline.new([])
             prepend_to_default_outputs.each do |hsh|
               outputs_pipeline = Linear::Normalizer.prepend_to(outputs_pipeline, nil, hsh) # DISCUSS: does it matter if we prepend FastTrack to Railway, etc?
             end
@@ -93,7 +93,7 @@ module Trailblazer
               outputs_pipeline.(ctx, args)
             end
 
-            TaskWrap::Pipeline.new(
+            Activity::TaskWrap::Pipeline.new(
               {
                 "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)),        # Makes sure {:options} is always a hash.
                 "activity.macro_options_with_symbol_task" => Normalizer.Task(method(:macro_options_with_symbol_task)),  # DISCUSS: we might deprecate {task: :instance_method}
@@ -129,6 +129,10 @@ module Trailblazer
                 "activity.wirings"                        => Normalizer.Task(OutputTuples::Connections.method(:compile_wirings)),
 
 
+                # specific to the step's taskWrap. # DISCUSS: technically, this is a "feature", but every step needs a tw to be run.
+                "step.initial_task_wrap" => Normalizer.Task(TaskWrap.method(:normalize_initial_task_wrap)),
+
+
                 "extensions.compile_extensions"           => Normalizer.Task(Extensions.method(:compile_extensions)),
                 "extensions.compile_recorded_extensions"  => Normalizer.Task(Extensions.method(:compile_recorded_extensions)),
 
@@ -141,7 +145,7 @@ module Trailblazer
                 "activity.create_add" => Normalizer.Task(method(:create_add)),
                 "activity.create_adds" => Normalizer.Task(method(:create_adds)),
               }
-                .collect { |id, task| TaskWrap::Pipeline.Row(id, task) }
+                .collect { |id, task| Activity::TaskWrap::Pipeline.Row(id, task) }
             )
           end
 
@@ -304,6 +308,17 @@ module Trailblazer
               .flat_map { |k, v| Array(v) }
 
             ctx[:data] = (default_variables_for_data + variables_for_data).collect { |key| [key, ctx[key]] }.to_h
+          end
+
+          # Normalizer steps specific to compiling each step's taskWrap.
+          module TaskWrap
+            module_function
+
+            def normalize_initial_task_wrap(ctx, initial_task_wrap: nil, non_symbol_options:, **)
+              ctx[:non_symbol_options] = non_symbol_options.merge(Activity::Path.DataVariable() => :initial_task_wrap)
+
+              ctx[:initial_task_wrap] = initial_task_wrap || Activity::TaskWrap::INITIAL_TASK_WRAP # tw with one step: [<call_task>]
+            end
           end
         end
       end # Normalizer

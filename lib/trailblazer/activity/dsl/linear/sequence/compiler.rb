@@ -3,7 +3,7 @@ module Trailblazer
     module DSL
       module Linear
         class Sequence
-          # Compile a {Schema} by computing {implementations} and {intermediate} from a {Sequence}.
+          # Compile a {Schema} from a {Sequence} into a {Circuit}.
           module Compiler
             module_function
 
@@ -20,12 +20,19 @@ module Trailblazer
             end
 
             def call(sequence, find_stops: Compiler.method(:find_termini), find_start: method(:find_start_task))
-              config = Activity::Schema::Intermediate::Compiler::DEFAULT_CONFIG
+              # config = Activity::Schema::Intermediate::Compiler::DEFAULT_CONFIG # FIXME: this is much to implicit, this is the "magic" default tw for each task.
+              # {wrap_static: {}}
+              config = {wrap_static: {}} # TODO: where does this come from?
 
               nodes_attributes = []
 
               wiring = sequence.collect do |seq_row|
                 _magnetic_to, task, connections, data = seq_row
+
+
+                # filter out the :initial_task_wrap tuple as that's compiler_options and not {data}.
+                # DISCUSS: how could we allow passing data and compiler_options separately from the DSL?
+                data, compiler_options = data.slice(*(data.keys - [:initial_task_wrap])), {initial_task_wrap: data[:initial_task_wrap]}
 
                 id = data[:id]
 
@@ -33,6 +40,11 @@ module Trailblazer
                 connections = find_connections(seq_row, connections, sequence)
 
                 circuit_connections = connections.collect { |output, target_task| [output.signal, target_task] }.to_h
+
+                # DISCUSS: a check would be cool here whether :initial_task_wrap is here.
+                initial_task_wrap = compiler_options[:initial_task_wrap]
+                raise %( No :initial_task_wrap passed for #{task.inspect}) if initial_task_wrap.nil? # TODO: Remove me.
+                config[:wrap_static][task] = initial_task_wrap # DISCUSS: do we like that???
 
                 extensions = (seq_row[3][:extensions] || [])
                 # FIXME: move that to {Intermediate::Compiler}?
