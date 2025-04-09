@@ -2,7 +2,7 @@ module Trailblazer
   class Activity
     module DSL
       module Linear
-        # Normalizer-steps to implement {:input} and {:output}
+        # Normalizer-steps to implement In(), Inject() and Out(). Deprecates {:input} and {:output}.
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
         def self.VariableMapping(input_id: "task_wrap.input", output_id: "task_wrap.output", **options)
           input, output = VariableMapping.merge_instructions_from_dsl(**options)
