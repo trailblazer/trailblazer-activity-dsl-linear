@@ -1,7 +1,41 @@
 require "test_helper"
-# FIXME: what is this test?
+
+# Test for DSL options related to taskWrap.
+#
+# using {:extensions} with {WrapStatic} is a taskWrap specific "feature".
+# {:initial_task_wrap} option is tw-specific
 
 class TaskWrapTest < Minitest::Spec
+  it "{:initial_task_wrap} is defaulted to [<call_task>]" do
+    activity = Class.new(Trailblazer::Activity::Railway) do
+      step task: Object
+    end
+
+    task_wrap = activity.to_h[:config][:wrap_static][Object]
+
+    assert_equal task_wrap.to_a.collect { |step| step.id }, ["task_wrap.call_task"]
+  end
+
+  it "the {:initial_task_wrap} option allows providing for a differing task_wrap" do
+    tw_step = ->(wrap_ctx, original_args) do
+      wrap_ctx[:return_signal] = Trailblazer::Activity::Right
+      wrap_ctx[:return_args] = [{seq: "hello from taskWrap"}]
+      return wrap_ctx, original_args
+    end
+
+    activity = Class.new(Trailblazer::Activity::Railway) do
+      pipeline = Trailblazer::Activity::TaskWrap::Pipeline
+
+      step task: Object, initial_task_wrap: pipeline.new([pipeline::Row["my.add_1", tw_step]])
+    end
+
+    task_wrap = activity.to_h[:config][:wrap_static][Object]
+
+    assert_equal task_wrap.to_a.collect { |step| step.id }, ["my.add_1"]
+
+    assert_invoke activity, seq: %("hello from taskWrap")
+  end
+
   it "populates activity[:wrap_static] and uses it at run-time" do
     taskWrap = Trailblazer::Activity::TaskWrap
 
