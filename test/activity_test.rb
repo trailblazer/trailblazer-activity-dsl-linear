@@ -720,19 +720,4 @@ class ActivityTest < Minitest::Spec
     CU.inspect(ctx).must_equal     %{{:seq=>[:a, :c, :d, :b]}}
   end
 
-  it "provides {#to_h}" do
-    activity = Class.new(Activity::Path) do
-      step :a
-    end
-
-    # actual_activity = activity.instance_variable_get(:@activity)
-    # _(actual_activity.class).must_equal Trailblazer::Activity
-
-    hsh = activity.to_h
-
-    assert_equal hsh.keys.inspect, %{[:circuit, :outputs, :nodes, :config, :activity, :sequence]}
-    assert_equal hsh[:activity].class, Trailblazer::Activity
-    assert_equal hsh[:sequence].class, Trailblazer::Activity::DSL::Linear::Sequence
-    assert_equal hsh[:sequence].size, 3
-  end
 end

@@ -4,12 +4,16 @@ class StrategyTest < Minitest::Spec
   it "empty Strategy" do
     strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy)
 
-    assert_equal strategy.to_h[:sequence].inspect, %{[[nil, #<Trailblazer::Activity::Start semantic=:default>, [], #{{:id=>"Start.default"}}]]}
+    # DISCUSS: should we pass {:initial_task_wrap} somehow else?
+    assert_equal strategy.to_h[:sequence].inspect, %{[[nil, #<Trailblazer::Activity::Start semantic=:default>, [], #{{:id=>"Start.default",
+      initial_task_wrap: Trailblazer::Activity::TaskWrap::INITIAL_TASK_WRAP}}]]}
 
     assert_circuit strategy.to_h, %{
 #<Start/:default>
 }
   end
+
+  let(:default_task_wrap_in_fields) { {task_wrap: Trailblazer::Activity::TaskWrap::INITIAL_TASK_WRAP.to_a} }
 
 #@ State-relevant tests
   it "provides {:fields} in {@state} which is an (inherited) hash" do
@@ -21,10 +25,24 @@ class StrategyTest < Minitest::Spec
     subsub   = Class.new(sub)
     subsub.instance_variable_get(:@state).update!(:fields) { |fields| fields.merge(policy: Object) }
 
-  #= initial is empty
-    assert_equal strategy.instance_variable_get(:@state).get(:fields).inspect, "{}"
-    assert_equal CU.inspect(sub.instance_variable_get(:@state).get(:fields)), "{:representer=>Module}"
-    assert_equal CU.inspect(subsub.instance_variable_get(:@state).get(:fields)), "{:representer=>Module, :policy=>Object}"
+    assert_equal strategy.to_h[:fields], default_task_wrap_in_fields # only contains library defaults, no user fields, yet.
+    assert_equal sub.to_h[:fields], default_task_wrap_in_fields.merge(representer: Module)
+    assert_equal subsub.to_h[:fields], default_task_wrap_in_fields.merge(representer: Module, policy: Object)
+  end
+
+#@ Strategy API
+  it "{Strategy#to_h} represents an interface for accessing internal data structures" do
+    activity = Class.new(Activity::Path) do
+      step :model
+    end
+
+    hsh = activity.to_h
+
+    assert_equal hsh.keys.inspect, %{[:circuit, :outputs, :nodes, :config, :activity, :sequence, :fields]}
+    assert_equal hsh[:activity].class, Trailblazer::Activity
+    assert_equal hsh[:sequence].class, Trailblazer::Activity::DSL::Linear::Sequence
+    assert_equal hsh[:sequence].size, 3
+    assert_equal hsh[:fields], default_task_wrap_in_fields # FIXME: get the Pipeline vs. ary conflict sorted.
   end
 
 #@ DSL tests

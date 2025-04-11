@@ -8,9 +8,6 @@ module Trailblazer
         #   provides DSL inheritance
         #   provides run-time {call}
         #   maintains the {state} with {seq} and normalizer options
-        # This could be a class but we decided to leave it as a module that then gets
-        # extended into {Path} and friends. This won't trigger the inheritance (because)
-        # there is nothing to inherit.
         class Strategy
           extend Linear::Helper # import {Subprocess()} and friends as class methods. creates shortcuts to {Strategy.Output} etc.
           include Linear::Helper::Constants
@@ -94,7 +91,8 @@ module Trailblazer
 
               activity.to_h.to_h.merge(
                 activity: activity,
-                sequence: @state.get(:sequence)
+                sequence: @state.get(:sequence),
+                fields:   @state.get(:fields)
               )
             end
 
@@ -196,6 +194,16 @@ module Trailblazer
           )
 
           initialize!(state) # build an empty State instance that can be copied and recompiled.
+
+          # DISCUSS: where to move this?
+          # This is taskWrap specific logic that might be used by {Invoke}.
+          state.update!(:fields) do |fields|
+            # raise fields.inspect
+            fields.merge(
+              task_wrap: Activity::TaskWrap::INITIAL_WRAP_STATIC.to_a  # HERE, we can add other tw steps like dependeny injection. However, this one call_task step is the one calling us.
+            )
+          end
+
           # override :sequencer, :sequence, :activity
           # This is done in every subclass.
           recompile!(DSL.start_sequence)
