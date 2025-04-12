@@ -67,7 +67,7 @@ module Trailblazer
 
               seq = path.to_h[:sequence]
               # Strip default ends `Start.default` and `End.success` (if present).
-              seq = seq[1..-1].reject { |row| row[3][:stop_event] && row.id == "End.success" }
+              seq = seq[1..-1].reject { |row| row.data[:stop_event] && row.id == "End.success" }
 
               if connect_to
                 seq = connect_for_sequence(seq, connect_to: connect_to)
@@ -76,10 +76,8 @@ module Trailblazer
               # Add the path elements before {End.success}.
               # Termini (or :stop_event) are to be placed after {End.success}.
               adds = seq.collect do |row|
-                options = row[3]
-
                 # the terminus of the path goes _after_ {End.success} into the "end group".
-                insert_method = options[:stop_event] ? Activity::Adds::Insert.method(:Append) : Activity::Adds::Insert.method(:Prepend)
+                insert_method = row.data[:stop_event] ? Activity::Adds::Insert.method(:Append) : Activity::Adds::Insert.method(:Prepend)
 
                 insert_target = "End.success" # insert before/after
                 insert_target = before if before && connect_to.instance_of?(Linear::Normalizer::OutputTuples::Track) # FIXME: this is a bit hacky, of course!
@@ -118,9 +116,8 @@ module Trailblazer
 
               output_searches[success_output_index] = success_search # replace the success search strategy. # DISCUSS: a bit cryptical with this index.
 
-              row = last_step_on_path
-              row = row[0..1] + [output_searches] + [row[3]] # FIXME: not mutating an array is so hard: we only want to replace the "searches" element, index 2
-              row = Sequence::Row[*row]
+              row_options = last_step_on_path.to_h.merge(wirings: output_searches)
+              row = Sequence.Row(**row_options)
 
               sequence[0..-2] + [row]
             end

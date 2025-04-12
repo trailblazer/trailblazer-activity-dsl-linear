@@ -336,25 +336,30 @@ class RailwayTest < Minitest::Spec
   it "accepts {:adds}" do
     linear = Trailblazer::Activity::DSL::Linear
 
-    row_options = {initial_task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP}
+    row_options = {extensions: [], initial_task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP}
 
     activity = Class.new(Activity::Railway) do
       step :f, adds: [
         {
-          row: linear::Sequence::Row[
-            :success,
-            Implementing.method(:g),
-            [linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)],
-            {id: :g, **row_options}],
+          row: linear::Sequence.Row(
+            magnetic_to: :success,
+            task: Implementing.method(:g),
+            wirings: [linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)],
+            data: {id: :g},
+            **row_options
+          ),
+
           insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), :f]
         }]
       fail :a, adds: [
         {
-          row: linear::Sequence::Row[
-            :failure,
-            Implementing.method(:b),
-            [linear::Sequence::Search.Forward(Activity.Output("f/signal", :failure), :failure)],
-            {**row_options}],
+          row: linear::Sequence.Row(
+            magnetic_to: :failure,
+            task: Implementing.method(:b),
+            wirings: [linear::Sequence::Search.Forward(Activity.Output("f/signal", :failure), :failure)],
+            data: {},
+            **row_options
+          ),
           insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), :g]
         }]
     # seq = state.pass implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}], Linear::Insert.method(:Prepend), :f]]

@@ -9,27 +9,28 @@ class Trailblazer::Activity
       # Complies with the Adds interface (#to_a).
       class Sequence < Array
         # Row interface is part of the ADDs specification.
-        class Row < Array
+        class Row < Struct.new(:magnetic_to, :task, :wirings, :data, :extensions, :initial_task_wrap)
+          # Part of ADDS compliancy, see {activity} gem {adds.rb}.
           def id
             data[:id]
           end
 
-          def data
-            self[3]
+          def to_a
+            [magnetic_to, task, wirings, data, extensions, initial_task_wrap]
           end
         end
 
         # Return {Sequence row} consisting of {[magnetic_to, task, connections_searches, data, ...]}.
         # Each row is process by {Sequence::Compiler}.
         def self.Row(task:, magnetic_to:, wirings:, extensions:, initial_task_wrap:, data:)
-          Row[
+          Row.new(
             magnetic_to,
             task,
             wirings,
             data, # {id: "Start.success"}
             extensions,
             initial_task_wrap
-          ]
+          )
         end
       end # Sequence
     end # Linear

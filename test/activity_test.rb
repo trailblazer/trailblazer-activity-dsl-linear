@@ -283,10 +283,14 @@ class ActivityTest < Minitest::Spec
       activity = Class.new(Activity::Path) do
         step implementing.method(:a), id: :a
 
-        row = Trailblazer::Activity::DSL::Linear::Sequence.create_row(task: circuit_interface_tasks.method(:c), id: :c, magnetic_to: :success,
-            wirings: [Trailblazer::Activity::DSL::Linear::Sequence::Search::Forward(Activity.Output(Activity::Right, :success), :success)],
-            initial_task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP,
-            )
+        row = Trailblazer::Activity::DSL::Linear::Sequence.Row(
+          task: circuit_interface_tasks.method(:c),
+          data: {id: :c},
+          magnetic_to: :success,
+          wirings: [Trailblazer::Activity::DSL::Linear::Sequence::Search::Forward(Activity.Output(Activity::Right, :success), :success)],
+          initial_task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP,
+          extensions: []
+        )
 
         step(id: :b, task: implementing.method(:b), adds: [
           {

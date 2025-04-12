@@ -288,8 +288,15 @@ module Trailblazer
             ctx[:id] = replace
           end
 
-          def create_row(ctx, task:, wirings:, magnetic_to:, data:, **)
-            ctx[:row] = Sequence.create_row(task: task, magnetic_to: magnetic_to, wirings: wirings, **data)
+          def create_row(ctx, task:, wirings:, magnetic_to:, data:, extensions:, initial_task_wrap:, **)
+            ctx[:row] = Sequence.Row(
+              task: task,
+              magnetic_to: magnetic_to,
+              wirings: wirings,
+              data: data,
+              extensions: extensions,
+              initial_task_wrap: initial_task_wrap
+            )
           end
 
           def create_add(ctx, row:, sequence_insert:, **)
@@ -302,7 +309,7 @@ module Trailblazer
 
           # TODO: document DataVariable() => :name
           # Compile data that goes into the sequence row.
-          def compile_data(ctx, non_symbol_options:, default_variables_for_data: [:id, :dsl_track, :extensions], **)
+          def compile_data(ctx, non_symbol_options:, default_variables_for_data: [:id, :dsl_track], **)
             variables_for_data = non_symbol_options
               .find_all { |k, v| k.instance_of?(Linear::DataVariableName) }
               .flat_map { |k, v| Array(v) }
@@ -315,8 +322,6 @@ module Trailblazer
             module_function
 
             def normalize_initial_task_wrap(ctx, initial_task_wrap: nil, non_symbol_options:, **)
-              ctx[:non_symbol_options] = non_symbol_options.merge(Activity::Path.DataVariable() => :initial_task_wrap)
-
               ctx[:initial_task_wrap] = initial_task_wrap || Activity::TaskWrap::INITIAL_TASK_WRAP # tw with one step: [<call_task>]
             end
           end

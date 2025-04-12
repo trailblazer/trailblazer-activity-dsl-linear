@@ -117,12 +117,13 @@ module Trailblazer
 
             def start_sequence(wirings: [])
               start_default = Activity::Start.new(semantic: :default)
-              start_event   = Linear::Sequence.create_row(
+              start_event   = Linear::Sequence.Row(
                 task: start_default,
-                id: "Start.default",
                 magnetic_to: nil,
                 wirings: wirings,
                 initial_task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP, # TODO: replace with empty NOOP tw to skip Start at runtime.
+                extensions: [],
+                data: {id: "Start.default"},
               )
 
               _sequence     = Linear::Sequence[start_event]

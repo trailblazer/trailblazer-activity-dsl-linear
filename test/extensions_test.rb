@@ -47,7 +47,7 @@ class ExtensionsTest < Minitest::Spec
 
     #@ we can access extensions via the Sequence:
     assert_equal activity.to_h[:sequence][0].data[:extensions], nil #[] # FIXME: this should always be an array!
-    assert_equal activity.to_h[:sequence][1].data[:extensions], [add_1_extension]
+    assert_equal activity.to_h[:sequence][1].extensions, [add_1_extension]
   end
 
   it "accepts {:extensions} along with {:input} and other additional extensions" do

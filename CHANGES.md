@@ -1,3 +1,18 @@
+# 1.3.0
+
+* Introduce `fields[:task_wrap]` for all Activity subclasses. It represents
+the taskWrap to be used when nesting that very activity, so it's up to the
+composer/user to make use of it. This new "feature" is tremendously helpful for
+advanced features in TRB like dependency injection.
+
+* Rename `Sequence.create_row` to `Sequence.Row` and make it accept additional
+options `:data`, `:initial_task_wrap`, and `:extensions` (data used to be the
+catch-all argument and is now an explicit kwarg). This gives `Row` two more elements.
+`Row()` is now the official and only way to create a Row.
+* `Sequence::Row` is now a Struct.
+* The `:extensions` field is no longer part of `Node.data`, this was a relic to pass this data structure to `Compiler`.
+
+
 # 1.2.7
 
 * In the DSL, passing only `:initial_input_pipeline` without `In()`` or `Inject()`` will

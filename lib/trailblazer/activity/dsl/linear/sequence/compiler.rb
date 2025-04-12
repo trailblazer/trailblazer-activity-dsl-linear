@@ -12,8 +12,8 @@ module Trailblazer
             # Default strategy to find out what's a stop event is to inspect the TaskRef's {data[:stop_event]}.
             def find_termini(sequence)
               sequence
-                .find_all { |_, _, _, data| data[:stop_event] }
-                .collect  { |_, task, _, data| [task, data.fetch(:semantic)] }
+                .find_all { |row| row.data[:stop_event] }
+                .collect  { |row| [row.task, row.data.fetch(:semantic)] }
                 .to_h
             end
 
@@ -29,12 +29,7 @@ module Trailblazer
               nodes_attributes = []
 
               wiring = sequence.collect do |seq_row|
-                _magnetic_to, task, connections, data, extensions, initial_task_wrap = seq_row
-
-
-                # filter out the :initial_task_wrap tuple as that's compiler_options and not {data}.
-                # DISCUSS: how could we allow passing data and compiler_options separately from the DSL?
-                data, compiler_options = data.slice(*(data.keys - [:initial_task_wrap])), {initial_task_wrap: data[:initial_task_wrap]}
+                _magnetic_to, task, connections, data, extensions, initial_task_wrap = seq_row.to_a
 
                 id = data[:id]
 
