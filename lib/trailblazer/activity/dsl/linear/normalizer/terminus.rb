@@ -33,9 +33,9 @@ module Trailblazer
             end
 
             # @private
-            def normalize_id(ctx, semantic:, id: nil, **)
+            def normalize_id(ctx, semantic:, id: Strategy.end_id(semantic: semantic), **)
               ctx.merge!(
-                id: id || Strategy.end_id(semantic: semantic)
+                id: id
               )
             end
 
@@ -79,6 +79,7 @@ module Trailblazer
 
               ctx.merge!(
                 wirings: [],
+                extensions: [],
                 adds:    [],
                 **terminus_args
               )
