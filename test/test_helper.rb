@@ -17,6 +17,10 @@ T = Trailblazer::Activity::Testing
 Minitest::Spec::Activity = Trailblazer::Activity # TODO: remove this.
 
 Minitest::Spec.class_eval do
+  def assert_equal(asserted, expected)
+    super(expected, asserted)
+  end
+
   Implementing = T.def_steps(:a, :b, :c, :d, :e, :f, :g)
 
   def assert_sequence(sequence, *args)
@@ -43,6 +47,7 @@ Minitest::Spec.class_eval do
     ctx[:seq] << 1
     return wrap_ctx, original_args # yay to mutable state. not.
   end
+
   def add_2(wrap_ctx, original_args)
     ctx, _ = original_args[0]
     ctx[:seq] << 2
