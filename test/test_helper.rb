@@ -17,8 +17,8 @@ T = Trailblazer::Activity::Testing
 Minitest::Spec::Activity = Trailblazer::Activity # TODO: remove this.
 
 Minitest::Spec.class_eval do
-  def assert_equal(asserted, expected)
-    super(expected, asserted)
+  def assert_equal(asserted, expected, *args)
+    super(expected, asserted, *args)
   end
 
   Implementing = T.def_steps(:a, :b, :c, :d, :e, :f, :g)
