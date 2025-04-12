@@ -19,13 +19,16 @@ class Trailblazer::Activity
           end
         end
 
-        # Return {Sequence row} consisting of {[magnetic_to, task, connections_searches, data]}.
-        def self.create_row(task:, magnetic_to:, wirings:, **data)
+        # Return {Sequence row} consisting of {[magnetic_to, task, connections_searches, data, ...]}.
+        # Each row is process by {Sequence::Compiler}.
+        def self.Row(task:, magnetic_to:, wirings:, extensions:, initial_task_wrap:, data:)
           Row[
             magnetic_to,
             task,
             wirings,
-            data # {id: "Start.success"}
+            data, # {id: "Start.success"}
+            extensions,
+            initial_task_wrap
           ]
         end
       end # Sequence

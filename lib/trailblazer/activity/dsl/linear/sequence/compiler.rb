@@ -4,6 +4,8 @@ module Trailblazer
       module Linear
         class Sequence
           # Compile a {Schema} from a {Sequence} into a {Circuit}.
+          # This is the heart of the `dsl` gem where the user's DSL instructions
+          # finally get transformed into a runnable Activity.
           module Compiler
             module_function
 
@@ -27,7 +29,7 @@ module Trailblazer
               nodes_attributes = []
 
               wiring = sequence.collect do |seq_row|
-                _magnetic_to, task, connections, data = seq_row
+                _magnetic_to, task, connections, data, extensions, initial_task_wrap = seq_row
 
 
                 # filter out the :initial_task_wrap tuple as that's compiler_options and not {data}.
@@ -41,13 +43,8 @@ module Trailblazer
 
                 circuit_connections = connections.collect { |output, target_task| [output.signal, target_task] }.to_h
 
-                # DISCUSS: a check would be cool here whether :initial_task_wrap is here.
-                initial_task_wrap = compiler_options[:initial_task_wrap]
-                raise %( No :initial_task_wrap passed for #{task.inspect}) if initial_task_wrap.nil? # TODO: Remove me.
-                config[:wrap_static][task] = initial_task_wrap # DISCUSS: do we like that???
+                config[:wrap_static][task] = initial_task_wrap
 
-                extensions = (seq_row[3][:extensions] || [])
-                # FIXME: move that to {Intermediate::Compiler}?
                 config = extensions.inject(config) { |cfg, ext| ext.(config: cfg, id: id, task: task) } # {ext} must return new config hash.
 
                 # nodes_attributes:
