@@ -1,3 +1,6 @@
+# DISCUSS: would it even be possible to remove @sequence and the like after finalize?
+# how would inheritance work when we remove too early?
+
 module Trailblazer::Activity::DSL::Linear
   module Zeitwerk
     module Strategy

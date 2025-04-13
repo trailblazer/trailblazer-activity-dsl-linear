@@ -69,7 +69,6 @@ module Trailblazer
               # activity_outputs = [Activity::Output(steps[last_step_i], :success)]
               activity_outputs = termini.collect { |terminus, semantic| Activity::Output(terminus, semantic) }
 
-
               nodes = Schema::Nodes(nodes_attributes)
 
               Schema.new(circuit, activity_outputs, nodes, config)

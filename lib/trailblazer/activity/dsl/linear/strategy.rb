@@ -198,10 +198,15 @@ module Trailblazer
 
           # DISCUSS: where to move this?
           # This is taskWrap specific logic that might be used by {Invoke}.
+
+          id, task = Activity::TaskWrap::ROW_ARGS_FOR_CALL_TASK
+          INITIAL_TASK_WRAP_EXTENSION = Proc.new { [task, id: id, prepend: nil] } # ADDS instruction for the initial task wrap with only the {call_task} step.
+
           state.update!(:fields) do |fields|
             # raise fields.inspect
             fields.merge(
-              task_wrap: Activity::TaskWrap::INITIAL_WRAP_STATIC.to_a  # HERE, we can add other tw steps like dependeny injection. However, this one call_task step is the one calling us.
+              # task_wrap: Activity::TaskWrap::INITIAL_WRAP_STATIC.to_a  # HERE, we can add other tw steps like dependeny injection. However, this one call_task step is the one calling us.
+              task_wrap_extensions: [INITIAL_TASK_WRAP_EXTENSION] # this will be the taskWrap used when being nested, to the composing activity, for "us".
             )
           end
 

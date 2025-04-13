@@ -130,6 +130,7 @@ module Trailblazer
 
 
                 # specific to the step's taskWrap. # DISCUSS: technically, this is a "feature", but every step needs a tw to be run.
+                "step.compile_initial_task_wrap" => Normalizer.Task(TaskWrap.method(:compile_initial_task_wrap)),
                 "step.initial_task_wrap" => Normalizer.Task(TaskWrap.method(:normalize_initial_task_wrap)),
 
 
@@ -321,6 +322,23 @@ module Trailblazer
           module TaskWrap
             module_function
 
+            # initial_task_wrap is computed from ...
+
+            def compile_initial_task_wrap(ctx, task:, subprocess: false, **)
+              return unless subprocess
+
+              adds = task.to_h[:fields].fetch(:task_wrap_extensions).collect { |ext| ext.(ctx, **ctx) } # DISCUSS: make that read-only by removing positional arg?
+              adds = Activity::TaskWrap::Extension(*adds)
+
+              task_wrap = []
+              task_wrap = adds.(task_wrap)
+              task_wrap = Activity::TaskWrap::Pipeline.new(task_wrap)
+
+              ctx[:initial_task_wrap] = task_wrap
+            end
+            # initial_task_wrap is used in Compiler, where extensions can add their tw steps. (maybe move that to normalizer, too?)
+
+            # The produced {:initial_task_wrap} is passed to {Sequence::Compiler}.
             def normalize_initial_task_wrap(ctx, initial_task_wrap: nil, non_symbol_options:, **)
               ctx[:initial_task_wrap] = initial_task_wrap || Activity::TaskWrap::INITIAL_TASK_WRAP # tw with one step: [<call_task>]
             end
