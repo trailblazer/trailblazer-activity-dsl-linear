@@ -135,8 +135,8 @@ module Trailblazer
 
                 # specific to the step's taskWrap. # DISCUSS: technically, this is a "feature", but every step needs a tw to be run.
                 "step.compile_initial_task_wrap" => Normalizer.Task(TaskWrap.method(:compile_initial_task_wrap)),
-                "step.initial_task_wrap_adds" => Normalizer.Task(TaskWrap.method(:normalize_initial_task_wrap_adds)),
-                "step.compile_task_wrap_from_extensions" => Normalizer.Task(TaskWrap.method(:compile_task_wrap_from_extensions)),
+                "step.initial_task_wrap_extensions" => Normalizer.Task(TaskWrap.method(:normalize_initial_task_wrap_extensions)),
+                "step.compile_task_wrap" => Normalizer.Task(TaskWrap.method(:compile_task_wrap)),
 
                 # DISCUSS: make this configurable? maybe lots of folks don't want {:inherit}?
                 "inherit.compile_recorded_options"        => Normalizer.Task(Inherit.method(:compile_recorded_options)),
@@ -327,20 +327,26 @@ module Trailblazer
 
               extensions = task.to_h[:fields].fetch(:task_wrap_extensions)#.collect { |ext| ext.([], **ctx) } # TODO: test that!
 
-              ctx[:initial_task_wrap_adds] = extensions
+              ctx[:initial_task_wrap_extensions] = extensions
             end
 
             #
-            def normalize_initial_task_wrap_adds(ctx, initial_task_wrap_adds: nil, **) # FIXME: initial_task_wrap_adds should be initial_task_wrap_adds_extension
-              # usually, non-Subprocess steps have no initial_task_wrap_adds set.
-              ctx[:initial_task_wrap_adds] = initial_task_wrap_adds || Strategy::INITIAL_TASK_WRAP_EXTENSIONS # tw with one step: [<call_task>]
+            def normalize_initial_task_wrap_extensions(ctx, initial_task_wrap_extensions: nil, **) # FIXME: initial_task_wrap_extensions should be initial_task_wrap_extensions_extension
+              # usually, non-Subprocess steps have no initial_task_wrap_extensions set.
+              ctx[:initial_task_wrap_extensions] = initial_task_wrap_extensions || Strategy::INITIAL_TASK_WRAP_EXTENSIONS # tw with one step: [<call_task>]
             end
 
 # FIXME: this used to happen in Compiler:
-            def compile_task_wrap_from_extensions(ctx, initial_task_wrap_adds:, extensions: [], task_wrap: [], **)
-              extensions = initial_task_wrap_adds + extensions # DISCUSS: should be [<Normalizer::TaskWrap::Extension>, ...]
+            # @semi-private
+            # Used in {trailblazer-invoke}
+            def compile_task_wrap_ary_from_extensions(initial_task_wrap_extensions, extensions, options, task_wrap: [])
+              extensions = initial_task_wrap_extensions + extensions
 
-              task_wrap = extensions.inject(task_wrap) { |task_wrap, ext| ext.(task_wrap, **ctx) } # {ext} must return new task_wrap.
+              extensions.inject(task_wrap) { |task_wrap, ext| ext.(task_wrap, **options) } # {ext} must return new task_wrap.
+            end
+
+            def compile_task_wrap(ctx, initial_task_wrap_extensions:, extensions:, **)
+              task_wrap  = compile_task_wrap_ary_from_extensions(initial_task_wrap_extensions, extensions, ctx)
 
               ctx[:task_wrap] = Activity::TaskWrap::Pipeline.new(task_wrap)
             end
