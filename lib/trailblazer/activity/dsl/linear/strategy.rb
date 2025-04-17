@@ -121,12 +121,11 @@ module Trailblazer
                 task: start_default,
                 magnetic_to: nil,
                 wirings: wirings,
-                initial_task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP, # TODO: replace with empty NOOP tw to skip Start at runtime.
-                extensions: [],
+                task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP, # TODO: replace with empty NOOP tw to skip Start at runtime.
                 data: {id: "Start.default"},
               )
 
-              _sequence     = Linear::Sequence[start_event]
+              _sequence = Linear::Sequence[start_event]
             end
 
             def Build(strategy, **options, &block)
@@ -200,13 +199,11 @@ module Trailblazer
           # This is taskWrap specific logic that might be used by {Invoke}.
 
           id, task = Activity::TaskWrap::ROW_ARGS_FOR_CALL_TASK
-          INITIAL_TASK_WRAP_EXTENSION = Proc.new { [task, id: id, prepend: nil] } # ADDS instruction for the initial task wrap with only the {call_task} step.
+          INITIAL_TASK_WRAP_EXTENSIONS = [TaskWrap.Extension([task, id: id, prepend: nil])]
 
           state.update!(:fields) do |fields|
-            # raise fields.inspect
             fields.merge(
-              # task_wrap: Activity::TaskWrap::INITIAL_WRAP_STATIC.to_a  # HERE, we can add other tw steps like dependeny injection. However, this one call_task step is the one calling us.
-              task_wrap_extensions: [INITIAL_TASK_WRAP_EXTENSION] # this will be the taskWrap used when being nested, to the composing activity, for "us".
+              task_wrap_extensions: INITIAL_TASK_WRAP_EXTENSIONS # this will be the taskWrap used when being nested, to the composing activity, for "us".
             )
           end
 

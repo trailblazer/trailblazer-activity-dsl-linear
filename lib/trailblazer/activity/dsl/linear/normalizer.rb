@@ -128,14 +128,15 @@ module Trailblazer
 
                 "activity.wirings"                        => Normalizer.Task(OutputTuples::Connections.method(:compile_wirings)),
 
+                "extensions.compile_extensions"           => Normalizer.Task(Extensions.method(:compile_extensions)),
+                "extensions.compile_recorded_extensions"  => Normalizer.Task(Extensions.method(:compile_recorded_extensions)),
+
+
 
                 # specific to the step's taskWrap. # DISCUSS: technically, this is a "feature", but every step needs a tw to be run.
                 "step.compile_initial_task_wrap" => Normalizer.Task(TaskWrap.method(:compile_initial_task_wrap)),
-                "step.initial_task_wrap" => Normalizer.Task(TaskWrap.method(:normalize_initial_task_wrap)),
-
-
-                "extensions.compile_extensions"           => Normalizer.Task(Extensions.method(:compile_extensions)),
-                "extensions.compile_recorded_extensions"  => Normalizer.Task(Extensions.method(:compile_recorded_extensions)),
+                "step.initial_task_wrap_adds" => Normalizer.Task(TaskWrap.method(:normalize_initial_task_wrap_adds)),
+                "step.compile_task_wrap_from_extensions" => Normalizer.Task(TaskWrap.method(:compile_task_wrap_from_extensions)),
 
                 # DISCUSS: make this configurable? maybe lots of folks don't want {:inherit}?
                 "inherit.compile_recorded_options"        => Normalizer.Task(Inherit.method(:compile_recorded_options)),
@@ -289,14 +290,13 @@ module Trailblazer
             ctx[:id] = replace
           end
 
-          def create_row(ctx, task:, wirings:, magnetic_to:, data:, extensions:, initial_task_wrap:, **)
+          def create_row(ctx, task:, wirings:, magnetic_to:, data:, extensions:, task_wrap:, **)
             ctx[:row] = Sequence.Row(
               task: task,
               magnetic_to: magnetic_to,
               wirings: wirings,
               data: data,
-              extensions: extensions,
-              initial_task_wrap: initial_task_wrap
+              task_wrap: task_wrap
             )
           end
 
@@ -322,25 +322,27 @@ module Trailblazer
           module TaskWrap
             module_function
 
-            # initial_task_wrap is computed from ...
-
             def compile_initial_task_wrap(ctx, task:, subprocess: false, **)
               return unless subprocess
 
-              adds = task.to_h[:fields].fetch(:task_wrap_extensions).collect { |ext| ext.(ctx, **ctx) } # DISCUSS: make that read-only by removing positional arg?
-              adds = Activity::TaskWrap::Extension(*adds)
+              extensions = task.to_h[:fields].fetch(:task_wrap_extensions)#.collect { |ext| ext.([], **ctx) } # TODO: test that!
 
-              task_wrap = []
-              task_wrap = adds.(task_wrap)
-              task_wrap = Activity::TaskWrap::Pipeline.new(task_wrap)
-
-              ctx[:initial_task_wrap] = task_wrap
+              ctx[:initial_task_wrap_adds] = extensions
             end
-            # initial_task_wrap is used in Compiler, where extensions can add their tw steps. (maybe move that to normalizer, too?)
 
-            # The produced {:initial_task_wrap} is passed to {Sequence::Compiler}.
-            def normalize_initial_task_wrap(ctx, initial_task_wrap: nil, non_symbol_options:, **)
-              ctx[:initial_task_wrap] = initial_task_wrap || Activity::TaskWrap::INITIAL_TASK_WRAP # tw with one step: [<call_task>]
+            #
+            def normalize_initial_task_wrap_adds(ctx, initial_task_wrap_adds: nil, **) # FIXME: initial_task_wrap_adds should be initial_task_wrap_adds_extension
+              # usually, non-Subprocess steps have no initial_task_wrap_adds set.
+              ctx[:initial_task_wrap_adds] = initial_task_wrap_adds || Strategy::INITIAL_TASK_WRAP_EXTENSIONS # tw with one step: [<call_task>]
+            end
+
+# FIXME: this used to happen in Compiler:
+            def compile_task_wrap_from_extensions(ctx, initial_task_wrap_adds:, extensions: [], task_wrap: [], **)
+              extensions = initial_task_wrap_adds + extensions # DISCUSS: should be [<Normalizer::TaskWrap::Extension>, ...]
+
+              task_wrap = extensions.inject(task_wrap) { |task_wrap, ext| ext.(task_wrap, **ctx) } # {ext} must return new task_wrap.
+
+              ctx[:task_wrap] = Activity::TaskWrap::Pipeline.new(task_wrap)
             end
           end
         end

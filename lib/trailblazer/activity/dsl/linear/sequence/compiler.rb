@@ -29,7 +29,7 @@ module Trailblazer
               nodes_attributes = []
 
               wiring = sequence.collect do |seq_row|
-                _magnetic_to, task, connections, data, extensions, initial_task_wrap = seq_row.to_a
+                _magnetic_to, task, connections, data, task_wrap = seq_row.to_a
 
                 id = data[:id]
 
@@ -38,9 +38,7 @@ module Trailblazer
 
                 circuit_connections = connections.collect { |output, target_task| [output.signal, target_task] }.to_h
 
-                config[:wrap_static][task] = initial_task_wrap
-
-                config = extensions.inject(config) { |cfg, ext| ext.(config: cfg, id: id, task: task) } # {ext} must return new config hash.
+                config[:wrap_static][task] = task_wrap
 
                 # nodes_attributes:
                 outputs = connections.keys

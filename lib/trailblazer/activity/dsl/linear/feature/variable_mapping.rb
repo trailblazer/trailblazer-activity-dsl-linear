@@ -6,9 +6,8 @@ module Trailblazer
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
         def self.VariableMapping(input_id: "task_wrap.input", output_id: "task_wrap.output", **options)
           input, output = VariableMapping.merge_instructions_from_dsl(**options)
-          extension     = VariableMapping.Extension(input, output)
 
-          TaskWrap::Extension::WrapStatic.new(extension: extension)
+          VariableMapping.Extension(input, output)
         end
 
         module VariableMapping
