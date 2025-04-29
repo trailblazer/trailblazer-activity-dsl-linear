@@ -10,7 +10,7 @@ gem "minitest-line"
 # gem "trailblazer-declarative", path: "../trailblazer-declarative"
 # gem "trailblazer-activity",       path: "../trailblazer-activity"
 gem "trailblazer-activity", github: "trailblazer/trailblazer-activity"
-gem "hashie", github: "hashie/hashie"
+gem "hashie", github: "hashie/hashie" # TODO: remove once hashie-5.1.0 is here.
 
 # gem "benchmark-ips"
 # gem "stackprof"
