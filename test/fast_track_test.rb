@@ -298,7 +298,7 @@ class FastTrackTest < Minitest::Spec
         activity.([{seq: [], a: Activity::Left }])
       end
 
-      _(exception.message).must_include "Unrecognized Signal `#<Trailblazer::Activity::End semantic=:fail_fast>` returned from #{nested}"
+      assert_includes exception.message, "Unrecognized signal `#<Trailblazer::Activity::End semantic=:fail_fast>` returned from #{nested}"
     end
 
     it "{#pass} with {:pass_fast}" do

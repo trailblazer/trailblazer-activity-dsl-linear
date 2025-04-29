@@ -21,35 +21,6 @@ class ExtensionsTest < Minitest::Spec
     )
   end
 
-  # This is and will remain part of the semi-public API! We need this
-  # for introspection purposes.
-  it "accepts {:extensions} and exposes it in {row.data}" do
-    add_1_extension = prepend_1_extension
-
-    activity = Class.new(Activity::Path) do
-      step :model,
-        extensions: [add_1_extension]
-      step :save
-
-      include T.def_steps(:model, :save)
-    end
-
-    assert_process_for activity, :success, %{
-#<Start/:default>
- {Trailblazer::Activity::Right} => <*model>
-<*model>
- {Trailblazer::Activity::Right} => <*save>
-<*save>
- {Trailblazer::Activity::Right} => #<End/:success>
-#<End/:success>
-}
-    assert_invoke activity, seq: "[1, :model, :save]"
-
-    #@ we can access extensions via the Sequence:
-    assert_equal activity.to_h[:sequence][0].data[:extensions], nil #[] # FIXME: this should always be an array!
-    assert_equal activity.to_h[:sequence][1].extensions, [add_1_extension]
-  end
-
   it "accepts {:extensions} along with {:input} and other additional extensions" do
     add_1_extension = prepend_1_extension
 

@@ -288,8 +288,7 @@ class ActivityTest < Minitest::Spec
           data: {id: :c},
           magnetic_to: :success,
           wirings: [Trailblazer::Activity::DSL::Linear::Sequence::Search::Forward(Activity.Output(Activity::Right, :success), :success)],
-          initial_task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP,
-          extensions: []
+          task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP,
         )
 
         step(id: :b, task: implementing.method(:b), adds: [

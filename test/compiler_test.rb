@@ -25,8 +25,7 @@ class CompilerTest < Minitest::Spec
               :success
             ),
           ],
-        extensions: [],
-        initial_task_wrap: default_task_wrap,
+        task_wrap: default_task_wrap,
         data: {id: "Start.default"},
       ),
       sequence.Row(
@@ -44,8 +43,7 @@ class CompilerTest < Minitest::Spec
               :failure
             ),
           ],
-        extensions: [],
-        initial_task_wrap: default_task_wrap,
+        task_wrap: default_task_wrap,
         data: {id: :a},
       ),
       sequence.Row(
@@ -62,8 +60,7 @@ class CompilerTest < Minitest::Spec
               :failure
             )
           ],
-        extensions: [],
-        initial_task_wrap: default_task_wrap,
+        task_wrap: default_task_wrap,
         data: {id: :b},
       ),
       sequence.Row(
@@ -80,8 +77,7 @@ class CompilerTest < Minitest::Spec
               :failure
            )
           ],
-        extensions: [],
-        initial_task_wrap: default_task_wrap,
+        task_wrap: default_task_wrap,
         data: {id: :c},
       ),
       sequence.Row(
@@ -98,24 +94,21 @@ class CompilerTest < Minitest::Spec
               :failure
             )
           ],
-        extensions: [],
-        initial_task_wrap: default_task_wrap,
+        task_wrap: default_task_wrap,
         data: {id: :d},
       ),
       sequence.Row(
         magnetic_to: :success,
         task: implementing::Success,
         wirings: [],
-        extensions: [],
-        initial_task_wrap: default_task_wrap,
+        task_wrap: default_task_wrap,
         data: {id: "End.success", stop_event: true, semantic: :success},
       ),
       sequence.Row(
         magnetic_to: :failure,
         task: implementing::Failure,
         wirings: [],
-        extensions: [],
-        initial_task_wrap: default_task_wrap,
+        task_wrap: default_task_wrap,
         data: {id: "End.failure", stop_event: true, semantic: :failure},
       ),
     ]

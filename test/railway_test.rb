@@ -336,7 +336,7 @@ class RailwayTest < Minitest::Spec
   it "accepts {:adds}" do
     linear = Trailblazer::Activity::DSL::Linear
 
-    row_options = {extensions: [], initial_task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP}
+    row_options = {task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP}
 
     activity = Class.new(Activity::Railway) do
       step :f, adds: [

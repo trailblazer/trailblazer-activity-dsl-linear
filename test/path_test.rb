@@ -40,9 +40,8 @@ class PathTest < Minitest::Spec
         magnetic_to: :success,
         task: Implementing.method(:g),
         wirings: [Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)],
-        extensions: [],
         data: {},
-        initial_task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP
+        task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP
       )
 
       step :f,

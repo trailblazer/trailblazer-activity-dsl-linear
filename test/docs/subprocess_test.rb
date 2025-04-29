@@ -145,7 +145,7 @@ class Strict_Exception_SubprocessDocsTest < Minitest::Spec
       assert_invoke Memo::Activity::Create, seq: "[:check_params, :handle_errors]", check_params: false, terminus: :failure
     end
 
-    assert_equal exception.message.split("\n")[1][0..82], %(\e[31mUnrecognized Signal `#<Trailblazer::Activity::End semantic=:invalid>` returned)
+    assert_equal exception.message.split("\n")[1][0..82], %(\e[31mUnrecognized signal `#<Trailblazer::Activity::End semantic=:invalid>` returned)
   end
 end
 #~ignore end

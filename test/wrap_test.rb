@@ -16,7 +16,7 @@ class TaskWrapTest < Minitest::Spec
     assert_equal task_wrap.to_a.collect { |step| step.id }, ["task_wrap.call_task"]
   end
 
-  it "the {:initial_task_wrap} option allows providing for a differing task_wrap" do
+  it "the {:initial_task_wrap_extensions} option allows to produce a custom taskWrap" do
     tw_step = ->(wrap_ctx, original_args) do
       wrap_ctx[:return_signal] = Trailblazer::Activity::Right
       wrap_ctx[:return_args] = [{seq: "hello from taskWrap"}]
@@ -24,9 +24,9 @@ class TaskWrapTest < Minitest::Spec
     end
 
     activity = Class.new(Trailblazer::Activity::Railway) do
-      pipeline = Trailblazer::Activity::TaskWrap::Pipeline
+      my_ext = Trailblazer::Activity::TaskWrap.Extension([tw_step, id: "my.add_1", prepend: nil]) # no {call_task} anymore.
 
-      step task: Object, initial_task_wrap: pipeline.new([pipeline::Row["my.add_1", tw_step]])
+      step task: Object, initial_task_wrap_extensions: [my_ext]
     end
 
     task_wrap = activity.to_h[:config][:wrap_static][Object]

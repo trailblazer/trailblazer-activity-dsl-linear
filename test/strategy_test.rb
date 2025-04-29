@@ -5,14 +5,14 @@ class StrategyTest < Minitest::Spec
     strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy)
 
     # DISCUSS: should we pass {:initial_task_wrap} somehow else?
-    assert_equal strategy.to_h[:sequence].inspect, %([#<struct Trailblazer::Activity::DSL::Linear::Sequence::Row magnetic_to=nil, task=#<Trailblazer::Activity::Start semantic=:default>, wirings=[], data={:id=>\"Start.default\"}, extensions=[], initial_task_wrap=#{Trailblazer::Activity::TaskWrap::INITIAL_TASK_WRAP.inspect}>])
+    assert_equal strategy.to_h[:sequence].inspect, %([#<struct Trailblazer::Activity::DSL::Linear::Sequence::Row magnetic_to=nil, task=#<Trailblazer::Activity::Start semantic=:default>, wirings=[], data={:id=>\"Start.default\"}, task_wrap=#{Trailblazer::Activity::TaskWrap::INITIAL_TASK_WRAP.inspect}>])
 
     assert_circuit strategy.to_h, %{
 #<Start/:default>
 }
   end
 
-  let(:default_task_wrap_in_fields) { {task_wrap: Trailblazer::Activity::TaskWrap::INITIAL_TASK_WRAP.to_a} }
+  let(:default_task_wrap_in_fields) { {task_wrap_extensions: Trailblazer::Activity::DSL::Linear::Strategy::INITIAL_TASK_WRAP_EXTENSIONS} }
 
 #@ State-relevant tests
   it "provides {:fields} in {@state} which is an (inherited) hash" do

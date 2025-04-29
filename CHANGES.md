@@ -1,17 +1,20 @@
 # 1.3.0
 
-* Introduce `fields[:task_wrap]` for all Activity subclasses. It represents
+* Introduce `fields[:task_wrap_EXT]` for all Activity subclasses. It represents
 the taskWrap to be used when nesting that very activity, so it's up to the
 composer/user to make use of it. This new "feature" is tremendously helpful for
 advanced features in TRB like dependency injection.
+* DSL: Introduce the `:initial_task_wrap` option which represents the taskWrap of the step
+  that should be merged with the user options.
 
+* Row doesn't have :extensions anymore, and keeps a :task_wrap field that is already compiled. this moved from Compiler.
 * Rename `Sequence.create_row` to `Sequence.Row` and make it accept additional
 options `:data`, `:initial_task_wrap`, and `:extensions` (data used to be the
 catch-all argument and is now an explicit kwarg). This gives `Row` two more elements.
 `Row()` is now the official and only way to create a Row.
 * `Sequence::Row` is now a Struct.
 * The `:extensions` field is no longer part of `Node.data`, this was a relic to pass this data structure to `Compiler`.
-
+[initial_task_wrap e46bcfe] introduce the concept of `:task_wrap_extensions` instead of an already compiled tW in each activity. This way, we can execute those extensions at compile-time, but when the activity itself is being nested into another one. this in turn allows the extensions to access the DSL's options, like `:id`.
 
 # 1.2.7
 
