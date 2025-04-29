@@ -4,7 +4,7 @@ class StrategyTest < Minitest::Spec
   it "empty Strategy" do
     strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy)
 
-    # DISCUSS: should we pass {:initial_task_wrap} somehow else?
+    puts "@@@@@ #{strategy.to_h[:sequence].inspect}"
     assert_equal strategy.to_h[:sequence].inspect, %([#<struct Trailblazer::Activity::DSL::Linear::Sequence::Row magnetic_to=nil, task=#<Trailblazer::Activity::Start semantic=:default>, wirings=[], data={:id=>\"Start.default\"}, task_wrap=#{Trailblazer::Activity::TaskWrap::INITIAL_TASK_WRAP.inspect}>])
 
     assert_circuit strategy.to_h, %{

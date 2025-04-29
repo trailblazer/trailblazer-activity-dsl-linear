@@ -36,6 +36,9 @@ class TaskWrapTest < Minitest::Spec
     assert_invoke activity, seq: %("hello from taskWrap")
   end
 
+  # TODO: should we test if {:initial_task_wrap_extensions} is defaulted?
+  # TODO: what happens in a Subprocess where we need to merge both, from the activity and from the DSL user?
+
   it "populates activity[:wrap_static] and uses it at run-time" do
     taskWrap = Trailblazer::Activity::TaskWrap
 
