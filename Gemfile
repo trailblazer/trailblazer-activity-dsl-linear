@@ -10,6 +10,7 @@ gem "minitest-line"
 # gem "trailblazer-declarative", path: "../trailblazer-declarative"
 # gem "trailblazer-activity",       path: "../trailblazer-activity"
 gem "trailblazer-activity", github: "trailblazer/trailblazer-activity"
+gem "hashie", github: "hashie/hashie"
 
 # gem "benchmark-ips"
 # gem "stackprof"
