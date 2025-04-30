@@ -1,6 +1,33 @@
 require "test_helper"
 
 class SubprocessTest < Minitest::Spec
+  it "the Subprocess() macro sets the {subprocess: true} option in the normalizer ctx" do
+    activity = Class.new(Trailblazer::Activity::Railway) do
+      def self.set_subprocess_in_data(ctx, non_symbol_options:, **)
+        # raise non_symbol_options.inspect
+        ctx.merge!(non_symbol_options: non_symbol_options.merge(Trailblazer::Activity::Railway.DataVariable() => :subprocess))
+      end
+
+      Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step, :fail, :pass) do |normalizer|
+
+        Trailblazer::Activity::TaskWrap.Extension(
+          [
+            Trailblazer::Activity::DSL::Linear::Normalizer.Task(method(:set_subprocess_in_data)), id: "my.set_subprocess_in_data", prepend: "activity.compile_data"
+          ]
+        ).(normalizer)
+      end
+
+      step :model
+      pass :find_id
+      fail :log
+      step Subprocess(Trailblazer::Activity::Railway)
+    end
+
+    assert_nil activity.to_h[:nodes].values[1].data[:subprocess]
+    assert_nil activity.to_h[:nodes].values[2].data[:subprocess]
+    assert_nil activity.to_h[:nodes].values[3].data[:subprocess]
+    assert_equal activity.to_h[:nodes].values[4].data[:subprocess], true
+  end
   it "does not automatically connect outputs unknown to the Strategy (terminus :unknown)" do
     sub_activity = Class.new(Activity::Railway) do
       terminus :unknown

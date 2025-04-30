@@ -68,7 +68,9 @@ module Trailblazer
             activity = Linear::Patch.customize(activity, options: patch)
 
             outputs  = activity.to_h[:outputs]
-            options  = {}
+            options  = {
+              subprocess: true
+            }
 
             if strict
               options.merge!(
