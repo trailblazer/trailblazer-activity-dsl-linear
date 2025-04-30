@@ -31,6 +31,7 @@ module Trailblazer
 
           # Helper for normalizers.
           # To be applied on {Pipeline} instances.
+          # TODO: use TaskWrap.Extension interface here.
           def self.prepend_to(pipe, insertion_id, insertion)
             adds =
               insertion.collect do |id, task|
@@ -325,20 +326,23 @@ module Trailblazer
             def compile_initial_task_wrap(ctx, task:, subprocess: false, **)
               return unless subprocess
 
-              extensions = task.to_h[:fields].fetch(:task_wrap_extensions)#.collect { |ext| ext.([], **ctx) } # TODO: test that!
+              # Activity subclasses maintain a field {:task_wrap_extensions} that can be used to expose the
+              # taskWrap for the activity itself to an outer user, e.g. when being nested.
+              extensions = task.to_h[:fields].fetch(:task_wrap_extensions)
 
               ctx[:initial_task_wrap_extensions] = extensions
             end
 
             #
             def normalize_initial_task_wrap_extensions(ctx, initial_task_wrap_extensions: nil, **) # FIXME: initial_task_wrap_extensions should be initial_task_wrap_extensions_extension
+              return if initial_task_wrap_extensions
               # usually, non-Subprocess steps have no initial_task_wrap_extensions set.
-              ctx[:initial_task_wrap_extensions] = initial_task_wrap_extensions || Strategy::INITIAL_TASK_WRAP_EXTENSIONS # tw with one step: [<call_task>]
+              ctx[:initial_task_wrap_extensions] = Strategy::INITIAL_TASK_WRAP_EXTENSIONS # tw with one step: [<call_task>]
             end
 
-# FIXME: this used to happen in Compiler:
             # @semi-private
             # Used in {trailblazer-invoke}
+            # NOTE: this used to happen in Sequence::Compiler.
             def compile_task_wrap_ary_from_extensions(initial_task_wrap_extensions, extensions, options, task_wrap: [])
               extensions = initial_task_wrap_extensions + extensions
 
