@@ -15,6 +15,10 @@ catch-all argument and is now an explicit kwarg). This gives `Row` two more elem
 * `Sequence::Row` is now a Struct.
 * The `:extensions` field is no longer part of `Node.data`, this was a relic to pass this data structure to `Compiler`.
 [initial_task_wrap e46bcfe] introduce the concept of `:task_wrap_extensions` instead of an already compiled tW in each activity. This way, we can execute those extensions at compile-time, but when the activity itself is being nested into another one. this in turn allows the extensions to access the DSL's options, like `:id`.
+Activity subclasses maintain a field {:task_wrap_extensions} that can be used to expose the
+              # taskWrap for the activity itself to an outer user, e.g. when being nested.
+* `Subprocess()` now adds `subprocess: true` to its options and the normalizer context, so steps in normalizer
+  can add logic specific to nesting.
 
 # 1.2.7
 
