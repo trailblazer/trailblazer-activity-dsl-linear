@@ -77,15 +77,15 @@ module Trailblazer
               # Termini (or :stop_event) are to be placed after {End.success}.
               adds = seq.collect do |row|
                 # the terminus of the path goes _after_ {End.success} into the "end group".
-                insert_method = row.data[:stop_event] ? Activity::Adds::Insert.method(:Append) : Activity::Adds::Insert.method(:Prepend)
+                insert_method = row.data[:stop_event] ? :append : :prepend
 
                 insert_target = "End.success" # insert before/after
                 insert_target = before if before && connect_to.instance_of?(Linear::Normalizer::OutputTuples::Track) # FIXME: this is a bit hacky, of course!
 
-                {
-                  row:    row,
-                  insert: [insert_method, insert_target]
-                }
+                # ADDS friendly interface:
+                [
+                  nil, row: row, insert_method => insert_target
+                ]
               end
 
               # Connect the Output() => Track(path_track)

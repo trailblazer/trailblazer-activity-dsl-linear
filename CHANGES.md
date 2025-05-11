@@ -19,6 +19,7 @@ Activity subclasses maintain a field {:task_wrap_extensions} that can be used to
               # taskWrap for the activity itself to an outer user, e.g. when being nested.
 * `Subprocess()` now adds `subprocess: true` to its options and the normalizer context, so steps in normalizer
   can add logic specific to nesting.
+* For the `:adds` field in the DSL, we don't use the low-level interface anymore but the "friendly interface".
 
 # 1.2.7
 

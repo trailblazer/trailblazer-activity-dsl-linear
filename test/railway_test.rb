@@ -340,7 +340,8 @@ class RailwayTest < Minitest::Spec
 
     activity = Class.new(Activity::Railway) do
       step :f, adds: [
-        {
+        [
+          nil,
           row: linear::Sequence.Row(
             magnetic_to: :success,
             task: Implementing.method(:g),
@@ -348,11 +349,12 @@ class RailwayTest < Minitest::Spec
             data: {id: :g},
             **row_options
           ),
-
-          insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), :f]
-        }]
+          prepend: :f
+        ]
+      ]
       fail :a, adds: [
-        {
+        [
+          nil,
           row: linear::Sequence.Row(
             magnetic_to: :failure,
             task: Implementing.method(:b),
@@ -360,8 +362,9 @@ class RailwayTest < Minitest::Spec
             data: {},
             **row_options
           ),
-          insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), :g]
-        }]
+          prepend: :g
+        ]
+      ]
     # seq = state.pass implementing.method(:f), id: :f, adds: [[[:success, implementing.method(:g), [Linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)], {}], Linear::Insert.method(:Prepend), :f]]
     end
 

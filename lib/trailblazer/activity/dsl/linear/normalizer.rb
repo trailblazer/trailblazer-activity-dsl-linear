@@ -31,22 +31,16 @@ module Trailblazer
 
           # Helper for normalizers.
           # To be applied on {Pipeline} instances.
-          # TODO: use TaskWrap.Extension interface here.
           def self.prepend_to(pipe, insertion_id, insertion)
-            adds =
-              insertion.collect do |id, task|
-                {insert: [Adds::Insert.method(:Prepend), insertion_id], row: Activity::TaskWrap::Pipeline.Row(id, task)}
-              end
+            instructions = insertion.collect { |id, task| [task, prepend: insertion_id, id: id] }
+            instructions = instructions.reverse unless insertion_id
 
-            Adds.apply_adds(pipe, insertion_id ? adds : adds.reverse)
+            Adds.(pipe, *instructions)
           end
 
           # Helper for normalizers.
           def self.replace(pipe, insertion_id, (id, task))
-            Adds.apply_adds(
-              pipe,
-              [{insert: [Adds::Insert.method(:Replace), insertion_id], row: Activity::TaskWrap::Pipeline.Row(id, task)}]
-            )
+            Adds.(pipe, [task, id: id, replace: insertion_id])
           end
 
           # Extend a particular normalizer with new steps and save it on the activity.
@@ -236,18 +230,19 @@ module Trailblazer
             insertion = insertion[0]   || :before
             target    = ctx[insertion] || end_id
 
-            insertion_method = sequence_insert_options[insertion]
+            insertion_option = sequence_insert_options[insertion]
 
-            ctx[:sequence_insert] = [Activity::Adds::Insert.method(insertion_method), target]
+            ctx[:sequence_insert] = {insertion_option => target}
           end
 
+          # Translate DSL option to "friendly interface" option.
           # @private
           def sequence_insert_options
             {
-              before:   :Prepend,
-              after:    :Append,
-              replace:  :Replace,
-              delete:   :Delete
+              before:   :prepend,
+              after:    :append,
+              replace:  :replace,
+              delete:   :delete
             }
           end
 
@@ -301,8 +296,13 @@ module Trailblazer
             )
           end
 
+          # The {:add} field is one "friendly interface" instruction.
+          # See {Adds.call} in the {activity} gem.
           def create_add(ctx, row:, sequence_insert:, **)
-            ctx[:add] = {row: row, insert: sequence_insert}
+            ctx[:add] = [
+              nil, # no task since we got a row already.
+              {row: row, **sequence_insert}
+            ]
           end
 
           def create_adds(ctx, add:, adds:, **)

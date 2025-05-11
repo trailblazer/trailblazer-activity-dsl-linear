@@ -292,10 +292,11 @@ class ActivityTest < Minitest::Spec
         )
 
         step(id: :b, task: implementing.method(:b), adds: [
-          {
+          [
+            nil,
             row:    row,
-            insert: [Trailblazer::Activity::Adds::Insert.method(:Prepend), :a]
-          }
+            prepend: :a
+          ]
         ])
       end
 

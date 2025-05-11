@@ -73,7 +73,7 @@ module Trailblazer
             # @private
             def append_end(ctx, task:, append_to: "End.success", non_symbol_options:, **)
               terminus_args = {
-                sequence_insert:    [Activity::Adds::Insert.method(:Append), append_to],
+                sequence_insert:    {append: append_to}, #[Activity::Adds::Insert.method(:Append), append_to],
                 stop_event:         true,
                 non_symbol_options: non_symbol_options.merge(Strategy.DataVariable() => [:stop_event, :semantic])
               }

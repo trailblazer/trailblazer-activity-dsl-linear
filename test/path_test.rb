@@ -46,10 +46,11 @@ class PathTest < Minitest::Spec
 
       step :f,
         adds: [
-          {
+          [
+            nil,
             row:    row,
-            insert: [Activity::Adds::Insert.method(:Prepend), :f]
-          }
+            prepend: :f
+          ]
         ]
     end
 

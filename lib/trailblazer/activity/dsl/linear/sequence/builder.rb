@@ -17,7 +17,7 @@ module Trailblazer
             def self.update_sequence_for(type, task, options = {}, sequence:, **kws, &block)
               step_options = invoke_normalizer_for(type, task, options, sequence: sequence, **kws, &block)
 
-              _sequence = Activity::Adds.apply_adds(sequence, step_options[:adds])
+              _sequence = Adds.(sequence, *step_options[:adds])
             end
 
             # @private
