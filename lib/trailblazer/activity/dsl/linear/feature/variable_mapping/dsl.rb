@@ -239,11 +239,11 @@ module Trailblazer
             end
 
             # Used in the DSL by you.
-            def self.Inject(variable_name = nil, override: false, **)
+            def self.Inject(variable_name = nil, override: false, filter_builder: Inject::FiltersBuilder, **)
               Inject.new(
                 variable_name,
                 nil, # add_variables_class # DISCUSS: do we really want that here?
-                Inject::FiltersBuilder,
+                filter_builder,
                 nil,
                 override: override,
               )

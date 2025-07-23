@@ -201,18 +201,33 @@ class VariableMappingUnitTest < Minitest::Spec
 
       pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(write_name: :model, filter: my_lowlevel_inject_filter, user_filter: my_lowlevel_inject_filter, name: :model)
 
-
       ctx = {current_user: Object, mode: :update}
 
-
       wrap_ctx = {aggregate: {}}
-
 
       wrap_ctx, _ = pipe_task.(wrap_ctx, [[ctx, {}], {}])
 
       assert_equal wrap_ctx[:aggregate], {:model=>"<MyModel Object>"}
+    end
+
+    it "we can add a low-level filter via the DSL, ie to access {circuit_options}" do
+      my_lowlevel_inject_filter = ->((ctx, flow_options), my_record:,**circuit_options) { "<MyModel #{my_record}>" }
+
+
+      my_filter_builder = ->(*) { Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(name: "bla.FIXME", filter: my_lowlevel_inject_filter, write_name: :record, user_filter: nil) }
+
+      activity = Class.new(Trailblazer::Activity::Railway) do
+        step :model,
+          Inject(:record, filter_builder: my_filter_builder) => my_lowlevel_inject_filter
+
+        def model(ctx, record:, **)
+          ctx[:record_in_model] = record
+        end
       end
 
+      assert_invoke activity, circuit_options: {my_record: "Yay!"},
+        expected_ctx_variables: {record_in_model: "<MyModel Yay!>"}
+    end
 
   end
 end
