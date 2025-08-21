@@ -100,6 +100,7 @@ module Trailblazer
 
 
             # TODO: remove for TRB 2.2.
+            # FIXME: 2.2
             def self.deprecate_input_output_inject_option(input_output_inject_options, *composable_options)
               return unless input_output_inject_options.any?
               options, _dsl_options = input_output_inject_options
@@ -124,6 +125,7 @@ module Trailblazer
           # @private
           #
           def merge_instructions_from_dsl(**options)
+            puts "@@@@@ #{options.keys.inspect}"
             pipeline  = DSL.pipe_for_composable_input(**options)  # FIXME: rename filters consistently
             input     = Pipe::Input.new(pipeline)
 

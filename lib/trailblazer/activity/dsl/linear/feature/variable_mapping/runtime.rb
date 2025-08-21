@@ -7,10 +7,10 @@ module Trailblazer
         # Runtime classes
 
         # These objects are created via the DSL, keep all i/o steps in a Pipeline
-        # and run the latter when being `call`ed.
+        # and run the latter as a taskWrap step.
         module Pipe
           class Input
-            def initialize(pipe, id: :vm_original_ctx)
+            def initialize(pipe, id: :vm_original_ctx) # FIXME: remove {id}.
               @pipe = pipe
               @id   = id
             end
@@ -89,7 +89,7 @@ module Trailblazer
         # @param name Identifier for the pipeline
         # Call {user_filter} and set return value as variable on aggregate.
         class SetVariable
-          def initialize(write_name:, filter:, user_filter:, name:, **)
+          def initialize(write_name:, filter:, user_filter:, name:, **) # DISCUSS: what about {user_filter}?
             @write_name  = write_name
             @filter      = filter
             @name        = name
@@ -103,6 +103,7 @@ module Trailblazer
             return wrap_ctx, original_args
           end
 
+          # Run the actual user's filter and set the computed variable on the aggregate.
           def self.set_variable_for_filter(filter, write_name, wrap_ctx, original_args)
             value     = call_filter(filter, wrap_ctx, original_args)
             wrap_ctx  = set_variable(value, write_name, wrap_ctx, original_args)
@@ -156,6 +157,16 @@ module Trailblazer
               super(wrap_ctx, original_args, filter)
             end
           end # Default
+
+          class PassAggregate < SetVariable
+            def self.call_filter(filter, wrap_ctx, original_args)
+              ctx, _ = original_args[0]
+
+              new_ctx = ctx.merge(aggregate: wrap_ctx[:aggregate])
+
+              Output.call_filter_with_ctx(filter, new_ctx, wrap_ctx, original_args)
+            end
+          end
 
           # TODO: we don't have Out(:variable), yet!
           class Output < SetVariable

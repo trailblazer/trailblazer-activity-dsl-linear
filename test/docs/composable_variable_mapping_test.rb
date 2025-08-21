@@ -780,6 +780,52 @@ name:     Module
   end
 end
 
+class CVInjectPassAggregateTest < Minitest::Spec
+  module Policy
+    module Check
+      def self.call(ctx, action:, **)
+        ctx[:action_in_check] = action
+      end
+    end
+  end
+  Memo   = Module.new
+
+  #:inject-pass_aggregate
+  module Memo::Activity
+    class Create < Trailblazer::Activity::Railway
+      step :create_model
+      step Policy::Check,
+        Inject(:role) => ->(*) { "admin" },
+        Inject(:action, pass_aggregate: true) => ->(ctx, aggregate:, current_user:, **) { "#{current_user}/#{aggregate[:role]}/:edit" }
+      #~meths
+      include ComposableVariableMappingDocTest::Steps
+      #~meths end
+    end
+  end
+  #:inject-pass_aggregate end
+
+  it "Inject() with {:pass_aggregate}" do
+    assert_invoke Memo::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object, action_in_check: "Module/admin/:edit"}
+
+    # #= {:action} still overridden
+    # assert_invoke Memo::Activity::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object}
+
+    # current_user = Module
+
+    # #:inject-override-call
+    # signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create,
+    #   current_user: current_user,
+    #   action: :update # this is always overridden.
+    # )
+    # #~ctx_to_result
+    # puts ctx[:model] #=> #<Memo id: 1, ...>
+    # #~ctx_to_result end
+    # #:inject-override-call end
+
+    # assert_equal ctx[:model], Object
+  end
+end
+
 #@ Out() 1.5
 #@   First, blacklist all, then add whitelisted.
 class OutMultipleTimes < Minitest::Spec

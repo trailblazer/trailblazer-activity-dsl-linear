@@ -12,6 +12,8 @@ module Trailblazer
 
             # Compute pipeline for In() and Inject().
             def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
+              pp initial_input_pipeline
+
               in_filters  = DSL::Tuple.filters_from_options(in_filters)
               _pipeline   = add_filter_steps(initial_input_pipeline, in_filters)
             end
@@ -200,6 +202,7 @@ module Trailblazer
 
                     options =
                       # TODO: remove {if} and only leave {else}.
+                      # FIXME: 2.2
                       if arity == 3
                         Activity::Deprecate.warn Linear::Deprecate.dsl_caller_location,
                           "The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.\n#{VariableMapping.deprecation_link}"
@@ -239,13 +242,14 @@ module Trailblazer
             end
 
             # Used in the DSL by you.
-            def self.Inject(variable_name = nil, override: false, filter_builder: Inject::FiltersBuilder, **)
+            def self.Inject(variable_name = nil, override: false, filter_builder: Inject::FiltersBuilder, pass_aggregate: false, **)
               Inject.new(
                 variable_name,
                 nil, # add_variables_class # DISCUSS: do we really want that here?
                 filter_builder,
                 nil,
                 override: override,
+                pass_aggregate: pass_aggregate,
               )
             end
 
@@ -290,6 +294,19 @@ module Trailblazer
                       **options
                     )
                   end
+
+                  # FIXME: allow mixing options like :pass_aggregate and :override.
+                  if options[:pass_aggregate]
+                    return In::FiltersBuilder.build_for_option(
+                      user_filter,
+                      name:                 Filter.name_for(:Inject, variable_name, :add_variables),
+                      write_name:           variable_name,
+                      read_name:            nil,
+                      add_variables_class:  SetVariable::PassAggregate,
+                      **options
+                    )
+                  end
+
 
                   # Build {SetVariable::Default}
                   # {user_filter} is one of the following
