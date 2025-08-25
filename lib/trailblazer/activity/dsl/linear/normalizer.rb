@@ -286,7 +286,7 @@ module Trailblazer
             ctx[:id] = replace
           end
 
-          def create_row(ctx, task:, wirings:, magnetic_to:, data:, extensions:, task_wrap:, **)
+          def create_row(ctx, task:, wirings:, magnetic_to:, data:, task_wrap:, **)
             ctx[:row] = Sequence.Row(
               task: task,
               magnetic_to: magnetic_to,
@@ -343,6 +343,7 @@ module Trailblazer
             # @semi-private
             # Used in {trailblazer-invoke}
             # NOTE: this used to happen in Sequence::Compiler.
+            # Execute the {task_wrap_extensions} with a "normalizer interface".
             def compile_task_wrap_ary_from_extensions(initial_task_wrap_extensions, extensions, options, task_wrap: [])
               extensions = initial_task_wrap_extensions + extensions
 
