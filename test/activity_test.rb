@@ -482,7 +482,7 @@ class ActivityTest < Minitest::Spec
 
   it "allows, when inheritance time, to inject normalizer options" do
     implementing = Module.new do
-      extend Activity::Testing.def_steps(:a, :f, :b) # circuit interface.
+      extend T.def_steps(:a, :f, :b) # circuit interface.
     end
 
     activity = Class.new(Activity::Path(step_interface_builder: Fixtures.method(:circuit_interface_builder))) do

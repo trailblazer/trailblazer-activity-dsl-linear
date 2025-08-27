@@ -15,7 +15,7 @@ class FastTrackTest < Minitest::Spec
           pass_fast_end: MyPassFast.new(semantic: :pass_fast),
         ) do
 
-        step task: T.def_task(:a)
+        step task: T.def_tasks(:a).method(:a)
       end
 
       assert_equal CU.inspect(activity.to_h[:outputs]), %([#<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MySuccess semantic=:my_success>, semantic=:my_success>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyPassFast semantic=:pass_fast>, semantic=:pass_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailFast semantic=:fail_fast>, semantic=:fail_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailure semantic=:my_failure>, semantic=:my_failure>])

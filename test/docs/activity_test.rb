@@ -1,6 +1,6 @@
 require "test_helper"
 
-class DocsActivityTest < Minitest::Spec
+class DocsActivityTest < DocsTest
   Memo = Struct.new(:body) do
     def self.find_by(*)
       Memo.new
@@ -357,7 +357,7 @@ class DocsActivityTest < Minitest::Spec
   end
 end
 
-class DocsActivityCallTest < Minitest::Spec
+class DocsActivityCallTest < DocsTest
   module Song; end
   module Song::Activity
     class Create < Trailblazer::Activity::Railway

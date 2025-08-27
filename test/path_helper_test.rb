@@ -480,7 +480,7 @@ class PathHelperTest < Minitest::Spec
   end
 
   it "allows using a different task builder, etc" do
-    implementing = Module.new { extend Trailblazer::Activity::Testing.def_steps(:a, :f, :b) } # circuit interface.
+    implementing = T.def_steps(:a, :f, :b) # circuit interface.
 
     shared_options = {
       step_interface_builder: Fixtures.method(:circuit_interface_builder)

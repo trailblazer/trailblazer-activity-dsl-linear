@@ -1,6 +1,6 @@
 require "test_helper"
 
-class ComposableVariableMappingDocTest < Minitest::Spec
+class ComposableVariableMappingDocTest < DocsTest
   class ApplicationPolicy
     def self.can?(model, user, mode)
       decision = !user.nil?
@@ -39,7 +39,7 @@ class ComposableVariableMappingDocTest < Minitest::Spec
 end
 
 #@ 0.1 No In()
-class CVNoInTest < Minitest::Spec
+class CVNoInTest < DocsTest
   Memo   = Module.new
   Policy = ComposableVariableMappingDocTest::A::Policy
 
@@ -69,7 +69,7 @@ class CVNoInTest < Minitest::Spec
 end
 
 #@ In() 1.1 {:model => :model}
-class CVInMappingHashTest < Minitest::Spec
+class CVInMappingHashTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo   = Module.new
 
@@ -121,7 +121,7 @@ class CVInMappingHashTest < Minitest::Spec
 end
 
 # In() 1.2
-class CVInLimitTest < Minitest::Spec
+class CVInLimitTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo   = Module.new
 
@@ -149,7 +149,7 @@ class CVInLimitTest < Minitest::Spec
 end
 
 # In() 1.3 (callable)
-class CVInCallableTest < Minitest::Spec
+class CVInCallableTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo   = Module.new
 
@@ -176,7 +176,7 @@ class CVInCallableTest < Minitest::Spec
 
   it "exception because we don't pass {:current_user}" do
     exception = assert_raises ArgumentError do
-      result = Trailblazer::Activity.(Memo::Activity::Create, {}) # no {:current_user}
+      result = Trailblazer::Activity.(Memo::Activity::Create, **{}) # no {:current_user}
     end
 
     assert_equal exception.message, "missing keyword: #{Trailblazer::Core.symbol_inspect_for(:user)}"
@@ -184,7 +184,7 @@ class CVInCallableTest < Minitest::Spec
 end
 
 # In() 1.4 (filter method)
-class CVInMethodTest < Minitest::Spec
+class CVInMethodTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo   = Module.new
 
@@ -211,7 +211,7 @@ class CVInMethodTest < Minitest::Spec
 end
 
 # In() 1.5 (callable with kwargs)
-class CVInKwargsTest < Minitest::Spec
+class CVInKwargsTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo   = Module.new
 
@@ -236,7 +236,7 @@ class CVInKwargsTest < Minitest::Spec
 end
 
 # Out() 1.1
-class CVOutTest < Minitest::Spec
+class CVOutTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo = Module.new
 
@@ -265,7 +265,7 @@ class CVOutTest < Minitest::Spec
 end
 
 # Out() 1.2
-class CVOutHashTest < Minitest::Spec
+class CVOutHashTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo = Module.new
 
@@ -293,7 +293,7 @@ class CVOutHashTest < Minitest::Spec
 end
 
 # Out() 1.3
-class CVOutCallableTest < Minitest::Spec
+class CVOutCallableTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo = Module.new
 
@@ -328,7 +328,7 @@ class CVOutCallableTest < Minitest::Spec
 end
 
 # Out() 1.4
-class CVOutKwTest < Minitest::Spec
+class CVOutKwTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo   = Module.new
 
@@ -362,7 +362,7 @@ class CVOutKwTest < Minitest::Spec
 end
 
 # Out() 1.6
-class CVOutOuterTest < Minitest::Spec
+class CVOutOuterTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo   = Module.new
 
@@ -396,7 +396,7 @@ class CVOutOuterTest < Minitest::Spec
 end
 
 # Macro 1.0
-class CVMacroTest < Minitest::Spec
+class CVMacroTest < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
   Memo   = Module.new
 
@@ -435,7 +435,7 @@ class CVMacroTest < Minitest::Spec
 end
 
 # Macro 1.1
-class CVMacroMergeTest < Minitest::Spec
+class CVMacroMergeTest < DocsTest
   Policy = CVMacroTest::Policy
   Memo   = Module.new
 
@@ -461,7 +461,7 @@ class CVMacroMergeTest < Minitest::Spec
 end
 
 # Inheritance 1.0
-class CVInheritanceTest < Minitest::Spec
+class CVInheritanceTest < DocsTest
   Policy = CVMacroTest::Policy
   Memo   = Module.new
 
@@ -547,7 +547,7 @@ Memo::Activity::Admin
 end
 
 # Inject() 1.0
-class CVInjectTest < Minitest::Spec
+class CVInjectTest < DocsTest
   Memo   = Module.new
 
   class ApplicationPolicy
@@ -604,7 +604,7 @@ class CVInjectTest < Minitest::Spec
   end
 end
 
-class CVNoInjectTest < Minitest::Spec
+class CVNoInjectTest < DocsTest
   Policy = CVInjectTest::Policy
   Memo   = Module.new
 
@@ -634,7 +634,7 @@ class CVNoInjectTest < Minitest::Spec
   end
 end
 
-class CVInjectDefaultTest < Minitest::Spec
+class CVInjectDefaultTest < DocsTest
   ApplicationPolicy = CVInjectTest::ApplicationPolicy
   Memo   = Module.new
 
@@ -685,7 +685,7 @@ class CVInjectDefaultTest < Minitest::Spec
   end
 end
 
-class CVInjectOverrideTest < Minitest::Spec
+class CVInjectOverrideTest < DocsTest
   Policy = CVInjectDefaultTest::Policy
   Memo   = Module.new
 
@@ -742,7 +742,7 @@ end
   #   end
   # end # operation_for
 
-class DefaultInjectOnlyTest < Minitest::Spec
+class DefaultInjectOnlyTest < DocsTest
   it "Inject(), only, without In()" do
     class Create < Trailblazer::Activity::Railway
       step :write,
@@ -761,7 +761,7 @@ name:     Module
   end
 end
 
-class PassthroughInjectOnlyTest < Minitest::Spec
+class PassthroughInjectOnlyTest < DocsTest
   it "Inject() => [...], only, without In()" do
     class Create < Trailblazer::Activity::Railway
       step :write,
@@ -780,7 +780,7 @@ name:     Module
   end
 end
 
-class CVInjectPassAggregateTest < Minitest::Spec
+class CVInjectPassAggregateTest < DocsTest
   module Policy
     module Check
       def self.call(ctx, action:, **)
@@ -828,7 +828,7 @@ end
 
 #@ Out() 1.5
 #@   First, blacklist all, then add whitelisted.
-class OutMultipleTimes < Minitest::Spec
+class OutMultipleTimes < DocsTest
   Policy = ComposableVariableMappingDocTest::A::Policy
 
   class Create < Trailblazer::Activity::Railway
@@ -855,7 +855,7 @@ class OutMultipleTimes < Minitest::Spec
 end
 
 
-class IoOutDeleteTest < Minitest::Spec
+class IoOutDeleteTest < DocsTest
   #@ Delete a key in the outgoing ctx.
   it "Out() DSL: {delete: true} forces deletion in aggregate." do
     class Create < Trailblazer::Activity::Railway
@@ -881,7 +881,7 @@ class IoOutDeleteTest < Minitest::Spec
 end
 
 # {:read_from_aggregate} for the moment is only supposed to be used with SetVariable filters.
-class IoOutDeleteReadFromAggregateTest < Minitest::Spec
+class IoOutDeleteReadFromAggregateTest < DocsTest
   #@ Rename a key *in the aggregate* and delete the original in {aggregate}.
   # NOTE: this is currently experimental.
   it "Out() DSL: {delete: true} forces deletion in outgoing ctx. Renaming can be applied on {:input_hash}" do
@@ -907,7 +907,7 @@ class IoOutDeleteReadFromAggregateTest < Minitest::Spec
 end
 
 #@ In() can override Inject() if it was added last.
-class InInjectSortingTest < Minitest::Spec
+class InInjectSortingTest < DocsTest
   it do
     activity = Class.new(Trailblazer::Activity::Railway) do #!hint activity = Class.new(Trailblazer::Activity::Railway) do
       step :params,

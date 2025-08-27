@@ -1,7 +1,7 @@
 require "test_helper"
 
 module Y
-  class DocsMechanicsTest < Minitest::Spec
+  class DocsMechanicsTest < DocsTest
     Memo = Module.new
     it "what" do
       #:instance-method
@@ -31,7 +31,7 @@ module Y
   end
 end
 
-class ReadfromCtx_DocsMechanicsTest < Minitest::Spec
+class ReadfromCtx_DocsMechanicsTest < DocsTest
   Memo = Module.new
   it "what" do
     #:ctx-read
@@ -57,7 +57,7 @@ class ReadfromCtx_DocsMechanicsTest < Minitest::Spec
   end
 end
 
-class ReadfromCtxKwargs_DocsMechanicsTest < Minitest::Spec
+class ReadfromCtxKwargs_DocsMechanicsTest < DocsTest
   Memo = Module.new
   it "what" do
     module Memo::Activity
@@ -90,7 +90,7 @@ class ReadfromCtxKwargs_DocsMechanicsTest < Minitest::Spec
   end
 end
 
-class WriteToCtx_DocsMechanicsTest < Minitest::Spec
+class WriteToCtx_DocsMechanicsTest < DocsTest
   class Memo
     def initialize(*); end
   end
@@ -148,7 +148,7 @@ class WriteToCtx_DocsMechanicsTest < Minitest::Spec
   end
 end
 
-class ReturnValueSuccess_DocsMechanicsTest < Minitest::Spec
+class ReturnValueSuccess_DocsMechanicsTest < DocsTest
   Memo = Module.new
   it "what" do
     module Memo::Activity
@@ -172,7 +172,7 @@ class ReturnValueSuccess_DocsMechanicsTest < Minitest::Spec
   end
 end
 
-class ReturnValueFailure_DocsMechanicsTest < Minitest::Spec
+class ReturnValueFailure_DocsMechanicsTest < DocsTest
   Memo = Module.new
   it "what" do
     module Memo::Activity
@@ -196,7 +196,7 @@ class ReturnValueFailure_DocsMechanicsTest < Minitest::Spec
   end
 end
 
-class ReturnSignal_DocsMechanicsTest < Minitest::Spec
+class ReturnSignal_DocsMechanicsTest < DocsTest
   Memo = Module.new
   it "what" do
     #:signal-operation
@@ -260,7 +260,7 @@ class ReturnSignal_DocsMechanicsTest < Minitest::Spec
   end
 end
 
-class Classmethod_DocsMechanicsTest < Minitest::Spec
+class Classmethod_DocsMechanicsTest < DocsTest
   Memo = Module.new
   it "what" do
     #:class-method
@@ -280,7 +280,7 @@ class Classmethod_DocsMechanicsTest < Minitest::Spec
   end
 end
 
-class Module_Classmethod_DocsMechanicsTest < Minitest::Spec
+class Module_Classmethod_DocsMechanicsTest < DocsTest
   Memo = Module.new
   it "what" do
     #:module-step
@@ -302,7 +302,7 @@ class Module_Classmethod_DocsMechanicsTest < Minitest::Spec
   end
 end
 
-class Callable_DocsMechanicsTest < Minitest::Spec
+class Callable_DocsMechanicsTest < DocsTest
   Memo = Module.new
   it "what" do
     #:callable-step
@@ -327,7 +327,7 @@ class Callable_DocsMechanicsTest < Minitest::Spec
   end
 end
 
-class Lambda_DocsMechanicsTest < Minitest::Spec
+class Lambda_DocsMechanicsTest < DocsTest
   Memo = Module.new
   it "what" do
     #:lambda-step
@@ -340,7 +340,7 @@ class Lambda_DocsMechanicsTest < Minitest::Spec
   end
 end
 
-class Inheritance_DocsMechanicsTest < Minitest::Spec
+class Inheritance_DocsMechanicsTest < DocsTest
   Memo = Module.new
   it "what" do
     #:inherit-create

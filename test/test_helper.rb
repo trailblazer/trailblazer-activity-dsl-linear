@@ -2,17 +2,11 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require "trailblazer/activity/dsl/linear"
 
 require "minitest/autorun"
-
-# require "trailblazer/developer"
-# require "trailblazer/developer/render/circuit"
-# require "trailblazer/developer/render/linear"
-
-require "trailblazer/activity/testing"
 require "trailblazer/core"
 
 CU = Trailblazer::Core::Utils
 
-T = Trailblazer::Activity::Testing
+T = Trailblazer::Core
 
 Minitest::Spec::Activity = Trailblazer::Activity # TODO: remove this.
 
@@ -21,11 +15,12 @@ Minitest::Spec.class_eval do
     super(expected, asserted, *args)
   end
 
-  Implementing = T.def_steps(:a, :b, :c, :d, :e, :f, :g)
+  include Trailblazer::Core::Utils::Assertions
 
   def assert_sequence(sequence, *args)
     assert_process_for Activity::DSL::Linear::Sequence::Compiler.(sequence), *args
   end
+
 
 
   let(:implementing) do
@@ -39,7 +34,6 @@ Minitest::Spec.class_eval do
     implementing
   end
 
-  include Trailblazer::Activity::Testing::Assertions
 
     # taskWrap tester :)
   def add_1(wrap_ctx, original_args)
@@ -52,6 +46,26 @@ Minitest::Spec.class_eval do
     ctx, _ = original_args[0]
     ctx[:seq] << 2
     return wrap_ctx, original_args # yay to mutable state. not.
+  end
+end
+
+class DocsTest < Minitest::Spec
+  # Since we don't want to use {trailblazer-invoke} here, we mimick its {Activity.call} here.
+  # This is only meant for consistent docs-tests.
+  #
+  # DISCUSS: maybe it would be better to use the real canonical invoke logic here, but I don't want
+  #          to mix it into the dsl gem tests.
+  module Trailblazer
+    module Activity
+      def self.call(*args, **kws)
+        ::Trailblazer::Activity::TaskWrap.invoke(*args, [kws, {}])
+      end
+
+      Railway = ::Trailblazer::Activity::Railway
+      Introspect = ::Trailblazer::Activity::Introspect
+    end
+
+    Core = ::Trailblazer::Core
   end
 end
 
@@ -74,7 +88,7 @@ module Fixtures
     end
 
     def inspect
-      %{#<Fixtures::CircuitInterface:0x @step=#{Trailblazer::Activity::Testing.render_task(@step)}>}
+      %{#<Fixtures::CircuitInterface:0x @step=#{Trailblazer::Core::Utils::Assertions.render_task(@step)}>}
     end
   end
 end

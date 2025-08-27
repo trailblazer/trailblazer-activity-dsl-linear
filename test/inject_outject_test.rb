@@ -212,8 +212,6 @@ class VariableMappingUnitTest < Minitest::Spec
 
     it "we can add a low-level filter via the DSL, ie to access {circuit_options}" do
       my_lowlevel_inject_filter = ->((ctx, flow_options), my_record:,**circuit_options) { "<MyModel #{my_record}>" }
-
-
       my_filter_builder = ->(*) { Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(name: "bla.FIXME", filter: my_lowlevel_inject_filter, write_name: :record, user_filter: nil) }
 
       activity = Class.new(Trailblazer::Activity::Railway) do

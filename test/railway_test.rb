@@ -393,7 +393,7 @@ class RailwayTest < Minitest::Spec
       MySuccess = Class.new(Activity::End)
 
       activity = Activity::Railway(end_task: MySuccess.new(semantic: :my_success), failure_end: MyFailure.new(semantic: :my_failure)) do
-        step task: T.def_task(:a)
+        step task: T.def_tasks(:a).method(:a)
       end
 
       _(activity.to_h[:outputs].inspect).must_equal %{[#<struct Trailblazer::Activity::Output signal=#<RailwayTest::MySuccess semantic=:my_success>, semantic=:my_success>, \

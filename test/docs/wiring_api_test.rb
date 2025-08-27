@@ -1,7 +1,7 @@
 require "test_helper"
 
 #@ original Memo::Activity::Create
-class Vanilla_WiringApiDocsTest < Minitest::Spec
+class Vanilla_WiringApiDocsTest < DocsTest
   Memo = Class.new
   module Memo::Activity
     class Create < Trailblazer::Activity::Railway
@@ -42,7 +42,7 @@ puts Trailblazer::Developer.render(Memo::Activity::Create)
 end
 
 #@ Output => End
-class Output_WiringApiDocsTest < Minitest::Spec
+class Output_WiringApiDocsTest < DocsTest
   Memo = Class.new
   module Memo::Activity
     class Create < Trailblazer::Activity::Railway
@@ -63,7 +63,7 @@ class Output_WiringApiDocsTest < Minitest::Spec
 end
 
 #@ failure/Output => End
-class OutputOnLeft_WiringApiDocsTest < Minitest::Spec
+class OutputOnLeft_WiringApiDocsTest < DocsTest
   Memo = Class.new
   #:left
   module Memo::Activity
@@ -88,7 +88,7 @@ class OutputOnLeft_WiringApiDocsTest < Minitest::Spec
 end
 
 #@ Output => Track
-class OutputToSuccess_WiringApiDocsTest < Minitest::Spec
+class OutputToSuccess_WiringApiDocsTest < DocsTest
   Memo = Class.new
   #:output-track
   module Memo::Activity
@@ -112,7 +112,7 @@ class OutputToSuccess_WiringApiDocsTest < Minitest::Spec
 end
 
 #@ Output => Id
-class OutputToId_WiringApiDocsTest < Minitest::Spec
+class OutputToId_WiringApiDocsTest < DocsTest
   Memo = Class.new
   #:output-id
   module Memo::Activity
@@ -136,7 +136,7 @@ class OutputToId_WiringApiDocsTest < Minitest::Spec
 end
 
 #@ Output(semantic, Signal) => Track
-class ExplicitOutput_WiringApiDocsTest < Minitest::Spec
+class ExplicitOutput_WiringApiDocsTest < DocsTest
   Memo = Struct.new(:save_result) do
     def save; self.save_result;  end
   end
@@ -175,7 +175,7 @@ class ExplicitOutput_WiringApiDocsTest < Minitest::Spec
 end
 
 #@ Output => End
-class OutputToEnd_WiringApiDocsTest < Minitest::Spec
+class OutputToEnd_WiringApiDocsTest < DocsTest
   Memo = Class.new
   #:output-end
   module Memo::Activity
@@ -199,7 +199,7 @@ class OutputToEnd_WiringApiDocsTest < Minitest::Spec
 end
 
 #@ #terminus
-class Terminus_WiringApiDocsTest < Minitest::Spec
+class Terminus_WiringApiDocsTest < DocsTest
   Memo = Class.new
   #:terminus
   module Memo::Activity
@@ -234,7 +234,7 @@ class Terminus_WiringApiDocsTest < Minitest::Spec
 end
 
 #@ Track()
-class Track_WiringApiDocsTest < Minitest::Spec
+class Track_WiringApiDocsTest < DocsTest
   Memo = Class.new
   #:custom-track
   module Memo::Activity
@@ -261,7 +261,7 @@ class Track_WiringApiDocsTest < Minitest::Spec
 end
 
 #@ Path()
-class Path_WiringApiDocsTest < Minitest::Spec
+class Path_WiringApiDocsTest < DocsTest
   Memo = Class.new
   #:path-helper
   module Memo::Activity
@@ -289,7 +289,7 @@ class Path_WiringApiDocsTest < Minitest::Spec
 end
 
 #@ Path() with error handling: Output()
-# class Path_WiringApiDocsTest < Minitest::Spec
+# class Path_WiringApiDocsTest < DocsTest
 #   Memo = Class.new
 #   #:path-helper-failure
 #   module Memo::Activity
@@ -316,7 +316,7 @@ end
 # end
 
 #@ Path(:connect_to)
-class PathConnectTo_WiringApiDocsTest < Minitest::Spec
+class PathConnectTo_WiringApiDocsTest < DocsTest
   Memo = Class.new
   #:path-helper-connect-to
   module Memo::Activity
@@ -344,7 +344,7 @@ class PathConnectTo_WiringApiDocsTest < Minitest::Spec
   end
 end
 
-class WiringApiDocsTest < Minitest::Spec
+class WiringApiDocsTest < DocsTest
 # {#terminus} 1.0
   module A
     class Payment
@@ -413,7 +413,7 @@ end
 
 #@ :magnetic_to
 module A
-  class MagneticTo_DocsTest < Minitest::Spec
+  class MagneticTo_DocsTest < DocsTest
     Memo = Class.new
     #:magnetic_to
     module Memo::Activity

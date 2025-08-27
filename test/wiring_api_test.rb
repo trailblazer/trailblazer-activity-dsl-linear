@@ -4,7 +4,7 @@ require "test_helper"
 class WiringApiTest < Minitest::Spec
   it "accepts {Output() => Id()}" do
     strategy = Class.new(Activity::Path) do
-      include Implementing
+      include T.def_steps(:f, :g, :a)
 
       step :f
       step :g, Output(:success) => Id(:f)

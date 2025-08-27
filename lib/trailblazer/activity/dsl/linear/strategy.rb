@@ -91,7 +91,7 @@ module Trailblazer
 
               activity.to_h.to_h.merge(
                 activity: activity,
-                sequence: @state.get(:sequence),
+                sequence: @state.get(:sequence), # DISCUSS: do we need this structure after compile time?
                 fields:   @state.get(:fields)
               )
             end
