@@ -17,14 +17,18 @@ module Trailblazer
               Linear::Normalizer.prepend_to(
                 normalizer,
                 "activity.wirings",
-                {
-                  # In(), Out(), {:input}, Inject() feature
-                  "activity.convert_symbol_options"           => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:convert_symbol_options)),
-                  "activity.normalize_input_output_filters"   => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:normalize_input_output_filters)),
-                  "activity.input_output_dsl"                 => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:input_output_dsl)),
-                }
+                steps_for_normalizer
               )
             end
+          end
+
+          def self.steps_for_normalizer
+            {
+              # In(), Out(), {:input}, Inject() feature
+              "activity.convert_symbol_options"           => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:convert_symbol_options)),
+              "activity.normalize_input_output_filters"   => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:normalize_input_output_filters)),
+              "activity.input_output_dsl"                 => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:input_output_dsl)),
+            }
           end
 
           def self.Extension(input, output, input_id: "task_wrap.input", output_id: "task_wrap.output")
@@ -125,7 +129,6 @@ module Trailblazer
           # @private
           #
           def merge_instructions_from_dsl(**options)
-            puts "@@@@@ #{options.keys.inspect}"
             pipeline  = DSL.pipe_for_composable_input(**options)  # FIXME: rename filters consistently
             input     = Pipe::Input.new(pipeline)
 

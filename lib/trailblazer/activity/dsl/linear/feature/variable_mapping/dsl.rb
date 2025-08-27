@@ -12,8 +12,6 @@ module Trailblazer
 
             # Compute pipeline for In() and Inject().
             def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
-              pp initial_input_pipeline
-
               in_filters  = DSL::Tuple.filters_from_options(in_filters)
               _pipeline   = add_filter_steps(initial_input_pipeline, in_filters)
             end
