@@ -130,6 +130,9 @@ module Trailblazer
             end # TODO: implement {:insert_args}
 
             # In, Out and Inject are objects instantiated when using the DSL, for instance {In() => [:model]}.
+            #
+            # NOTE: do the options processing (such as {:with_outer_ctx}) in the In() method and not in the In object,
+            #       as we don't need options once we're in a FiltersBuilder.
             class In < Tuple
               class FiltersBuilder
                 def self.call(user_filter, add_variables_class:, add_variables_class_for_callable:, type: :In, **options)
@@ -189,7 +192,7 @@ module Trailblazer
 
             class Out < Tuple
               class FiltersBuilder
-                def self.call(user_filter, with_outer_ctx:, **options)
+                def self.call(user_filter, **options)
                   In::FiltersBuilder.(user_filter, type: :Out, **options)
                 end
               end
