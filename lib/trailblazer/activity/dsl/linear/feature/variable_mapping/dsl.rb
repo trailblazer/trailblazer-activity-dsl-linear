@@ -191,13 +191,6 @@ module Trailblazer
               class FiltersBuilder
                 def self.call(user_filter, with_outer_ctx:, **options)
                   if with_outer_ctx
-                    callable = Trailblazer::Option(user_filter) # FIXME: :instance_method
-                    arity = case user_filter
-                            when Symbol then nil
-                            when Proc then user_filter.arity
-                            else user_filter.method(:call).arity
-                            end
-
                     options = options.merge(
                       add_variables_class_for_callable: AddVariables::Output::WithOuterContext,
                     )
