@@ -21,14 +21,14 @@ class ExtensionsTest < Minitest::Spec
     )
   end
 
-  it "accepts {:extensions} along with {:input} and other additional extensions" do
+  it "accepts {:extensions} along with {In()} and other additional extensions" do
     add_1_extension = prepend_1_extension
 
     activity = Class.new(Activity::Path) do
-      # :extensions doesn't overwrite :input and vice-versa!
+      # :extensions doesn't overwrite In() and vice-versa!
       step :model,
         extensions: [add_1_extension],
-        input:      ->(ctx, *) { {seq: ctx[:seq] += [:input]} }
+        In() =>     ->(ctx, *) { {seq: ctx[:seq] += [:input]} }
       step :save
 
       include T.def_steps(:model, :save)

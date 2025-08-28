@@ -20,6 +20,9 @@ Activity subclasses maintain a field {:task_wrap_extensions} that can be used to
 * `Subprocess()` now adds `subprocess: true` to its options and the normalizer context, so steps in normalizer
   can add logic specific to nesting.
 * For the `:adds` field in the DSL, we don't use the low-level interface anymore but the "friendly interface".
+* :pass_aggregate
+* Remove deprecated `:input`, `:output` and `:inject` option.
+* Remove deprecated `Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx, model:, **)` `outer_ctx` positional argument.
 
 # 1.2.7
 

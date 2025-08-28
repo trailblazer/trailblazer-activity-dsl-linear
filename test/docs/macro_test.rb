@@ -106,8 +106,8 @@ signal #=> #<Trailblazer::Activity::End semantic=:not_found>
       def self.Logger(logged_name: )
         {
           id: "logger",
-          input:  {logged_name => :logged},
-          output: [:log],
+          Trailblazer::Activity::Railway.In() =>  {logged_name => :logged},
+          Trailblazer::Activity::Railway.Out() => [:log],
           **Trailblazer::Activity::Railway.Subprocess(Logger), # nest
         }
       end

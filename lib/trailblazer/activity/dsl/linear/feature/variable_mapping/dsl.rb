@@ -198,22 +198,9 @@ module Trailblazer
                             else user_filter.method(:call).arity
                             end
 
-                    options =
-                      # TODO: remove {if} and only leave {else}.
-                      # FIXME: 2.2
-                      if arity == 3
-                        Activity::Deprecate.warn Linear::Deprecate.dsl_caller_location,
-                          "The positional argument `outer_ctx` is deprecated, please use the `:outer_ctx` keyword argument.\n#{VariableMapping.deprecation_link}"
-
-                        options.merge(
-                          filter:                           callable,
-                          add_variables_class_for_callable: AddVariables::Output::WithOuterContext_Deprecated, # old positional arg
-                        )
-                      else
-                        options.merge(
-                          add_variables_class_for_callable: AddVariables::Output::WithOuterContext,
-                        )
-                      end
+                    options = options.merge(
+                      add_variables_class_for_callable: AddVariables::Output::WithOuterContext,
+                    )
                   end
 
                   In::FiltersBuilder.(user_filter, type: :Out, **options)

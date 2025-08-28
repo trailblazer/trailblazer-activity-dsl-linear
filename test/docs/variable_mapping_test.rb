@@ -1,4 +1,5 @@
 require "test_helper"
+raise "this test shouldn't be run as of TRB 2.2."
 
 class DocsIOTest < Minitest::Spec
   class User
