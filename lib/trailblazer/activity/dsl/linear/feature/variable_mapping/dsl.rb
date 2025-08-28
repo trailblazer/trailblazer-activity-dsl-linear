@@ -190,12 +190,6 @@ module Trailblazer
             class Out < Tuple
               class FiltersBuilder
                 def self.call(user_filter, with_outer_ctx:, **options)
-                  if with_outer_ctx
-                    options = options.merge(
-                      add_variables_class_for_callable: AddVariables::Output::WithOuterContext,
-                    )
-                  end
-
                   In::FiltersBuilder.(user_filter, type: :Out, **options)
                 end
               end
@@ -209,6 +203,7 @@ module Trailblazer
             def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: Out::FiltersBuilder, read_from_aggregate: false, add_variables_class_for_callable: AddVariables::Output)
               add_variables_class = SetVariable::Output::Delete     if delete
               add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
+              add_variables_class_for_callable = AddVariables::Output::WithOuterContext if with_outer_ctx
 
               Out.new(
                 variable_name,
