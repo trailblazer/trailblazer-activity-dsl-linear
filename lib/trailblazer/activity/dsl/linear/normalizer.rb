@@ -101,7 +101,6 @@ module Trailblazer
                 "activity.normalize_context"              => method(:normalize_context),
                 "activity.id_with_inherit_and_replace"    => Normalizer.Task(method(:id_with_inherit_and_replace)),
                 "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
-                "activity.normalize_override"             => Normalizer.Task(method(:normalize_override)), # TODO: remove!
                 "activity.wrap_task_with_step_interface"  => Normalizer.Task(method(:wrap_task_with_step_interface)),
 
                 # Nested pipeline:
@@ -188,17 +187,6 @@ module Trailblazer
 
           def normalize_id(ctx, task:, id: false, **)
             ctx[:id] = id || task
-          end
-
-          # TODO: remove {#normalize_override} in 1.2.0 (Used in macro-contract tests).
-          # {:override} really only makes sense for {step Macro(), {override: true}} where the {user_options}
-          # dictate the overriding.
-          def normalize_override(ctx, id:, override: false, **)
-            return unless override
-
-            Activity::Deprecate.warn Linear::Deprecate.dsl_caller_location, "The :override option is deprecated and will be removed. Please use :replace instead."
-
-            ctx[:replace] = (id || raise)
           end
 
           # {:library_options} such as :sequence, :dsl_track, etc.

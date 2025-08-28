@@ -14,7 +14,7 @@ class NormalizerTest < Minitest::Spec
         # this is where your extending code enters the stage:
         Trailblazer::Activity::DSL::Linear::Normalizer.prepend_to(
           normalizer,
-          "activity.normalize_override", # step after "activity.normalize_id"
+          "activity.wrap_task_with_step_interface", # step after "activity.normalize_id"
           {
             "my.upcase_id" => Trailblazer::Activity::DSL::Linear::Normalizer.Task(NormalizerExtensions.method(:upcase_id)),
           }
