@@ -442,7 +442,7 @@ class RailwayTest < Minitest::Spec
   # @generic strategy test
   it "copies (extended) normalizers from original {Activity::Railway} and thereby allows i/o" do
     path = Activity.Railway() do
-      step :model, Inject() => {:id => ->(*) { 1 }}
+      step :model, Inject(:id) => ->(*) { 1 }
 
       def model(ctx, id:, seq:, **)
         seq << id

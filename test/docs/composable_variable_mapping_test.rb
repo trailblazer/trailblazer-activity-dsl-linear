@@ -746,7 +746,7 @@ class DefaultInjectOnlyTest < DocsTest
   it "Inject(), only, without In()" do
     class Create < Trailblazer::Activity::Railway
       step :write,
-        Inject() => { name: ->(ctx, field:, **) { field } }
+        Inject(:name) => ->(ctx, field:, **) { field }
 
       def write(ctx, name: nil, **)
         ctx[:write] = %{

@@ -234,18 +234,6 @@ module Trailblazer
               class FiltersBuilder
                 # Called via {Tuple#call}
                 def self.call(user_filter, add_variables_class:, variable_name:, **options)
-                  # Build {SetVariable::Default}
-                  if user_filter.is_a?(Hash) # TODO: deprecate in favor if {Inject(:variable_name)}!
-                    return Filter.build_filters_for_hash(user_filter, add_variables_class: SetVariable::Default) do |options, from_name, user_proc|
-                      options_with_condition_for_defaulted(
-                        **options,
-                        user_filter:  user_proc,
-                        write_name:   from_name,
-                        read_name:    from_name,
-                      )
-                    end
-                  end
-
                   # Build {SetVariable::Conditioned}
                   if user_filter.is_a?(Array)
                     user_filter = Filter.hash_for(user_filter)

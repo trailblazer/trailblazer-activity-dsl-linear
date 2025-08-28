@@ -201,7 +201,7 @@ class PathTest < Minitest::Spec
     # @generic strategy test
     it "copies (extended) normalizers from original {Activity::Path} and thereby allows i/o" do
       path = Activity.Path() do
-        step :model, Inject() => {:id => ->(*) { 1 }}
+        step :model, Inject(:id) => ->(*) { 1 }
 
         def model(ctx, id:, seq:, **)
           seq << id

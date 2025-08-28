@@ -10,10 +10,9 @@ class InjectAlwaysOptionTest < Minitest::Spec
       #@ no {always: true}
         Inject() => [:date, :time],
         # TODO: deprecate this in favor of {Inject(:name)}.
-        Inject() => {
-          year: ->(ctx, date:, **) { "<Year of #{date}>" },
-          never: ->(ctx, never:, call:, **) { raise "i shouldn't be called!" },
-        }
+        Inject(:year) => ->(ctx, date:, **) { "<Year of #{date}>" },
+        Inject(:never) => ->(ctx, never:, call:, **) { raise "i shouldn't be called!" }
+
 
       def write(ctx, time: "Time.now", date:, current_user:, name:, **) # {date} has no default configured.
         ctx[:log] = %{
@@ -55,10 +54,8 @@ class InjectTest < Minitest::Spec
         step :write,
           Inject(:current_user) => :my_instance_method_for_current_user, # TODO: document.
           Inject() => [:date, :time],
-          Inject() => {
-            year: ->(ctx, date:, **) { "<Year of #{date}>" },
-            never: ->(ctx, never:, call:, **) { raise "i shouldn't be called!" },
-          },
+          Inject(:year) => ->(ctx, date:, **) { "<Year of #{date}>" },
+          Inject(:never) => ->(ctx, never:, call:, **) { raise "i shouldn't be called!" },
           In() => [:model],
           # In() => [:date],
           In() => {:something => :thing},

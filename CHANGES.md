@@ -24,6 +24,7 @@ Activity subclasses maintain a field {:task_wrap_extensions} that can be used to
 * Remove deprecated `:input`, `:output` and `:inject` option.
 * Remove deprecated `Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx, model:, **)` `outer_ctx` positional argument.
 * Remove deprecated `:override` option.
+* Remove `Inject() => {...}` hash mechanics. This hasn't been documented, yet. Use `Inject(:variable) => ...`.
 
 # 1.2.7
 

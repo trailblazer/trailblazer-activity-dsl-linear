@@ -9,7 +9,7 @@ class VariableMappingTest < Minitest::Spec
       class Create < Trailblazer::Activity::Railway
         step :write,
           Inject() => [:date, :time],
-          Inject() => {current_user: ->(ctx, **kws) { ctx.keys.inspect + kws.inspect }} # FIXME: test/design kws here
+          Inject(:current_user) => ->(ctx, **kws) { ctx.keys.inspect + kws.inspect } # FIXME: test/design kws here
 
         def write(ctx, time: "Time.now", date:, current_user:, **) # {date} has no default configured.
           ctx[:log] = "Called @ #{time} and #{date.inspect} by #{current_user}!"
@@ -49,7 +49,7 @@ class VariableMappingTest < Minitest::Spec
       class Create < Trailblazer::Activity::Railway
         step :write,
           Inject() => [:date, :time],
-          Inject() => {current_user: ->(ctx, **) { ctx.keys.inspect }},
+          Inject(:current_user) => ->(ctx, **) { ctx.keys.inspect },
           In() => [:model],
           In() => {:something => :thing}
 
@@ -233,7 +233,7 @@ class VariableMappingTest < Minitest::Spec
       class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
         step :write,
           # all filters can see the original ctx:
-          Inject() => {time: ->(ctx, **) { 99 }},
+          Inject(:time) => ->(ctx, **) { 99 },
           In() => [:model],
           In() => [:current_user],
           # we can still see {:time} here:
@@ -602,7 +602,7 @@ class VariableMappingInheritTest < Minitest::Spec
     class Create < Trailblazer::Activity::Railway # TODO: add {:inject}
       step :write,
         # all filters can see the original ctx:
-        Inject() => {time: ->(ctx, **) { 99 }},
+        Inject(:time) => ->(ctx, **) { 99 },
         In() => ->(ctx,**) { {current_user: ctx[:current_user]} },
         Out() => {:current_user => :acting_user},
         Out() => [:incoming]

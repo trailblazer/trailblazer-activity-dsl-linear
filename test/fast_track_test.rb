@@ -39,7 +39,7 @@ class FastTrackTest < Minitest::Spec
     # @generic strategy test
     it "copies (extended) normalizers from original {Activity::FastTrack} and thereby allows i/o" do
       path = Activity.FastTrack() do
-        step :model, Inject() => {:id => ->(*) { 1 }}
+        step :model, Inject(:id) => ->(*) { 1 }
 
         def model(ctx, id:, seq:, **)
           seq << id
