@@ -10,13 +10,13 @@ class ExtensionsTest < Minitest::Spec
   end
 
   let(:prepend_1_extension) do
-    Trailblazer::Activity::TaskWrap::Extension.WrapStatic(
+    Trailblazer::Activity::TaskWrap::Extension(
       [method(:add_1), id: "user.add_1", prepend: "task_wrap.call_task"]
     )
   end
 
   let(:suffix_1_extension) do
-    Trailblazer::Activity::TaskWrap::Extension.WrapStatic(
+    Trailblazer::Activity::TaskWrap::Extension(
       [method(:add_1), id: "suffix_add_1", append: "task_wrap.call_task"]
     )
   end
