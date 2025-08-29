@@ -219,9 +219,13 @@ module Trailblazer
 
             # Used in the DSL by you.
             def self.Inject(variable_name = nil, override: false, filter_builder: Inject::FiltersBuilder, pass_aggregate: false, **)
+              add_variables_class = SetVariable::Default
+              # FIXME: allow mixing options like :pass_aggregate and :override.
+              add_variables_class = SetVariable::PassAggregate if pass_aggregate
+
               Inject.new(
                 variable_name,
-                nil, # add_variables_class # DISCUSS: do we really want that here?
+                add_variables_class,
                 filter_builder,
                 nil,
                 override: override,
@@ -247,7 +251,7 @@ module Trailblazer
                       )
                     end
                   end
-raise "move into Inject()"
+# raise "move into Inject()"
                   if options[:override]
                     return In::FiltersBuilder.build_for_option(
                       user_filter,
@@ -256,13 +260,6 @@ raise "move into Inject()"
                       read_name:            nil,
                       add_variables_class:  SetVariable,
                       **options
-                    )
-                  end
-
-                  # FIXME: allow mixing options like :pass_aggregate and :override.
-                  if options[:pass_aggregate]
-                    options = options.merge(
-                      add_variables_class:  SetVariable::PassAggregate
                     )
                   end
 
@@ -277,7 +274,7 @@ raise "move into Inject()"
                   )
 
                   [
-                    Filter.build_for_reading(add_variables_class: SetVariable::Default, **options)
+                    Filter.build_for_reading(add_variables_class: add_variables_class, **options)
                   ]
                 end # call
 
