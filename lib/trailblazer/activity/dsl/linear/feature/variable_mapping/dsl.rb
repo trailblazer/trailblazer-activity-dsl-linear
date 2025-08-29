@@ -237,7 +237,7 @@ module Trailblazer
             class Inject < Tuple
               class FiltersBuilder
                 # Called via {Tuple#call}
-                def self.call(user_filter, add_variables_class:, variable_name:, **options)
+                def self.call(user_filter, variable_name:, **options)
                   # Build {SetVariable::Conditioned}
                   if user_filter.is_a?(Array)
                     user_filter = Filter.hash_for(user_filter)
@@ -258,8 +258,8 @@ module Trailblazer
                       name:                 Filter.name_for(:Inject, variable_name, :add_variables),
                       write_name:           variable_name,
                       read_name:            nil,
+                      **options,
                       add_variables_class:  SetVariable,
-                      **options
                     )
                   end
 
@@ -276,7 +276,7 @@ module Trailblazer
                   options = Filter.options_for_reading(**options)
 
                   [
-                    Filter.build(**options, add_variables_class: add_variables_class)
+                    Filter.build(**options)
                   ]
                 end # call
 
