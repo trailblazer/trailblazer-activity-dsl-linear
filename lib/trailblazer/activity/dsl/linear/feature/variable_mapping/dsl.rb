@@ -312,11 +312,9 @@ module Trailblazer
               end
 
               def self.options_for_reading(read_name:, **options)
-                circuit_step_filter = VariableFromCtx.new(variable_name: read_name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
-
                 {
                   **options,
-                  filter: circuit_step_filter,
+                  filter: VariableFromCtx.new(variable_name: read_name),
                 }
               end
 
