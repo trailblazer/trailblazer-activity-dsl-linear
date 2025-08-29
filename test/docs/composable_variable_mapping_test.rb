@@ -729,19 +729,6 @@ class CVInjectOverrideTest < DocsTest
   end
 end
 
-  # def operation_for(&block)
-  #   namespace = Module.new
-  #   # namespace::Policy = ComposableVariableMappingDocTest::A::Policy
-  #   namespace.const_set :Policy, A::Policy
-
-  #   namespace.module_eval do
-  #     operation = yield
-  #     operation.class_eval do
-  #       include ComposableVariableMappingDocTest::Steps
-  #     end
-  #   end
-  # end # operation_for
-
 class DefaultInjectOnlyTest < DocsTest
   it "Inject(), only, without In()" do
     class Create < Trailblazer::Activity::Railway
@@ -749,15 +736,14 @@ class DefaultInjectOnlyTest < DocsTest
         Inject(:name) => ->(ctx, field:, **) { field }
 
       def write(ctx, name: nil, **)
-        ctx[:write] = %{
-name:     #{name.inspect}
-}
+        ctx[:write] = %(name: #{name.inspect})
       end
     end
 
-    assert_invoke Create, field: Module, expected_ctx_variables: {write: %{
-name:     Module
-}}
+    # Defaulting kicks in, {:name} is absent.
+    assert_invoke Create, field: Module, expected_ctx_variables: {write: "name: Module"}
+    # Inject(:name) isn't called because it's passed explicitely.
+    assert_invoke Create, name: Object, expected_ctx_variables: {write: "name: Object"}
   end
 end
 
@@ -768,15 +754,12 @@ class PassthroughInjectOnlyTest < DocsTest
         Inject() => [:name]
 
       def write(ctx, name: nil, **)
-        ctx[:write] = %{
-name:     #{name.inspect}
-}
+        ctx[:write] = %(name: #{name.inspect})
       end
     end
 
-    assert_invoke Create, name: Module, expected_ctx_variables: {write: %{
-name:     Module
-}}
+    assert_invoke Create, name: Module, expected_ctx_variables: {write: "name: Module"}
+    assert_invoke Create, expected_ctx_variables: {write: "name: nil"}
   end
 end
 
@@ -807,22 +790,8 @@ class CVInjectPassAggregateTest < DocsTest
   it "Inject() with {:pass_aggregate}" do
     assert_invoke Memo::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object, action_in_check: "Module/admin/:edit"}
 
-    # #= {:action} still overridden
-    # assert_invoke Memo::Activity::Create, current_user: Module, action: :update, expected_ctx_variables: {model: Object}
-
-    # current_user = Module
-
-    # #:inject-override-call
-    # signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create,
-    #   current_user: current_user,
-    #   action: :update # this is always overridden.
-    # )
-    # #~ctx_to_result
-    # puts ctx[:model] #=> #<Memo id: 1, ...>
-    # #~ctx_to_result end
-    # #:inject-override-call end
-
-    # assert_equal ctx[:model], Object
+    # Inject(:action) is not called as it's present in input.
+    assert_invoke Memo::Activity::Create, current_user: Module, action: ":create", expected_ctx_variables: {model: Object, action_in_check: ":create"}
   end
 end
 

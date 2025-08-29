@@ -247,7 +247,7 @@ module Trailblazer
                       )
                     end
                   end
-
+raise "move into Inject()"
                   if options[:override]
                     return In::FiltersBuilder.build_for_option(
                       user_filter,
@@ -261,16 +261,10 @@ module Trailblazer
 
                   # FIXME: allow mixing options like :pass_aggregate and :override.
                   if options[:pass_aggregate]
-                    return In::FiltersBuilder.build_for_option(
-                      user_filter,
-                      name:                 Filter.name_for(:Inject, variable_name, :add_variables),
-                      write_name:           variable_name,
-                      read_name:            nil,
-                      add_variables_class:  SetVariable::PassAggregate,
-                      **options
+                    options = options.merge(
+                      add_variables_class:  SetVariable::PassAggregate
                     )
                   end
-
 
                   # Build {SetVariable::Default}
                   # {user_filter} is one of the following

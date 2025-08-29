@@ -158,7 +158,7 @@ module Trailblazer
             end
           end # Default
 
-          class PassAggregate < SetVariable
+          class PassAggregate < Default
             def self.call_filter(filter, wrap_ctx, original_args)
               ctx, _ = original_args[0]
 
