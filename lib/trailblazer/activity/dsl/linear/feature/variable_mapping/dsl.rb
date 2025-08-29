@@ -101,15 +101,13 @@ module Trailblazer
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
 
             class Tuple
-              def initialize(variable_name, add_variables_class, filters_builder, add_variables_class_for_callable = nil, insert_args: nil, **options)
+              def initialize(variable_name, add_variables_class, filters_builder, insert_args: nil, **options)
                 @options =
                   {
                     variable_name:        variable_name,
                     add_variables_class:  add_variables_class,
                     filters_builder:      filters_builder,
                     insert_args:          insert_args,
-
-                    add_variables_class_for_callable: add_variables_class_for_callable,
 
                     **options
                   }
@@ -135,7 +133,7 @@ module Trailblazer
             #       as we don't need options once we're in a FiltersBuilder.
             class In < Tuple
               class FiltersBuilder
-                def self.call(user_filter, add_variables_class:, add_variables_class_for_callable:, type: :In, **options)
+                def self.call(user_filter, add_variables_class:, type: :In, **options)
                   # In()/Out() => {:user => :current_user}
                   if user_filter.is_a?(Hash)
                     # For In(): build {SetVariable} filters.
@@ -168,10 +166,9 @@ module Trailblazer
                     name:                 Filter.name_for(type, user_filter.object_id, :add_variables),
                     write_name:           nil,
                     read_name:            nil,
-                    add_variables_class:  add_variables_class_for_callable, # for example, {AddVariables::Output}
+                    add_variables_class:  add_variables_class, # for example, {AddVariables::Output}
                     **options
                   )
-                  # TODO: remove {add_variables_class_for_callable} and make everything SetVariable.
                 end # call
 
                 # Simply invoke user's filter.
@@ -198,21 +195,20 @@ module Trailblazer
               end
             end # Out
 
-            def self.In(variable_name = nil, add_variables_class: SetVariable, filter_builder: In::FiltersBuilder, add_variables_class_for_callable: AddVariables)
-              In.new(variable_name, add_variables_class, filter_builder, add_variables_class_for_callable)
+            def self.In(variable_name = nil, add_variables_class: SetVariable, filter_builder: In::FiltersBuilder)
+              In.new(variable_name, add_variables_class, filter_builder)
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: Out::FiltersBuilder, read_from_aggregate: false, add_variables_class_for_callable: AddVariables::Output)
+            def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: Out::FiltersBuilder, read_from_aggregate: false)
               add_variables_class = SetVariable::Output::Delete     if delete
               add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
-              add_variables_class_for_callable = AddVariables::Output::WithOuterContext if with_outer_ctx
+              add_variables_class = Output::WithOuterContext if with_outer_ctx  # FIXME.
 
               Out.new(
                 variable_name,
                 add_variables_class,
                 filter_builder,
-                add_variables_class_for_callable,
                 with_outer_ctx: with_outer_ctx,
               )
             end
@@ -227,7 +223,6 @@ module Trailblazer
                 variable_name,
                 add_variables_class,
                 filter_builder,
-                nil,
                 override: override,
                 pass_aggregate: pass_aggregate,
               )
@@ -260,6 +255,7 @@ module Trailblazer
                       read_name:            nil,
                       **options,
                       add_variables_class:  SetVariable,
+                      _FIXME_wrap_with_hash: true,
                     )
                   end
 
@@ -276,7 +272,7 @@ module Trailblazer
                   options = Filter.options_for_reading(**options)
 
                   [
-                    Filter.build(**options)
+                    Filter.build(**options, _FIXME_wrap_with_hash: true)
                   ]
                 end # call
 
@@ -327,6 +323,7 @@ module Trailblazer
                   build(
                     **options,
                     user_filter: user_filter,
+                    _FIXME_wrap_with_hash: true # FIXME: this is for single variables, as opposed to hash return values that we also support above.
                   )
                 end
               end

@@ -179,7 +179,7 @@ class VariableMappingUnitTest < Minitest::Spec
 
       filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
 
-      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(write_name: :model, filter: filter, user_filter: user_filter, name: :model)
+      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(write_name: :model, filter: filter, user_filter: user_filter, name: :model, _FIXME_wrap_with_hash: true)
 
 
       ctx = {current_user: Object, mode: :update}
@@ -196,7 +196,7 @@ class VariableMappingUnitTest < Minitest::Spec
     it "SetVariable#call can invoke any self-made circuit-step interface filter" do
       my_lowlevel_inject_filter = ->((ctx, flow_options), **) { "<MyModel #{ctx.fetch(:current_user)}>" }
 
-      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(write_name: :model, filter: my_lowlevel_inject_filter, user_filter: my_lowlevel_inject_filter, name: :model)
+      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(write_name: :model, filter: my_lowlevel_inject_filter, user_filter: my_lowlevel_inject_filter, name: :model, _FIXME_wrap_with_hash: true)
 
       ctx = {current_user: Object, mode: :update}
 
@@ -209,7 +209,7 @@ class VariableMappingUnitTest < Minitest::Spec
 
     it "we can add a low-level filter via the DSL, ie to access {circuit_options}" do
       my_lowlevel_inject_filter = ->((ctx, flow_options), my_record:,**circuit_options) { "<MyModel #{my_record}>" }
-      my_filter_builder = ->(*) { Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(name: "bla.FIXME", filter: my_lowlevel_inject_filter, write_name: :record, user_filter: nil) }
+      my_filter_builder = ->(*) { Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(name: "bla.FIXME", filter: my_lowlevel_inject_filter, write_name: :record, user_filter: nil, _FIXME_wrap_with_hash: true) }
 
       activity = Class.new(Trailblazer::Activity::Railway) do
         step :model,

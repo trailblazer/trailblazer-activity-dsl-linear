@@ -89,23 +89,29 @@ module Trailblazer
         # @param name Identifier for the pipeline
         # Call {user_filter} and set return value as variable on aggregate.
         class SetVariable
-          def initialize(write_name:, filter:, user_filter:, name:, **) # DISCUSS: what about {user_filter}?
+          def initialize(write_name:, filter:, user_filter:, name:, _FIXME_wrap_with_hash: false, **) # DISCUSS: what about {user_filter}?
             @write_name  = write_name
             @filter      = filter
             @name        = name
+            @_FIXME_wrap_with_hash = _FIXME_wrap_with_hash
           end
 
           attr_reader :name # TODO: used when adding to pipeline, change to to_h
 
           def call(wrap_ctx, original_args, filter = @filter)
-            wrap_ctx = self.class.set_variable_for_filter(filter, @write_name, wrap_ctx, original_args)
+            wrap_ctx = self.class.set_variable_for_filter(filter, @write_name, wrap_ctx, original_args, @_FIXME_wrap_with_hash)
 
             return wrap_ctx, original_args
           end
 
           # Run the actual user's filter and set the computed variable on the aggregate.
-          def self.set_variable_for_filter(filter, write_name, wrap_ctx, original_args)
+          def self.set_variable_for_filter(filter, write_name, wrap_ctx, original_args, _FIXME_wrap_with_hash = false)
             value     = call_filter(filter, wrap_ctx, original_args)
+
+            if _FIXME_wrap_with_hash # FIXME: make this another real step or wrap the user filter in DSL.
+              value = {write_name => value}
+            end
+
             wrap_ctx  = set_variable(value, write_name, wrap_ctx, original_args)
 
             wrap_ctx
@@ -117,9 +123,9 @@ module Trailblazer
             value
           end
 
-          def self.set_variable(value, write_name, wrap_ctx, original_args)
-            wrap_ctx[:aggregate][write_name] = value # yes, we're mutating, but this is ok as we're on some private hash.
-            wrap_ctx # DISCUSS: could be omitted.
+          def self.set_variable(variables, write_name, wrap_ctx, original_args)
+            wrap_ctx, _ = VariableMapping.merge_variables(variables, wrap_ctx, original_args)
+            wrap_ctx
           end
 
           # Set variable on ctx if {condition} is true.
@@ -203,31 +209,20 @@ module Trailblazer
           end
         end # SetVariable
 
-        # AddVariables: I call something with an Option-interface and run the return value through merge_variables().
-        # works on {:aggregate} by (usually) producing a hash fragment that is merged with the existing {:aggregate}
-
-        # Add a hash of variables to aggregate after running a filter (which returns a hash!).
-        # Note that we only use those for "old-style" callables that produce hashes.
-        class AddVariables < SetVariable
-          def self.set_variable(variables, write_name, wrap_ctx, original_args)
-            wrap_ctx, _ = VariableMapping.merge_variables(variables, wrap_ctx, original_args)
-            wrap_ctx
-          end
-
           # Merge hash of Out into aggregate.
           # TODO: deprecate and remove.
-          class Output < SetVariable::Output
-            def self.set_variable(*args)
-              AddVariables.set_variable(*args)
-            end
+          # DISCUSS: why remove?
+        class Output < SetVariable::Output
+          def self.set_variable(*args)
+            SetVariable.set_variable(*args)
+          end
 
-            class WithOuterContext < Output
-              def self.call_filter(filter, wrap_ctx, ((original_ctx, flow_options), circuit_options))
-                new_ctx = wrap_ctx[:returned_ctx]
-                new_ctx = new_ctx.merge(outer_ctx: original_ctx)
+          class WithOuterContext < Output
+            def self.call_filter(filter, wrap_ctx, ((original_ctx, flow_options), circuit_options))
+              new_ctx = wrap_ctx[:returned_ctx]
+              new_ctx = new_ctx.merge(outer_ctx: original_ctx)
 
-                Output.call_filter_with_ctx(filter, new_ctx, wrap_ctx, [[original_ctx, flow_options], circuit_options])
-              end
+              Output.call_filter_with_ctx(filter, new_ctx, wrap_ctx, [[original_ctx, flow_options], circuit_options])
             end
           end
         end
@@ -257,6 +252,8 @@ module Trailblazer
         # @private
         # The default {:output} filter only returns the "mutable" part of the inner ctx.
         # This means only variables added using {inner_ctx[..]=} are merged on the outside.
+        #
+        # This unscoping is used when there is no explicit Out() filter.
         def default_output_ctx(wrap_ctx, original_args)
           new_ctx = wrap_ctx[:returned_ctx]
 
@@ -265,6 +262,7 @@ module Trailblazer
           merge_variables(mutable, wrap_ctx, original_args)
         end
 
+        # This unscoping is used when Out() filters have written to the {aggregate}.
         def merge_with_original(wrap_ctx, original_args)
           original_ctx     = wrap_ctx[:original_ctx]  # outer ctx
           output_variables = wrap_ctx[:aggregate]
