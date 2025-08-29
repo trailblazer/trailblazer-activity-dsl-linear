@@ -273,8 +273,10 @@ module Trailblazer
                     user_filter:  user_filter,
                   )
 
+                  options = Filter.options_for_reading(**options)
+
                   [
-                    Filter.build_for_reading(add_variables_class: add_variables_class, **options)
+                    Filter.build(**options, add_variables_class: add_variables_class)
                   ]
                 end # call
 
@@ -309,22 +311,24 @@ module Trailblazer
                 )
               end
 
-              def self.build_for_reading(read_name:, **options)
+              def self.options_for_reading(read_name:, **options)
                 circuit_step_filter = VariableFromCtx.new(variable_name: read_name) # Activity::Circuit.Step(filter, option: true) # this is passed into {SetVariable.new}.
 
-                build(
+                {
+                  **options,
                   filter: circuit_step_filter,
-                  **options
-                )
+                }
               end
 
               def self.build_filters_for_hash(user_filter, **options)
                 user_filter.collect do |from_name, to_name|
                   options = yield(options, from_name, to_name)
 
-                  Filter.build_for_reading(
-                    user_filter: user_filter,
+                  options = options_for_reading(**options)
+
+                  build(
                     **options,
+                    user_filter: user_filter,
                   )
                 end
               end
