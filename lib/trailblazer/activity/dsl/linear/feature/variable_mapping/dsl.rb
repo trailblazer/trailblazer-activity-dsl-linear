@@ -12,7 +12,7 @@ module Trailblazer
 
             # Compute pipeline for In() and Inject().
             def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
-              in_filters  = DSL::Tuple.filters_from_options(in_filters)  # Compile tuples {In() => ...}  into tw steps.
+              in_filters  = DSL::Tuple.compile_tuples_to_filters(in_filters)  # Compile tuples {In() => ...}  into tw steps.
               _pipeline   = add_filter_steps(initial_input_pipeline, in_filters)
             end
 
@@ -46,7 +46,7 @@ module Trailblazer
             end
 
             def pipe_for_composable_output(out_filters: [], initial_output_pipeline: initial_output_pipeline(add_default_ctx: Array(out_filters).empty?), **)
-              out_filters = DSL::Tuple.filters_from_options(out_filters)
+              out_filters = DSL::Tuple.compile_tuples_to_filters(out_filters)
 
               add_filter_steps(initial_output_pipeline, out_filters, prepend_to: "output.merge_with_original", path_prefix: "output")
             end
@@ -109,7 +109,7 @@ module Trailblazer
                 @options
               end
 
-              def self.filters_from_options(tuples_to_user_filters)
+              def self.compile_tuples_to_filters(tuples_to_user_filters)
                 tuples_to_user_filters.flat_map { |tuple, user_filter| tuple.(user_filter) }
               end
 
