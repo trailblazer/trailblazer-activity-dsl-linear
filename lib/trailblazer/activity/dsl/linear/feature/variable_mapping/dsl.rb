@@ -12,7 +12,7 @@ module Trailblazer
 
             # Compute pipeline for In() and Inject().
             def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
-              in_filters  = DSL::Tuple.filters_from_options(in_filters)
+              in_filters  = DSL::Tuple.filters_from_options(in_filters)  # Compile tuples {In() => ...}  into tw steps.
               _pipeline   = add_filter_steps(initial_input_pipeline, in_filters)
             end
 
@@ -43,14 +43,6 @@ module Trailblazer
 
             def default_input_ctx_config # almost a Row.
               ["input.default_input", VariableMapping.method(:default_input_ctx)]
-            end
-
-            # Handle {:input} and {:inject} option, the "old" interface.
-            def add_steps_for_input_option(pipeline, input:)
-              tuple         = DSL.In() # simulate {In() => input}
-              input_filter  = DSL::Tuple.filters_from_options([[tuple, input]])
-
-              add_filter_steps(pipeline, input_filter)
             end
 
             def pipe_for_composable_output(out_filters: [], initial_output_pipeline: initial_output_pipeline(add_default_ctx: Array(out_filters).empty?), **)
@@ -202,7 +194,7 @@ module Trailblazer
             def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: Out::FiltersBuilder, read_from_aggregate: false)
               add_variables_class = SetVariable::Output::Delete     if delete
               add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
-              add_variables_class = Output::WithOuterContext if with_outer_ctx  # FIXME.
+              add_variables_class = Output::WithOuterContext if with_outer_ctx
 
               Out.new(
                 variable_name,

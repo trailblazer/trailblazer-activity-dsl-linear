@@ -87,10 +87,6 @@ module Trailblazer
 
             return input, output
           end
-
-          def deprecation_link
-            %(Please refer to https://trailblazer.to/2.1/docs/activity.html#activity-variable-mapping-deprecation-notes and have a nice day.)
-          end
         end # VariableMapping
       end
     end
