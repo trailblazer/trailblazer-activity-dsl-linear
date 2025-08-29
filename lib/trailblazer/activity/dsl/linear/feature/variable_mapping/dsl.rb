@@ -133,12 +133,12 @@ module Trailblazer
             #       as we don't need options once we're in a FiltersBuilder.
             class In < Tuple
               class FiltersBuilder
-                def self.call(user_filter, add_variables_class:, type: :In, **options)
+                def self.call(user_filter, type: :In, **options)
                   # In()/Out() => {:user => :current_user}
                   if user_filter.is_a?(Hash)
                     # For In(): build {SetVariable} filters.
                     # For Out(): build {SetVariable::Output} filters.
-                    return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, to_name|
+                    return Filter.build_filters_for_hash(user_filter, **options) do |options, from_name, to_name|
                       options.merge(
                         name:       Filter.name_for(type, "#{from_name.inspect}>#{to_name.inspect}"),
                         read_name:  from_name,
@@ -151,7 +151,7 @@ module Trailblazer
                   if user_filter.is_a?(Array)
                     user_filter = Filter.hash_for(user_filter)
 
-                    return Filter.build_filters_for_hash(user_filter, add_variables_class: add_variables_class) do |options, from_name, _|
+                    return Filter.build_filters_for_hash(user_filter, **options) do |options, from_name, _|
                       options.merge(
                         name:        Filter.name_for(type, from_name.inspect),
                         write_name:  from_name,
@@ -166,7 +166,6 @@ module Trailblazer
                     name:                 Filter.name_for(type, user_filter.object_id, :add_variables),
                     write_name:           nil,
                     read_name:            nil,
-                    add_variables_class:  add_variables_class, # for example, {AddVariables::Output}
                     **options
                   )
                 end # call
