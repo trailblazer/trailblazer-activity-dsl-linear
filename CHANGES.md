@@ -27,6 +27,10 @@ Activity subclasses maintain a field {:task_wrap_extensions} that can be used to
 * Remove `Inject() => {...}` hash mechanics. This hasn't been documented, yet. Use `Inject(:variable) => ...`.
 * Rename `compile_extensions` normalizer step to `create_extensions_option`.
 * Remove the `:extensions` option as a public concept. Use `Extension() => ...` as it's documented.
+* The `VariableMapping` extension is now evaluated *before* other user `Extension`s from the DSL, allowing them
+  to reference the I/O steps (e.g. `prepend: "task_wrap.output"`). There's a very little chance this change breaks
+  existing code. If it does, because now your extension is evaluated after variable mapping, use the above `:prepend`
+  in your extension to move it to the right place.
 
 # 1.2.7
 

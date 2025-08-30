@@ -162,6 +162,54 @@ ctx[:months]: [1, 2, 3]
     }
 
   end
+
+  # DISCUSS: this test can, at some point, go away since this is basically a POC for trailblazer-invoke's Context() creation logic.
+  it "Inject() => [] creates Context, and we are playing around with how to remove/omit the output pipe, because we don't want it in the one specific case of trb-invoke" do
+    activity = Class.new(Trailblazer::Activity::Railway) do
+      step :model, # this is what trb-invoke does for the actually run activity.
+        Inject() => [],
+        # initial_output_pipeline: Trailblazer::Activity::TaskWrap::Pipeline.new([])
+        Extension() => Trailblazer::Activity::TaskWrap::Extension(
+          [nil, id: nil, delete: "task_wrap.output"]
+        )
+
+      def model(ctx, model:, **)
+        ctx[:ctx_in_model] = ctx.inspect
+      end
+
+    end
+
+    require "trailblazer/developer"
+    # node, activity, _  = Trailblazer::Developer::Introspect.find_path(activity, [:model]) # FIXME: this breaks something with {:exec_context}!!!
+    # pipe = Trailblazer::Developer::Render::TaskWrap.render_for(activity, node)
+    # puts pipe
+    # raise
+
+    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{model: Module}, {}])
+
+    # pp ctx
+    assert_equal ctx.class, Trailblazer::Context::Container
+    assert_equal CU.inspect(ctx), %(#<Trailblazer::Context::Container wrapped_options={:model=>Module} mutable_options={:ctx_in_model=>\"#<Trailblazer::Context::Container wrapped_options={:model=>Module} mutable_options={}>\"}>)
+  end
+
+  it "{Extension}s are evaluated after I/O extensions and can refer to them" do
+    add_1_extension = Trailblazer::Activity::TaskWrap::Extension([method(:add_1), id: :add_1, prepend: "task_wrap.call_task"]) # see test_helper.rb
+    add_2_extension = Trailblazer::Activity::TaskWrap::Extension([method(:add_2), id: :add_2, prepend: "task_wrap.output"]) # We're referencing an I/O taskWrap step.
+
+    activity = Class.new(Activity::Path) do
+      # Extension() is evaluated after In().
+      step :model,
+        Out()       => ->(ctx, seq:, **) { {seq: seq + [:output]} },
+        Extension() => add_1_extension,
+        Extension() => add_2_extension,
+        In()        => ->(ctx, **) { {seq: ctx[:seq] += [:input]} }
+      step :save
+
+      include T.def_steps(:model, :save)
+    end
+
+    assert_invoke activity, seq: "[:input, 1, :model, 2, :output, :save]"
+  end
 end
 
 

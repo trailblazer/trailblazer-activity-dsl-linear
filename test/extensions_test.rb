@@ -49,7 +49,7 @@ class ExtensionsTest < Minitest::Spec
       include T.def_steps(:model, :save)
     end
 
-    assert_invoke activity, seq: "[1, :input, :model, :save]"
+    assert_invoke activity, seq: "[:input, 1, :model, :save]"
   end
 
   it "accepts Extension(generic: true) which is not inherited with {inherit: true}" do

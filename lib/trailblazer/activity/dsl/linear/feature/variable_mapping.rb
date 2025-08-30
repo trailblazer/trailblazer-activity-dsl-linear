@@ -60,7 +60,8 @@ module Trailblazer
               record = Linear::Normalizer::Inherit.Record(((ctx[:in_filters] || []) + (ctx[:out_filters] || [])).to_h, type: :variable_mapping)
 
               non_symbol_options = non_symbol_options.merge(record)
-              non_symbol_options = non_symbol_options.merge(Linear::Strategy.Extension(is_generic: true)  => extension)
+              # Note that the I/O extension is added before other user Extension()s so they can reference I/O.
+              non_symbol_options = {Linear::Strategy.Extension(is_generic: true)  => extension}.merge(non_symbol_options)
 
               ctx.merge!(
                 non_symbol_options: non_symbol_options
@@ -79,7 +80,7 @@ module Trailblazer
           # @private
           #
           def merge_instructions_from_dsl(**options)
-            pipeline  = DSL.pipe_for_composable_input(**options)  # FIXME: rename filters consistently
+            pipeline  = DSL.pipe_for_composable_input(**options)
             input     = Pipe::Input.new(pipeline)
 
             output_pipeline = DSL.pipe_for_composable_output(**options)
