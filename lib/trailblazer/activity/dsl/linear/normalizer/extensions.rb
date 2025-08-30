@@ -25,9 +25,10 @@ module Trailblazer
               ctx.merge!(
                 non_symbol_options: non_symbol_options.merge(extensions_tuples)
               )
+              # FIXME: remove/deprecate.
             end
 
-            def compile_extensions(ctx, non_symbol_options:, **)
+            def create_extensions_option(ctx, non_symbol_options:, **)
               extensions_ary =
                 non_symbol_options
                   .find_all { |k, v| k.instance_of?(Extension) }

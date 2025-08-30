@@ -120,11 +120,13 @@ module Trailblazer
                 "output_tuples.register_additional_outputs"       => Normalizer.Task(OutputTuples.method(:register_additional_outputs)),     # Output(Signal, :semantic) => Id()
                 "output_tuples.filter_inherited_output_tuples"    => Normalizer.Task(OutputTuples.method(:filter_inherited_output_tuples)),
 
+
+                # here, variable mapping is added.
+
                 "activity.wirings"                        => Normalizer.Task(OutputTuples::Connections.method(:compile_wirings)),
 
-                "extensions.compile_extensions"           => Normalizer.Task(Extensions.method(:compile_extensions)),
+                "extensions.create_extensions_option"           => Normalizer.Task(Extensions.method(:create_extensions_option)),
                 "extensions.compile_recorded_extensions"  => Normalizer.Task(Extensions.method(:compile_recorded_extensions)),
-
 
 
                 # specific to the step's taskWrap. # DISCUSS: technically, this is a "feature", but every step needs a tw to be run.
