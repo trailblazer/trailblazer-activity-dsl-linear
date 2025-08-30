@@ -14,20 +14,6 @@ module Trailblazer
               Extension.new(is_generic, rand) # {id} has to be unique for every Extension instance (for Hash identity).
             end
 
-            # Convert {:extensions} option to {Extension} tuples. The new way of adding extensions is
-            #   step ..., Extension() => my_extension
-            def convert_extensions_option_to_tuples(ctx, non_symbol_options:, extensions: nil, **)
-              return unless extensions
-              # TODO: deprecate {:extensions} in the DSL?
-
-              extensions_tuples = extensions.collect { |ext| [Extension(), ext] }.to_h
-
-              ctx.merge!(
-                non_symbol_options: non_symbol_options.merge(extensions_tuples)
-              )
-              # FIXME: remove/deprecate.
-            end
-
             def create_extensions_option(ctx, non_symbol_options:, **)
               extensions_ary =
                 non_symbol_options

@@ -50,7 +50,7 @@ class TaskWrapTest < Minitest::Spec
 
     implementing = self.implementing
     activity = Class.new(Trailblazer::Activity::Path) do
-      step task: implementing.method(:a), extensions: [taskWrap::Extension.WrapStatic(*merge)]
+      step task: implementing.method(:a), Extension() => taskWrap::Extension.WrapStatic(*merge)
       step task: implementing.method(:b)
       step task: implementing.method(:c)
     end
@@ -71,7 +71,7 @@ class TaskWrapTest < Minitest::Spec
     nested_activity = Class.new(Trailblazer::Activity::Path) do
       step task: implementing.method(:a)
       step Subprocess(activity)
-      step task: c, extensions: [taskWrap::Extension.WrapStatic(*merge)]
+      step task: c, Extension() => taskWrap::Extension.WrapStatic(*merge)
     end
 
     signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}, {}], **{})

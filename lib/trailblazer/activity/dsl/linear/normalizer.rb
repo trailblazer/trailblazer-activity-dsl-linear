@@ -106,8 +106,6 @@ module Trailblazer
                 # Nested pipeline:
                 "activity.default_outputs"                => defaults_for_outputs, # only {if :outputs.nil?}
 
-                "extensions.convert_extensions_option_to_tuples" => Normalizer.Task(Extensions.method(:convert_extensions_option_to_tuples)),
-
                 "inherit.recall_recorded_options"         => Normalizer.Task(Inherit.method(:recall_recorded_options)),
                 "activity.sequence_insert"                => Normalizer.Task(method(:normalize_sequence_insert)),
                 "activity.normalize_duplications"         => Normalizer.Task(method(:normalize_duplications)),

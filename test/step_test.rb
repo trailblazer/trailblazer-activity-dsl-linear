@@ -251,18 +251,18 @@ class StepInheritOptionTest < Minitest::Spec
     ext   = Trailblazer::Activity::TaskWrap::Extension.WrapStatic(merge)
   end
 
-  it "{inherit: true} copies {:extensions}" do
+  it "{inherit: true} copies {Extension()}" do
     _ext = ext
 
     activity = Class.new(Activity::Path) do
-      step :a, extensions: [_ext]
+      step :a, Extension() => _ext
       step :b                     # no {:extensions}
       include T.def_steps(:a, :b)
     end
 
     sub = Class.new(activity) do
       step :c, inherit: true, replace: :a # this should also "inherit" the taskWrap configs for this task.
-      step :d, inherit: true, replace: :b, extensions: [_ext] # we want to "override" the original {:extensions}
+      step :d, inherit: true, replace: :b, Extension() => _ext # we want to "override" the original {:extensions}
       include T.def_steps(:c, :d)
     end
 

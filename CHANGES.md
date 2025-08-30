@@ -25,6 +25,8 @@ Activity subclasses maintain a field {:task_wrap_extensions} that can be used to
 * Remove deprecated `Out(with_outer_ctx: true) => ->(inner_ctx, outer_ctx, model:, **)` `outer_ctx` positional argument.
 * Remove deprecated `:override` option.
 * Remove `Inject() => {...}` hash mechanics. This hasn't been documented, yet. Use `Inject(:variable) => ...`.
+* Rename `compile_extensions` normalizer step to `create_extensions_option`.
+* Remove the `:extensions` option as a public concept. Use `Extension() => ...` as it's documented.
 
 # 1.2.7
 

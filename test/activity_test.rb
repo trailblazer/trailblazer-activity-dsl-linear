@@ -368,12 +368,12 @@ class ActivityTest < Minitest::Spec
 
   #@ When inheriting and changing we don't bleed into associated classes.
   it "inheritance copies {config}" do
-    ext = taskWrap::Extension.WrapStatic(
+    ext = taskWrap::Extension(
       [method(:add_1), id: "user.add_1", prepend: "task_wrap.call_task"],
     )
 
     activity = Class.new(Activity::Path) do
-      step :a, extensions: [ext]
+      step :a, Extension() => ext
       include T.def_steps(:a)
     end
 

@@ -21,22 +21,6 @@ class ExtensionsTest < Minitest::Spec
     )
   end
 
-  it "accepts {:extensions} along with {In()} and other additional extensions" do
-    add_1_extension = prepend_1_extension
-
-    activity = Class.new(Activity::Path) do
-      # :extensions doesn't overwrite In() and vice-versa!
-      step :model,
-        extensions: [add_1_extension],
-        In() =>     ->(ctx, *) { {seq: ctx[:seq] += [:input]} }
-      step :save
-
-      include T.def_steps(:model, :save)
-    end
-
-    assert_invoke activity, seq: "[1, :input, :model, :save]"
-  end
-
   it "accepts Extension()" do
     test = self
 
@@ -50,6 +34,22 @@ class ExtensionsTest < Minitest::Spec
     end
 
     assert_invoke activity, seq: "[1, :model, 1, :save]"
+  end
+
+  it "accepts {Extension}s along with {In()} and other additional extensions" do
+    add_1_extension = prepend_1_extension
+
+    activity = Class.new(Activity::Path) do
+      # Extension() doesn't overwrite In() and vice-versa!
+      step :model,
+        Extension() => add_1_extension,
+        In() =>     ->(ctx, *) { {seq: ctx[:seq] += [:input]} }
+      step :save
+
+      include T.def_steps(:model, :save)
+    end
+
+    assert_invoke activity, seq: "[1, :input, :model, :save]"
   end
 
   it "accepts Extension(generic: true) which is not inherited with {inherit: true}" do
