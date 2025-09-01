@@ -5,25 +5,23 @@ module Trailblazer
         module Normalizer
           # Implements {:extensions} option and allows adding taskWrap extensions using
           # Linear::Normalizer::Extensions.Extension().
-          module Extensions
-            module_function
 
+          # 0. normalizer extensions are grabbed from :normalizer_extensions
+          # 1. normalizer extensions are evaluated, they add DSL objects at "normalizer time"
+          # 2. those DSL objects are transformed through the normalizer, e.g. In()
+          # 3. task_wrap_extensions are evaluated
+          def self.Extension(ext) # Normalizer::Extension # TODO: leave here or move?
+            ext # we could wrap it, but currently it's not necessary. This is for forward-compatibility.
+          end
+
+          module Extensions
             Extension = Struct.new(:generic?, :id)
 
+            module_function
+
+            # DSL object, the left side of the hash.
             def Extension(is_generic: false)
               Extension.new(is_generic, rand) # {id} has to be unique for every Extension instance (for Hash identity).
-            end
-
-            def create_extensions_option(ctx, non_symbol_options:, **)
-              extensions_ary =
-                non_symbol_options
-                  .find_all { |k, v| k.instance_of?(Extension) }
-                  .to_h
-                  .values
-
-              ctx.merge!(
-                extensions: extensions_ary
-              )
             end
 
             # Don't record Extension()s created by the DSL! This happens in VariableMapping, for instance.
@@ -41,6 +39,12 @@ module Trailblazer
                   Normalizer::Inherit.Record(recorded_extension_tuples, type: :extensions)
                 )
               )
+            end
+
+            # Compile all normalizer extensions.
+            def compile_normalizer_extensions(ctx, normalizer_extensions:, **)
+              # FIXME: fuck the mutable ctx! we rely on the extensions using ctx.merge!, which absolutely sucks. # FIXME: use low-level step here.
+              normalizer_extensions.inject(ctx) { |ctx, ext| ext.(ctx, **ctx) }
             end
           end # Extensions
         end

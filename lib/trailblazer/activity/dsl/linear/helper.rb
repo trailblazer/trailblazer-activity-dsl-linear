@@ -6,11 +6,6 @@ module Trailblazer
         # and then get processed in the normalizer.
         #
         # @private
-        Extension = Struct.new(:callable) do
-          def call(*args, &block)
-            callable.(*args, &block)
-          end
-        end
         PathBranch       = Struct.new(:options)
         DataVariableName = Class.new
 

@@ -7,7 +7,7 @@ module Trailblazer
         def self.VariableMapping(input_id: "task_wrap.input", output_id: "task_wrap.output", **options)
           input, output = VariableMapping.merge_instructions_from_dsl(**options)
 
-          VariableMapping.Extension(input, output)
+          VariableMapping.build_task_wrap_extension(input, output)
         end
 
         module VariableMapping
@@ -16,7 +16,9 @@ module Trailblazer
             Linear::Normalizer.extend!(strategy, *step_methods) do |normalizer|
               Linear::Normalizer.prepend_to(
                 normalizer,
-                "activity.wirings",
+                # "activity.wirings",
+                # "extensions.create_extensions_option",
+                "step.add_dsl_extensions_to_task_wrap_extensions",
                 steps_for_normalizer
               )
             end
@@ -30,8 +32,8 @@ module Trailblazer
             }
           end
 
-          def self.Extension(input, output, input_id: "task_wrap.input", output_id: "task_wrap.output")
-            TaskWrap.Extension(
+          def self.build_task_wrap_extension(input, output, input_id: "task_wrap.input", output_id: "task_wrap.output")
+            Activity::TaskWrap::Extension(
               [input,  id: input_id,  prepend: "task_wrap.call_task"],
               [output, id: output_id, append: "task_wrap.call_task"]
             )

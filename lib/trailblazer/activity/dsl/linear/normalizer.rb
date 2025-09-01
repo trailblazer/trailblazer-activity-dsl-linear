@@ -118,19 +118,19 @@ module Trailblazer
                 "output_tuples.register_additional_outputs"       => Normalizer.Task(OutputTuples.method(:register_additional_outputs)),     # Output(Signal, :semantic) => Id()
                 "output_tuples.filter_inherited_output_tuples"    => Normalizer.Task(OutputTuples.method(:filter_inherited_output_tuples)),
 
+            # Extension layer
+                "extensions.compile_normalizer_extensions" => Normalizer.Task(Extensions.method(:compile_normalizer_extensions)),
 
+                "step.normalize_task_wrap_extensions" => Normalizer.Task(TaskWrap.method(:normalize_task_wrap_extensions)),
                 # here, variable mapping is added.
+                "step.add_dsl_extensions_to_task_wrap_extensions" => Normalizer.Task(TaskWrap.method(:add_dsl_extensions_to_task_wrap_extensions)), # after this, we got a complete {:task_wrap_extensions} option.
+                "step.compile_task_wrap_from_extensions" => Normalizer.Task(TaskWrap.method(:compile_task_wrap_from_extensions)),
+
+                "extensions.compile_recorded_extensions"  => Normalizer.Task(Extensions.method(:compile_recorded_extensions)), # DISCUSS: WHERE does this go?
 
                 "activity.wirings"                        => Normalizer.Task(OutputTuples::Connections.method(:compile_wirings)),
 
-                "extensions.create_extensions_option"           => Normalizer.Task(Extensions.method(:create_extensions_option)),
-                "extensions.compile_recorded_extensions"  => Normalizer.Task(Extensions.method(:compile_recorded_extensions)),
 
-
-                # specific to the step's taskWrap. # DISCUSS: technically, this is a "feature", but every step needs a tw to be run.
-                "step.compile_initial_task_wrap" => Normalizer.Task(TaskWrap.method(:compile_initial_task_wrap)),
-                "step.initial_task_wrap_extensions" => Normalizer.Task(TaskWrap.method(:normalize_initial_task_wrap_extensions)),
-                "step.compile_task_wrap" => Normalizer.Task(TaskWrap.method(:compile_task_wrap)),
 
                 # DISCUSS: make this configurable? maybe lots of folks don't want {:inherit}?
                 "inherit.compile_recorded_options"        => Normalizer.Task(Inherit.method(:compile_recorded_options)),
@@ -274,7 +274,7 @@ module Trailblazer
             ctx[:id] = replace
           end
 
-          def create_row(ctx, task:, wirings:, magnetic_to:, data:, task_wrap:, **)
+          def create_row(ctx, task:, wirings:, magnetic_to:, data:, task_wrap:nil, **)
             ctx[:row] = Sequence.Row(
               task: task,
               magnetic_to: magnetic_to,
@@ -307,43 +307,7 @@ module Trailblazer
             ctx[:data] = (default_variables_for_data + variables_for_data).collect { |key| [key, ctx[key]] }.to_h
           end
 
-          # Normalizer steps specific to compiling each step's taskWrap.
-          module TaskWrap
-            module_function
 
-            def compile_initial_task_wrap(ctx, task:, subprocess: false, **)
-              return unless subprocess
-
-              # Activity subclasses maintain a field {:task_wrap_extensions} that can be used to expose the
-              # taskWrap for the activity itself to an outer user, e.g. when being nested.
-              extensions = task.to_h[:fields].fetch(:task_wrap_extensions)
-
-              ctx[:initial_task_wrap_extensions] = extensions
-            end
-
-            #
-            def normalize_initial_task_wrap_extensions(ctx, initial_task_wrap_extensions: nil, **) # FIXME: initial_task_wrap_extensions should be initial_task_wrap_extensions_extension
-              return if initial_task_wrap_extensions
-              # usually, non-Subprocess steps have no initial_task_wrap_extensions set.
-              ctx[:initial_task_wrap_extensions] = Strategy::INITIAL_TASK_WRAP_EXTENSIONS # tw with one step: [<call_task>]
-            end
-
-            # @semi-private
-            # Used in {trailblazer-invoke}
-            # NOTE: this used to happen in Sequence::Compiler.
-            # Execute the {task_wrap_extensions} with a "normalizer interface".
-            def compile_task_wrap_ary_from_extensions(initial_task_wrap_extensions, extensions, options, task_wrap: [])
-              extensions = initial_task_wrap_extensions + extensions
-
-              extensions.inject(task_wrap) { |task_wrap, ext| ext.(task_wrap, **options) } # {ext} must return new task_wrap.
-            end
-
-            def compile_task_wrap(ctx, initial_task_wrap_extensions:, extensions:, **)
-              task_wrap  = compile_task_wrap_ary_from_extensions(initial_task_wrap_extensions, extensions, ctx)
-
-              ctx[:task_wrap] = Activity::TaskWrap::Pipeline.new(task_wrap)
-            end
-          end
         end
       end # Normalizer
     end
