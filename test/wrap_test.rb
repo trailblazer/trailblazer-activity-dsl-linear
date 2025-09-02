@@ -16,29 +16,6 @@ class TaskWrapTest < Minitest::Spec
     assert_equal task_wrap.to_a.collect { |step| step.id }, ["task_wrap.call_task"]
   end
 
-  it "the {:initial_task_wrap_extensions} option allows to produce a custom taskWrap" do
-    tw_step = ->(wrap_ctx, original_args) do
-      wrap_ctx[:return_signal] = Trailblazer::Activity::Right
-      wrap_ctx[:return_args] = [{seq: "hello from taskWrap"}]
-      return wrap_ctx, original_args
-    end
-
-    activity = Class.new(Trailblazer::Activity::Railway) do
-      my_ext = Trailblazer::Activity::TaskWrap.Extension([tw_step, id: "my.add_1", prepend: nil]) # no {call_task} anymore.
-
-      step task: Object, initial_task_wrap_extensions: [my_ext]
-    end
-
-    task_wrap = activity.to_h[:config][:wrap_static][Object]
-
-    assert_equal task_wrap.to_a.collect { |step| step.id }, ["my.add_1"]
-
-    assert_invoke activity, seq: %("hello from taskWrap")
-  end
-
-  # TODO: should we test if {:initial_task_wrap_extensions} is defaulted?
-  # TODO: what happens in a Subprocess where we need to merge both, from the activity and from the DSL user?
-
   it "populates activity[:wrap_static] and uses it at run-time" do
     taskWrap = Trailblazer::Activity::TaskWrap
 

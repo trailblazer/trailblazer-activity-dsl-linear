@@ -12,7 +12,7 @@ class StrategyTest < Minitest::Spec
 }
   end
 
-  let(:default_task_wrap_in_fields) { {task_wrap_extensions: Trailblazer::Activity::DSL::Linear::Strategy::INITIAL_TASK_WRAP_EXTENSIONS} }
+  let(:default_normalizer_extensions_in_fields) { {normalizer_extensions: Trailblazer::Activity::DSL::Linear::Strategy::INITIAL_NORMALIZER_EXTENSIONS} }
 
 #@ State-relevant tests
   it "provides {:fields} in {@state} which is an (inherited) hash" do
@@ -24,9 +24,9 @@ class StrategyTest < Minitest::Spec
     subsub   = Class.new(sub)
     subsub.instance_variable_get(:@state).update!(:fields) { |fields| fields.merge(policy: Object) }
 
-    assert_equal strategy.to_h[:fields], default_task_wrap_in_fields # only contains library defaults, no user fields, yet.
-    assert_equal sub.to_h[:fields], default_task_wrap_in_fields.merge(representer: Module)
-    assert_equal subsub.to_h[:fields], default_task_wrap_in_fields.merge(representer: Module, policy: Object)
+    assert_equal strategy.to_h[:fields], default_normalizer_extensions_in_fields # only contains library defaults, no user fields, yet.
+    assert_equal sub.to_h[:fields], default_normalizer_extensions_in_fields.merge(representer: Module)
+    assert_equal subsub.to_h[:fields], default_normalizer_extensions_in_fields.merge(representer: Module, policy: Object)
   end
 
 #@ Strategy API
@@ -41,7 +41,7 @@ class StrategyTest < Minitest::Spec
     assert_equal hsh[:activity].class, Trailblazer::Activity
     assert_equal hsh[:sequence].class, Trailblazer::Activity::DSL::Linear::Sequence
     assert_equal hsh[:sequence].size, 3
-    assert_equal hsh[:fields], default_task_wrap_in_fields # FIXME: get the Pipeline vs. ary conflict sorted.
+    assert_equal hsh[:fields], default_normalizer_extensions_in_fields # FIXME: get the Pipeline vs. ary conflict sorted.
   end
 
 #@ DSL tests
