@@ -199,11 +199,14 @@ module Trailblazer
           # This is taskWrap specific logic that might be used by {Invoke}.
 
           id, task = Activity::TaskWrap::ROW_ARGS_FOR_CALL_TASK
-          INITIAL_TASK_WRAP_EXTENSIONS = [TaskWrap.Extension([task, id: id, prepend: nil])]
+          INITIAL_NORMALIZER_EXTENSIONS = [
+            # As this Extension should be the first to be executed, we need to merge the existing last.
+            ->(ctx, non_symbol_options:, **) { ctx.merge!(non_symbol_options: {Strategy.Extension(is_generic: true) => TaskWrap.Extension([task, id: id, prepend: nil])}.merge(non_symbol_options)) } # FIXME: remove the {merge!} FIXME: Wrap
+          ].freeze
 
           state.update!(:fields) do |fields|
             fields.merge(
-              task_wrap_extensions: INITIAL_TASK_WRAP_EXTENSIONS # this will be the taskWrap used when being nested, to the composing activity, for "us".
+              normalizer_extensions: INITIAL_NORMALIZER_EXTENSIONS # this will be the taskWrap used when being nested, to the composing activity, for "us".
             )
           end
 

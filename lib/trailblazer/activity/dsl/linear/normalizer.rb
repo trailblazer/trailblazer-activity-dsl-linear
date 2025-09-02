@@ -80,7 +80,7 @@ module Trailblazer
               outputs_pipeline = Linear::Normalizer.prepend_to(outputs_pipeline, nil, hsh) # DISCUSS: does it matter if we prepend FastTrack to Railway, etc?
             end
 
-            # Call the prepend_to_outputs pipeline only if {:outputs} is not set (by Subprocess).
+            # Call the prepend_to_outputs pipeline only if {:outputs} is not set (by Subprocess).`
             # too bad we don't have nesting here, yet.
             defaults_for_outputs = ->(ctx, args) do
               return [ctx, args] if ctx.key?(:outputs)
@@ -119,9 +119,10 @@ module Trailblazer
                 "output_tuples.filter_inherited_output_tuples"    => Normalizer.Task(OutputTuples.method(:filter_inherited_output_tuples)),
 
             # Extension layer
+                "extensions.compute_normalizer_extensions" => Normalizer.Task(Extensions.method(:compute_normalizer_extensions)),
                 "extensions.compile_normalizer_extensions" => Normalizer.Task(Extensions.method(:compile_normalizer_extensions)),
 
-                "step.normalize_task_wrap_extensions" => Normalizer.Task(TaskWrap.method(:normalize_task_wrap_extensions)),
+                # "step.normalize_task_wrap_extensions" => Normalizer.Task(TaskWrap.method(:normalize_task_wrap_extensions)),
                 # here, variable mapping is added.
                 "step.add_dsl_extensions_to_task_wrap_extensions" => Normalizer.Task(TaskWrap.method(:add_dsl_extensions_to_task_wrap_extensions)), # after this, we got a complete {:task_wrap_extensions} option.
                 "step.compile_task_wrap_from_extensions" => Normalizer.Task(TaskWrap.method(:compile_task_wrap_from_extensions)),

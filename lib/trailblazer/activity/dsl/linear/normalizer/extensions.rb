@@ -41,6 +41,20 @@ module Trailblazer
               )
             end
 
+            def compute_normalizer_extensions(ctx, subprocess: false, task:, non_symbol_options:, normalizer_extensions: nil, **)
+              return if normalizer_extensions
+
+              if subprocess
+                # Activity subclasses maintain a field {:task_wrap_extensions} that can be used to expose the
+            #   # taskWrap for the activity itself to an outer user, e.g. when being nested.
+                normalizer_extensions = task.to_h[:fields].fetch(:normalizer_extensions)
+              else
+                normalizer_extensions = Strategy::INITIAL_NORMALIZER_EXTENSIONS
+              end
+
+              ctx.merge!(normalizer_extensions: normalizer_extensions)
+            end
+
             # Compile all normalizer extensions.
             def compile_normalizer_extensions(ctx, normalizer_extensions:, **)
               # FIXME: fuck the mutable ctx! we rely on the extensions using ctx.merge!, which absolutely sucks. # FIXME: use low-level step here.
