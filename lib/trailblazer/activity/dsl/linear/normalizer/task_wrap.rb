@@ -8,25 +8,6 @@ module Trailblazer
           module TaskWrap # TODO: rename to Extension, or move there.
             module_function
 
-# FIXME: fetch_normalizer_extension
-            # def compile_initial_task_wrap(ctx, task:, subprocess: false, **) # TODO: fetch_normalizer_extension.
-            #   return unless subprocess
-
-            #   # Activity subclasses maintain a field {:task_wrap_extensions} that can be used to expose the
-            #   # taskWrap for the activity itself to an outer user, e.g. when being nested.
-            #   extensions = task.to_h[:fields].fetch(:task_wrap_extensions)
-
-            #   ctx[:initial_task_wrap_extensions] = extensions
-            # end
-
-            #
-            # def normalize_task_wrap_extensions(ctx, task_wrap_extensions: nil, **)
-            #   return if task_wrap_extensions
-
-            #   # usually, non-Subprocess steps have no task_wrap_extensions set.
-            #   ctx[:task_wrap_extensions] = Strategy::INITIAL_TASK_WRAP_EXTENSIONS # tw with one step: [<call_task>]
-            # end
-
             # Normalizer step.
             def add_dsl_extensions_to_task_wrap_extensions(ctx, non_symbol_options:, task_wrap_extensions: [], **) # FIXME: do we want the {:task_wrap_extensions} kwarg?
               task_wrap_extension_tuples = non_symbol_options
@@ -39,6 +20,7 @@ module Trailblazer
               )
             end
 
+            # Normalizer step.
             def compile_task_wrap_from_extensions(ctx, task_wrap_extensions:, task_wrap: [], **) # TODO: test {:task_wrap}, should we allow it to get injected?
               task_wrap = task_wrap_extensions.inject(task_wrap) { |task_wrap, ext| ext.(task_wrap) }
 
@@ -48,6 +30,7 @@ module Trailblazer
             end
 
             # @private
+            # TODO: benchmark that in context of {Invoke.call} with a common OP with, say, 10 steps.
             def sort_task_wrap_extensions(task_wrap_extension_tuples)
               # FIXME: make this faster and less clumsy, I suck at algorithms!
               to_sort = task_wrap_extension_tuples.find_all { |left_ext, _| left_ext.append }
@@ -55,10 +38,9 @@ module Trailblazer
 
               exts_pipeline = sorted_task_wrap_extension_tuples.collect { |left_ext, ext| Activity::TaskWrap::Pipeline::Row(left_ext.id, ext) }
 
-              exts_pipeline = to_sort.inject(exts_pipeline) do |pipe, (left_ext, ext)|
-                Activity::Adds.(pipe, [ext, id: left_ext.id, append: left_ext.append]) # FIXME: this doesn't cover all cases of sorting
-                # FIXME: we could throw in all adds instructions at once. very slow, though.
-              end
+              to_sort_adds = to_sort.collect { |left_ext, ext| [ext, id: left_ext.id, append: left_ext.append] }
+
+              exts_pipeline = Activity::Adds.(exts_pipeline, *to_sort_adds) # FIXME: this doesn't cover all cases of sorting
 
               extensions_ary = exts_pipeline.collect { |row| row[1] }
             end
