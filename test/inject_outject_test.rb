@@ -174,7 +174,7 @@ ctx[:months]: [1, 2, 3]
         )
 
       def model(ctx, model:, **)
-        ctx[:ctx_in_model] = CU.inspect(ctx)
+        ctx[:ctx_in_model] = CU.inspect(ctx.inspect)
       end
 
     end
@@ -189,7 +189,7 @@ ctx[:months]: [1, 2, 3]
 
     # pp ctx
     assert_equal ctx.class, Trailblazer::Context::Container
-    assert_equal CU.inspect(ctx), %(#<Trailblazer::Context::Container wrapped_options={:model=>Module} mutable_options={:ctx_in_model=>\"#<Trailblazer::Context::Container wrapped_options={:model=>Module} mutable_options={}>\"}>)
+    assert_equal CU.inspect(ctx.inspect), %(#<Trailblazer::Context::Container wrapped_options={:model=>Module} mutable_options={:ctx_in_model=>\"#<Trailblazer::Context::Container wrapped_options={:model=>Module} mutable_options={}>\"}>)
   end
 
   it "{Extension}s can be evaluated after I/O extensions and can refer to them" do
