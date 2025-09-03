@@ -174,7 +174,7 @@ ctx[:months]: [1, 2, 3]
         )
 
       def model(ctx, model:, **)
-        ctx[:ctx_in_model] = ctx.inspect
+        ctx[:ctx_in_model] = CU.inspect(ctx)
       end
 
     end

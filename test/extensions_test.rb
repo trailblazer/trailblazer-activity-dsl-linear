@@ -66,7 +66,7 @@ class ExtensionsTest < Minitest::Spec
         normalizer_extensions: [*Activity::DSL::Linear::Strategy::INITIAL_NORMALIZER_EXTENSIONS, my_normalizer_ext]
 
       def model(ctx, model:, **)
-        ctx[:ctx_in_model] = ctx.inspect
+        ctx[:ctx_in_model] = CU.inspect(ctx)
         ctx[:seq] << :model
       end
     end
@@ -136,7 +136,7 @@ class ExtensionsTest < Minitest::Spec
         step :model
 
         def model(ctx, model:, **)
-          ctx[:ctx_in_model] = ctx.inspect
+          ctx[:ctx_in_model] = CU.inspect(ctx)
           ctx[:seq] << :model
         end
 

@@ -123,6 +123,9 @@ module Trailblazer
             #
             # NOTE: do the options processing (such as {:with_outer_ctx}) in the In() method and not in the In object,
             #       as we don't need options once we're in a FiltersBuilder.
+            #
+            #    also, the sooner we complain about a missing or wrong kwarg, the better. Maybe In() should already verify options?
+      # raise "could we add, via the DSL in invoke, add an empty In() that doesn't build anything?"
             class In < Tuple
               class FiltersBuilder
                 def self.call(user_filter, type: :In, **options)
