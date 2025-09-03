@@ -15,13 +15,14 @@ module Trailblazer
           end
 
           module Extensions
-            Extension = Struct.new(:generic?, :id)
+            # Left side of DSL.
+            Extension = Struct.new(:generic?, :id, :append)
 
             module_function
 
             # DSL object, the left side of the hash.
-            def Extension(is_generic: false)
-              Extension.new(is_generic, rand) # {id} has to be unique for every Extension instance (for Hash identity).
+            def Extension(is_generic: false, id: rand, append: nil)
+              Extension.new(is_generic, id, append) # {id} has to be unique for every Extension instance (for Hash identity).
             end
 
             # Don't record Extension()s created by the DSL! This happens in VariableMapping, for instance.

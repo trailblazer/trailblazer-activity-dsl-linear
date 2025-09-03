@@ -57,7 +57,7 @@ class ExtensionsTest < Minitest::Spec
     )
   end
 
-  it "you can pass {:normalizer_extensions} explicitely. Why? i'm not sure yet" do
+  it "you can pass {:normalizer_extensions} explicitly. Why? i'm not sure yet" do
     # NOTE: this is @private API, don't use it and then later complain! :*
     my_normalizer_ext = Activity::DSL::Linear::Normalizer.Extension(method(:my_normalizer_extension))
 
@@ -92,6 +92,40 @@ class ExtensionsTest < Minitest::Spec
     end
 
     assert_invoke activity, seq: "[1, :input, :model, :save]"
+  end
+
+  describe "Extension() can define an order for compilation time" do
+    it "it automatically works if they're added in the right order" do
+      ext_prepend, ext_append = ext_prepend(), ext_append()
+
+      my_referencing_ext = Trailblazer::Activity::TaskWrap.Extension([method(:add_2), id: "user.add_2", prepend: "user.add_1"]) # we're referencing another tw step here.
+
+      activity = Class.new(Activity::Railway) do
+        step :model,
+          Extension() => Trailblazer::Activity::TaskWrap.Extension(ext_prepend), # this adds a tw step named "user.add_1"
+          Extension() => my_referencing_ext
+
+        include T.def_steps(:model)
+      end
+
+      assert_invoke activity, seq: "[2, 1, :model]"
+    end
+
+    it "you can reference IDs of left Extension()" do
+      ext_prepend, ext_append = ext_prepend(), ext_append()
+
+      my_referencing_ext = Trailblazer::Activity::TaskWrap.Extension([method(:add_2), id: "user.add_2", prepend: "user.add_1"]) # we're referencing another tw step here.
+
+      activity = Class.new(Activity::Railway) do
+        step :model,
+          Extension(append: :SECOND_IN_LINE) => my_referencing_ext, # this Extension would normally be evaluated before the next.
+          Extension(id: :SECOND_IN_LINE) => Trailblazer::Activity::TaskWrap.Extension(ext_prepend) # this adds a tw step named "user.add_1" which is referenced in the tw ext above.
+
+        include T.def_steps(:model)
+      end
+
+      assert_invoke activity, seq: "[2, 1, :model]"
+    end
   end
 
   describe "#Subprocess" do

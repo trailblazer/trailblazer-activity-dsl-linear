@@ -169,7 +169,7 @@ ctx[:months]: [1, 2, 3]
       step :model, # this is what trb-invoke does for the actually run activity.
         Inject() => [],
         # initial_output_pipeline: Trailblazer::Activity::TaskWrap::Pipeline.new([])
-        Extension() => Trailblazer::Activity::TaskWrap::Extension(
+        Extension(append: "variable_mapping") => Trailblazer::Activity::TaskWrap::Extension(
           [nil, id: nil, delete: "task_wrap.output"]
         )
 
@@ -192,7 +192,7 @@ ctx[:months]: [1, 2, 3]
     assert_equal CU.inspect(ctx), %(#<Trailblazer::Context::Container wrapped_options={:model=>Module} mutable_options={:ctx_in_model=>\"#<Trailblazer::Context::Container wrapped_options={:model=>Module} mutable_options={}>\"}>)
   end
 
-  it "{Extension}s are evaluated after I/O extensions and can refer to them" do
+  it "{Extension}s can be evaluated after I/O extensions and can refer to them" do
     add_1_extension = Trailblazer::Activity::TaskWrap::Extension([method(:add_1), id: :add_1, prepend: "task_wrap.call_task"]) # see test_helper.rb
     add_2_extension = Trailblazer::Activity::TaskWrap::Extension([method(:add_2), id: :add_2, prepend: "task_wrap.output"]) # We're referencing an I/O taskWrap step.
 
@@ -200,15 +200,16 @@ ctx[:months]: [1, 2, 3]
       # Extension() is evaluated after In().
       step :model,
         Out()       => ->(ctx, seq:, **) { {seq: seq + [:output]} },
-        Extension() => add_1_extension,
-        Extension() => add_2_extension,
+        Extension() => add_1_extension, # this is evaluated before "variable_mapping" and hence is the first tw step.
+        Extension(append: "variable_mapping") => add_1_extension, # this is after "variable_mapping" and gets in front of {call_task}.
+        Extension(append: "variable_mapping") => add_2_extension,
         In()        => ->(ctx, **) { {seq: ctx[:seq] += [:input]} }
       step :save
 
       include T.def_steps(:model, :save)
     end
 
-    assert_invoke activity, seq: "[:input, 1, :model, 2, :output, :save]"
+    assert_invoke activity, seq: "[1, :input, 1, :model, 2, :output, :save]"
   end
 end
 

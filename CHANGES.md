@@ -31,6 +31,9 @@ Activity subclasses maintain a field {:task_wrap_extensions} that can be used to
   to reference the I/O steps (e.g. `prepend: "task_wrap.output"`). There's a very little chance this change breaks
   existing code. If it does, because now your extension is evaluated after variable mapping, use the above `:prepend`
   in your extension to move it to the right place.
+* Adding `Extension(append: ...)`, making DSL extensions (the "left" ones) sortable. That allows to tweak things like
+  the variable mapping extensions even after they have been created. Note that this is still undocumented and considered
+  private. :kiss:
 
 # 1.2.7
 

@@ -29,11 +29,10 @@ module Trailblazer
 
             # Normalizer step.
             def add_dsl_extensions_to_task_wrap_extensions(ctx, non_symbol_options:, task_wrap_extensions: [], **) # FIXME: do we want the {:task_wrap_extensions} kwarg?
-              extensions_ary =
-                non_symbol_options
-                  .find_all { |k, v| k.instance_of?(Extensions::Extension) }
-                  .to_h
-                  .values
+              task_wrap_extension_tuples = non_symbol_options
+                .find_all { |k, v| k.instance_of?(Extensions::Extension) }
+
+              extensions_ary = sort_task_wrap_extensions(task_wrap_extension_tuples)
 
               ctx.merge!(
                 task_wrap_extensions: task_wrap_extensions + extensions_ary
@@ -46,6 +45,22 @@ module Trailblazer
               task_wrap = Activity::TaskWrap::Pipeline.new(task_wrap)
 
               ctx.merge!(task_wrap: task_wrap)
+            end
+
+            # @private
+            def sort_task_wrap_extensions(task_wrap_extension_tuples)
+              # FIXME: make this faster and less clumsy, I suck at algorithms!
+              to_sort = task_wrap_extension_tuples.find_all { |left_ext, _| left_ext.append }
+              sorted_task_wrap_extension_tuples = task_wrap_extension_tuples - to_sort
+
+              exts_pipeline = sorted_task_wrap_extension_tuples.collect { |left_ext, ext| Activity::TaskWrap::Pipeline::Row(left_ext.id, ext) }
+
+              exts_pipeline = to_sort.inject(exts_pipeline) do |pipe, (left_ext, ext)|
+                Activity::Adds.(pipe, [ext, id: left_ext.id, append: left_ext.append]) # FIXME: this doesn't cover all cases of sorting
+                # FIXME: we could throw in all adds instructions at once. very slow, though.
+              end
+
+              extensions_ary = exts_pipeline.collect { |row| row[1] }
             end
           end
         end
