@@ -42,7 +42,7 @@ module Trailblazer
 
               exts_pipeline = Activity::Adds.(exts_pipeline, *to_sort_adds) # FIXME: this doesn't cover all cases of sorting
 
-              extensions_ary = exts_pipeline.collect { |row| row[1] }
+              exts_pipeline.collect { |row| row[1] }
             end
           end
         end
