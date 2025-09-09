@@ -16,7 +16,7 @@ module Trailblazer
           # kwargs and returns a new {ctx}.
           class TaskAdapter < Circuit::TaskAdapter
             def call(wrap_ctx, args)
-              ctx, _ = @circuit_step.([wrap_ctx.freeze, nil], {}) # DISCUSS: why the circuit interface here?
+              ctx, _ = @circuit_step.([wrap_ctx.freeze, nil]) # DISCUSS: why the circuit interface here?
 
               # If normalizer step returns nil, we use the old ctx.
               return (ctx || wrap_ctx), args
