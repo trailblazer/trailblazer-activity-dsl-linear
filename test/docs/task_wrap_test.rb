@@ -203,7 +203,7 @@ class DocsWrapStaticExtensionTest < Minitest::Spec
     class Create < Trailblazer::Activity::Railway
       step :create_model
       step :validate,
-        Extension() => Trailblazer::Activity::TaskWrap::Extension::WrapStatic(
+        Extension() => Trailblazer::Activity::TaskWrap::Extension(
           [MyAPM::Extension.method(:start_instrumentation),  id: "my_apm.start_span",  prepend: "task_wrap.call_task"],
           [MyAPM::Extension.method(:finish_instrumentation), id: "my_apm.finish_span", append: "task_wrap.call_task"],
         )

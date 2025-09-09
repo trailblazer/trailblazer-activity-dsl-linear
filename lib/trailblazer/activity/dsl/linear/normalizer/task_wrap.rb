@@ -8,25 +8,25 @@ module Trailblazer
           module TaskWrap # TODO: rename to Extension, or move there.
             module_function
 
-            # Normalizer step.
-            def add_dsl_extensions_to_task_wrap_extensions(ctx, non_symbol_options:, task_wrap_extensions: [], **) # FIXME: do we want the {:task_wrap_extensions} kwarg?
-              task_wrap_extension_tuples = non_symbol_options
-                .find_all { |k, v| k.instance_of?(Extensions::Extension) }
+            # (Normalizer step)
+            def add_dsl_extensions_to_task_wrap_extensions(ctx, task_wrap_extensions: [], **) # FIXME: do we want the {:task_wrap_extensions} kwarg? # FIXME: test task_wrap_extensions
+              task_wrap_extension_tuples = ctx.find_all { |k, v| k.instance_of?(Extensions::Extension) }
 
               extensions_ary = sort_task_wrap_extensions(task_wrap_extension_tuples)
 
-              ctx.merge!(
+              ctx.merge(
                 task_wrap_extensions: task_wrap_extensions + extensions_ary
               )
             end
 
-            # Normalizer step.
+            # (Normalizer step)
             def compile_task_wrap_from_extensions(ctx, task_wrap_extensions:, task_wrap: [], **) # TODO: test {:task_wrap}, should we allow it to get injected?
+
               task_wrap = task_wrap_extensions.inject(task_wrap) { |task_wrap, ext| ext.(task_wrap) }
 
               task_wrap = Activity::TaskWrap::Pipeline.new(task_wrap)
 
-              ctx.merge!(task_wrap: task_wrap)
+              ctx.merge(task_wrap: task_wrap)
             end
 
             # @private

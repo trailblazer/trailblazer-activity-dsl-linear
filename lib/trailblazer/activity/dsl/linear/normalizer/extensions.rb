@@ -14,6 +14,8 @@ module Trailblazer
             ext # we could wrap it, but currently it's not necessary. This is for forward-compatibility.
           end
 
+          # Implements the concept of "normalizer extensions".
+          # DISCUSS: Generic "left" Extension() handling is done where?.
           module Extensions
             # Left side of DSL.
             Extension = Struct.new(:generic?, :id, :append)
@@ -28,21 +30,20 @@ module Trailblazer
             # Don't record Extension()s created by the DSL! This happens in VariableMapping, for instance.
             # Either the user also inherits I/O tuples and the extension will be recreated,
             # or they really don't want this particular extension to be inherited.
-            def compile_recorded_extensions(ctx, non_symbol_options:, **)
+            def compile_recorded_extensions(ctx, **)
               recorded_extension_tuples =
-                non_symbol_options
+                ctx
                   .find_all { |k, v| k.instance_of?(Extension) }
                   .reject   { |k, v| k.generic? }
                   .to_h
 
-              ctx.merge!(
-                non_symbol_options: non_symbol_options.merge(
-                  Normalizer::Inherit.Record(recorded_extension_tuples, type: :extensions)
-                )
+              ctx.merge(
+                Normalizer::Inherit.Record(recorded_extension_tuples, type: :extensions)
               )
             end
 
-            def compute_normalizer_extensions(ctx, subprocess: false, task:, non_symbol_options:, normalizer_extensions: nil, **)
+            # Fetch the {:normalizer_extensions} from the activity's field.
+            def compute_normalizer_extensions(ctx, subprocess: false, task:, normalizer_extensions: nil, **)
               return if normalizer_extensions
 
               if subprocess
@@ -53,13 +54,17 @@ module Trailblazer
                 normalizer_extensions = Strategy::INITIAL_NORMALIZER_EXTENSIONS
               end
 
-              ctx.merge!(normalizer_extensions: normalizer_extensions)
+              ctx.merge(normalizer_extensions: normalizer_extensions)
             end
 
+            # (Normalizer step)
             # Compile all normalizer extensions.
+            # Note that they have access to the entire normalizer {ctx}.
             def compile_normalizer_extensions(ctx, normalizer_extensions:, **)
-              # FIXME: fuck the mutable ctx! we rely on the extensions using ctx.merge!, which absolutely sucks. # FIXME: use low-level step here.
-              normalizer_extensions.inject(ctx) { |ctx, ext| ext.(ctx, **ctx) }
+              # pp normalizer_extensions
+              normalizer_extensions.inject(ctx) do |ctx, ext|
+                ext.(ctx, **ctx.to_hash)
+              end
             end
           end # Extensions
         end

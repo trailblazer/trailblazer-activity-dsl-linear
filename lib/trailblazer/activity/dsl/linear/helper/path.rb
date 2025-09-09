@@ -15,13 +15,12 @@ module Trailblazer
               # Replace a block-expecting {PathBranch} instance with another one that's holding
               # the global {:block} from {#step ... do end}.
               def forward_block_for_path_branch(ctx, options:, normalizer_options:, library_options:, **)
-                block              = options[:block]
-                non_symbol_options = options[:non_symbol_options]
+                block = options[:block]
 
                 return unless block
 
                 output, path_branch =
-                  non_symbol_options.find { |output, cfg| cfg.is_a?(Linear::PathBranch) }
+                  options.find { |output, cfg| cfg.is_a?(Linear::PathBranch) }
 
                 path_branch_with_block = Linear::PathBranch.new(
                   normalizer_options
@@ -29,19 +28,21 @@ module Trailblazer
                     .merge(block: block)
                 )
 
-                ctx[:options] = ctx[:options].merge(non_symbol_options: non_symbol_options.merge(output => path_branch_with_block))
+                ctx.merge(
+                  options: ctx[:options].merge(output => path_branch_with_block)
+                )
               end
 
               # Convert all occurrences of Path() to a corresponding {Track}.
               # The {Track} instance contains all additional {adds} steps and
               # is picked up in {Normalizer.normalize_connections_from_dsl}.
-              def convert_paths_to_tracks(ctx, non_symbol_options:, block: false, **)
-                new_tracks = non_symbol_options
+              def convert_paths_to_tracks(ctx, block: false, **)
+                new_tracks = ctx
                   .find_all { |output, cfg| cfg.is_a?(Linear::PathBranch) }
                   .collect {  |output, cfg| [output, Path.convert_path_to_track(block: block, **cfg.options)]  }
                   .to_h
 
-                ctx[:non_symbol_options] = non_symbol_options.merge(new_tracks)
+                ctx.merge(new_tracks)
               end
             end # Normalizer
 

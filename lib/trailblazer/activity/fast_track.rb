@@ -73,77 +73,74 @@ module Trailblazer
         RECORD_OPTIONS = [:pass_fast, :fail_fast, :fast_track]
 
         # *If* {fast_track: true} (or :pass_fast or :fail_fast), record it using Normalizer::Inherit mechanics.
-        def record_options(ctx, non_symbol_options:, **)
+        def record_options(ctx, **)
           recorded_options =
             RECORD_OPTIONS.collect { |option| ctx.key?(option) ? [option, ctx[option]] : nil }
               .compact
               .to_h
 
-          ctx.merge!(
-            non_symbol_options: non_symbol_options.merge(
-              Linear::Normalizer::Inherit.Record(recorded_options, type: :fast_track, non_symbol_options: false)
-            )
+          ctx.merge(
+            Linear::Normalizer::Inherit.Record(recorded_options, type: :fast_track)
           )
         end
 
         def add_pass_fast_output(ctx, outputs:, pass_fast: nil, **)
           return unless pass_fast
 
-          ctx[:outputs] = PASS_FAST_OUTPUT.merge(outputs)
+          ctx.merge(outputs: PASS_FAST_OUTPUT.merge(outputs))
         end
 
         def add_fail_fast_output(ctx, outputs:, fail_fast: nil, **)
           return unless fail_fast
 
-          ctx[:outputs] = FAIL_FAST_OUTPUT.merge(outputs)
+          ctx.merge(outputs: FAIL_FAST_OUTPUT.merge(outputs))
         end
 
         def add_fast_track_outputs(ctx, outputs:, fast_track: nil, **)
           return unless fast_track
 
-          ctx[:outputs] = FAIL_FAST_OUTPUT.merge(PASS_FAST_OUTPUT).merge(outputs)
+          ctx.merge(outputs: FAIL_FAST_OUTPUT.merge(PASS_FAST_OUTPUT).merge(outputs))
         end
 
         PASS_FAST_OUTPUT = {pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast)}
         FAIL_FAST_OUTPUT = {fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast)}
 
         def add_fast_track_connectors(ctx, fast_track: nil, **)
-          ctx = merge_connections_for!(ctx, :fast_track, :pass_fast, :pass_fast, **ctx)
-          ctx = merge_connections_for!(ctx, :fast_track, :fail_fast, :fail_fast, **ctx)
+          ctx = merge_connections_for(ctx, :fast_track, :pass_fast, :pass_fast)
+          ctx = merge_connections_for(ctx, :fast_track, :fail_fast, :fail_fast)
         end
 
         def pass_fast_option(ctx, outputs:, **)
-          ctx = merge_connections_for!(ctx, :pass_fast, :success, **ctx)
+          ctx = merge_connections_for(ctx, :pass_fast, :success)
 
-          ctx = merge_connections_for!(ctx, :pass_fast, :pass_fast, :pass_fast, **ctx) if outputs[:pass_fast]
+          ctx = merge_connections_for(ctx, :pass_fast, :pass_fast, :pass_fast) if outputs[:pass_fast]
           ctx
         end
 
         def pass_fast_option_for_pass(ctx, **)
-          ctx = merge_connections_for!(ctx, :pass_fast, :failure, **ctx)
-          ctx = merge_connections_for!(ctx, :pass_fast, :success, **ctx)
+          ctx = merge_connections_for(ctx, :pass_fast, :failure)
+          ctx = merge_connections_for(ctx, :pass_fast, :success)
         end
 
         def fail_fast_option(ctx, outputs:, **)
-          ctx = merge_connections_for!(ctx, :fail_fast, :failure, **ctx)
+          ctx = merge_connections_for(ctx, :fail_fast, :failure)
 
           # DISCUSS: instead of checking outputs here, we could introduce something like Output(non_strict: true)
-          ctx = merge_connections_for!(ctx, :fail_fast, :fail_fast, :fail_fast, **ctx) if outputs[:fail_fast]
+          ctx = merge_connections_for(ctx, :fail_fast, :fail_fast, :fail_fast) if outputs[:fail_fast]
           ctx
         end
 
         def fail_fast_option_for_fail(ctx, **)
-          ctx = merge_connections_for!(ctx, :fail_fast, :failure, **ctx)
-          ctx = merge_connections_for!(ctx, :fail_fast, :success, **ctx)
+          ctx = merge_connections_for(ctx, :fail_fast, :failure)
+          ctx = merge_connections_for(ctx, :fail_fast, :success)
         end
 
-        def merge_connections_for!(ctx, option_name, semantic, magnetic_to=option_name, non_symbol_options:, **)
+        def merge_connections_for(ctx, option_name, semantic, magnetic_to=option_name, **)
           return ctx unless ctx[option_name]
 
           connector = {Linear::Normalizer::OutputTuples.Output(semantic) => Linear::Strategy.Track(magnetic_to)}
 
-          ctx[:non_symbol_options] = connector.merge(non_symbol_options)
-          ctx
+          connector.merge(ctx)
         end
 
         # Normalizer pipelines taking care of processing your DSL options.

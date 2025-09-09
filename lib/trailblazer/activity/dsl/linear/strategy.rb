@@ -183,6 +183,14 @@ module Trailblazer
           require_relative "feature/merge"
           extend Merge::DSL # {Strategy.merge!}
 
+          def self.normalizer_ext_for_initial_task_wrap(ctx, **)
+            id, task = Activity::TaskWrap::ROW_ARGS_FOR_CALL_TASK
+
+            # As this Extension should be the first to be executed, we need to merge the existing last.
+            {Strategy.Extension(is_generic: true) => TaskWrap.Extension([task, id: id, prepend: nil])}
+              .merge(ctx)
+          end
+
           state = Declarative::State(
             normalizers: [nil, {}],        # immutable
             normalizer_options: [nil, {}], # immutable
@@ -197,11 +205,8 @@ module Trailblazer
 
           # DISCUSS: where to move this?
           # This is taskWrap specific logic that might be used by {Invoke}.
-
-          id, task = Activity::TaskWrap::ROW_ARGS_FOR_CALL_TASK
           INITIAL_NORMALIZER_EXTENSIONS = [
-            # As this Extension should be the first to be executed, we need to merge the existing last.
-            ->(ctx, non_symbol_options:, **) { ctx.merge!(non_symbol_options: {Strategy.Extension(is_generic: true) => TaskWrap.Extension([task, id: id, prepend: nil])}.merge(non_symbol_options)) } # FIXME: remove the {merge!} FIXME: Wrap
+            method(:normalizer_ext_for_initial_task_wrap)
           ].freeze
 
           state.update!(:fields) do |fields|

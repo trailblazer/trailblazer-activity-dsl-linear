@@ -34,7 +34,7 @@ class DocsInternalsNormalizerExtendTest < Minitest::Spec
     def self.upcase_id(ctx, upcase_id: nil, id:, **)
       return unless upcase_id
 
-      ctx[:id] = id.to_s.upcase
+      ctx.merge(id: id.to_s.upcase)
     end
   end
   #:upcase end
@@ -85,17 +85,14 @@ class DocsInternalsRecordSymbolOptionTest < Minitest::Spec
     def self.upcase_id(ctx, upcase_id: false, id:, **)
       return unless upcase_id
 
-      ctx[:id] = id.to_s.upcase
+      ctx.merge(id: id.to_s.upcase)
     end
     #~meths end
-    def self.record_upcase_id_flag(ctx, non_symbol_options:, upcase_id: nil, **)
-      ctx.merge!(
-        non_symbol_options: non_symbol_options.merge(
-          Trailblazer::Activity::DSL::Linear::Normalizer::Inherit.Record(
-            {upcase_id: upcase_id},   # what do you want to record?
-            type: :upcase_id_feature, # categorize the recorded data.
-            non_symbol_options: false # this is a real :symbol option.
-          )
+    def self.record_upcase_id_flag(ctx, upcase_id: nil, **)
+      ctx.merge(
+        Trailblazer::Activity::DSL::Linear::Normalizer::Inherit.Record(
+          {upcase_id: upcase_id},   # what do you want to record?
+          type: :upcase_id_feature, # categorize the recorded data.
         )
       )
     end

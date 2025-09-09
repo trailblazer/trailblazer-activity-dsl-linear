@@ -35,17 +35,17 @@ module Trailblazer
         SUCCESS_OUTPUT = {success: Activity::Output(Activity::Right, :success)}
 
         def add_success_output(ctx, **)
-          ctx[:outputs] = SUCCESS_OUTPUT
+          ctx.merge(outputs: SUCCESS_OUTPUT)
         end
 
-        def add_success_connector(ctx, track_name:, non_symbol_options:, **)
+        def add_success_connector(ctx, track_name:, **)
           connectors = {Linear::Normalizer::OutputTuples.Output(:success) => Linear::Strategy.Track(track_name)}
 
-          ctx[:non_symbol_options] = connectors.merge(non_symbol_options)
+          connectors.merge(ctx)
         end
 
         def normalize_magnetic_to(ctx, track_name:, **) # TODO: merge with Railway.merge_magnetic_to
-          ctx[:magnetic_to] = ctx.key?(:magnetic_to) ? ctx[:magnetic_to] : track_name # FIXME: can we be magnetic_to {nil}?
+          ctx.merge(magnetic_to: ctx.key?(:magnetic_to) ? ctx[:magnetic_to] : track_name) # FIXME: can we be magnetic_to {nil}?
         end
 
         # This is slow and should be done only once at compile-time,

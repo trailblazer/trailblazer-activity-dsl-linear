@@ -3,9 +3,9 @@ require "test_helper"
 class SubprocessTest < Minitest::Spec
   it "the Subprocess() macro sets the {subprocess: true} option in the normalizer ctx" do
     activity = Class.new(Trailblazer::Activity::Railway) do
-      def self.set_subprocess_in_data(ctx, non_symbol_options:, **)
+      def self.set_subprocess_in_data(ctx, **)
         # raise non_symbol_options.inspect
-        ctx.merge!(non_symbol_options: non_symbol_options.merge(Trailblazer::Activity::Railway.DataVariable() => :subprocess))
+        ctx.merge(Trailblazer::Activity::Railway.DataVariable() => :subprocess)
       end
 
       Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step, :fail, :pass) do |normalizer|

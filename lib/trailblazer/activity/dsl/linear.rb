@@ -38,6 +38,7 @@ require "trailblazer/activity/dsl/linear/normalizer/extensions"
 require "trailblazer/activity/dsl/linear/normalizer/task_wrap"
 require "trailblazer/activity/dsl/linear/normalizer/output_tuples"
 require "trailblazer/activity/dsl/linear/normalizer"
+require "trailblazer/activity/dsl/linear/normalizer/ruby_2_5_and_2_6" if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
 require "trailblazer/activity/dsl/linear/normalizer/terminus"
 require "trailblazer/activity/dsl/linear/helper"
 require "trailblazer/activity/dsl/linear/helper/path"

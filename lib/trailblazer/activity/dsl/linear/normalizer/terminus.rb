@@ -14,8 +14,9 @@ module Trailblazer
                   "activity.merge_library_options"          => Normalizer.Task(Normalizer.method(:merge_library_options)),    # Merge "macro"/user options over library options.
                   "activity.normalize_for_macro"            => Normalizer.Task(Normalizer.method(:merge_user_options)),
                   "activity.normalize_normalizer_options"   => Normalizer.Task(Normalizer.method(:merge_normalizer_options)),
-                  "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),
+                  # "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),
                   "activity.normalize_context"              => Normalizer.method(:normalize_context),
+
                   "terminus.normalize_task"                 => Normalizer.Task(Terminus.method(:normalize_task)),
                   "terminus.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
                   "terminus.normalize_magnetic_to"          => Normalizer.Task(Terminus.method(:normalize_magnetic_to)),
@@ -38,7 +39,7 @@ module Trailblazer
 
             # @private
             def normalize_id(ctx, semantic:, id: Strategy.end_id(semantic: semantic), **)
-              ctx.merge!(
+              ctx.merge(
                 id: id
               )
             end
@@ -55,13 +56,13 @@ module Trailblazer
             end
 
             def _normalize_task_for_end_event(ctx, task:, **) # you cannot override using {:semantic}
-              ctx.merge!(
+              ctx.merge(
                 semantic: task.to_h[:semantic]
               )
             end
 
             def _normalize_task_for_symbol(ctx, task:, semantic: task, **)
-              ctx.merge!(
+              ctx.merge(
                 task:     Activity.End(semantic),
                 semantic: semantic
               )
@@ -70,23 +71,23 @@ module Trailblazer
             # @private
             def normalize_magnetic_to(ctx, magnetic_to: nil, semantic:, **)
               return if magnetic_to
-              ctx.merge!(magnetic_to: semantic)
+              ctx.merge(magnetic_to: semantic)
             end
 
             # @private
-            def append_end(ctx, task:, append_to: "End.success", non_symbol_options:, **)
+            def append_end(ctx, task:, append_to: "End.success", **)
               terminus_args = {
                 sequence_insert:    {append: append_to}, #[Activity::Adds::Insert.method(:Append), append_to],
                 stop_event:         true,
-                non_symbol_options: non_symbol_options.merge(Strategy.DataVariable() => [:stop_event, :semantic])
+                Strategy.DataVariable() => [:stop_event, :semantic],
               }
 
-              ctx.merge!(
+              ctx.merge(
                 wirings: [],
                 extensions: [],
                 adds:    [],
-                **terminus_args
-              )
+              ).merge(terminus_args)
+                # **terminus_args
             end
           end # Terminus
         end

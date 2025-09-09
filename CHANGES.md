@@ -1,5 +1,15 @@
 # 1.3.0
 
+## Normalizer
+
+* Make the `ctx` immutable, each normalizer step can `merge` and has to return the new ctx or nil. This also
+  simplifies merging particular options before others.
+* This is implemented in the new `Normalizer::TaskAdapter`.
+* Remove the concept of `:non_symbol_options` and use only one `ctx` hash. If you were adding to this option,
+  simply add your options directly to `ctx`.
+* Introduce two monkey-patches in `ruby_2_5_and_2_6.rb` to make the presence of non-symbol keys work in Ruby < 2.7.
+
+
 * Introduce `fields[:task_wrap_EXT]` for all Activity subclasses. It represents
 the taskWrap to be used when nesting that very activity, so it's up to the
 composer/user to make use of it. This new "feature" is tremendously helpful for

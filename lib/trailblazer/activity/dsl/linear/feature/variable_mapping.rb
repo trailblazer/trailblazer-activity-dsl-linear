@@ -42,16 +42,18 @@ module Trailblazer
           # Steps that are added to the DSL normalizer.
           module Normalizer
             # Process {In() => [:model], Inject() => [:current_user], Out() => [:model]}
-            def self.normalize_input_output_filters(ctx, non_symbol_options:, **)
-              in_exts     = non_symbol_options.find_all { |k, v| k.is_a?(VariableMapping::DSL::In) || k.is_a?(VariableMapping::DSL::Inject) }
-              output_exts = non_symbol_options.find_all { |k, v| k.is_a?(VariableMapping::DSL::Out) }
+            def self.normalize_input_output_filters(ctx, **)
+              in_exts     = ctx.find_all { |k, v| k.is_a?(VariableMapping::DSL::In) || k.is_a?(VariableMapping::DSL::Inject) }
+              output_exts = ctx.find_all { |k, v| k.is_a?(VariableMapping::DSL::Out) }
               return unless in_exts.any? || output_exts.any?
 
-              ctx[:in_filters]  = in_exts
-              ctx[:out_filters] = output_exts
+              ctx.merge(
+                in_filters:  in_exts,
+                out_filters: output_exts
+              )
             end
 
-            def self.input_output_dsl(ctx, non_symbol_options:, **options) # TODO: rename to {#compile_task_wrap_extensions}.
+            def self.input_output_dsl(ctx, **options) # TODO: rename to {#compile_task_wrap_extensions}.
               # no Input()/Output()/:initial_input_pipeline passed.
               return unless ctx[:in_filters] || ctx[:out_filters] || ctx[:initial_input_pipeline]
 
@@ -61,15 +63,11 @@ module Trailblazer
               # FIXME: defaulting here sucks and should be done above.
               record = Linear::Normalizer::Inherit.Record(((ctx[:in_filters] || []) + (ctx[:out_filters] || [])).to_h, type: :variable_mapping)
 
-              non_symbol_options = non_symbol_options.merge(record)
+              ctx = ctx.merge(record)
 
-              # The ("left") DSL extension got an ID so other Extensions can be evaluated after it.
-              non_symbol_options = non_symbol_options.merge(
+              ctx.merge(
+                # The ("left") DSL extension got an ID so other Extensions can be evaluated after it.
                 Strategy.Extension(is_generic: true, id: "variable_mapping")  => extension
-              )
-
-              ctx.merge!(
-                non_symbol_options: non_symbol_options
               )
             end
           end

@@ -48,13 +48,13 @@ module Trailblazer
           end
 
           def merge_magnetic_to(ctx, **)
-            ctx[:magnetic_to] = :failure
+            ctx.merge(magnetic_to: :failure)
           end
 
           SUCCESS_TO_FAILURE_CONNECTOR = {Linear::Normalizer::OutputTuples.Output(:success) => Linear::Strategy.Track(:failure)}
 
-          def connect_success_to_failure(ctx, non_symbol_options:, **)
-            ctx[:non_symbol_options] = SUCCESS_TO_FAILURE_CONNECTOR.merge(non_symbol_options)
+          def connect_success_to_failure(ctx, **)
+            SUCCESS_TO_FAILURE_CONNECTOR.merge(ctx)
           end
         end
 
@@ -84,14 +84,16 @@ module Trailblazer
         # Add {:failure} output to {:outputs}.
         # This is only called for non-Subprocess steps.
         def add_failure_output(ctx, outputs:, **)
-          ctx[:outputs] = FAILURE_OUTPUT.merge(outputs)
+          ctx.merge(
+            outputs: FAILURE_OUTPUT.merge(outputs)
+          )
         end
 
-        def add_failure_connector(ctx, outputs:, non_symbol_options:, failure_connector: FAILURE_CONNECTOR, **)
+        def add_failure_connector(ctx, outputs:, failure_connector: FAILURE_CONNECTOR, **)
           return unless outputs[:failure] # do not add the default failure connection when we don't have
                                           # a corresponding output.
 
-          ctx[:non_symbol_options] = failure_connector.merge(non_symbol_options)
+          failure_connector.merge(ctx)
         end
 
         Normalizers = Linear::Normalizer::Normalizers.new(

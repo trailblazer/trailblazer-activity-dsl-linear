@@ -44,16 +44,14 @@ class ExtensionsTest < Minitest::Spec
     assert_invoke activity, seq: "[1, :model]"
   end
 
-  def my_normalizer_extension(ctx, id:, non_symbol_options:, **)
-    ctx.merge!(
+  def my_normalizer_extension(ctx, id:, **)
+    ctx.merge(
       my_variable: id.inspect,
 
-      non_symbol_options: non_symbol_options.merge(
-        Activity::Railway.In() => [:model],
-        Activity::Railway.Inject() => [:seq],
-        Activity::Railway.Extension() => Activity::TaskWrap.Extension(ext_prepend),
-        Activity::Railway.DataVariable() => :my_variable
-      )
+      Activity::Railway.In() => [:model],
+      Activity::Railway.Inject() => [:seq],
+      Activity::Railway.Extension() => Activity::TaskWrap.Extension(ext_prepend),
+      Activity::Railway.DataVariable() => :my_variable
     )
   end
 

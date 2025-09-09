@@ -12,6 +12,17 @@ module Trailblazer
         #
         # Most parts of Normalizer are documented: https://trailblazer.to/2.1/docs/internals.html#internals-dsl-normalizer
         module Normalizer
+          # Implements adapter for a callable in a Pipeline that's called with
+          # kwargs and returns a new {ctx}.
+          class TaskAdapter < Circuit::TaskAdapter
+            def call(wrap_ctx, args)
+              ctx, _ = @circuit_step.([wrap_ctx.freeze, nil], {}) # DISCUSS: why the circuit interface here?
+
+              # If normalizer step returns nil, we use the old ctx.
+              return (ctx || wrap_ctx), args
+            end
+          end # TaskAdapter
+
           # Container for all final normalizers of a specific Strategy.
           class Normalizers
             def initialize(**options)
@@ -68,7 +79,7 @@ module Trailblazer
           #   # will call {normalizer_task} and pass ctx variables as kwargs, as follows
           #   def normalize_id(ctx, id: false, task:, **)
           def Task(user_step)
-            Activity::TaskWrap::Pipeline::TaskAdapter.for_step(user_step, option: false) # we don't need Option as we don't have ciruit_options here, and no {:exec_context}
+            TaskAdapter.for_step(user_step, option: false) # we don't need Option as we don't have ciruit_options here, and no {:exec_context}
           end
 
           # The generic normalizer not tied to `step` or friends.
@@ -96,8 +107,9 @@ module Trailblazer
                 "activity.merge_library_options"          => Normalizer.Task(method(:merge_library_options)),    # Merge "macro"/user options over library options.
                 "activity.normalize_for_macro"            => Normalizer.Task(method(:merge_user_options)),       # Merge user_options over "macro" options.
                 "activity.normalize_normalizer_options"   => Normalizer.Task(method(:merge_normalizer_options)), # Merge user_options over normalizer_options.
-                "activity.normalize_non_symbol_options"   => Normalizer.Task(method(:normalize_non_symbol_options)),
+
                 "activity.path_helper.forward_block"      => Normalizer.Task(Helper::Path::Normalizer.method(:forward_block_for_path_branch)),     # forward the "global" block
+
                 "activity.normalize_context"              => method(:normalize_context),
                 "activity.id_with_inherit_and_replace"    => Normalizer.Task(method(:id_with_inherit_and_replace)),
                 "activity.normalize_id"                   => Normalizer.Task(method(:normalize_id)),
@@ -107,6 +119,7 @@ module Trailblazer
                 "activity.default_outputs"                => defaults_for_outputs, # only {if :outputs.nil?}
 
                 "inherit.recall_recorded_options"         => Normalizer.Task(Inherit.method(:recall_recorded_options)),
+
                 "activity.sequence_insert"                => Normalizer.Task(method(:normalize_sequence_insert)),
                 "activity.normalize_duplications"         => Normalizer.Task(method(:normalize_duplications)),
 
@@ -117,7 +130,7 @@ module Trailblazer
                 "output_tuples.remember_custom_output_tuples"     => Normalizer.Task(OutputTuples.method(:remember_custom_output_tuples)),     # Output(Signal, :semantic) => Id()
                 "output_tuples.register_additional_outputs"       => Normalizer.Task(OutputTuples.method(:register_additional_outputs)),     # Output(Signal, :semantic) => Id()
                 "output_tuples.filter_inherited_output_tuples"    => Normalizer.Task(OutputTuples.method(:filter_inherited_output_tuples)),
-
+# raise "move above Output code?"
             # Extension layer
                 "extensions.compute_normalizer_extensions" => Normalizer.Task(Extensions.method(:compute_normalizer_extensions)),
                 "extensions.compile_normalizer_extensions" => Normalizer.Task(Extensions.method(:compile_normalizer_extensions)),
@@ -154,11 +167,12 @@ module Trailblazer
             return if options[:wrap_task]
             return unless options[:task].is_a?(Symbol)
 
-            ctx[:options] = {
-              **options,
-              wrap_task:              true,
-              step_interface_builder: ->(task) { Trailblazer::Option(task) } # only wrap in Option, not {TaskAdapter}.
-            }
+            ctx.merge(
+              options: options.merge(
+                wrap_task:              true,
+                step_interface_builder: ->(task) { Trailblazer::Option(task) } # only wrap in Option, not {TaskAdapter}.
+              )
+            )
           end
 
           # @param {:options} The first argument passed to {#step}
@@ -172,10 +186,12 @@ module Trailblazer
             # Step Interface
             # step :find, ...
             # step Callable, ... (Method, Proc etc)
-            ctx[:options] = {
-              task:       options,
-              wrap_task:  true # task exposes step interface.
-            }
+            ctx.merge(
+              options: {
+                task:       options,
+                wrap_task:  true # task exposes step interface.
+              }
+            )
           end
 
           # @param :wrap_task If true, the {:task} is wrapped using the step_interface_builder, meaning the
@@ -183,27 +199,33 @@ module Trailblazer
           def wrap_task_with_step_interface(ctx, step_interface_builder:, task:, wrap_task: false, **)
             return unless wrap_task
 
-            ctx[:task] = step_interface_builder.(task)
+            ctx.merge(task: step_interface_builder.(task))
           end
 
           def normalize_id(ctx, task:, id: false, **)
-            ctx[:id] = id || task
+            ctx.merge(id: id || task)
           end
 
           # {:library_options} such as :sequence, :dsl_track, etc.
           def merge_library_options(ctx, options:, library_options:, **)
-            ctx[:options] = library_options.merge(options)
+            ctx.merge(
+              options: library_options.merge(options)
+            )
           end
 
           # make ctx[:options] the actual ctx
           def merge_user_options(ctx, options:, user_options:, **)
             # {options} are either a <#task> or {} from macro
-            ctx[:options] = options.merge(user_options) # Note that the user options are merged over the macro options.
+            ctx.merge(
+              options: options.merge(user_options) # Note that the user options are merged over the macro options.
+            )
           end
 
           # {:normalizer_options} such as {:track_name} get overridden by user/macro.
           def merge_normalizer_options(ctx, normalizer_options:, options:, **)
-            ctx[:options] = normalizer_options.merge(options)
+            ctx.merge(
+              options: normalizer_options.merge(options)
+            )
           end
 
           def normalize_context(ctx, flow_options)
@@ -221,7 +243,9 @@ module Trailblazer
 
             insertion_option = sequence_insert_options[insertion]
 
-            ctx[:sequence_insert] = {insertion_option => target}
+            ctx.merge(
+              sequence_insert: {insertion_option => target}
+            )
           end
 
           # Translate DSL option to "friendly interface" option.
@@ -238,8 +262,8 @@ module Trailblazer
           def normalize_duplications(ctx, replace: false, **)
             return if replace
 
-            raise_on_duplicate_id(ctx, **ctx)
-            clone_duplicate_activity(ctx, **ctx) # DISCUSS: mutates {ctx}.
+            raise_on_duplicate_id(ctx, **ctx.to_hash)
+            clone_duplicate_activity(ctx, **ctx.to_hash)
           end
 
           # @private
@@ -250,19 +274,9 @@ module Trailblazer
           # @private
           def clone_duplicate_activity(ctx, task:, sequence:, **)
             return unless task.is_a?(Class)
+            return unless sequence.find { |row| row[1] == task }
 
-            ctx[:task] = task.clone if sequence.find { |row| row[1] == task }
-          end
-
-          # Move DSL user options such as {Output(:success) => Track(:found)} to
-          # a new key {options[:non_symbol_options]}.
-          # This allows using {options} as a {**ctx}-able hash in Ruby 2.6 and 3.0.
-          def normalize_non_symbol_options(ctx, options:, **)
-            symbol_options     = options.find_all { |k, v| k.is_a?(Symbol) }.to_h
-            non_symbol_options = options.slice(*(options.keys - symbol_options.keys))
-            # raise unless (symbol_options.size+non_symbol_options.size) == options.size
-
-            ctx[:options] = symbol_options.merge(non_symbol_options: non_symbol_options)
+            ctx.merge(task: task.clone)
           end
 
           # Whenever {:replace} and {:inherit} are passed, automatically assign {:id}.
@@ -272,40 +286,48 @@ module Trailblazer
             return unless inherit # inherit: true and inherit: [] both work.
             return unless replace
 
-            ctx[:id] = replace
+            ctx.merge(id: replace)
           end
 
           def create_row(ctx, task:, wirings:, magnetic_to:, data:, task_wrap:nil, **)
-            ctx[:row] = Sequence.Row(
-              task: task,
-              magnetic_to: magnetic_to,
-              wirings: wirings,
-              data: data,
-              task_wrap: task_wrap
+            ctx.merge(
+              row: Sequence.Row(
+                task: task,
+                magnetic_to: magnetic_to,
+                wirings: wirings,
+                data: data,
+                task_wrap: task_wrap
+              )
             )
           end
 
           # The {:add} field is one "friendly interface" instruction.
           # See {Adds.call} in the {activity} gem.
           def create_add(ctx, row:, sequence_insert:, **)
-            ctx[:add] = [
-              nil, # no task since we got a row already.
-              {row: row, **sequence_insert}
-            ]
+            ctx.merge(
+              add: [
+                nil, # no task since we got a row already.
+                {row: row, **sequence_insert}
+              ]
+            )
           end
 
           def create_adds(ctx, add:, adds:, **)
-            ctx[:adds] = [add] + adds
+            ctx.merge(
+              adds: [add] + adds
+            )
           end
 
           # TODO: document DataVariable() => :name
           # Compile data that goes into the sequence row.
-          def compile_data(ctx, non_symbol_options:, default_variables_for_data: [:id, :dsl_track], **)
-            variables_for_data = non_symbol_options
+          def compile_data(ctx, default_variables_for_data: [:id, :dsl_track], **)
+            variables_for_data = ctx
               .find_all { |k, v| k.instance_of?(Linear::DataVariableName) }
               .flat_map { |k, v| Array(v) }
 
-            ctx[:data] = (default_variables_for_data + variables_for_data).collect { |key| [key, ctx[key]] }.to_h
+            ctx.merge(
+              data: (default_variables_for_data + variables_for_data).collect { |key| [key, ctx[key]] }.to_h
+            )
           end
 
 

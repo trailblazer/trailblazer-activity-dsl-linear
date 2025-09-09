@@ -50,22 +50,20 @@ module Trailblazer
               CustomOutput  = Struct.new(:signal, :semantic, :generic?).include(Output) # generic? is always false
             end
 
-            def normalize_output_tuples(ctx, non_symbol_options:, **)
-              output_tuples = non_symbol_options.find_all { |k, v| k.is_a?(OutputTuples::Output) }
+            def normalize_output_tuples(ctx, **)
+              output_tuples = ctx.find_all { |k, v| k.is_a?(OutputTuples::Output) }
 
-              ctx.merge!(output_tuples: output_tuples)
+              ctx.merge(output_tuples: output_tuples)
             end
 
             # Remember all custom (non-generic) {:output_tuples}.
-            def remember_custom_output_tuples(ctx, output_tuples:, non_symbol_options:, **)
+            def remember_custom_output_tuples(ctx, output_tuples:, **)
               # We don't include generic OutputSemantic (from Subprocess(strict: true)) for inheritance, as this is not a user customization.
               custom_output_tuples = output_tuples.reject { |k, v| k.generic? }
 
               # save Output() tuples under {:custom_output_tuples} for inheritance.
-              ctx.merge!(
-                non_symbol_options: non_symbol_options.merge(
-                  Normalizer::Inherit.Record(custom_output_tuples.to_h, type: :custom_output_tuples)
-                )
+              ctx.merge(
+                Normalizer::Inherit.Record(custom_output_tuples.to_h, type: :custom_output_tuples)
               )
             end
 
@@ -87,7 +85,7 @@ module Trailblazer
                   end
                 end
 
-              ctx.merge!(
+              ctx.merge(
                 output_tuples: output_tuples,
                 outputs:       outputs
               )
@@ -111,7 +109,7 @@ module Trailblazer
 
               filtered_output_tuples = output_tuples.reject { |output, _| unsupported_semantics.include?(output.semantic) }
 
-              ctx.merge!(
+              ctx.merge(
                 output_tuples: filtered_output_tuples.to_h
               )
             end
@@ -140,8 +138,10 @@ module Trailblazer
                     search_builder.(output, *search_args)
                   end
 
-                ctx[:wirings] = wirings
-                ctx[:adds]    = adds
+                ctx.merge(
+                  wirings: wirings,
+                  adds: adds
+                )
               end
 
               # Returns ADDS for the new terminus.
