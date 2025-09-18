@@ -44,6 +44,9 @@ Activity subclasses maintain a field {:task_wrap_extensions} that can be used to
 * Adding `Extension(append: ...)`, making DSL extensions (the "left" ones) sortable. That allows to tweak things like
   the variable mapping extensions even after they have been created. Note that this is still undocumented and considered
   private. :kiss:
+* Removed deprecated :override. Use :replace.
+*  Removed Inject () => { ... }
+* Removed :row, use ADDS [row, id: row.id, ...]
 
 # 1.2.7
 

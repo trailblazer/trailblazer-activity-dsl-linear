@@ -10,20 +10,20 @@ class Trailblazer::Activity
           # From this task onwards, find the next task that's "magnetic to" {target_color}.
           # Note that we only go forward, no back-references are done here.
           def Forward(output, target_color)
-            ->(sequence, me) do
-              target_seq_row = find_in_range(sequence[sequence.index(me) + 1..-1], target_color)
+            ->(sequence_ary, me) do
+              target_seq_row = find_in_range(sequence_ary[sequence_ary.index(me) + 1..-1], target_color)
 
               return output, target_seq_row
             end
           end
 
           # Tries to find a track colored step by doing a Forward-search, first, then wraps around going
-          # through all steps from sequence start to self.
+          # through all steps from sequence_ary start to self.
           def WrapAround(output, target_color)
-            ->(sequence, me) do
-              my_index      = sequence.index(me)
+            ->(sequence_ary, me) do
+              my_index      = sequence_ary.index(me)
               # First, try all elements after me, then go through the elements preceding myself.
-              wrapped_range = sequence[my_index + 1..-1] + sequence[0..my_index - 1]
+              wrapped_range = sequence_ary[my_index + 1..-1] + sequence_ary[0..my_index - 1]
 
               target_seq_row = find_in_range(wrapped_range, target_color)
 
@@ -33,9 +33,8 @@ class Trailblazer::Activity
 
           # Find the seq_row with {id} and connect the current node to it.
           def ById(output, id)
-            ->(sequence, me) do
-              index          = Adds::Insert.find_index(sequence, id) or return output, sequence[0] # FIXME # or raise "Couldn't find {#{id}}"
-              target_seq_row = sequence[index]
+            ->(sequence_ary, me) do
+              target_seq_row = sequence_ary.find { |row| row.data.fetch(:id) == id } or return output, sequence_ary[0] # FIXME # or raise "Couldn't find {#{id}}"
 
               return output, target_seq_row
             end

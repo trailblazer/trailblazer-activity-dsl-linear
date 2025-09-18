@@ -293,9 +293,9 @@ class ActivityTest < Minitest::Spec
 
         step(id: :b, task: implementing.method(:b), adds: [
           [
-            nil,
-            row:    row,
-            prepend: :a
+            row,
+            prepend: :a,
+            id: nil
           ]
         ])
       end

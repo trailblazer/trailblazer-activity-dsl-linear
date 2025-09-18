@@ -34,7 +34,7 @@ module Trailblazer
                   "activity.create_adds" => Normalizer.Task(Normalizer.method(:create_adds)),
                 }
 
-              Activity::TaskWrap::Pipeline.new(normalizer_steps.to_a)
+              Activity::Pipeline(normalizer_steps)
             end
 
             # @private
@@ -84,7 +84,6 @@ module Trailblazer
 
               ctx.merge(
                 wirings: [],
-                extensions: [],
                 adds:    [],
               ).merge(terminus_args)
                 # **terminus_args

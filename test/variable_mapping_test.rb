@@ -384,11 +384,11 @@ class VariableMappingTest < Minitest::Spec
     end
 
     activity = Class.new(Trailblazer::Activity::Railway) do
-      input_pipe = Trailblazer::Activity::TaskWrap::Pipeline.new([
+      input_pipe = Trailblazer::Activity.Pipeline(
       # we use the standard input pipeline but with our own default_ctx that has UPPERCASED variables and values.
-        Trailblazer::Activity::TaskWrap::Pipeline.Row("input.my_input_ctx", my_input_ctx),
-        Trailblazer::Activity::TaskWrap::Pipeline.Row("input.scope", Trailblazer::Activity::DSL::Linear::VariableMapping.method(:scope)),
-      ]) # DISCUSS: use VariableMapping.initial_input_pipeline here, and modify it?
+        "input.my_input_ctx" => my_input_ctx,
+        "input.scope" => Trailblazer::Activity::DSL::Linear::VariableMapping.method(:scope),
+      ) # DISCUSS: use VariableMapping.initial_input_pipeline here, and modify it?
 
       step :write,
         initial_input_pipeline: input_pipe, In() => [:model]

@@ -27,12 +27,14 @@ module Trailblazer
             # Connector representing a (to-be-created?) terminus when using End(:semantic).
             class End < Struct.new(:semantic)
               def to_a(ctx)
+                sequence = ctx[:sequence]
+
                 end_id     = Linear::Strategy.end_id(semantic: semantic)
-                end_exists = Activity::Adds::Insert.find_index(ctx[:sequence], end_id)
+                end_exists = Activity::Pipeline.find(sequence, id: end_id) # FIXME: the to_a happening internally here has been done before, this is wrong.
 
                 terminus = Activity.End(semantic)
 
-                adds = end_exists ? [] : OutputTuples::Connections.add_terminus(terminus, id: end_id, sequence: ctx[:sequence], normalizers: ctx[:normalizers])
+                adds = end_exists ? [] : OutputTuples::Connections.add_terminus(terminus, id: end_id, sequence: sequence, normalizers: ctx[:normalizers])
 
                 return [Linear::Sequence::Search.method(:ById), end_id], adds
               end
@@ -53,6 +55,13 @@ module Trailblazer
             def normalize_output_tuples(ctx, **)
               output_tuples = ctx.find_all { |k, v| k.is_a?(OutputTuples::Output) }
 
+              # key by semantic in the order they were added to filter out overridden default outputs:
+              #
+              # E.g. [[:failure => A], [:success => :B], [:failure => C]] becomes
+              #                       [[:success => :B], [:failure => C]]
+              outputs_by_semantic = output_tuples.collect { |output, target| [output.semantic, [output, target]] }.to_h
+              output_tuples = outputs_by_semantic.collect { |_, (output, target)| [output, target] }.to_h
+
               ctx.merge(output_tuples: output_tuples)
             end
 
@@ -69,7 +78,7 @@ module Trailblazer
 
             # Take all Output(signal, semantic), convert to OutputSemantic and extend {:outputs}.
             # Since only users use this style, we don't have to filter.
-            def register_additional_outputs(ctx, output_tuples:, outputs:, **)
+            def register_additional_outputs(ctx, output_tuples:, outputs:, id:,**)
               # We need to preserve the order when replacing Output with OutputSemantic,
               # that's why we recreate {output_tuples} here.
               output_tuples =
@@ -120,14 +129,12 @@ module Trailblazer
 
               # we want this in the end:
               # {output.semantic => search strategy}
-              # Process {Output(:semantic) => target} and make them {:connections}.
-              # This combines {:connections} and {:outputs}
               def compile_wirings(ctx, adds:, output_tuples:, outputs:, id:, **)
                 # DISCUSS: how could we add another magnetic_to to an end?
                 # Go through all {Output() => Track()/Id()/End()} tuples.
                 wirings =
-                  output_tuples.collect do |output, connector|
-                    (search_builder, search_args), connector_adds = connector.to_a(ctx) # Call {#to_a} on Track/Id/End/...
+                  output_tuples.collect do |output, target|
+                    (search_builder, search_args), connector_adds = target.to_a(ctx) # Call {#to_a} on Track/Id/End/...
 
                     adds += connector_adds
 

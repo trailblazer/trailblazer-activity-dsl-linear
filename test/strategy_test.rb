@@ -4,8 +4,7 @@ class StrategyTest < Minitest::Spec
   it "empty Strategy" do
     strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy)
 
-    puts "@@@@@ #{strategy.to_h[:sequence].inspect}"
-    assert_equal CU.inspect(strategy.to_h[:sequence]), %([#<struct Trailblazer::Activity::DSL::Linear::Sequence::Row magnetic_to=nil, task=#<Trailblazer::Activity::Start semantic=:default>, wirings=[], data=#{{:id=>"Start.default"}.inspect}, task_wrap=#{Trailblazer::Activity::TaskWrap::INITIAL_TASK_WRAP.inspect}>])
+    assert_equal CU.strip(CU.inspect(strategy.to_h[:sequence])), %(#<Trailblazer::Activity::DSL::Linear::Sequence:0x @sequence=[[\"Start.default\", #<struct Trailblazer::Activity::DSL::Linear::Sequence::Row magnetic_to=nil, task=#<Trailblazer::Activity::Start semantic=:default>, wirings=[], data=#{{:id=>"Start.default"}.inspect}, task_wrap=#{CU.strip(Trailblazer::Activity::TaskWrap::INITIAL_TASK_WRAP.inspect)}>]]>)
 
     assert_circuit strategy.to_h, %{
 #<Start/:default>
@@ -40,7 +39,7 @@ class StrategyTest < Minitest::Spec
     assert_equal hsh.keys.inspect, %{[:circuit, :outputs, :nodes, :config, :activity, :sequence, :fields]}
     assert_equal hsh[:activity].class, Trailblazer::Activity
     assert_equal hsh[:sequence].class, Trailblazer::Activity::DSL::Linear::Sequence
-    assert_equal hsh[:sequence].size, 3
+    assert_equal hsh[:sequence].to_a.size, 3 # DISCUSS: private API.
     assert_equal hsh[:fields], default_normalizer_extensions_in_fields # FIXME: get the Pipeline vs. ary conflict sorted.
   end
 

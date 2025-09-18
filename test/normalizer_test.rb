@@ -64,7 +64,7 @@ class NormalizerTest < Minitest::Spec
   end
 
   it "#prepend_to  and #replace" do
-    pipe = Trailblazer::Activity::TaskWrap::Pipeline.new([])
+    pipe = Trailblazer::Activity.Pipeline({})
 
   #@ prepend_to empty pipe.
     pipe1 = Trailblazer::Activity::DSL::Linear::Normalizer.prepend_to(
@@ -94,30 +94,8 @@ class NormalizerTest < Minitest::Spec
       ["Id: 5", "task 5"]
     )
 
-    assert_equal inspect(pipe1), %{#<Trailblazer::Activity::TaskWrap::Pipeline:
- @sequence=[[\"railway.outputs\", \"task 1\"], [\"railway.connections\", \"task 2\"]]>
-}
-
-    assert_equal inspect(pipe2), %{#<Trailblazer::Activity::TaskWrap::Pipeline:
- @sequence=
-  [[\"railway.outputs\", \"task 1\"],
-   [\"Id: 3\", \"task 3\"],
-   [\"Id: 4\", \"task 4\"],
-   [\"railway.connections\", \"task 2\"]]>
-}
-
-    assert_equal inspect(pipe3), %{#<Trailblazer::Activity::TaskWrap::Pipeline:
- @sequence=
-  [["Id: 5", "task 5"],
-   ["Id: 3", "task 3"],
-   ["Id: 4", "task 4"],
-   ["railway.connections", "task 2"]]>
-}
-  end
-
-  # FIXME: from activity/adds_test.rb
-  require "pp"
-  def inspect(pipe)
-    pipe.pretty_inspect.sub(/0x\w+/, "")
+    assert_equal CU.strip(pipe1.inspect), %(#<Trailblazer::Activity::Pipeline:0x @sequence=[[\"railway.outputs\", \"task 1\"], [\"railway.connections\", \"task 2\"]]>)
+    assert_equal CU.strip(pipe2.inspect), %(#<Trailblazer::Activity::Pipeline:0x @sequence=[[\"railway.outputs\", \"task 1\"], [\"Id: 3\", \"task 3\"], [\"Id: 4\", \"task 4\"], [\"railway.connections\", \"task 2\"]]>)
+    assert_equal CU.strip(pipe3.inspect), %(#<Trailblazer::Activity::Pipeline:0x @sequence=[["Id: 5", "task 5"], ["Id: 3", "task 3"], ["Id: 4", "task 4"], ["railway.connections", "task 2"]]>)
   end
 end

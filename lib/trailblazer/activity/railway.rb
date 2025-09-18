@@ -6,15 +6,16 @@ module Trailblazer
 
         module_function
 
-        def Normalizer(prepend_to_default_outputs: [])
+        def Normalizer(prepend_to_default_outputs: {})
           railway_output_steps = {
             "railway.outputs" => Linear::Normalizer.Task(method(:add_failure_output)),
           }
 
           # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
           step_normalizer = Path::DSL.Normalizer(
-            prepend_to_default_outputs: [railway_output_steps, *prepend_to_default_outputs]
+            prepend_to_default_outputs: railway_output_steps.merge(prepend_to_default_outputs)
           )
+puts "why am i called so many times?"
 
           Linear::Normalizer.prepend_to(
             step_normalizer,

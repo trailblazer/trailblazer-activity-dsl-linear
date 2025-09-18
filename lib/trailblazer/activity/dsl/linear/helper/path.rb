@@ -67,6 +67,8 @@ module Trailblazer
               path = Activity::Path(**options, track_name: track_color, &block)
 
               seq = path.to_h[:sequence]
+              seq = seq.to_a.to_h.values # strip off IDs. # FIXME: similar to when passing it to Compiler.
+
               # Strip default ends `Start.default` and `End.success` (if present).
               seq = seq[1..-1].reject { |row| row.data[:stop_event] && row.id == "End.success" }
 
@@ -85,7 +87,7 @@ module Trailblazer
 
                 # ADDS friendly interface:
                 [
-                  nil, row: row, insert_method => insert_target
+                  row, id: row.id, insert_method => insert_target
                 ]
               end
 

@@ -12,14 +12,14 @@ module Trailblazer
 
         module_function
 
-        def Normalizer(prepend_to_default_outputs: [])
+        def Normalizer(prepend_to_default_outputs: {})
           path_output_steps = {
             "path.outputs" => Linear::Normalizer.Task(method(:add_success_output))
           }
 
           # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
           dsl_normalizer = Linear::Normalizer.Normalizer(
-            prepend_to_default_outputs: [*prepend_to_default_outputs, path_output_steps]
+            prepend_to_default_outputs: path_output_steps.merge(prepend_to_default_outputs)
           )
 
           Linear::Normalizer.prepend_to(

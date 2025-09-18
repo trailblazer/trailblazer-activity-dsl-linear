@@ -58,6 +58,9 @@ module Trailblazer
             end
 
             private def recompile_activity(sequence)
+              # Transform the {Sequence < Pipeline} to an array of row which the Compiler understands.
+              sequence = sequence.to_h.values
+
               schema = Sequence::Compiler.(sequence)
 
               Activity.new(schema)
@@ -115,17 +118,18 @@ module Trailblazer
           module DSL
             module_function
 
-            def start_sequence(wirings: [])
+            def start_sequence(wirings: [], id: "Start.default")
               start_default = Activity::Start.new(semantic: :default)
               start_event   = Linear::Sequence.Row(
                 task: start_default,
                 magnetic_to: nil,
                 wirings: wirings,
                 task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP, # TODO: replace with empty NOOP tw to skip Start at runtime.
-                data: {id: "Start.default"},
+                data: {id: id},
               )
 
-              _sequence = Linear::Sequence[start_event]
+              _sequence = Linear::Sequence.new([])
+              _sequence = Adds.(_sequence, [start_event, id: id, append: nil]) # add first element, the start event.
             end
 
             def Build(strategy, **options, &block)

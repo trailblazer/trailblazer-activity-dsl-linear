@@ -20,11 +20,8 @@ module Trailblazer
             end
 
             # (Normalizer step)
-            def compile_task_wrap_from_extensions(ctx, task_wrap_extensions:, task_wrap: [], **) # TODO: test {:task_wrap}, should we allow it to get injected?
-
+            def compile_task_wrap_from_extensions(ctx, task_wrap_extensions:, task_wrap: Activity::Pipeline({}), **) # TODO: test {:task_wrap}, should we allow it to get injected?
               task_wrap = task_wrap_extensions.inject(task_wrap) { |task_wrap, ext| ext.(task_wrap) }
-
-              task_wrap = Activity::TaskWrap::Pipeline.new(task_wrap)
 
               ctx.merge(task_wrap: task_wrap)
             end
@@ -36,7 +33,7 @@ module Trailblazer
               to_sort = task_wrap_extension_tuples.find_all { |left_ext, _| left_ext.append }
               sorted_task_wrap_extension_tuples = task_wrap_extension_tuples - to_sort
 
-              exts_pipeline = sorted_task_wrap_extension_tuples.collect { |left_ext, ext| Activity::TaskWrap::Pipeline::Row(left_ext.id, ext) }
+              exts_pipeline = sorted_task_wrap_extension_tuples.collect { |left_ext, ext| [left_ext.id, ext] }
 
               to_sort_adds = to_sort.collect { |left_ext, ext| [ext, id: left_ext.id, append: left_ext.append] }
 

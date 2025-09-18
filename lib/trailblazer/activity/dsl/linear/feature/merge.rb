@@ -16,19 +16,21 @@ class Trailblazer::Activity
         end
 
         # Compile-time logic to merge two activities.
-        def self.call(old_seq, new_seq, end_id: "End.success") # DISCUSS: also Insert
-          new_seq = strip_start_and_ends(new_seq, end_id: end_id)
+        def self.call(old_seq, new_seq, start_id: "Start.default", end_id: "End.success") # DISCUSS: also Insert
+          new_seq = strip_start_and_ends(new_seq, start_id: start_id, end_id: end_id)
 
-          _seq = Adds.apply_adds(
+          Adds.(
             old_seq,
-            new_seq.collect { |row| {insert: [Adds::Insert.method(:Prepend), end_id], row: row} }
+            *new_seq.to_h.collect { |id, row| [row, id: id, prepend: end_id] }
           )
         end
 
-        def self.strip_start_and_ends(seq, end_id:)
-          cut_off_index = end_id.nil? ? seq.size : Adds::Insert.find_index(seq, end_id) # find the "first" end.
-
-          seq[1..cut_off_index - 1]
+        def self.strip_start_and_ends(sequence, start_id:, end_id:)
+          Adds.(
+            sequence,
+            [nil, id: nil, delete: start_id],
+            [nil, id: nil, delete: end_id],
+          )
         end
       end # Merge
     end

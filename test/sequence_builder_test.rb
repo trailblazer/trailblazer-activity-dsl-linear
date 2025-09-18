@@ -6,7 +6,7 @@ class SequenceBuilderTest < Minitest::Spec
   let(:helper) { Activity::Railway }
 
   def assert_process(sequence, *args)
-    process = Trailblazer::Activity::DSL::Linear::Sequence::Compiler.(sequence)
+    process = Trailblazer::Activity::DSL::Linear::Sequence::Compiler.(sequence.to_h.values)
 
     assert_process_for(process, *args)
   end

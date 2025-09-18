@@ -13,7 +13,7 @@ module Trailblazer
 
         module_function
 
-        def Normalizer(prepend_to_default_outputs: [], base_normalizer_builder: Railway::DSL.method(:Normalizer))
+        def Normalizer(prepend_to_default_outputs: {}, base_normalizer_builder: Railway::DSL.method(:Normalizer))
           fast_track_output_steps = {
             "fast_track.pass_fast_output"     => Linear::Normalizer.Task(method(:add_pass_fast_output)),
             "fast_track.fail_fast_output"     => Linear::Normalizer.Task(method(:add_fail_fast_output)),
@@ -22,7 +22,7 @@ module Trailblazer
 
           # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
           step_normalizer = base_normalizer_builder.call( # E.g Railway::DSL.NormalizerForPass.
-            prepend_to_default_outputs: [fast_track_output_steps, *prepend_to_default_outputs]
+            prepend_to_default_outputs: fast_track_output_steps.merge(prepend_to_default_outputs)
           )
 
           _normalizer = Linear::Normalizer.prepend_to(

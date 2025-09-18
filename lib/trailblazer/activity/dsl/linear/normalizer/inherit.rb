@@ -51,8 +51,7 @@ module Trailblazer
             end
 
             def find_row(sequence, id)
-              index = Activity::Adds::Insert.find_index(sequence, id)
-              sequence[index]
+              Activity::Pipeline.find(sequence, id: id)
             end
 
             ### Record

@@ -40,15 +40,15 @@ class PathTest < Minitest::Spec
         magnetic_to: :success,
         task: Implementing.method(:g),
         wirings: [Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)],
-        data: {},
+        data: {id: :g},
         task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP
       )
 
       step :f,
         adds: [
           [
-            nil,
-            row:    row,
+            row,
+            id: :g,
             prepend: :f
           ]
         ]

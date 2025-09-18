@@ -13,7 +13,7 @@ class TaskWrapTest < Minitest::Spec
 
     task_wrap = activity.to_h[:config][:wrap_static][Object]
 
-    assert_equal task_wrap.to_a.collect { |step| step.id }, ["task_wrap.call_task"]
+    assert_equal task_wrap.to_a.collect { |id, _| id }, ["task_wrap.call_task"]
   end
 
   it "populates activity[:wrap_static] and uses it at run-time" do

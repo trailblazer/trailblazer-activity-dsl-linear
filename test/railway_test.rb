@@ -341,27 +341,27 @@ class RailwayTest < Minitest::Spec
     activity = Class.new(Activity::Railway) do
       step :f, adds: [
         [
-          nil,
-          row: linear::Sequence.Row(
+          linear::Sequence.Row(
             magnetic_to: :success,
             task: Implementing.method(:g),
             wirings: [linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)],
             data: {id: :g},
             **row_options
           ),
+          id: :g,
           prepend: :f
         ]
       ]
       fail :a, adds: [
         [
-          nil,
-          row: linear::Sequence.Row(
+          linear::Sequence.Row(
             magnetic_to: :failure,
             task: Implementing.method(:b),
             wirings: [linear::Sequence::Search.Forward(Activity.Output("f/signal", :failure), :failure)],
-            data: {},
+            data: {id: :b},
             **row_options
           ),
+          id: :b,
           prepend: :g
         ]
       ]

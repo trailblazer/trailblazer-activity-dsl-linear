@@ -16,7 +16,7 @@ module Trailblazer
           # kwargs and returns a new {ctx}.
           class TaskAdapter < Circuit::TaskAdapter
             def call(wrap_ctx, args)
-              ctx, _ = @circuit_step.([wrap_ctx.freeze, nil]) # DISCUSS: why the circuit interface here?
+              ctx, _ = @circuit_step.([wrap_ctx, nil]) # DISCUSS: why the circuit interface here?
 
               # If normalizer step returns nil, we use the old ctx.
               return (ctx || wrap_ctx), args
@@ -42,7 +42,7 @@ module Trailblazer
 
           # Helper for normalizers.
           # To be applied on {Pipeline} instances.
-          def self.prepend_to(pipe, insertion_id, insertion)
+          def self.prepend_to(pipe, insertion_id, insertion) # TODO: remove and allow friendly interface.
             instructions = insertion.collect { |id, task| [task, prepend: insertion_id, id: id] }
             instructions = instructions.reverse unless insertion_id
 
@@ -83,13 +83,11 @@ module Trailblazer
           end
 
           # The generic normalizer not tied to `step` or friends.
-          def Normalizer(prepend_to_default_outputs: [])
+          def Normalizer(prepend_to_default_outputs: {})
             # Adding steps to the output pipeline means they are only called when there
             # are no :outputs set already.
-            outputs_pipeline = Activity::TaskWrap::Pipeline.new([])
-            prepend_to_default_outputs.each do |hsh|
-              outputs_pipeline = Linear::Normalizer.prepend_to(outputs_pipeline, nil, hsh) # DISCUSS: does it matter if we prepend FastTrack to Railway, etc?
-            end
+            outputs_pipeline = Activity::Pipeline(prepend_to_default_outputs)
+            pp outputs_pipeline
 
             # Call the prepend_to_outputs pipeline only if {:outputs} is not set (by Subprocess).`
             # too bad we don't have nesting here, yet.
@@ -99,7 +97,7 @@ module Trailblazer
               outputs_pipeline.(ctx, args)
             end
 
-            Activity::TaskWrap::Pipeline.new(
+            Activity::Pipeline(
               {
                 "activity.normalize_step_interface"       => Normalizer.Task(method(:normalize_step_interface)),        # Makes sure {:options} is always a hash.
                 "activity.macro_options_with_symbol_task" => Normalizer.Task(method(:macro_options_with_symbol_task)),  # DISCUSS: we might deprecate {task: :instance_method}
@@ -155,7 +153,6 @@ module Trailblazer
                 "activity.create_add" => Normalizer.Task(method(:create_add)),
                 "activity.create_adds" => Normalizer.Task(method(:create_adds)),
               }
-                .collect { |id, task| Activity::TaskWrap::Pipeline.Row(id, task) }
             )
           end
 
@@ -268,13 +265,13 @@ module Trailblazer
 
           # @private
           def raise_on_duplicate_id(ctx, id:, sequence:, **)
-            raise "ID #{id} is already taken. Please specify an `:id`." if sequence.find { |row| row.id == id }
+            raise "ID #{id} is already taken. Please specify an `:id`." if sequence.to_a.find { |row_id, _| row_id == id }
           end
 
           # @private
           def clone_duplicate_activity(ctx, task:, sequence:, **)
             return unless task.is_a?(Class)
-            return unless sequence.find { |row| row[1] == task }
+            return unless sequence.to_a.find { |_, row| row.task == task }
 
             ctx.merge(task: task.clone)
           end
@@ -306,8 +303,9 @@ module Trailblazer
           def create_add(ctx, row:, sequence_insert:, **)
             ctx.merge(
               add: [
-                nil, # no task since we got a row already.
-                {row: row, **sequence_insert}
+                row,
+                id: row.id, # FIXME!
+                **sequence_insert
               ]
             )
           end

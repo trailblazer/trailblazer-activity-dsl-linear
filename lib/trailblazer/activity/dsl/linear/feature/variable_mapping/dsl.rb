@@ -27,22 +27,19 @@ module Trailblazer
             def initial_input_pipeline(add_default_ctx: false)
               # No In() or {:input}. Use default ctx, which is the original ctx.
               # When using Inject without In/:input, we also need a {default_input} ctx.
-              pipeline_steps = [
-                Activity::TaskWrap::Pipeline.Row("input.scope", VariableMapping.method(:scope)), # last step
-              ]
+              pipeline_steps = {
+                "input.scope" => VariableMapping.method(:scope), # last step
+              }
 
               if add_default_ctx
-                pipeline_steps = [
-                  Activity::TaskWrap::Pipeline.Row(*default_input_ctx_config),
-                  *pipeline_steps
-                ]
+                pipeline_steps = default_input_ctx_config.merge(pipeline_steps)
               end
 
-              Activity::TaskWrap::Pipeline.new(pipeline_steps)
+              Activity.Pipeline(pipeline_steps)
             end
 
-            def default_input_ctx_config # almost a Row.
-              ["input.default_input", VariableMapping.method(:default_input_ctx)]
+            def default_input_ctx_config
+              {"input.default_input" => VariableMapping.method(:default_input_ctx)}
             end
 
             def pipe_for_composable_output(out_filters: [], initial_output_pipeline: initial_output_pipeline(add_default_ctx: Array(out_filters).empty?), **)
@@ -53,18 +50,16 @@ module Trailblazer
 
             def initial_output_pipeline(add_default_ctx: false)
               default_ctx_row =
-                add_default_ctx ? Activity::TaskWrap::Pipeline.Row(*default_output_ctx_config) : nil
+                add_default_ctx ? default_output_ctx_config : {}
 
-              Activity::TaskWrap::Pipeline.new(
-                [
-                  default_ctx_row,
-                  Activity::TaskWrap::Pipeline.Row("output.merge_with_original", VariableMapping.method(:merge_with_original)), # last step
-                ].compact
+              Activity.Pipeline(
+                default_ctx_row
+                  .merge("output.merge_with_original" => VariableMapping.method(:merge_with_original))
               )
             end
 
             def default_output_ctx_config # almost a Row.
-              ["output.default_output", VariableMapping.method(:default_output_ctx)]
+              {"output.default_output" => VariableMapping.method(:default_output_ctx)}
             end
 
             def add_filter_steps(pipeline, rows, prepend_to: "input.scope", path_prefix: "input")
@@ -73,7 +68,6 @@ module Trailblazer
               adds = Activity::Adds::FriendlyInterface.adds_for(
                 rows.collect { |row| [row[1], id: row[0], prepend: prepend_to] }
               )
-
               Activity::Adds.apply_adds(pipeline, adds)
             end
 

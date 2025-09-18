@@ -117,7 +117,7 @@ class CompilerTest < Minitest::Spec
 
     cct = Cct(schema)
 
-    _(cct).must_equal %{
+    assert_equal cct, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.a>
 #<Method: #<Module:0x>.a>
@@ -135,7 +135,6 @@ class CompilerTest < Minitest::Spec
 #<End/:success>
 
 #<End/:failure>
-}
-
+)
   end
 end
