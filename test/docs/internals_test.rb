@@ -150,6 +150,7 @@ class AddsDocsTest < Minitest::Spec
   end
 
   it do
+=begin
     #:adds-pipe
     row = Trailblazer::Activity::TaskWrap::Pipeline::Row[
       "business.task",  # id, required as per ADDS interface
@@ -158,17 +159,20 @@ class AddsDocsTest < Minitest::Spec
 
     pipeline = [row] # pipe contains one item.
     #:adds-pipe end
+=end
+# FIXME: this example sucks
 
     #:adds
-    adds = Trailblazer::Activity::Adds::FriendlyInterface.adds_for(
-      [
-        [Song::Activity::Create, id: "my.create", append: "business.task"],
-      ]
-    )
-    extended_pipeline = Trailblazer::Activity::Adds.apply_adds(pipeline, adds)
+    adds = [
+      [Song::Activity::Create, id: "my.create", append: "business.task"],
+    ]
+
+    pipeline = Trailblazer::Activity.Pipeline({"business.task" => Object})
+
+    extended_pipeline = Trailblazer::Activity::Adds.(pipeline, *adds)
     # => [row, #<row with Song::Activity::Create>]
     #:adds end
 
-    assert_equal extended_pipeline.inspect, %{[["business.task", Object], ["my.create", AddsDocsTest::Song::Activity::Create]]}
+    assert_equal extended_pipeline.to_a.inspect, %{[["business.task", Object], ["my.create", AddsDocsTest::Song::Activity::Create]]}
   end
 end
