@@ -15,7 +15,6 @@ module Trailblazer
           step_normalizer = Path::DSL.Normalizer(
             prepend_to_default_outputs: railway_output_steps.merge(prepend_to_default_outputs)
           )
-puts "why am i called so many times?"
 
           Linear::Normalizer.prepend_to(
             step_normalizer,
