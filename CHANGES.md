@@ -47,6 +47,7 @@ Activity subclasses maintain a field {:task_wrap_extensions} that can be used to
 * Removed deprecated :override. Use :replace.
 *  Removed Inject () => { ... }
 * Removed :row, use ADDS [row, id: row.id, ...]
+* Remove formerly deprecated `:end_id` and `:end_task` options for `Path()` helper. Use `:terminus`, see https://trailblazer.to/2.1/docs/activity/deprecated/#operation-wiring-api-path-end_task-end_id
 
 # 1.2.7
 

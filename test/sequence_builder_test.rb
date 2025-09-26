@@ -40,7 +40,7 @@ class SequenceBuilderTest < Minitest::Spec
     normalizers        = options[:normalizers]
     sequence           = options[:sequence]
 
-    sequence = Activity::DSL::Linear::Sequence::Builder.(:step, Imp.method(:a), {id: :a, helper.Output(:success) => helper.Path(end_id: "End.path", end_task: helper.End(:path))},
+    sequence = Activity::DSL::Linear::Sequence::Builder.(:step, Imp.method(:a), {id: :a, helper.Output(:success) => helper.Path(terminus: :path)},
       normalizer_options: normalizer_options, normalizers: normalizers, sequence: sequence,
       &block
     )

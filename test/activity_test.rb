@@ -647,7 +647,7 @@ class ActivityTest < Minitest::Spec
         extend T.def_tasks(:a, :b, :c)
 
         out = self
-        step method(:a), id: :a, Output(:success) => Path(end_id: "End.path", end_task: End(:path)) do
+        step method(:a), id: :a, Output(:success) => Path(terminus: :path) do
           step out.method(:c), id: :c
         end
         step method(:b), id: :b
@@ -678,7 +678,7 @@ class ActivityTest < Minitest::Spec
         extend T.def_steps(:a, :b, :c)
 
         path = self
-        step method(:a), id: :a, Output(:success) => Path(end_id: "End.path", end_task: End(:path)) do
+        step method(:a), id: :a, Output(:success) => Path(terminus: :path) do
           step path.method(:c), id: :c
         end
         step method(:b), id: :b
