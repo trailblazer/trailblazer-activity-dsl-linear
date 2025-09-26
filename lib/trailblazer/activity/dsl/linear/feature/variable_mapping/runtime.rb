@@ -210,13 +210,8 @@ module Trailblazer
         end # SetVariable
 
           # Merge hash of Out into aggregate.
-          # TODO: deprecate and remove.
-          # DISCUSS: why remove?
+          # TODO: deprecate and remove, introduce :with_original_ctx for both ways.
         class Output < SetVariable::Output
-          def self.set_variable(*args)
-            SetVariable.set_variable(*args)
-          end
-
           class WithOuterContext < Output
             def self.call_filter(filter, wrap_ctx, ((original_ctx, flow_options), circuit_options))
               new_ctx = wrap_ctx[:returned_ctx]
