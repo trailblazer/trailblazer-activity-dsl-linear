@@ -217,6 +217,10 @@ module Trailblazer
             end
 
             # This class is supposed to hold configuration options for Inject().
+            #
+            # Inject can be 1. "with condition": only add to aggregate if variable is present in original_ctx.
+            #               2. "with condition" and default.
+            #               3. override: like 2. with a condition always {false}.
             class Inject < Tuple
               class FiltersBuilder
                 # Called via {Tuple#call}
@@ -304,12 +308,12 @@ module Trailblazer
 
               def self.build_filters_for_hash(user_filter, **options)
                 user_filter.collect do |from_name, to_name|
-                  options = yield(options, from_name, to_name)
+                  options_for_filter = yield(options, from_name, to_name)
 
-                  options = options_for_reading(**options)
+                  options_for_filter = options_for_reading(**options_for_filter)
 
                   build(
-                    **options,
+                    **options_for_filter,
                     user_filter: user_filter,
                     _FIXME_wrap_with_hash: true # FIXME: this is for single variables, as opposed to hash return values that we also support above.
                   )
