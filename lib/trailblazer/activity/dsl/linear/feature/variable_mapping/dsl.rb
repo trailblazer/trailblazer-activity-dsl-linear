@@ -203,16 +203,18 @@ module Trailblazer
 
             # Used in the DSL by you.
             def self.Inject(variable_name = nil, override: false, filter_builder: Inject::FiltersBuilder, pass_aggregate: false, **)
+              options = {}
               add_variables_class = SetVariable::Default
+
               # FIXME: allow mixing options like :pass_aggregate and :override.
               add_variables_class = SetVariable::PassAggregate if pass_aggregate
+              options.merge!(condition: ->(*) { false }) if override
 
               Inject.new(
                 variable_name,
                 add_variables_class,
                 filter_builder,
-                override: override,
-                pass_aggregate: pass_aggregate,
+                **options
               )
             end
 
@@ -238,18 +240,6 @@ module Trailblazer
                       )
                     end
                   end
-# raise "move into Inject()"
-                  if options[:override]
-                    return In::FiltersBuilder.build_for_option(
-                      user_filter,
-                      name:                 Filter.name_for(:Inject, variable_name, :add_variables),
-                      write_name:           variable_name,
-                      read_name:            nil,
-                      **options,
-                      add_variables_class:  SetVariable,
-                      _FIXME_wrap_with_hash: true,
-                    )
-                  end
 
                   # Build {SetVariable::Default}
                   # {user_filter} is one of the following
@@ -268,11 +258,11 @@ module Trailblazer
                   ]
                 end # call
 
-                def self.options_with_condition(user_filter:, write_name:, name_specifier: nil, **options)
+                def self.options_with_condition(user_filter:, write_name:, name_specifier: nil, condition: VariablePresent.new(variable_name: write_name), **options)
                   {
                     name:           Filter.name_for(:Inject, write_name.inspect, name_specifier),
                     **options,
-                    condition:      VariablePresent.new(variable_name: write_name),
+                    condition:      condition,
                     write_name:     write_name,
                     user_filter:    user_filter,
                   }
