@@ -108,8 +108,12 @@ module Trailblazer
               end
 
               # @return [Filter] Filter instance that keeps {name} and {aggregate_step}.
-              def call(user_filter)
-                @options[:filters_builder].(user_filter, **to_h)
+              # Tuple currently is called with the argument from the right-hand side:
+              #   Inject(:name) => <right_option>
+              #
+              # DISCUSS: in OutputTuples, this is called to_a
+              def call(right_option)
+                @options[:filters_builder].(right_option, **to_h)
               end
             end # TODO: implement {:insert_args}
 
@@ -202,13 +206,14 @@ module Trailblazer
             end
 
             # Used in the DSL by you.
+            # DISCUSS: should we move the options processing and deciding code into the resp. FiltersBuilder?
             def self.Inject(variable_name = nil, override: false, filter_builder: Inject::FiltersBuilder, pass_aggregate: false, **)
               options = {}
               add_variables_class = SetVariable::Default
 
               # FIXME: allow mixing options like :pass_aggregate and :override.
               add_variables_class = SetVariable::PassAggregate if pass_aggregate
-              options.merge!(condition: ->(*) { false }) if override
+              options.merge!(condition: ->(*) { false }) if override # an override is a defaulted Inject with condition "always on".
 
               Inject.new(
                 variable_name,
@@ -242,8 +247,6 @@ module Trailblazer
                   end
 
                   # Build {SetVariable::Default}
-                  # {user_filter} is one of the following
-                  # :instance_method
                   options = options_with_condition_for_defaulted(
                     **options,
                     write_name:   variable_name,
@@ -258,22 +261,20 @@ module Trailblazer
                   ]
                 end # call
 
-                def self.options_with_condition(user_filter:, write_name:, name_specifier: nil, condition: VariablePresent.new(variable_name: write_name), **options)
+                def self.options_with_condition(write_name:, name_specifier: nil, condition: VariablePresent.new(variable_name: write_name), **options)
                   {
                     name:           Filter.name_for(:Inject, write_name.inspect, name_specifier),
                     **options,
                     condition:      condition,
                     write_name:     write_name,
-                    user_filter:    user_filter,
                   }
                 end
 
-                def self.options_with_condition_for_defaulted(user_filter:, **options)
+                def self.options_with_condition_for_defaulted(**options)
                   default_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
 
                   options_with_condition(
                     **options,
-                    user_filter:    user_filter,
                     name_specifier: :default,
                     default_filter: default_filter,
                   )
