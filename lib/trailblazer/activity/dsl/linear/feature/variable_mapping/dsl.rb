@@ -270,11 +270,12 @@ module Trailblazer
                   }
                 end
 
-                def self.options_with_condition_for_defaulted(**options)
+                def self.options_with_condition_for_defaulted(user_filter:, **options)
                   default_filter = Activity::Circuit.Step(user_filter, option: true) # this is passed into {SetVariable.new}.
 
                   options_with_condition(
                     **options,
+                    user_filter:    user_filter,
                     name_specifier: :default,
                     default_filter: default_filter,
                   )
