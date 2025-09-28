@@ -187,12 +187,12 @@ module Trailblazer
               end
             end # Out
 
-            def self.In(variable_name = nil, add_variables_class: SetVariable, filter_builder: In::FiltersBuilder)
-              In.new(variable_name, add_variables_class, filter_builder)
+            def self.In(variable_name = nil, add_variables_class: SetVariable, filters_builder: In::FiltersBuilder)
+              In.new(variable_name, add_variables_class, filters_builder)
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filter_builder: Out::FiltersBuilder, read_from_aggregate: false)
+            def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filters_builder: Out::FiltersBuilder, read_from_aggregate: false)
               add_variables_class = SetVariable::Output::Delete     if delete
               add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
               add_variables_class = Output::WithOuterContext if with_outer_ctx
@@ -200,14 +200,14 @@ module Trailblazer
               Out.new(
                 variable_name,
                 add_variables_class,
-                filter_builder,
+                filters_builder,
                 with_outer_ctx: with_outer_ctx,
               )
             end
 
             # Used in the DSL by you.
             # DISCUSS: should we move the options processing and deciding code into the resp. FiltersBuilder?
-            def self.Inject(variable_name = nil, override: false, filter_builder: Inject::FiltersBuilder, pass_aggregate: false, **)
+            def self.Inject(variable_name = nil, override: false, filters_builder: Inject::FiltersBuilder, pass_aggregate: false, **)
               options = {}
               add_variables_class = SetVariable::Default
 
@@ -218,7 +218,7 @@ module Trailblazer
               Inject.new(
                 variable_name,
                 add_variables_class,
-                filter_builder,
+                filters_builder,
                 **options
               )
             end

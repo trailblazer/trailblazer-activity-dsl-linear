@@ -262,7 +262,7 @@ class VariableMappingUnitTest < Minitest::Spec
 
       activity = Class.new(Trailblazer::Activity::Railway) do
         step :model,
-          Inject(:record, filter_builder: my_filter_builder) => my_lowlevel_inject_filter
+          Inject(:record, filters_builder: my_filter_builder) => my_lowlevel_inject_filter
 
         def model(ctx, record:, **)
           ctx[:record_in_model] = record
