@@ -4,50 +4,6 @@ require "benchmark/ips"
 class VariableMappingRuntimeTest < Minitest::Spec
   let(:vm) { Trailblazer::Activity::DSL::Linear::VariableMapping }
 
-  it "what" do
-
-    # In() => ->(*) { snippet }
-    a = vm::SetVariable.new(
-      name: "In/a",
-      write_name: :a,
-      filter: ->(*) { "value for a" },
-      user_filter: nil
-    )
-
-    wrap_ctx, _ = a.({aggregate: {}}, nil)
-
-    assert_equal CU.inspect(wrap_ctx), %({:aggregate=>{:a=>\"value for a\"}})
-
-    # In() => :b
-    # VariableFromCtx.new(variable_name: read_name),
-    b = vm::SetVariable.new(
-      name: "In/b",
-      write_name: :b,
-      filter: vm::VariableFromCtx.new(variable_name: :b),
-      user_filter: nil
-    )
-
-    wrap_ctx, _ = b.({aggregate: {}}, [[{b: "b"}, {}], {}])
-
-    assert_equal CU.inspect(wrap_ctx), %({:aggregate=>{:b=>"b"}})
-
-    # Inject(:c) => ->(*) { "default for c" }
-    user_filter = ->(*) { "default for c" }
-
-    c = vm::SetVariable::Default.new(
-      name: "Inject/c/default",
-      write_name: :c,
-      filter:         vm::VariableFromCtx.new(variable_name: :c),
-      user_filter: nil,
-      default_filter: Trailblazer::Activity::Circuit.Step(user_filter, option: false),
-      condition: vm::VariablePresent.new(variable_name: :c)
-    )
-
-    wrap_ctx, _ = c.({aggregate: {}}, [[{b: "b"}, {}], {}])
-
-    assert_equal CU.inspect(wrap_ctx), %({:aggregate=>{:c=>"default for c"}})
-  end
-
   class MergeVariables < Trailblazer::Activity::Railway
     step :call_filter
     step :wrap_value_with_hash
