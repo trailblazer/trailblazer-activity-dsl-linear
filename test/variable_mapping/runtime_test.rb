@@ -1,4 +1,5 @@
 require "test_helper"
+require "benchmark/ips"
 
 class VariableMappingRuntimeTest < Minitest::Spec
   let(:vm) { Trailblazer::Activity::DSL::Linear::VariableMapping }
@@ -155,22 +156,22 @@ class VariableMappingRuntimeTest < Minitest::Spec
       module_function
 
       def a(arg)
-        arg = b(arg)
-        arg = c(arg)
-        arg = d(arg)
+        arg = b(arg: arg)
+        arg = c(arg: arg)
+        arg = d(arg: arg)
       end
 
-      def b(arg)
+      def b(arg:, **)
         arg << :b
         arg
       end
 
-      def c(arg)
+      def c(arg:, **)
         arg << :c
         arg
       end
 
-      def d(arg)
+      def d(arg:, **)
         arg << :d
         arg
       end
@@ -195,7 +196,7 @@ class VariableMappingRuntimeTest < Minitest::Spec
 
     def run_pipe_with_each(pipe, arg)
       pipe.each do |step|
-        arg = step.(arg)
+        arg = step.(arg: arg)
       end
       arg
     end
@@ -207,14 +208,14 @@ class VariableMappingRuntimeTest < Minitest::Spec
       task = pipe[i]
 
       loop do
-        arg = task.(arg)
+        arg = task.(arg: arg)
         task = pipe[i += 1] or return arg
       end
     end
 
     pp run_pipe_with_loop(pipe, [:a])
 
-    Runner = ->(task, arg) { task.(arg) }
+    Runner = ->(task, arg) { task.(arg: arg) }
     def run_with_loop_and_runner(pipe, arg, runner: Runner)
       i = 0
       task = pipe[i]
@@ -248,11 +249,13 @@ class VariableMappingRuntimeTest < Minitest::Spec
     pp run_with_loop_and_runner_and_terminus(pipe, [:a])
      # raise
 
-    class A_as_Activity < Trailblazer::Activity::Railway
+    class A_as_Activity < Trailblazer::Activity::Path # (6.) Path or Railway doesn't matter, same performance.
       def self.b(ctx, arg:, **)
       # def self.b(ctx, arg)
         arg << :b
       end
+      B_method = method(:b) # always has to be the same instance.
+
       def self.c(ctx, arg:, **)
       # def self.c(ctx, arg)
         arg << :c
@@ -261,7 +264,7 @@ class VariableMappingRuntimeTest < Minitest::Spec
       # def self.d(ctx, arg)
         arg << :d
       end
-      step task: method(:b)
+      step task: B_method
       step task: method(:c)
       step task: method(:d)
     end
@@ -284,6 +287,8 @@ class VariableMappingRuntimeTest < Minitest::Spec
       end
     end
 
+    # (5.) making reference Object-only implementation use kwargs, too (for fairness!): 6.60 slower.
+
     # @circuit_runner = method(:my_circuit_runner)
     # @circuit_runner = ->(task, (ctx, _), **) { task.(ctx, **ctx); [Trailblazer::Activity::Right, [ctx, _]] }
     # @circuit_runner = ->(task, (ctx, _), **) { task.(ctx, ctx[:arg]); [Trailblazer::Activity::Right, [ctx, _]] }
@@ -291,8 +296,9 @@ class VariableMappingRuntimeTest < Minitest::Spec
     @circuit_runner = MyCircuitRunner # {3.} providing non-proc as runner: 11.0 --> 10.80x
 
     def run_circuit(circuit, ctx)
-      circuit.([ctx, {}], runner: @circuit_runner, start_task: A_as_Activity.method(:b)) # (1.) providing start_task: 14.8 --> 13.5 improvement.
+      circuit.([ctx, {}], runner: @circuit_runner, start_task: A_as_Activity::B_method) # (1.) providing start_task: 14.8 --> 13.5 improvement.
     end
+    # (7.) using task.object_id for lookups: 6.6 => 5.3x
 
     pp run_circuit(metal_circuit, {arg: []})
 
@@ -336,6 +342,121 @@ class VariableMappingRuntimeTest < Minitest::Spec
 #         object-based:  4686151.9 i/s
 #                 pipe:  3287775.1 i/s - 1.43x  (± 0.00) slower
 
+    end
+  end
+
+  it "include? vs key?" do
+    termini = [Trailblazer::Activity::End.new(semantic: :success), Trailblazer::Activity::End.new(semantic: :failure)]
+    termini_hash = termini.collect { |terminus| [terminus, true] }.to_h
+
+    Benchmark.ips do |x|
+      x.report("include?") {
+        termini.include?(Trailblazer::Activity::Right)
+      }
+
+      x.report("key?") {
+        termini_hash.key?(Trailblazer::Activity::Right)
+      }
+
+      x.compare!
+    end
+  end
+
+  it "Object-key vs. :symbol key" do
+    proc1 = ->(*) { 1 }
+    proc2 = ->(*) { 2 }
+    proc3 = ->(*) { 3 }
+    proc4 = ->(*) { 4 }
+
+    h1 = {
+      proc1 => 1,
+      proc2 => 2,
+      proc3 => 3,
+      proc4 => 4,
+    }
+
+    h3 = {
+      proc1.object_id => 1,
+      proc2.object_id => 2,
+      proc3.object_id => 3,
+      proc4.object_id => 4,
+    }
+
+    h2 = {
+      :one => 1,
+      :two => 2,
+      :three => 3,
+      :four => 4
+    }
+
+    h4 = {
+      Object => 1,
+      Trailblazer::Activity::Right => 2,
+      Trailblazer::Activity::Left => 3,
+      Class => 4
+    }
+
+    object1 = Object.new
+    object2 = Object.new
+    object3 = Object.new
+    object4 = Object.new
+
+    h5 = {
+      object1 => 1,
+      object2 => 2,
+      object3 => 3,
+      object4 => 4
+    }
+
+    def a; 1; end
+    def b; 2; end
+    def c; 3; end
+    def d; 4; end
+
+    h6 = {
+      method(:a) => 1,
+      method(:b) => 2,
+      method(:c) => 3,
+      method(:d) => 4
+    }
+
+# Comparison:
+#              :symbol: 23249987.3 i/s
+#            object_id: 16012076.1 i/s - 1.45x  (± 0.00) slower
+#            instances: 12630027.6 i/s - 1.84x  (± 0.00) slower
+#            constants: 12384440.1 i/s - 1.88x  (± 0.00) slower
+#                procs:  4977475.3 i/s - 4.67x  (± 0.00) slower
+#     method instances:  4144551.9 i/s - 5.61x  (± 0.00) slower
+
+# => procs as key are super slow, methods too
+
+    Benchmark.ips do |x|
+      x.report("procs") {
+        h1[proc3]
+      }
+
+      x.report("object_id") {
+        h3[proc3.object_id]
+      }
+
+      x.report(":symbol") {
+        h2[:three]
+      }
+
+      x.report("constants") {
+        h4[Trailblazer::Activity::Left]
+      }
+
+      x.report("instances") {
+        h5[object3]
+      }
+
+      method_a = method(:a)
+      x.report("method instances") {
+        h6[method_a]
+      }
+
+      x.compare!
     end
   end
 end
