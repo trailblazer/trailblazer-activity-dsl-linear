@@ -122,11 +122,15 @@ class VMRefactoringTest < Minitest::Spec
         end
 
         class Output < MergeVariables
-          def call_filter(ctx, original_args:, returned_ctx:, **)
-            new_ctx = returned_ctx
+          def args_for_filter(ctx, original_args:, returned_ctx:, **)
+            # super(ctx, **ctx, original_args: [[new_ctx, original_args[0][1]], original_args[1]])
+            ctx[:args_for_filter] = [[returned_ctx, original_args[0][1]], original_args[1]]
+          end
 
-# DISCUSS: super sucks.
-            super(ctx, **ctx, original_args: [[new_ctx, original_args[0][1]], original_args[1]])
+          # FIXME: structure!
+          def with_outer_ctx(ctx, original_args:, args_for_filter:, **)
+            new_ctx = args_for_filter[0][0].merge(outer_ctx: original_args[0][0])
+            ctx[:args_for_filter] = [[new_ctx, args_for_filter[0][1]], args_for_filter[1]]
           end
         end
       end
@@ -201,11 +205,12 @@ class VMRefactoringTest < Minitest::Spec
 
     runtime_filter = Class.new(Filter::MergeVariables::Output) do
       step nil, delete: :wrap_value_with_hash # DISCUSS: how do we compose those differing logic flows?
+      step :with_outer_ctx, after: :args_for_filter
     end
 
     # Don't call it with {TaskWrap.invoke} as we don't need/want this logic here (performance)!
     signal, (ctx, _) = runtime_filter.([ctx, {}])
 
-    assert_equal CU.inspect(ctx[:aggregate]), %({:model=>Object})
+    assert_equal CU.inspect(ctx[:aggregate]), %({:model=>"{:id=>2} / 1cda6"})
   end
 end
