@@ -128,9 +128,20 @@ class VMRefactoringTest < Minitest::Spec
           end
 
           # FIXME: structure!
+          # DISCUSS: {:with_outer_ctx} only makes sense with callable filter.
           def with_outer_ctx(ctx, original_args:, args_for_filter:, **)
             new_ctx = args_for_filter[0][0].merge(outer_ctx: original_args[0][0])
             ctx[:args_for_filter] = [[new_ctx, args_for_filter[0][1]], args_for_filter[1]]
+          end
+        end
+
+        # Set variable on ctx if {condition} is true.
+        class Conditioned < MergeVariables # currently used for Inject.
+          step :evaluate_condition, after: :args_for_filter
+
+          def evaluate_condition(ctx, condition:, args_for_filter:, **)
+            # DISCUSS: should we use #call_filter here?
+            call_filter({}, filter: condition, args_for_filter: args_for_filter) # result is value.
           end
         end
       end
@@ -212,5 +223,31 @@ class VMRefactoringTest < Minitest::Spec
     signal, (ctx, _) = runtime_filter.([ctx, {}])
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:model=>"{:id=>2} / 1cda6"})
+
+  # Inject => [:model]
+    user_filter = ->(*) { Object }
+    filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
+
+    condition = vm::VariableFromCtx.new(variable_name: :model)
+
+    ctx = {
+      condition: condition,
+      aggregate: {},
+      original_args: [[{}, {}], {exec_context: self}],
+      filter: filter,
+      write_name: :model # we don't need a {:write_name} here, it's a hash-producing user_filter.
+    }
+
+    signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({})
+
+    ctx.merge!(
+      original_args: [[{model: Object}, {}], {exec_context: self}],
+    )
+
+    signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({:model=>Object})
   end
 end
