@@ -225,6 +225,32 @@ class VMRefactoringTest < Minitest::Spec
     assert_equal CU.inspect(ctx[:aggregate]), %({:model=>"{:id=>2} / 1cda6"})
 
   # Inject => [:model]
+    filter = vm::VariableFromCtx.new(variable_name: :model)
+    # filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
+    condition = vm::VariableFromCtx.new(variable_name: :model)
+
+    ctx = {
+      condition: condition,
+      aggregate: {},
+      original_args: [[{}, {}], {exec_context: self}],
+      filter: filter,
+      write_name: :model # we don't need a {:write_name} here, it's a hash-producing user_filter.
+    }
+
+    signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({})
+
+    # variable is present in ctx, condition is true, it's set!
+    ctx.merge!(
+      original_args: [[{model: Object}, {}], {exec_context: self}],
+    )
+
+    signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({:model=>Object})
+
+  # Inject(:model) => ->(*) { "default" }
     user_filter = ->(*) { Object }
     filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
 
@@ -241,13 +267,5 @@ class VMRefactoringTest < Minitest::Spec
     signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
 
     assert_equal CU.inspect(ctx[:aggregate]), %({})
-
-    ctx.merge!(
-      original_args: [[{model: Object}, {}], {exec_context: self}],
-    )
-
-    signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
-
-    assert_equal CU.inspect(ctx[:aggregate]), %({:model=>Object})
   end
 end
