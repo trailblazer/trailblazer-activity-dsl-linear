@@ -91,7 +91,7 @@ class VMRefactoringTest < Minitest::Spec
     module Filter
       class MergeVariables < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
         step :args_for_filter
-        step :call_filter
+        pass :call_filter # filter could return an actual {nil} as a value.
         step :wrap_value_with_hash
         step :merge_variables_into_aggregate
 
@@ -142,6 +142,16 @@ class VMRefactoringTest < Minitest::Spec
           def evaluate_condition(ctx, condition:, args_for_filter:, **)
             # DISCUSS: should we use #call_filter here?
             call_filter({}, filter: condition, args_for_filter: args_for_filter) # result is value.
+          end
+        end
+
+        class Defaulted < Conditioned
+          left :set_default_value
+          left :wrap_value_with_hash, id: :wrap_value_with_hash_for_default
+          left :merge_variables_into_aggregate, id: :merge_variables_into_aggregate_for_default
+
+          def set_default_value(ctx, filter_for_default:, **options)
+            call_filter(ctx, **options, filter: filter_for_default)
           end
         end
       end
@@ -227,7 +237,7 @@ class VMRefactoringTest < Minitest::Spec
   # Inject => [:model]
     filter = vm::VariableFromCtx.new(variable_name: :model)
     # filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
-    condition = vm::VariableFromCtx.new(variable_name: :model)
+    condition = vm::VariablePresent.new(variable_name: :model)
 
     ctx = {
       condition: condition,
@@ -250,22 +260,49 @@ class VMRefactoringTest < Minitest::Spec
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:model=>Object})
 
-  # Inject(:model) => ->(*) { "default" }
-    user_filter = ->(*) { Object }
-    filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
+    # variable is present in ctx, but {nil}.
+    ctx.merge!(
+      aggregate: {},
+      original_args: [[{model: nil}, {}], {exec_context: self}],
+    )
+# require "trailblazer/developer"
+# require "trailblazer/invoke"
+# require "trailblazer/invoke/activity"
+    signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
+    # signal, (ctx, _) = Trailblazer::Developer.wtf?(Filter::MergeVariables::Conditioned, ctx)
 
-    condition = vm::VariableFromCtx.new(variable_name: :model)
+    assert_equal CU.inspect(ctx[:aggregate]), %({:model=>nil})
+
+  # Inject(:model) => ->(*) { "default" }
+    filter = vm::VariableFromCtx.new(variable_name: :model)
+    user_filter = ->(*) { Object }
+    filter_for_default = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
+
+    condition = vm::VariablePresent.new(variable_name: :model)
 
     ctx = {
       condition: condition,
       aggregate: {},
       original_args: [[{}, {}], {exec_context: self}],
       filter: filter,
+      filter_for_default: filter_for_default,
       write_name: :model # we don't need a {:write_name} here, it's a hash-producing user_filter.
     }
 
-    signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
+    signal, (ctx, _) = Filter::MergeVariables::Defaulted.([ctx, {}])
 
-    assert_equal CU.inspect(ctx[:aggregate]), %({})
+    assert_equal CU.inspect(ctx[:aggregate]), %({:model=>Object})
+
+    # value is present, but {nil}
+    ctx.merge!(
+      aggregate: {},
+      original_args: [[{model: nil}, {}], {exec_context: self}],
+    )
+
+    signal, (ctx, _) = Filter::MergeVariables::Defaulted.([ctx, {}])
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({:model=>nil})
+
+  # Inject(pass_aggregate: true) => ->(ctx, aggregate:, **) { snippet }
   end
 end
