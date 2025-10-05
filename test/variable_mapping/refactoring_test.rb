@@ -117,6 +117,22 @@ class VMRefactoringTest < Minitest::Spec
           ctx[:aggregate] = merge_variables(value, aggregate)
         end
 
+        module Features
+          # DISCUSS: {:with_outer_ctx} only makes sense with callable filter.
+          def pass_aggregate(ctx, aggregate:, **options)
+            merge_into_ctx!(ctx, **options, merge_variables: {aggregate: aggregate})
+          end
+
+          # DISCUSS: signature.
+          private def merge_into_ctx!(ctx, args_for_filter:, merge_variables:, **) # TODO: improve performance?
+            new_ctx = args_for_filter[0][0].merge(**merge_variables)
+
+            ctx[:args_for_filter] = [[new_ctx, args_for_filter[0][1]], args_for_filter[1]]
+          end
+        end
+
+        include Features
+
         private def merge_variables(variables, aggregate, receiver = aggregate)
           aggregate = receiver.merge(variables)
         end
@@ -129,9 +145,8 @@ class VMRefactoringTest < Minitest::Spec
 
           # FIXME: structure!
           # DISCUSS: {:with_outer_ctx} only makes sense with callable filter.
-          def with_outer_ctx(ctx, original_args:, args_for_filter:, **)
-            new_ctx = args_for_filter[0][0].merge(outer_ctx: original_args[0][0])
-            ctx[:args_for_filter] = [[new_ctx, args_for_filter[0][1]], args_for_filter[1]]
+          def with_outer_ctx(ctx, original_args:, **options)
+            merge_into_ctx!(ctx, **options, merge_variables: {outer_ctx: original_args[0][0]})
           end
         end
 
@@ -153,6 +168,9 @@ class VMRefactoringTest < Minitest::Spec
           def set_default_value(ctx, filter_for_default:, **options)
             call_filter(ctx, **options, filter: filter_for_default)
           end
+
+          include Features
+
         end
       end
     end # Filter
@@ -284,7 +302,7 @@ class VMRefactoringTest < Minitest::Spec
       condition: condition,
       aggregate: {},
       original_args: [[{}, {}], {exec_context: self}],
-      filter: filter,
+      filter: filter, # VariableFromCtx
       filter_for_default: filter_for_default,
       write_name: :model # we don't need a {:write_name} here, it's a hash-producing user_filter.
     }
@@ -304,5 +322,64 @@ class VMRefactoringTest < Minitest::Spec
     assert_equal CU.inspect(ctx[:aggregate]), %({:model=>nil})
 
   # Inject(pass_aggregate: true) => ->(ctx, aggregate:, **) { snippet }
+    user_filter = ->(ctx, params:, aggregate:, **) { "#{params.inspect} / #{aggregate.inspect}" }
+    filter_for_default = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
+
+    ctx = {
+      condition: condition,
+      aggregate: {id: 1},
+      original_args: [[{params: {}}, {}], {exec_context: self}],
+      filter: filter, # VariableFromCtx
+      filter_for_default: filter_for_default,
+      write_name: :model # we don't need a {:write_name} here, it's a hash-producing user_filter.
+    }
+
+    runtime_filter = Class.new(Filter::MergeVariables::Defaulted) do
+      step :pass_aggregate, after: :args_for_filter
+    end
+
+    # Inject defaulting called.
+    signal, (ctx, _) = runtime_filter.([ctx, {}])
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({:id=>1, :model=>"{} / {:id=>1}"})
+
+    # {:model} is present, Inject defaulting not called.
+    ctx = ctx.merge(
+      aggregate: {id: 1},
+      original_args: [[{params: {}, model: Class}, {}], {exec_context: self}],
+    )
+    signal, (ctx, _) = runtime_filter.([ctx, {}])
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({:id=>1, :model=>Class})
+
+  # Inject(pass_aggregate: true, override: true) => ->(ctx, aggregate:, **) { snippet }
+    user_filter = ->(ctx, params:, aggregate:, **) { "#{params.inspect} / #{aggregate.inspect}" }
+    filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
+
+    runtime_filter = Class.new(Filter::MergeVariables) do # NOTE: we are using MergeVariables here for Inject(..., override: true)!
+      step :pass_aggregate, after: :args_for_filter
+    end
+
+    ctx = {
+      aggregate: {id: 1},
+      original_args: [[{params: {}}, {}], {exec_context: self}], # no {:model}, default is called
+      filter: filter,
+      write_name: :model,
+    }
+
+    # filter is run.
+    signal, (ctx, _) = runtime_filter.([ctx, {}])
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({:id=>1, :model=>"{} / {:id=>1}"})
+
+    # :model present, filter still run.
+    ctx = ctx.merge(
+      aggregate: {id: 1},
+      original_args: [[{params: {}, model: Class}, {}], {exec_context: self}],
+    )
+    signal, (ctx, _) = runtime_filter.([ctx, {}])
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({:id=>1, :model=>"{} / {:id=>1}"})
+
   end
 end
