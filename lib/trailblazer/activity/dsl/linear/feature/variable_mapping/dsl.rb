@@ -63,19 +63,16 @@ module Trailblazer
             end
 
             def add_filter_steps(pipeline, rows, prepend_to: "input.scope", path_prefix: "input")
-              rows = add_variables_steps_for_filters(rows, path_prefix: path_prefix)
+              adds = adds_for_filter_steps(rows, path_prefix: path_prefix, prepend_to: prepend_to)
 
-              adds = Activity::Adds::FriendlyInterface.adds_for(
-                rows.collect { |row| [row[1], id: row[0], prepend: prepend_to] }
-              )
-              Activity::Adds.apply_adds(pipeline, adds)
+              Activity::Adds.(pipeline, *adds)
             end
 
             # Returns array of step rows ("sequence").
             # @param filters [Array] List of {Filter} objects
-            def add_variables_steps_for_filters(filters, path_prefix:)
+            def adds_for_filter_steps(filters, path_prefix:, prepend_to:)
               filters.collect do |filter|
-                ["#{path_prefix}.add_variables.#{filter.name}", filter] # FIXME: config name sucks, of course, if we want to allow inserting etc.
+                [filter, id: "#{path_prefix}.add_variables.#{filter.name}", prepend: prepend_to] # FIXME: filter name sucks, of course, if we want to allow inserting etc.
               end
             end
 
@@ -207,7 +204,7 @@ module Trailblazer
 
             # Used in the DSL by you.
             # DISCUSS: should we move the options processing and deciding code into the resp. FiltersBuilder?
-            def self.Inject(variable_name = nil, override: false, filters_builder: Inject::FiltersBuilder, pass_aggregate: false, **)
+            def self.Inject(variable_name = nil, filters_builder: Inject::FiltersBuilder, override: false, pass_aggregate: false, **)
               options = {}
               add_variables_class = SetVariable::Default
 
