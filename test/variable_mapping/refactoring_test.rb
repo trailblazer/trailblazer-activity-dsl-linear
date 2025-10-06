@@ -256,6 +256,17 @@ class VMRefactoringTest < Minitest::Spec
     assert_equal CU.inspect(ctx[:aggregate]), %({:a=>"a from aggregate"})
   end
 
+  it "{:delete}" do
+    runtime_step = vm::Runtime::FilterStep.build(
+      vm::Runtime::FilterStep::DeleteFromAggregate,
+      write_name: :a
+    )
+
+    ctx, _ = runtime_step.(ctx(model: Object).merge(aggregate: {a: "a", model: Module}))
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({:model=>Module})
+  end
+
   it "what" do
 raise "benchmark with old implementation"
 

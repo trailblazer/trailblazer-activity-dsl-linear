@@ -31,6 +31,16 @@ module Trailblazer
               new(filter_activity, options_for_step)
             end
 
+            class DeleteFromAggregate < Trailblazer::Activity::Railway
+              step :delete_from_aggregate
+
+              def delete_from_aggregate(ctx, aggregate:, write_name:, **)
+                keys_to_keep = aggregate.keys - [write_name]
+
+                ctx[:aggregate] = aggregate.slice(*keys_to_keep)
+              end
+            end
+
             class MergeVariables < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
               step :args_for_filter
               pass :call_filter # filter could return an actual {nil} as a value.
