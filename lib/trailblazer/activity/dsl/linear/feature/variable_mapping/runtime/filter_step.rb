@@ -35,9 +35,9 @@ module Trailblazer
               step :delete_from_aggregate
 
               def delete_from_aggregate(ctx, aggregate:, write_name:, **)
-                keys_to_keep = aggregate.keys - [write_name]
+                variables_to_keep = aggregate.keys - [write_name]
 
-                ctx[:aggregate] = aggregate.slice(*keys_to_keep)
+                ctx[:aggregate] = aggregate.slice(*variables_to_keep)
               end
             end
 
@@ -66,7 +66,7 @@ module Trailblazer
               end
 
               def merge_variables_into_aggregate(ctx, aggregate:, value:, **)
-                ctx[:aggregate] = merge_variables(value, aggregate)
+                ctx[:aggregate] = aggregate.merge(value)
               end
 
               module Features
@@ -88,10 +88,6 @@ module Trailblazer
               end
 
               include Features
-
-              private def merge_variables(variables, aggregate, receiver = aggregate)
-                aggregate = receiver.merge(variables)
-              end
 
               class Output < MergeVariables
                 def args_for_filter(ctx, original_args:, returned_ctx:, **)
