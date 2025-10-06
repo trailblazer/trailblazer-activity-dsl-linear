@@ -237,9 +237,27 @@ class VMRefactoringTest < Minitest::Spec
     ctx, _ = runtime_step.(ctx(params: {}, model: Class).merge(aggregate: {id: 1}))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:id=>1, :model=>"{} / {:id=>1}"})
+  end
 
-raise "what other features to add?"
-# benchmark with old implementation
+  it "{In( :read_from_aggregate)} option" do
+    # TODO: limit to [] and {} user options in DSL!
+
+    user_filter = vm::VariableFromCtx.new(variable_name: :a)
+
+    runtime_step = vm::Runtime::FilterStep.build(
+      filter:     user_filter,
+      write_name: :a
+    ) do
+      step :swap_ctx_with_aggregate, after: :args_for_filter
+    end
+
+    ctx, _ = runtime_step.(ctx(a: "a", model: Object).merge(aggregate: {a: "a from aggregate"}))
+
+    assert_equal CU.inspect(ctx[:aggregate]), %({:a=>"a from aggregate"})
+  end
+
+  it "what" do
+raise "benchmark with old implementation"
 
   end
 end

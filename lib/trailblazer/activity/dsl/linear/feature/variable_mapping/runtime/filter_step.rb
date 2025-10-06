@@ -71,6 +71,10 @@ module Trailblazer
 
                   ctx[:args_for_filter] = [[new_ctx, args_for_filter[0][1]], args_for_filter[1]]
                 end
+
+                def swap_ctx_with_aggregate(ctx, args_for_filter:, aggregate:, **)
+                  ctx[:args_for_filter] = [[aggregate.freeze, args_for_filter[0][1]], args_for_filter[1]]
+                end
               end
 
               include Features
