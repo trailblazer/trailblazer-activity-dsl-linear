@@ -89,6 +89,14 @@ class VMRefactoringTest < Minitest::Spec
     assert_equal CU.inspect(wrap_ctx), %({:aggregate=>{:record=>Object, :model=>Object}, :returned_ctx=>{}})
   end
 
+  # kwargs are merged into the application {ctx}, the "real" one from the actual OP run.
+  def ctx(**options_for_ctx)
+    {
+      aggregate: {},
+      original_args: [[{**options_for_ctx}, {}], {exec_context: self}],
+    }
+  end
+
   it "here, i test the alternative approach with Activitys" do
   # In() => [:a]
 
@@ -96,18 +104,13 @@ class VMRefactoringTest < Minitest::Spec
     # filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
     filter = user_filter # no Ciruit::Step wrapping as VariableFromCtx exposes circuit-step interface.
 
-    wrap_ctx = {
-      aggregate: {},
-      original_args: [[{a: "a", model: Object}, {}], {}],
-    }
-
     runtime_step = vm::Runtime::FilterStep.build(
       filter:     filter,
       write_name: :a
     )
 
     # Don't call it with {TaskWrap.invoke} as we don't need/want this logic here (performance)!
-    signal, (ctx, _) = runtime_step.(wrap_ctx)
+    ctx, _ = runtime_step.(ctx(a: "a", model: Object))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:a=>"a"})
 
@@ -115,34 +118,25 @@ class VMRefactoringTest < Minitest::Spec
     user_filter = ->(ctx, a:, **) { {id: a} }
     filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
 
-    ctx = {
-      aggregate: {},
-      original_args: [[{a: "a", model: Object}, {}], {exec_context: self}],
-      filter: filter,
+    runtime_step = vm::Runtime::FilterStep.build(
+      filter:     filter,
       # write_name: :a # we don't need a {:write_name} here, it's a hash-producing user_filter.
-    }
+      wrap_value_with_hash: false
+    )
 
-    runtime_filter = Class.new(Filter::MergeVariables) do
-      step nil, delete: :wrap_value_with_hash # DISCUSS: how do we compose those differing logic flows?
-    end
-
-    signal, (ctx, _) = runtime_filter.([ctx, {}])
+    ctx, _ = runtime_step.(ctx(a: "a", model: Object))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:id=>"a"})
 
   # Out() => [:model]
     user_filter = vm::VariableFromCtx.new(variable_name: :model)
 
-    ctx = {
-      aggregate: {},
-      original_args: [[{id: 1}, {}], {}],
-      filter: user_filter,
-      write_name: :model,
-      returned_ctx: {model: Object, action: :update}, # from the step logic
-    }
+    runtime_step = vm::Runtime::FilterStep.build(vm::Runtime::FilterStep::MergeVariables::Output, filter: user_filter, write_name: :model)
 
     # Don't call it with {TaskWrap.invoke} as we don't need/want this logic here (performance)!
-    signal, (ctx, _) = Filter::MergeVariables::Output.([ctx, {}])
+    ctx, _ = runtime_step.(ctx(id: 1).merge(
+      returned_ctx: {model: Object, action: :update}
+    ))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:model=>Object})
 
@@ -152,21 +146,17 @@ class VMRefactoringTest < Minitest::Spec
     }
     filter = Trailblazer::Activity::Circuit.Step(user_filter)
 
-    ctx = {
-      aggregate: {},
-      original_args: [[{model: Object, slug: "1cda6"}, {}], {}],
-      filter: filter,
-      # write_name: :model,
-      returned_ctx: {params: {id: 2}, action: :update}, # from the step logic
-    }
-
-    runtime_filter = Class.new(Filter::MergeVariables::Output) do
-      step nil, delete: :wrap_value_with_hash # DISCUSS: how do we compose those differing logic flows?
-      step :with_outer_ctx, after: :args_for_filter
+    runtime_step = vm::Runtime::FilterStep.build(vm::Runtime::FilterStep::MergeVariables::Output, filter: filter, wrap_value_with_hash: false) do
+      step :with_outer_ctx, after: :args_for_filter # DISCUSS: how do we compose those differing logic flows?
     end
 
-    # Don't call it with {TaskWrap.invoke} as we don't need/want this logic here (performance)!
-    signal, (ctx, _) = runtime_filter.([ctx, {}])
+    wrap_ctx = ctx(model: Object, slug: "1cda6")
+
+    ctx, _ = runtime_step.(wrap_ctx.merge(
+      returned_ctx: {params: {id: 2}, action: :update}
+    ))
+
+    ctx, _ = runtime_step.(ctx)
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:model=>"{:id=>2} / 1cda6"})
 
@@ -175,37 +165,19 @@ class VMRefactoringTest < Minitest::Spec
     # filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
     condition = vm::VariablePresent.new(variable_name: :model)
 
-    ctx = {
-      condition: condition,
-      aggregate: {},
-      original_args: [[{}, {}], {exec_context: self}],
-      filter: filter,
-      write_name: :model # we don't need a {:write_name} here, it's a hash-producing user_filter.
-    }
+    runtime_step = vm::Runtime::FilterStep.build(vm::Runtime::FilterStep::MergeVariables::Conditioned, filter: filter, write_name: :model, condition: condition)
 
-    signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
+    ctx, _ = runtime_step.(ctx())
 
     assert_equal CU.inspect(ctx[:aggregate]), %({})
 
     # variable is present in ctx, condition is true, it's set!
-    ctx.merge!(
-      original_args: [[{model: Object}, {}], {exec_context: self}],
-    )
-
-    signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
+    ctx, _ = runtime_step.(ctx(model: Object))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:model=>Object})
 
     # variable is present in ctx, but {nil}.
-    ctx.merge!(
-      aggregate: {},
-      original_args: [[{model: nil}, {}], {exec_context: self}],
-    )
-# require "trailblazer/developer"
-# require "trailblazer/invoke"
-# require "trailblazer/invoke/activity"
-    signal, (ctx, _) = Filter::MergeVariables::Conditioned.([ctx, {}])
-    # signal, (ctx, _) = Trailblazer::Developer.wtf?(Filter::MergeVariables::Conditioned, ctx)
+    ctx, _ = runtime_step.(ctx(model: nil))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:model=>nil})
 
@@ -216,26 +188,15 @@ class VMRefactoringTest < Minitest::Spec
 
     condition = vm::VariablePresent.new(variable_name: :model)
 
-    ctx = {
-      condition: condition,
-      aggregate: {},
-      original_args: [[{}, {}], {exec_context: self}],
-      filter: filter, # VariableFromCtx
-      filter_for_default: filter_for_default,
-      write_name: :model # we don't need a {:write_name} here, it's a hash-producing user_filter.
-    }
+    runtime_step = vm::Runtime::FilterStep.build(vm::Runtime::FilterStep::MergeVariables::Defaulted,
+      filter: filter, write_name: :model, condition: condition, filter_for_default: filter_for_default)
 
-    signal, (ctx, _) = Filter::MergeVariables::Defaulted.([ctx, {}])
+    ctx, _ = runtime_step.(ctx())
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:model=>Object})
 
     # value is present, but {nil}
-    ctx.merge!(
-      aggregate: {},
-      original_args: [[{model: nil}, {}], {exec_context: self}],
-    )
-
-    signal, (ctx, _) = Filter::MergeVariables::Defaulted.([ctx, {}])
+    ctx, _ = runtime_step.(ctx(model: nil))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:model=>nil})
 
@@ -243,30 +204,18 @@ class VMRefactoringTest < Minitest::Spec
     user_filter = ->(ctx, params:, aggregate:, **) { "#{params.inspect} / #{aggregate.inspect}" }
     filter_for_default = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
 
-    ctx = {
-      condition: condition,
-      aggregate: {id: 1},
-      original_args: [[{params: {}}, {}], {exec_context: self}],
-      filter: filter, # VariableFromCtx
-      filter_for_default: filter_for_default,
-      write_name: :model # we don't need a {:write_name} here, it's a hash-producing user_filter.
-    }
 
-    runtime_filter = Class.new(Filter::MergeVariables::Defaulted) do
+    runtime_step = vm::Runtime::FilterStep.build(vm::Runtime::FilterStep::MergeVariables::Defaulted, filter: filter, write_name: :model, condition: condition, filter_for_default: filter_for_default) do
       step :pass_aggregate, after: :args_for_filter
     end
 
     # Inject defaulting called.
-    signal, (ctx, _) = runtime_filter.([ctx, {}])
+    ctx, _ = runtime_step.(ctx(params: {}).merge(aggregate: {id: 1}))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:id=>1, :model=>"{} / {:id=>1}"})
 
     # {:model} is present, Inject defaulting not called.
-    ctx = ctx.merge(
-      aggregate: {id: 1},
-      original_args: [[{params: {}, model: Class}, {}], {exec_context: self}],
-    )
-    signal, (ctx, _) = runtime_filter.([ctx, {}])
+    ctx, _ = runtime_step.(ctx(params: {}, model: Class).merge(aggregate: {id: 1}))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:id=>1, :model=>Class})
 
@@ -274,28 +223,18 @@ class VMRefactoringTest < Minitest::Spec
     user_filter = ->(ctx, params:, aggregate:, **) { "#{params.inspect} / #{aggregate.inspect}" }
     filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
 
-    runtime_filter = Class.new(Filter::MergeVariables) do # NOTE: we are using MergeVariables here for Inject(..., override: true)!
+    # runtime_filter = Class.new(Filter::MergeVariables) do # NOTE: we are using MergeVariables here for Inject(..., override: true)!
+    runtime_step = vm::Runtime::FilterStep.build(vm::Runtime::FilterStep::MergeVariables, filter: filter, write_name: :model) do
       step :pass_aggregate, after: :args_for_filter
     end
 
-    ctx = {
-      aggregate: {id: 1},
-      original_args: [[{params: {}}, {}], {exec_context: self}], # no {:model}, default is called
-      filter: filter,
-      write_name: :model,
-    }
-
     # filter is run.
-    signal, (ctx, _) = runtime_filter.([ctx, {}])
+    ctx, _ = runtime_step.(ctx(params: {}).merge(aggregate: {id: 1}))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:id=>1, :model=>"{} / {:id=>1}"})
 
     # {:model present}, filter still run.
-    ctx = ctx.merge(
-      aggregate: {id: 1},
-      original_args: [[{params: {}, model: Class}, {}], {exec_context: self}],
-    )
-    signal, (ctx, _) = runtime_filter.([ctx, {}])
+    ctx, _ = runtime_step.(ctx(params: {}, model: Class).merge(aggregate: {id: 1}))
 
     assert_equal CU.inspect(ctx[:aggregate]), %({:id=>1, :model=>"{} / {:id=>1}"})
 

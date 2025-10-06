@@ -9,18 +9,22 @@ module Trailblazer
               @filter_activity = filter_activity
               @options         = options # DISCUSS: Struct?
             end
+
             # DISCUSS: could we save this call by using a Pipeline Runner or something? is maybe a delegate faster?
-            def call(wrap_ctx)
+            def call(wrap_ctx, *) # DISCUSS: maybe pipe and activity have the same signature?
               # TODO: use quicker Runner
-              @filter_activity.([wrap_ctx.merge(@options), {}])
+              _signal, (ctx, _) =  @filter_activity.([wrap_ctx.merge(@options), {}])
+              # DISCUSS: maybe pipe and activity have the same signature?
+              return ctx, nil
             end
 
             # This is the only public API the DSL part may use.
             # DESIGN NOTE: takes away decisions about internal step structure, such as the optional {#wrap_value_with_hash} step.
-            def self.build(filter_activity = MergeVariables, wrap_value_with_hash: true, **options_for_step)
-              if ! wrap_value_with_hash # NOTE: this is a compile-time {if}. :D
+            def self.build(filter_activity = MergeVariables, wrap_value_with_hash: true, **options_for_step, &block)
+              if ! wrap_value_with_hash || block_given? # NOTE: this is a compile-time {if}. :D
                 filter_activity = Class.new(filter_activity) do
-                  step nil, delete: :wrap_value_with_hash # DISCUSS: how do we compose those differing logic flows?
+                  step nil, delete: :wrap_value_with_hash unless wrap_value_with_hash # DISCUSS: how do we compose those differing logic flows?
+                  instance_exec(&block) if block_given? # FIXME: FUCK THIS
                 end
               end
 
