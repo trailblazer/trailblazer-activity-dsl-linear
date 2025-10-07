@@ -12,8 +12,8 @@ module Trailblazer
 
             # Compute pipeline for In() and Inject().
             def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
-              in_filters  = DSL::Tuple.compile_tuples_to_filters(in_filters)  # Compile tuples {In() => ...}  into tw steps.
-              _pipeline   = add_filter_steps(initial_input_pipeline, in_filters)
+              in_filters_adds  = DSL::Tuple.compile_tuples_to_filters(in_filters)  # Compile tuples {In() => ...}  into tw steps.
+              _pipeline   = Activity::Adds.(initial_input_pipeline, *in_filters_adds)
             end
 
             # initial pipleline depending on whether or not we got any In() filters.
@@ -43,9 +43,9 @@ module Trailblazer
             end
 
             def pipe_for_composable_output(out_filters: [], initial_output_pipeline: initial_output_pipeline(add_default_ctx: Array(out_filters).empty?), **)
-              out_filters = DSL::Tuple.compile_tuples_to_filters(out_filters)
+              out_filters_adds = DSL::Tuple.compile_tuples_to_filters(out_filters)
 
-              add_filter_steps(initial_output_pipeline, out_filters, prepend_to: "output.merge_with_original", path_prefix: "output")
+              Activity::Adds.(initial_output_pipeline, *out_filters_adds)
             end
 
             def initial_output_pipeline(add_default_ctx: false)
@@ -62,19 +62,6 @@ module Trailblazer
               {"output.default_output" => VariableMapping.method(:default_output_ctx)}
             end
 
-            def add_filter_steps(pipeline, rows, prepend_to: "input.scope", path_prefix: "input")
-              adds = adds_for_filter_steps(rows, path_prefix: path_prefix, prepend_to: prepend_to)
-
-              Activity::Adds.(pipeline, *adds)
-            end
-
-            # Returns array of step rows ("sequence").
-            # @param filters [Array] List of {Filter} objects
-            def adds_for_filter_steps(filters, path_prefix:, prepend_to:)
-              filters.collect do |filter|
-                [filter, id: "#{path_prefix}.add_variables.#{filter.name}", prepend: prepend_to] # FIXME: filter name sucks, of course, if we want to allow inserting etc.
-              end
-            end
 
             # Keeps user's DSL configuration for a particular io-pipe step.
             # Implements the interface for the actual I/O code and is DSL code happening in the normalizer.
@@ -84,14 +71,14 @@ module Trailblazer
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
 
             class Tuple
-              def initialize(variable_name, add_variables_class, filters_builder, insert_args: nil, **options)
+              def initialize(variable_name, add_variables_class, filters_builder, insert_args: {prepend: "input.scope"}, path_prefix: "input", **options)
                 @options =
                   {
                     variable_name:        variable_name,
                     add_variables_class:  add_variables_class,
                     filters_builder:      filters_builder,
                     insert_args:          insert_args,
-
+                    path_prefix:          path_prefix,
                     **options
                   }
               end
@@ -109,6 +96,7 @@ module Trailblazer
               #   Inject(:name) => <right_option>
               #
               # DISCUSS: in OutputTuples, this is called to_a
+              # Called by DSL in {#compile_tuples_to_filters}.
               def call(right_option)
                 @options[:filters_builder].(right_option, **to_h)
               end
@@ -123,7 +111,20 @@ module Trailblazer
       # raise "could we add, via the DSL in invoke, add an empty In() that doesn't build anything?"
             class In < Tuple
               class FiltersBuilder
-                def self.call(user_filter, type: :In, **options)
+                # Called from {Tuple#call}.
+                def self.call(user_filter, insert_args:, path_prefix:, **options)
+                  filter_steps = translate_tuple_call_to_filters_adds(user_filter, **options)
+
+                  adds_for_filter_steps(filter_steps, insert_args: insert_args, path_prefix: path_prefix)
+                end
+
+                def self.adds_for_filter_steps(filter_steps, path_prefix:, insert_args:)
+                  filter_steps.collect do |filter|
+                    [filter, id: "#{path_prefix}.add_variables.#{filter.name}", **insert_args] # FIXME: filter name sucks, of course, if we want to allow inserting etc.
+                  end
+                end
+
+                def self.translate_tuple_call_to_filters_adds(user_filter, type: :In, **options)
                   # In()/Out() => {:user => :current_user}
                   if user_filter.is_a?(Hash)
                     # For In(): build {SetVariable} filters.
@@ -184,12 +185,18 @@ module Trailblazer
               end
             end # Out
 
-            def self.In(variable_name = nil, add_variables_class: SetVariable, filters_builder: In::FiltersBuilder)
-              In.new(variable_name, add_variables_class, filters_builder)
+            def self.In(variable_name = nil, add_variables_class: SetVariable, filters_builder: In::FiltersBuilder, insert_args: {prepend: "input.scope"}, path_prefix: "input")
+              In.new(
+                variable_name,
+                add_variables_class,
+                filters_builder,
+                insert_args: insert_args,
+                path_prefix: path_prefix,
+              )
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filters_builder: Out::FiltersBuilder, read_from_aggregate: false)
+            def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filters_builder: Out::FiltersBuilder, read_from_aggregate: false, insert_args: {prepend: "output.merge_with_original"}, path_prefix: "output")
               add_variables_class = SetVariable::Output::Delete     if delete
               add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
               add_variables_class = Output::WithOuterContext if with_outer_ctx
@@ -199,12 +206,14 @@ module Trailblazer
                 add_variables_class,
                 filters_builder,
                 with_outer_ctx: with_outer_ctx,
+                insert_args: insert_args,
+                path_prefix: path_prefix,
               )
             end
 
             # Used in the DSL by you.
             # DISCUSS: should we move the options processing and deciding code into the resp. FiltersBuilder?
-            def self.Inject(variable_name = nil, filters_builder: Inject::FiltersBuilder, override: false, pass_aggregate: false, **)
+            def self.Inject(variable_name = nil, filters_builder: Inject::FiltersBuilder, override: false, pass_aggregate: false, insert_args: {prepend: "input.scope"}, path_prefix: "inject", **)
               options = {}
               add_variables_class = SetVariable::Default
 
@@ -216,6 +225,8 @@ module Trailblazer
                 variable_name,
                 add_variables_class,
                 filters_builder,
+                insert_args: insert_args,
+                path_prefix: path_prefix,
                 **options
               )
             end
@@ -226,9 +237,9 @@ module Trailblazer
             #               2. "with condition" and default.
             #               3. override: like 2. with a condition always {false}.
             class Inject < Tuple
-              class FiltersBuilder
+              class FiltersBuilder < In::FiltersBuilder
                 # Called via {Tuple#call}
-                def self.call(user_filter, variable_name:, **options)
+                def self.translate_tuple_call_to_filters_adds(user_filter, variable_name:, **options)
                   # Build {SetVariable::Conditioned}
                   if user_filter.is_a?(Array)
                     user_filter = Filter.hash_for(user_filter)
