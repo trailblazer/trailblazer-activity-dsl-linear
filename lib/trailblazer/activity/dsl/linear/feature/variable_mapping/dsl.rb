@@ -13,7 +13,10 @@ module Trailblazer
             # Compute pipeline for In() and Inject().
             def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
               in_filters_adds  = DSL::Tuple.compile_tuples_to_filters(in_filters)  # Compile tuples {In() => ...}  into tw steps.
+
               _pipeline   = Activity::Adds.(initial_input_pipeline, *in_filters_adds)
+# pp _pipeline
+              _pipeline
             end
 
             # initial pipleline depending on whether or not we got any In() filters.
@@ -100,7 +103,7 @@ module Trailblazer
               def call(right_option)
                 @options[:filters_builder].(right_option, **to_h)
               end
-            end # TODO: implement {:insert_args}
+            end # TODO: test {:insert_args}
 
             # In, Out and Inject are objects instantiated when using the DSL, for instance {In() => [:model]}.
             #
@@ -120,10 +123,12 @@ module Trailblazer
 
                 def self.adds_for_filter_steps(filter_steps, path_prefix:, insert_args:)
                   filter_steps.collect do |filter|
-                    [filter, id: "#{path_prefix}.add_variables.#{filter.name}", **insert_args] # FIXME: filter name sucks, of course, if we want to allow inserting etc.
+                    [filter, id: "#{path_prefix}.add_variables.#{filter.object_id}", **insert_args] # FIXME: filter name sucks, of course, if we want to allow inserting etc.
                   end
                 end
 
+                # This method disects the different types of user input, eg, hash or array means it builds several filters.
+                # TODO: maybe we can improve the separation of disecting and filter creation?
                 def self.translate_tuple_call_to_filters_adds(user_filter, type: :In, **options)
                   # In()/Out() => {:user => :current_user}
                   if user_filter.is_a?(Hash)
@@ -290,6 +295,61 @@ module Trailblazer
                 end
               end # FiltersBuilder
             end # Inject
+
+            require_relative "runtime/filter_step"
+            class Tuple
+              module Left # FIXME: new implementation, based on Activity::Railway.
+                class In
+                  class Builder < DSL::In::FiltersBuilder # FIXME: for {.call}.
+                    def self.call(user_filter, insert_args:, path_prefix:, **options)
+                      translate_tuple_call_to_filters_adds(user_filter, **options)
+                    end
+
+
+                    def self.translate_tuple_call_to_filters_adds(user_filter, type: :In, **options)
+                      # 1. how do we know we're In? because we're the filters_builder from In
+                      # 2.
+                      adds = user_filter.collect do |variable|
+                        user_filter = VariableMapping::VariableFromCtx.new(variable_name: variable)
+                        filter = user_filter # no Ciruit::Step wrapping as VariableFromCtx exposes circuit-step interface.
+
+                        runtime_step = VariableMapping::Runtime::FilterStep.build(
+                          Runtime::FilterStep::MergeVariables,
+                          filter:     filter,
+                          write_name: variable
+                        )
+
+                        [runtime_step, id: variable, prepend: "input.scope"]
+                      end
+
+                    end
+
+                  end
+                end
+
+                class Out
+                  class Builder < In::Builder # FIXME: for {.call}.
+                    def self.translate_tuple_call_to_filters_adds(user_filter, type: :In, **options)
+                      # 1. how do we know we're In? because we're the filters_builder from In
+                      # 2.
+                      adds = user_filter.collect do |variable|
+                        user_filter = VariableMapping::VariableFromCtx.new(variable_name: variable)
+                        filter = user_filter # no Ciruit::Step wrapping as VariableFromCtx exposes circuit-step interface.
+
+                        runtime_step = VariableMapping::Runtime::FilterStep.build(
+                          Runtime::FilterStep::MergeVariables::Output,
+                          filter:     filter,
+                          write_name: variable
+                        )
+
+                        [runtime_step, id: variable, prepend: "output.merge_with_original"]
+                      end
+                    end
+
+                  end
+                end
+              end
+            end
 
             # DISCUSS: generic, again
             module Filter

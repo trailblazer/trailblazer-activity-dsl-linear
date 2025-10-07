@@ -8,14 +8,23 @@ module Trailblazer
             def initialize(filter_activity, options)
               @filter_activity = filter_activity
               @options         = options # DISCUSS: Struct?
+              @circuit = filter_activity.to_h[:activity].to_h[:circuit]
+            end
+
+            class MyRunner
+              def self.call(task_name, (ctx, flow_options), exec_context:, **)
+                new_ctx, _ = exec_context.send(task_name, ctx, **ctx.to_h)
+                return Trailblazer::Activity::Right, [ctx, flow_options]
+              end
             end
 
             # DISCUSS: could we save this call by using a Pipeline Runner or something? is maybe a delegate faster?
-            def call(wrap_ctx, *) # DISCUSS: maybe pipe and activity have the same signature?
+            def call(wrap_ctx, original_args=nil) # DISCUSS: maybe pipe and activity have the same signature?
               # TODO: use quicker Runner
-              _signal, (ctx, _) =  @filter_activity.([wrap_ctx.merge(@options), {}])
+              # _signal, (ctx, _) =  @circuit.([wrap_ctx.merge(@options), {}])
+              _signal, (ctx, _) =  @circuit.([wrap_ctx.merge(@options), {}], exec_context: @filter_activity.new, runner: MyRunner)
               # DISCUSS: maybe pipe and activity have the same signature?
-              return ctx, nil
+              return ctx, original_args
             end
 
             # This is the only public API the DSL part may use.
@@ -27,6 +36,18 @@ module Trailblazer
                   instance_exec(&block) if block_given? # FIXME: FUCK THIS
                 end
               end
+
+              # Optimization time:
+              metal_circuit = filter_activity.to_h[:activity].to_h[:circuit]
+              start_task = metal_circuit.to_h[:map].keys[1]
+              last_task = metal_circuit.to_h[:map].keys[-3]
+
+              metal_circuit.instance_variable_set(:@termini, [last_task])
+              metal_circuit.instance_variable_set(:@start_task, start_task)
+              # /Optimization time:
+
+              pp metal_circuit
+              # raise
 
               new(filter_activity, options_for_step)
             end
@@ -42,6 +63,15 @@ module Trailblazer
             end
 
             class MergeVariables < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
+              Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step, :pass) do |normalizer|
+                _normalizer = Trailblazer::Activity::Adds.(
+                  normalizer,
+                  [nil, id: "activity.macro_options_with_symbol_task", delete: "activity.macro_options_with_symbol_task"],
+                  [nil, id: "activity.wrap_task_with_step_interface", delete: "activity.wrap_task_with_step_interface"],
+                )
+                # pp _normalizer
+              end
+
               step :args_for_filter
               pass :call_filter # filter could return an actual {nil} as a value.
               step :wrap_value_with_hash

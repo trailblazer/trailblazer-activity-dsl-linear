@@ -19,7 +19,8 @@ module Trailblazer
               (original_ctx, original_flow_options), original_circuit_options = original_args
 
               # let user compute new ctx for the wrapped task.
-              pipe_ctx, _       = @pipe.({original_ctx: original_ctx, aggregate: {}}, original_args)
+              pipe_ctx, _       = @pipe.({original_ctx: original_ctx, aggregate: {}, original_args: original_args}, original_args) # FIXME: remove 2nd arg once we know what we're using.
+
               ctx_from_input    = pipe_ctx[:input_ctx]
 
               wrap_ctx = wrap_ctx.merge(@id => original_ctx) # remember the original ctx under the key {@id}.
@@ -39,7 +40,8 @@ module Trailblazer
               _, original_circuit_options         = original_args
 
               # let user compute the output.
-              pipe_ctx, _     = @pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx, aggregate: {}}, [[original_ctx, returned_flow_options], original_circuit_options])
+              pipe_ctx, _     = @pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx, aggregate: {}, original_args: original_args}, [[original_ctx, returned_flow_options], original_circuit_options])
+
               ctx_from_output = pipe_ctx[:aggregate]
 
               wrap_ctx = wrap_ctx.merge(return_args: [ctx_from_output, returned_flow_options]) # DISCUSS: this won't allow tracing in the taskWrap as we're returning {returned_flow_options} from above.

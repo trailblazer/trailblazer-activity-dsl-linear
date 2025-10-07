@@ -110,8 +110,9 @@ class VMRefactoringTest < Minitest::Spec
     )
 
     # Don't call it with {TaskWrap.invoke} as we don't need/want this logic here (performance)!
-    ctx, _ = runtime_step.(ctx(a: "a", model: Object))
+    ctx, _ = runtime_step.(ctx(a: "a", model: Object), "original_args")
 
+    assert_equal _, "original_args" # FIXME: this used to be original_args. remove this once we know what to do
     assert_equal CU.inspect(ctx[:aggregate]), %({:a=>"a"})
 
   # In() => ->(*) { "value" }
