@@ -59,6 +59,8 @@ class VariableMappingRuntimeTest < Minitest::Spec
   end
 end
 
+
+
 =begin
 
 1. 30 steps, each 5 In, 3 Out.
@@ -106,6 +108,31 @@ Comparison:
 Comparison:
         object-based:     1503.6 i/s
       activity-based:      466.3 i/s - 3.22x  (± 0.00) slower
+
+in ruby 3.4.1 2.80x slower. the above is Ruby 3.3.6.
+
+5. class methods in MergeVariables, so we don't need exec_context: @filters_activity{.new}
+
+Comparison:
+        object-based:     1580.3 i/s
+      activity-based:      582.0 i/s - 2.72x  (± 0.00) slower
+
+=end
+
+=begin
+
+#<Pipe::Input
+  we need this to build the aggregate at runtime, and to set the input ctx after the input pipe has been run.
+
+pipe.call:
+
+[
+  #<FilterStep.call
+    this we could probably avoid by setting instance variables on Activity?
+
+]
+
+
 
 
 =end

@@ -3,11 +3,10 @@ module Trailblazer
     module DSL::Linear
       module VariableMapping
         module Runtime
-          # Fillters are run in a pipe which represents an entire input or output tw "step".
           class FilterStep
             def initialize(filter_activity, options)
               @filter_activity = filter_activity
-              @options         = options # DISCUSS: Struct?
+              @options         = options
               @circuit = filter_activity.to_h[:activity].to_h[:circuit]
             end
 
@@ -18,11 +17,14 @@ module Trailblazer
               end
             end
 
+
+
             # DISCUSS: could we save this call by using a Pipeline Runner or something? is maybe a delegate faster?
             def call(wrap_ctx, original_args=nil) # DISCUSS: maybe pipe and activity have the same signature?
               # TODO: use quicker Runner
               # _signal, (ctx, _) =  @circuit.([wrap_ctx.merge(@options), {}])
-              _signal, (ctx, _) =  @circuit.([wrap_ctx.merge(@options), {}], exec_context: @filter_activity.new, runner: MyRunner)
+              # raise "maybe we can  save this call if the pipeline itself knows our options?"
+              _signal, (ctx, _) =  @circuit.([wrap_ctx.merge(@options), {}], exec_context: @filter_activity, runner: MyRunner)
               # DISCUSS: maybe pipe and activity have the same signature?
               return ctx, original_args
             end
@@ -46,8 +48,12 @@ module Trailblazer
               metal_circuit.instance_variable_set(:@start_task, start_task)
               # /Optimization time:
 
-              pp metal_circuit
+              # pp metal_circuit
               # raise
+
+              options_for_step.each do |key, value|
+                filter_activity.instance_variable_set(:"@#{key}", value)
+              end
 
               new(filter_activity, options_for_step)
             end
@@ -77,11 +83,12 @@ module Trailblazer
               step :wrap_value_with_hash
               step :merge_variables_into_aggregate
 
-              def args_for_filter(ctx, original_args:, **)
+              def self.args_for_filter(ctx, original_args:, **)
                 ctx[:args_for_filter] = original_args
               end
 
-              def call_filter(ctx, filter:, args_for_filter:, **)
+              def self.call_filter(ctx, filter:, args_for_filter:, **)
+              # def self.call_filter(ctx, args_for_filter:, **)
                 # Calling a filter with a circuit-step interface means we
                 # need to pass [[ctx, flow_options], **cicuit_args]
                 #
@@ -91,11 +98,12 @@ module Trailblazer
                 ctx[:value] = variable
               end
 
-              def wrap_value_with_hash(ctx, value:, write_name:, **)
+              def self.wrap_value_with_hash(ctx, value:, write_name:, **)
+              # def self.wrap_value_with_hash(ctx, value:, **)
                 ctx[:value] = {write_name => value}
               end
 
-              def merge_variables_into_aggregate(ctx, aggregate:, value:, **)
+              def self.merge_variables_into_aggregate(ctx, aggregate:, value:, **)
                 ctx[:aggregate] = aggregate.merge(value)
               end
 
@@ -117,17 +125,17 @@ module Trailblazer
                 end
               end
 
-              include Features
+              extend Features
 
               class Output < MergeVariables
-                def args_for_filter(ctx, original_args:, returned_ctx:, **)
+                def self.args_for_filter(ctx, original_args:, returned_ctx:, **)
                   # super(ctx, **ctx, original_args: [[new_ctx, original_args[0][1]], original_args[1]])
                   ctx[:args_for_filter] = [[returned_ctx, original_args[0][1]], original_args[1]]
                 end
 
                 # FIXME: structure!
                 # DISCUSS: {:with_outer_ctx} only makes sense with callable filter.
-                def with_outer_ctx(ctx, original_args:, **options)
+                def self.with_outer_ctx(ctx, original_args:, **options)
                   merge_into_ctx!(ctx, **options, merge_variables: {outer_ctx: original_args[0][0]})
                 end
               end
