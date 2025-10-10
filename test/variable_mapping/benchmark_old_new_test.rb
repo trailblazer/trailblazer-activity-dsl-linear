@@ -144,6 +144,21 @@ Comparison:
       end
 
 
+8. decompose vs. manual
+
+# (original_ctx, original_flow_options), original_circuit_options = original_args
+              args = original_args[0]
+              original_ctx, original_flow_options, original_circuit_options = args[0], args[1], original_args[1]
+
+manual is .02 faster, can be ignored.
+
+9. @pipe => @sequence
+
+  @sequence = seq.collect { |_, config| config }
+  @sequence.each do |filter_circuit, call_options|
+
+from 2.71 to 2.68, it's also simply less runtime noise.
+
 =end
 
 =begin

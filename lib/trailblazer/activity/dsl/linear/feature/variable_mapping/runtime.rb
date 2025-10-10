@@ -88,11 +88,14 @@ module Trailblazer
               scope_i = seq.index(seq.last)
               scope = ["input.scope", [Runtime.method(:build_context), {}]]
               seq[scope_i] = scope
-              @pipe.instance_variable_set(:@sequence, seq)
+              # @pipe.instance_variable_set(:@sequence, seq)
+
+              @sequence = seq.collect { |_, config| config }
 
               @id = "XXX"
             end
 
+            # Called from the official taskWrap, with the official taskWrap interface (wrap_ctx, original_args).
             def call(wrap_ctx, original_args)
               (original_ctx, original_flow_options), original_circuit_options = original_args
 
@@ -102,9 +105,10 @@ module Trailblazer
               ctx_for_pipe = {original_ctx: original_ctx, aggregate: {}, original_args: original_args}
 
               # use our own "runner":
-              @pipe.to_a.each do |_, (filter_circuit, call_options)|
+              @sequence.each do |filter_circuit, call_options|
                 # puts "@@@@@ Pipe, step => #{call_options[:exec_context].instance_variable_get(:@write_name).inspect}"
 
+                # for each variable, we're calling a real Circuit instance here. So we kind of need the flow_options argument, in case we ever want to apply tracing.
                 signal, (ctx_for_pipe, _) = filter_circuit.([ctx_for_pipe, {}], **call_options)
               end # DISCUSS: what about state? # DISCUSS: here, we can add :start_task, etc.
 
@@ -146,7 +150,8 @@ module Trailblazer
               scope_i = seq.index(seq.last)
               scope = ["output.scope", [Runtime.method(:merge_with_original), {}]]
               seq[scope_i] = scope
-              @pipe.instance_variable_set(:@sequence, seq)
+              # @pipe.instance_variable_set(:@sequence, seq)
+              @sequence = seq.collect { |_, config| config }
 
               @id = "XXX"
             end
@@ -160,7 +165,7 @@ module Trailblazer
               ctx_for_pipe = {original_ctx: original_ctx, aggregate: {}, original_args: original_args, returned_ctx: returned_ctx}
 
               # DISCUSS: Problem here: we have a Pipeline comprised of cicuit interface steps, not pipeline interface.
-              @pipe.to_a.each do |_, (filter_circuit, call_options)|
+              @sequence.each do |filter_circuit, call_options|
                 # puts "@@@@@ Pipe, step => #{call_options[:exec_context].instance_variable_get(:@write_name).inspect}"
 
                 signal, (ctx_for_pipe, _) = filter_circuit.([ctx_for_pipe, {}], **call_options)
