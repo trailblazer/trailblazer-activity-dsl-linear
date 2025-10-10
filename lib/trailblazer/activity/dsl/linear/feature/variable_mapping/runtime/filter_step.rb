@@ -4,27 +4,29 @@ module Trailblazer
       module VariableMapping
         module Runtime
           class FilterStep
-            def initialize(filter_activity, options)
+            def initialize(filter_activity)
               @filter_activity = filter_activity
-              @options         = options
+              # @options         = options
               @circuit = filter_activity.to_h[:activity].to_h[:circuit]
             end
 
             class MyRunner
               def self.call(task_name, (ctx, flow_options), exec_context:, **)
                 new_ctx, _ = exec_context.send(task_name, ctx, **ctx.to_h)
+
+                # FIXME: we do have Left, too!
                 return Trailblazer::Activity::Right, [ctx, flow_options]
               end
             end
-
-
 
             # DISCUSS: could we save this call by using a Pipeline Runner or something? is maybe a delegate faster?
             def call(wrap_ctx, original_args=nil) # DISCUSS: maybe pipe and activity have the same signature?
               # TODO: use quicker Runner
               # _signal, (ctx, _) =  @circuit.([wrap_ctx.merge(@options), {}])
+              _signal, (ctx, _) =  @circuit.([wrap_ctx, {}], exec_context: @filter_activity, runner: MyRunner)
+              # _signal, (ctx, _) =  @circuit.([wrap_ctx.merge(@options), {}], exec_context: @filter_activity, runner: MyRunner)
+
               # raise "maybe we can  save this call if the pipeline itself knows our options?"
-              _signal, (ctx, _) =  @circuit.([wrap_ctx.merge(@options), {}], exec_context: @filter_activity, runner: MyRunner)
               # DISCUSS: maybe pipe and activity have the same signature?
               return ctx, original_args
             end
@@ -48,14 +50,17 @@ module Trailblazer
               metal_circuit.instance_variable_set(:@start_task, start_task)
               # /Optimization time:
 
+
               # pp metal_circuit
               # raise
 
+              filter_activity = Class.new(filter_activity)
               options_for_step.each do |key, value|
                 filter_activity.instance_variable_set(:"@#{key}", value)
               end
 
-              new(filter_activity, options_for_step)
+              # new(filter_activity)
+              return metal_circuit, {exec_context: filter_activity, runner: MyRunner}
             end
 
             class DeleteFromAggregate < Trailblazer::Activity::Railway
@@ -87,20 +92,22 @@ module Trailblazer
                 ctx[:args_for_filter] = original_args
               end
 
-              def self.call_filter(ctx, filter:, args_for_filter:, **)
-              # def self.call_filter(ctx, args_for_filter:, **)
+              # def self.call_filter(ctx, filter:, args_for_filter:, **)
+              def self.call_filter(ctx, args_for_filter:, **)
                 # Calling a filter with a circuit-step interface means we
                 # need to pass [[ctx, flow_options], **cicuit_args]
                 #
                 # DISCUSS: ctx needs to be different sometimes, e.g. in Out, how to do that?
-                variable, _ = filter.(args_for_filter[0], **args_for_filter[1]) # circuit-step interface
+                variable, _ = @filter.(args_for_filter[0], **args_for_filter[1]) # circuit-step interface
+                # variable, _ = filter.(args_for_filter[0], **args_for_filter[1]) # circuit-step interface
 
                 ctx[:value] = variable
               end
 
-              def self.wrap_value_with_hash(ctx, value:, write_name:, **)
-              # def self.wrap_value_with_hash(ctx, value:, **)
-                ctx[:value] = {write_name => value}
+              # def self.wrap_value_with_hash(ctx, value:, write_name:, **)
+              def self.wrap_value_with_hash(ctx, value:, **)
+                ctx[:value] = {@write_name => value}
+                # ctx[:value] = {write_name => value}
               end
 
               def self.merge_variables_into_aggregate(ctx, aggregate:, value:, **)

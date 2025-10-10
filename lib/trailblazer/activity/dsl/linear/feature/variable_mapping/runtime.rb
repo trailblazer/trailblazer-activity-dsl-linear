@@ -8,6 +8,51 @@ module Trailblazer
 
         # These objects are created via the DSL, keep all i/o steps in a Pipeline
         # and run the latter as a taskWrap step.
+
+        module Runtime
+          def self.build_context((pipe_ctx, _), **)
+            flow_options = pipe_ctx[:original_args][0][1]
+
+            # this is the actual context passed into the step.
+            pipe_ctx[:input_ctx] = Trailblazer::Context(
+              pipe_ctx[:aggregate],
+              {}, # mutable variables
+              flow_options[:context_options]
+            )
+
+            # return pipe_ctx, original_args
+            return nil, [pipe_ctx, _]
+          end
+
+          # TODO: document
+          def self.merge_with_original((pipe_ctx, _), **)
+            original_ctx     = pipe_ctx[:original_ctx]  # outer ctx
+            output_variables = pipe_ctx[:aggregate]
+
+            # merge_variables(output_variables, pipe_ctx, original_args, original_ctx)
+            pipe_ctx[:aggregate] = original_ctx.merge(output_variables)
+
+            return nil, [pipe_ctx, _]
+          end
+
+          # @private
+          # The default {:output} filter only returns the "mutable" part of the inner ctx.
+          # This means only variables added using {inner_ctx[..]=} are merged on the outside.
+          #
+          # This unscoping is used when there is no explicit Out() filter.
+          def self.default_output_ctx((pipe_ctx, _), **)
+            new_ctx = pipe_ctx[:returned_ctx]
+
+            _wrapped, mutable = new_ctx.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
+
+            # merge_variables(mutable, pipe_ctx, original_args)
+            pipe_ctx[:aggregate] = pipe_ctx[:aggregate].merge(mutable)
+
+            return nil, [pipe_ctx, _]
+          end
+
+        end
+
         module Pipe
           class Input
             def initialize(pipe, id: :vm_original_ctx) # FIXME: remove {id}.
@@ -30,6 +75,48 @@ module Trailblazer
             end
           end
 
+
+
+
+
+          class Input_new
+            def initialize(pipe)
+              @pipe = pipe
+
+              # raise @pipe.to_a.last.inspect
+              seq = @pipe.instance_variable_get(:@sequence)
+              scope_i = seq.index(seq.last)
+              scope = ["input.scope", [Runtime.method(:build_context), {}]]
+              seq[scope_i] = scope
+              @pipe.instance_variable_set(:@sequence, seq)
+
+              @id = "XXX"
+            end
+
+            def call(wrap_ctx, original_args)
+              (original_ctx, original_flow_options), original_circuit_options = original_args
+
+              # let user compute new ctx for the wrapped task.
+              # pipe_ctx, _       = @pipe.({original_ctx: original_ctx, aggregate: {}, original_args: original_args}, original_args) # FIXME: remove 2nd arg once we know what we're using.
+
+              ctx_for_pipe = {original_ctx: original_ctx, aggregate: {}, original_args: original_args}
+
+              # use our own "runner":
+              @pipe.to_a.each do |_, (filter_circuit, call_options)|
+                # puts "@@@@@ Pipe, step => #{call_options[:exec_context].instance_variable_get(:@write_name).inspect}"
+
+                signal, (ctx_for_pipe, _) = filter_circuit.([ctx_for_pipe, {}], **call_options)
+              end # DISCUSS: what about state? # DISCUSS: here, we can add :start_task, etc.
+
+              ctx_from_input    = ctx_for_pipe[:input_ctx]
+
+              wrap_ctx = wrap_ctx.merge(@id => original_ctx) # remember the original ctx under the key {@id}.
+
+              # instead of the original Context, pass on the filtered `ctx_from_input` in the wrap.
+              return wrap_ctx, [[ctx_from_input, original_flow_options], original_circuit_options]
+            end
+          end
+
           # API in VariableMapping::Output:
           #   output_ctx = @filter.(returned_ctx, [original_ctx, returned_flow_options], **original_circuit_options)
           # Returns {output_ctx} that is used after taskWrap finished.
@@ -43,6 +130,47 @@ module Trailblazer
               pipe_ctx, _     = @pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx, aggregate: {}, original_args: original_args}, [[original_ctx, returned_flow_options], original_circuit_options])
 
               ctx_from_output = pipe_ctx[:aggregate]
+
+              wrap_ctx = wrap_ctx.merge(return_args: [ctx_from_output, returned_flow_options]) # DISCUSS: this won't allow tracing in the taskWrap as we're returning {returned_flow_options} from above.
+
+              return wrap_ctx, original_args
+            end
+          end
+
+          class Output_new < Input_new
+            def initialize(pipe)
+              @pipe = pipe
+
+              # raise @pipe.to_a.last.inspect
+              seq = @pipe.instance_variable_get(:@sequence)
+              scope_i = seq.index(seq.last)
+              scope = ["output.scope", [Runtime.method(:merge_with_original), {}]]
+              seq[scope_i] = scope
+              @pipe.instance_variable_set(:@sequence, seq)
+
+              @id = "XXX"
+            end
+
+            def call(wrap_ctx, original_args)
+              returned_ctx, returned_flow_options = wrap_ctx[:return_args]  # this is the Context returned from {call}ing the wrapped user task.
+              original_ctx                        = wrap_ctx[@id]           # grab the original ctx from before which was set in the {:input} filter.
+              # _, original_circuit_options         = original_args
+
+
+              ctx_for_pipe = {original_ctx: original_ctx, aggregate: {}, original_args: original_args, returned_ctx: returned_ctx}
+
+              # DISCUSS: Problem here: we have a Pipeline comprised of cicuit interface steps, not pipeline interface.
+              @pipe.to_a.each do |_, (filter_circuit, call_options)|
+                # puts "@@@@@ Pipe, step => #{call_options[:exec_context].instance_variable_get(:@write_name).inspect}"
+
+                signal, (ctx_for_pipe, _) = filter_circuit.([ctx_for_pipe, {}], **call_options)
+              end # DISCUSS: what about state? # DISCUSS: here, we can add :start_task, etc.
+
+
+              # let user compute the output.
+              # pipe_ctx, _     = @pipe.({original_ctx: original_ctx, returned_ctx: returned_ctx, aggregate: {}, original_args: original_args}, [[original_ctx, returned_flow_options], original_circuit_options])
+
+              ctx_from_output = ctx_for_pipe[:aggregate]
 
               wrap_ctx = wrap_ctx.merge(return_args: [ctx_from_output, returned_flow_options]) # DISCUSS: this won't allow tracing in the taskWrap as we're returning {returned_flow_options} from above.
 

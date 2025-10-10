@@ -27,7 +27,8 @@ class VariableMappingRuntimeTest < Minitest::Spec
       range.each do |i|
         step i.to_s.to_sym,
           In(filters_builder: vm::DSL::Tuple::Left::In::Builder) => [:model, :record, :params, :type, :action, :seq],
-          Out(filters_builder: vm::DSL::Tuple::Left::Out::Builder) => [:model, :id, :seq]
+          Out(filters_builder: vm::DSL::Tuple::Left::Out::Builder) => [:model, :id, :seq],
+          input_class: vm::Pipe::Input_new, output_class: vm::Pipe::Output_new
       end
 
       include T.def_steps(*range.collect { |i| i.to_s.to_sym })
@@ -117,6 +118,32 @@ Comparison:
         object-based:     1580.3 i/s
       activity-based:      582.0 i/s - 2.72x  (± 0.00) slower
 
+6. using class instance variables instead of passing those through the ctx MAKES it slower! 3 -> 4x slower.
+  this is in Ruby 3.3.6, in Ruby 3.4.1 the @filter approach is 2.8 => 2.7 improvement.
+  we also save a merge in FilterStep.call
+
+  _signal, (ctx, _) =  @circuit.([wrap_ctx.merge(@options), {}])
+  # this is slower!
+  _signal, (ctx, _) =  @circuit.([wrap_ctx, {}], exec_context: @filter_activity, runner: MyRunner)
+
+  # we don't pass :filter kwarg here.
+  def self.call_filter(ctx, args_for_filter:, **)
+    variable, _ = @filter.(args_for_filter[0], **args_for_filter[1]) # circuit-step interface
+
+    ctx[:value] = variable
+  end
+
+
+7. benchmarking with the "new" pipe
+  activity_with_activities = Class.new(Trailblazer::Activity::Railway) do
+      range.each do |i|
+        step i.to_s.to_sym,
+          In(filters_builder: vm::DSL::Tuple::Left::In::Builder) => [:model, :record, :params, :type, :action, :seq],
+          Out(filters_builder: vm::DSL::Tuple::Left::Out::Builder) => [:model, :id, :seq],
+          input_class: vm::Pipe::Input_new, output_class: vm::Pipe::Output_new
+      end
+
+
 =end
 
 =begin
@@ -128,6 +155,7 @@ pipe.call:
 
 [
   #<FilterStep.call
+  here, we merge the specific @options into {wrap_ctx}.
     this we could probably avoid by setting instance variables on Activity?
 
 ]

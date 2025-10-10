@@ -82,12 +82,14 @@ module Trailblazer
           #
           # @private
           #
-          def merge_instructions_from_dsl(**options)
+          def merge_instructions_from_dsl(input_class: Pipe::Input, output_class: Pipe::Output, **options)
             pipeline  = DSL.pipe_for_composable_input(**options)
-            input     = Pipe::Input.new(pipeline)
+            # input     = Pipe::Input.new(pipeline)
+            input     = input_class.new(pipeline)
 
             output_pipeline = DSL.pipe_for_composable_output(**options)
-            output          = Pipe::Output.new(output_pipeline)
+            # output          = Pipe::Output.new(output_pipeline)
+            output          = output_class.new(output_pipeline)
 
             return input, output
           end
