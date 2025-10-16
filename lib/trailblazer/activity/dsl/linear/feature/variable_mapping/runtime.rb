@@ -96,14 +96,15 @@ module Trailblazer
             end
 
             # Called from the official taskWrap, with the official taskWrap interface (wrap_ctx, flow_options, **).
-            def call(wrap_ctx, flow_options, **circuit_options)
+            def call(wrap_ctx, flow_options, exec_context:, **circuit_options)
               original_ctx = wrap_ctx[:original_ctx]
 
               # let user compute new ctx for the wrapped task.
               ctx_for_pipe = {
                 original_ctx: original_ctx,
                 aggregate:    {},
-                original_circuit_options: circuit_options # FIXME: test filter with {:instance_method}! do we need this here at all?
+
+                exec_context: exec_context, # DISCUSS: this is needed in atomic filters that invoke a user proc, in MyRunner, in FilterStep.
               }
 
               # use our own "runner":
@@ -164,14 +165,20 @@ module Trailblazer
               @id = "XXX"
             end
 
-            def call(wrap_ctx, flow_options, **)
+            def call(wrap_ctx, flow_options, exec_context:, **)
               returned_ctx, returned_flow_options = wrap_ctx[:return_args]  # this is the Context returned from {call}ing the wrapped user task.
               original_ctx                        = wrap_ctx[@id]           # grab the original ctx from before which was set in the {:input} filter.
               # _, original_circuit_options         = original_args
 
 # FIXME: do we actually need returned flow_options?
 
-              ctx_for_pipe = {original_ctx: original_ctx, aggregate: {}, original_circuit_options: wrap_ctx[:original_circuit_options], returned_ctx: returned_ctx}
+              ctx_for_pipe = {
+                original_ctx: original_ctx,
+                aggregate: {},
+                returned_ctx: returned_ctx,
+
+                exec_context: exec_context, # DISCUSS: this is needed in atomic filters that invoke a user proc, in MyRunner, in FilterStep.
+              }
 
               # DISCUSS: Problem here: we have a Pipeline comprised of cicuit interface steps, not pipeline interface.
               @sequence.each do |filter_circuit, call_options|

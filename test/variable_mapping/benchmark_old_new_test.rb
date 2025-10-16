@@ -174,6 +174,16 @@ Comparison:
         object-based:     1628.2 i/s
       activity-based:      652.7 i/s - 2.49x  (± 0.00) slower
 
+
+11. concept of "atomic tasks" which have their own Runner and are
+    called task.(ctx, **ctx.to_h). the ctx includes the potential :exec_context
+
+
+Comparison:
+        object-based:     1353.4 i/s
+      activity-based:      541.7 i/s - 2.50x  (± 0.00) slower
+
+
 =end
 
 =begin
