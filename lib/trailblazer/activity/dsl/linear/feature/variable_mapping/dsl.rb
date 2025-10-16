@@ -330,6 +330,19 @@ module Trailblazer
                 class Out
                   class Builder < In::Builder # FIXME: for {.call}.
                     def self.translate_tuple_call_to_filters_adds(user_filter, type: :In, **options)
+# raise "build an :instance filter"
+                      if user_filter.is_a?(Symbol) # FIXME: architecture, where do we decide that?
+                        filter = Activity::Circuit.Step(user_filter, option: true)
+
+                        runtime_step = VariableMapping::Runtime::FilterStep.build(
+                          Runtime::FilterStep::MergeVariables::Output,
+                          filter:     filter,
+                          wrap_value_with_hash: false
+                        )
+
+                        return [[runtime_step, id: "FIXME.give.me.a.name", prepend: "output.merge_with_original"]]
+                      end
+
                       # 1. how do we know we're In? because we're the filters_builder from In
                       # 2.
                       adds = user_filter.collect do |variable|

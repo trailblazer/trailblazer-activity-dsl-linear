@@ -9,11 +9,15 @@ class VariableMappingRuntimeTest < Minitest::Spec
 
     activity_with_pipelines = Class.new(Trailblazer::Activity::Railway) do
       range.each do |i|
-        step i.to_s.to_sym, In() => [:model, :record, :params, :type, :action, :seq], Out() => [:model, :id, :seq]
+        step i.to_s.to_sym, In() => [:model, :record, :params, :type, :action, :seq], Out() => [:model, :id, :seq],
+        Out() => :my_output
       end
 
       include T.def_steps(*range.collect { |i| i.to_s.to_sym })
 
+      def my_output(ctx, action:, **)
+        {todo: action}
+      end
       # step :parse, In() => [:model, :record, :params, :type, :action, :seq], Out() => [:model, :id, :seq]
 
       # def parse(ctx, record:, **)
@@ -28,10 +32,15 @@ class VariableMappingRuntimeTest < Minitest::Spec
         step i.to_s.to_sym,
           In(filters_builder: vm::DSL::Tuple::Left::In::Builder) => [:model, :record, :params, :type, :action, :seq],
           Out(filters_builder: vm::DSL::Tuple::Left::Out::Builder) => [:model, :id, :seq],
-          input_class: vm::Pipe::Input_new, output_class: vm::Pipe::Output_new
+          input_class: vm::Pipe::Input_new, output_class: vm::Pipe::Output_new,
+          Out(filters_builder: vm::DSL::Tuple::Left::Out::Builder) => :my_output
       end
 
       include T.def_steps(*range.collect { |i| i.to_s.to_sym })
+
+      def my_output(ctx, action:, **)
+        {todo: action}
+      end
     end
 
     json_chunk = {
@@ -41,21 +50,20 @@ class VariableMappingRuntimeTest < Minitest::Spec
     }
     require "json"
     json_chunk = JSON.dump(json_chunk)
-
-    pp Trailblazer::Activity::TaskWrap.invoke(activity_with_pipelines, [{seq: [], record: json_chunk, action: :edit, bla: 1}, {}])
-    pp Trailblazer::Activity::TaskWrap.invoke(activity_with_activities, [{seq: [], record: json_chunk, action: :edit, bla: 1}, {}])
+puts "testsssssssssssssssss"
+    pp Trailblazer::Activity::TaskWrap.invoke(activity_with_pipelines, {seq: [], record: json_chunk, action: :edit, bla: 1}, {})
+    pp Trailblazer::Activity::TaskWrap.invoke(activity_with_activities, {seq: [], record: json_chunk, action: :edit, bla: 1}, {})
 # raise
     Benchmark.ips do |x|
       x.report("object-based") {
-        Trailblazer::Activity::TaskWrap.invoke(activity_with_pipelines, [{seq: [], record: json_chunk, action: :edit, bla: 1}, {}])
+        Trailblazer::Activity::TaskWrap.invoke(activity_with_pipelines, {seq: [], record: json_chunk, action: :edit, bla: 1}, {})
       }
 
       x.report("activity-based") do
-        Trailblazer::Activity::TaskWrap.invoke(activity_with_activities, [{seq: [], record: json_chunk, action: :edit, bla: 1}, {}])
+        Trailblazer::Activity::TaskWrap.invoke(activity_with_activities, {seq: [], record: json_chunk, action: :edit, bla: 1}, {})
       end
 
       x.compare!
-
     end
   end
 end
@@ -159,6 +167,13 @@ manual is .02 faster, can be ignored.
 
 from 2.71 to 2.68, it's also simply less runtime noise.
 
+
+10. using positional circuit interface
+
+Comparison:
+        object-based:     1628.2 i/s
+      activity-based:      652.7 i/s - 2.49x  (± 0.00) slower
+
 =end
 
 =begin
@@ -178,4 +193,33 @@ pipe.call:
 
 
 
+=end
+
+
+=begin
+in {activity} gem, playing with different "next step" logic.
+
+         @termini     = termini
+         @name        = name
+         @start_task  = start_task
++
++        # @object_id_map = map.collect { |task, connections| [task.object_id, connections] }.to_h
+       end
+
+       # @param args [Array] all arguments to be passed to the task's `call`
+@@ -50,6 +52,7 @@ module Trailblazer
+           return [last_signal, args] if @termini.include?(task)
+
+           if (next_task = next_for(task, last_signal))
++          # if (next_task = @tuple_to_target[[task, last_signal]]) # (7.) dis-improvement: from 6.55 to 7.5 slower with tuple-based key
+             task = next_task
+           else
+             raise IllegalSignalError.new(
+@@ -75,6 +78,7 @@ module Trailblazer
+
+       def next_for(last_task, signal)
+         outputs = @map[last_task]
++        # outputs = @object_id_map[last_task.object_id]
+         outputs[signal]
+       end
 =end
