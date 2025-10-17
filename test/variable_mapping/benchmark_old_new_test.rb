@@ -184,7 +184,26 @@ Comparison:
       activity-based:      541.7 i/s - 2.50x  (± 0.00) slower
 
 
+12. DECISION: how much does the special "MyRunner" pass on to the tasks. we could always
+              pass flow_options and circuit_options the way it was done before, and then
+              the filter, or its wrap (like circuit step) would "filter out" what's needed
+              however, the Runner that is doing kwargs directly is faster. TODO: benchmark how fast :D
+
+              the runner is doing the TaskAdapter's job.
+
+13. passing circuit_options along in the sequence invocation
+  @sequence.each do |filter_circuit, call_options|
+    signal, ctx_for_pipe, flow_options = filter_circuit.(ctx_for_pipe, flow_options, **circuit_options, **call_options)
+    # vs.
+    signal, ctx_for_pipe, flow_options = filter_circuit.(ctx_for_pipe, flow_options, **call_options)
+
+    ==> the latter is 0.11x slower
+
+  The discussion here is, do we want to lose flow_options and the "real" circuit_options once we're invoking a single "FilterStep" (e.g. In[:model])?
+  what if, at some point in the future, we're deciding that a user can use an activity to compute an In() value, and that it should be traceable?
+  we'd have to entirely change the Input pipeline implementation, and start over with fucking benchmarking.
 =end
+
 
 =begin
 
