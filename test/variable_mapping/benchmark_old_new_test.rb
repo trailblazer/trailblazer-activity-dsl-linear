@@ -202,6 +202,17 @@ Comparison:
   The discussion here is, do we want to lose flow_options and the "real" circuit_options once we're invoking a single "FilterStep" (e.g. In[:model])?
   what if, at some point in the future, we're deciding that a user can use an activity to compute an In() value, and that it should be traceable?
   we'd have to entirely change the Input pipeline implementation, and start over with fucking benchmarking.
+
+14. wrapping each :args_for_filter step with our own circuit-interface adapter, removing MyRunner and using circuit::Runner
+
+  @sequence.each do |filter_circuit, filter_exec_context|
+    signal, ctx_for_pipe, flow_options = filter_circuit.(ctx_for_pipe, flow_options,
+      **circuit_options, runner: Activity::Circuit::Runner, filter_exec_context: filter_exec_context)
+
+Comparison:
+        object-based:     1347.1 i/s
+      activity-based:      433.1 i/s - 3.11x  (± 0.00) slower
+
 =end
 
 
@@ -220,8 +231,16 @@ pipe.call:
 ]
 
 
+15. comaring different signature concepts in benchmarking_bla.rb, second test.
 
+#       Comparison:
+#           positional:        3208137.1 i/s
+#                mixed:        2798721.9 i/s - 1.15x  (± 0.00) slower
+#  positional_wildcard:        2684332.2 i/s - 1.20x  (± 0.00) slower
+# positional_wildcard kwargs:  2141092.9 i/s - 1.50x  (± 0.00) slower
 
+We are seeking for a good way to combine (ctx, **ctx)  concepts while maintaining the ability for tracing.
+Tracing means, we need to return flow_options.
 =end
 
 
