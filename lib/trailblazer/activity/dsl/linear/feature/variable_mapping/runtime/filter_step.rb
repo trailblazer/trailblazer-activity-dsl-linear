@@ -13,12 +13,14 @@ module Trailblazer
 
             # NOTE: taskWrap/Pipeline runner, invoked directly via Input_new.call{ @sequence.each }
             class MyRunner
-              def self.call(task_name, ctx, flow_options, filter_step_exec_context:, **) # DISCUSS: we have a completely different set of circuit_options here
+              def self.call(task_name, ctx, flow_options, circuit_options) # DISCUSS: we have a completely different set of circuit_options here
+
+                filter_step_exec_context = circuit_options[:filter_step_exec_context]
 
                 # DISCUSS: we're doing "atomic calls" here, where we lose tracing, circuit_options, etc, because
                 #          we literally don't need or want it anymore. this is for the sake of speed, but on the
                 #          other hand we're introducing a "new" signature.
-                new_ctx, _ = filter_step_exec_context.send(task_name, ctx, **ctx.to_h) # DISCUSS: no {flow_options} being passed. we're calling an "atomic function" here?!
+                new_ctx, _ = filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, **ctx.to_h) # DISCUSS: no {flow_options} being passed. we're calling an "atomic function" here?!
 
                 # FIXME: we do have Left, too!
                 return Trailblazer::Activity::Right, ctx, flow_options
@@ -82,30 +84,30 @@ module Trailblazer
               step :wrap_value_with_hash
               step :merge_variables_into_aggregate
 
-              def self.args_for_filter(wrap_ctx, original_ctx:, **)
-                wrap_ctx[:args_for_filter] = [original_ctx]
+              def self.args_for_filter(ctx, *, original_ctx:, **)
+                ctx[:args_for_filter] = original_ctx
               end
 
               # def self.call_filter(ctx, filter:, args_for_filter:, **)
-              def self.call_filter(ctx, args_for_filter:, exec_context:, **)
+              def self.call_filter(ctx, flow_options, circuit_options, args_for_filter:, **)
                 # raise circuit_options.inspect
                 # Calling a filter with a circuit-step interface means we
                 # need to pass [[ctx, flow_options], **cicuit_args] BUT WE DON'T WANT TO PASS THE O.G. circuit_options, and maybe also not the flow_options in most cases.
                 #
                 # DISCUSS: ctx needs to be different sometimes, e.g. in Out, how to do that?
-                variable, _ = @filter.(args_for_filter[0], nil, exec_context: exec_context) # FIXME circuit-step interface
+                variable, _ = @filter.(args_for_filter, flow_options, **circuit_options) # FIXME circuit-step interface
                 # variable, _ = filter.(args_for_filter[0], **args_for_filter[1]) # circuit-step interface
 
                 ctx[:value] = variable
               end
 
               # def self.wrap_value_with_hash(ctx, value:, write_name:, **)
-              def self.wrap_value_with_hash(ctx, value:, **)
+              def self.wrap_value_with_hash(ctx, *, value:, **)
                 ctx[:value] = {@write_name => value}
                 # ctx[:value] = {write_name => value}
               end
 
-              def self.merge_variables_into_aggregate(ctx, aggregate:, value:, **)
+              def self.merge_variables_into_aggregate(ctx, *, aggregate:, value:, **)
                 ctx[:aggregate] = aggregate.merge(value)
               end
 
@@ -116,10 +118,10 @@ module Trailblazer
                 end
 
                 # DISCUSS: signature.
-                private def merge_into_ctx!(ctx, args_for_filter:, merge_variables:, **) # TODO: improve performance?
-                  new_ctx = args_for_filter[0][0].merge(**merge_variables)
+                private def merge_into_ctx!(ctx, original_ctx:, merge_variables:, **) # TODO: improve performance?
+                  new_ctx = original_ctx.merge(**merge_variables)
 
-                  ctx[:args_for_filter] = [[new_ctx, args_for_filter[0][1]], args_for_filter[1]]
+                  ctx[:args_for_filter] = new_ctx
                 end
 
                 def swap_ctx_with_aggregate(ctx, args_for_filter:, aggregate:, **)
@@ -130,9 +132,9 @@ module Trailblazer
               extend Features
 
               class Output < MergeVariables
-                def self.args_for_filter(ctx, original_ctx:, returned_ctx:, **)
+                def self.args_for_filter(ctx, *, original_ctx:, returned_ctx:, **)
                   # super(ctx, **ctx, original_args: [[new_ctx, original_args[0][1]], original_args[1]])
-                  ctx[:args_for_filter] = [original_ctx] # FIXME.
+                  ctx[:args_for_filter] = original_ctx # FIXME.
                 end
 
                 # FIXME: structure!

@@ -10,7 +10,7 @@ module Trailblazer
         # and run the latter as a taskWrap step.
 
         module Runtime
-          def self.build_context(wrap_ctx, flow_options, **)
+          def self.build_context(wrap_ctx, flow_options, circuit_options)
             # this is the actual context passed into the step.
             wrap_ctx[:input_ctx] = Trailblazer::Context(
               wrap_ctx[:aggregate],
@@ -23,7 +23,7 @@ module Trailblazer
           end
 
           # TODO: document
-          def self.merge_with_original(wrap_ctx, flow_options, **)
+          def self.merge_with_original(wrap_ctx, flow_options, circuit_options)
             original_ctx     = wrap_ctx[:original_ctx]  # outer ctx
             output_variables = wrap_ctx[:aggregate]
 
@@ -53,33 +53,6 @@ module Trailblazer
 
         module Pipe
           class Input
-            def initialize(pipe, id: :vm_original_ctx) # FIXME: remove {id}.
-              @pipe = pipe
-              @id   = id
-            end
-
-            def call(wrap_ctx, flow_options, **)
-              original_ctx, original_circuit_options = wrap_ctx[:original_ctx], wrap_ctx[:original_circuit_options]
-
-              # let user compute new ctx for the wrapped task.
-              # DISCUSS: do we need original_circuit_options?
-              # FIXME: pipes have no returned signal?
-              pipe_ctx, flow_options = @pipe.({original_ctx: original_ctx, aggregate: {}, original_circuit_options: original_circuit_options}, flow_options) # FIXME: remove 2nd arg once we know what we're using.
-              ctx_from_input    = pipe_ctx[:input_ctx]
-
-              wrap_ctx = wrap_ctx.merge(@id => original_ctx) # remember the original ctx under the key {@id}.
-
-              # instead of the original Context, pass on the filtered `ctx_from_input` in the wrap.
-              # FIXME: rename to {:application_ctx}
-              return wrap_ctx.merge(original_ctx: ctx_from_input), flow_options
-            end
-          end
-
-
-
-
-
-          class Input_new
             def initialize(pipe)
               @pipe = pipe
 
@@ -96,25 +69,25 @@ module Trailblazer
             end
 
             # Called from the official taskWrap, with the official taskWrap interface (wrap_ctx, flow_options, **).
-            def call(wrap_ctx, flow_options, exec_context:, **circuit_options)
+            def call(wrap_ctx, flow_options, circuit_options)
               original_ctx = wrap_ctx[:original_ctx]
 
               # let user compute new ctx for the wrapped task.
               ctx_for_pipe = {
                 original_ctx: original_ctx,
                 aggregate:    {},
-
-                exec_context: exec_context, # DISCUSS: this is needed in atomic filters that invoke a user proc, in MyRunner, in FilterStep.
               }
 
               # use our own "runner":
               @sequence.each do |filter_circuit, call_options|
+# raise "use the new FiltersBuilder".inspect
                 # DISCUSS: {filter_circuit} is not always correct as some "steps" are methods.
 
+          #     # instead of the original Context, pass on the filtered `ctx_from_input` in the wrap.
+          #     # FIXME: rename to {:application_ctx}
                 # puts "@@@@@ Pipe, step => #{call_options[:exec_context].instance_variable_get(:@write_name).inspect}"
-
                 # for each variable, we're calling a real Circuit instance here. So we kind of need the flow_options argument, in case we ever want to apply tracing.
-                signal, ctx_for_pipe, flow_options = filter_circuit.(ctx_for_pipe, flow_options, **call_options) # DISCUSS: pass {circuit_options} here?
+                signal, ctx_for_pipe, flow_options = filter_circuit.(ctx_for_pipe, flow_options, call_options) # DISCUSS: pass {circuit_options} here?
               end # DISCUSS: what about state? # DISCUSS: here, we can add :start_task, etc.
 
               ctx_from_input    = ctx_for_pipe[:input_ctx]
@@ -127,30 +100,7 @@ module Trailblazer
             end
           end
 
-          # API in VariableMapping::Output:
-          #   output_ctx = @filter.(returned_ctx, [original_ctx, returned_flow_options], **original_circuit_options)
-          # Returns {output_ctx} that is used after taskWrap finished.
           class Output < Input
-            def call(wrap_ctx, flow_options, **)
-              returned_ctx, returned_flow_options = wrap_ctx[:return_args]  # this is the Context returned from {call}ing the wrapped user task.
-              original_ctx                        = wrap_ctx[@id]           # grab the original ctx from before which was set in the {:input} filter.
-              original_circuit_options         = wrap_ctx[:original_circuit_options]
-
-              # let user compute the output.
-              pipe_ctx, flow_options     = @pipe.(
-                {original_ctx: original_ctx, returned_ctx: returned_ctx, aggregate: {}, original_circuit_options: original_circuit_options},
-                returned_flow_options
-              )
-
-              ctx_from_output = pipe_ctx[:aggregate]
-
-              wrap_ctx = wrap_ctx.merge(return_args: [ctx_from_output, flow_options]) # DISCUSS: this won't allow tracing in the taskWrap as we're returning {returned_flow_options} from above.
-
-              return wrap_ctx, flow_options
-            end
-          end
-
-          class Output_new < Input_new
             def initialize(pipe)
               @pipe = pipe
 
@@ -165,7 +115,7 @@ module Trailblazer
               @id = "XXX"
             end
 
-            def call(wrap_ctx, flow_options, exec_context:, **)
+            def call(wrap_ctx, flow_options, circuit_options)
               returned_ctx, returned_flow_options = wrap_ctx[:return_args]  # this is the Context returned from {call}ing the wrapped user task.
               original_ctx                        = wrap_ctx[@id]           # grab the original ctx from before which was set in the {:input} filter.
               # _, original_circuit_options         = original_args
@@ -176,15 +126,13 @@ module Trailblazer
                 original_ctx: original_ctx,
                 aggregate: {},
                 returned_ctx: returned_ctx,
-
-                exec_context: exec_context, # DISCUSS: this is needed in atomic filters that invoke a user proc, in MyRunner, in FilterStep.
               }
 
               # DISCUSS: Problem here: we have a Pipeline comprised of cicuit interface steps, not pipeline interface.
               @sequence.each do |filter_circuit, call_options|
                 # puts "@@@@@ Pipe, step => #{call_options[:exec_context].instance_variable_get(:@write_name).inspect}"
 
-                signal, ctx_for_pipe, flow_options = filter_circuit.(ctx_for_pipe, flow_options, **call_options)
+                signal, ctx_for_pipe, flow_options = filter_circuit.(ctx_for_pipe, flow_options, circuit_options.merge(call_options))
               end # DISCUSS: what about state? # DISCUSS: here, we can add :start_task, etc.
 
               ctx_from_output = ctx_for_pipe[:aggregate]
@@ -245,7 +193,8 @@ module Trailblazer
 
           attr_reader :name # TODO: used when adding to pipeline, change to to_h
 
-          def call(wrap_ctx, flow_options, filter = @filter)
+          def call(wrap_ctx, flow_options, circuit_options, filter = @filter)
+            raise circuit_options.inspect
             wrap_ctx = self.class.set_variable_for_filter(filter, @write_name, wrap_ctx, flow_options, @_FIXME_wrap_with_hash)
 
             return wrap_ctx, flow_options

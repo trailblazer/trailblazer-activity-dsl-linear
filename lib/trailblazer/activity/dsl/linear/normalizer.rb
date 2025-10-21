@@ -14,12 +14,16 @@ module Trailblazer
         module Normalizer
           # Implements adapter for a callable in a Pipeline that's called with
           # kwargs and returns a new {ctx}.
-          class TaskAdapter < Circuit::TaskAdapter
-            def call(wrap_ctx, args)
-              ctx, _ = @circuit_step.([wrap_ctx, nil]) # DISCUSS: why the circuit interface here?
+          class TaskAdapter #< Circuit::TaskAdapter
+            def initialize(filter)
+              @filter = filter
+            end
+            def call(wrap_ctx, flow_options, circuit_options)
+              ctx, _ = @filter.(wrap_ctx, **wrap_ctx)
 
               # If normalizer step returns nil, we use the old ctx.
-              return (ctx || wrap_ctx), args
+              # FIXME: this (or) sucks.
+              return (ctx || wrap_ctx), flow_options # FIXME: signal!
             end
           end # TaskAdapter
 
@@ -33,7 +37,7 @@ module Trailblazer
             # by the DSL user. Usually invoked when you call {#step}.
             def call(name, ctx)
               normalizer = @normalizers.fetch(name)
-              wrap_ctx, _ = normalizer.(ctx, nil)
+              wrap_ctx, _ = normalizer.(ctx, nil, nil) # TODO: tracing/flow_options?
               wrap_ctx
             end
           end
@@ -79,7 +83,8 @@ module Trailblazer
           #   # will call {normalizer_task} and pass ctx variables as kwargs, as follows
           #   def normalize_id(ctx, id: false, task:, **)
           def Task(user_step)
-            TaskAdapter.for_step(user_step, option: false) # we don't need Option as we don't have ciruit_options here, and no {:exec_context}
+            # TaskAdapter.for_step(user_step, option: false) # we don't need Option as we don't have ciruit_options here, and no {:exec_context}
+            TaskAdapter.new(user_step)
           end
 
           # The generic normalizer not tied to `step` or friends.
@@ -87,14 +92,14 @@ module Trailblazer
             # Adding steps to the output pipeline means they are only called when there
             # are no :outputs set already.
             outputs_pipeline = Activity::Pipeline(prepend_to_default_outputs)
-            pp outputs_pipeline
+            # pp outputs_pipeline
 
             # Call the prepend_to_outputs pipeline only if {:outputs} is not set (by Subprocess).`
             # too bad we don't have nesting here, yet.
-            defaults_for_outputs = ->(ctx, args) do
-              return [ctx, args] if ctx.key?(:outputs)
+            defaults_for_outputs = ->(ctx, flow_options, circuit_options) do
+              return [ctx, flow_options] if ctx.key?(:outputs)
 
-              outputs_pipeline.(ctx, args)
+              outputs_pipeline.(ctx, flow_options, circuit_options)
             end
 
             Activity::Pipeline(
@@ -225,7 +230,7 @@ module Trailblazer
             )
           end
 
-          def normalize_context(ctx, flow_options)
+          def normalize_context(ctx, flow_options, _)
             ctx = ctx[:options]
 
             return ctx, flow_options

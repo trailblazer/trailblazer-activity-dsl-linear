@@ -101,13 +101,13 @@ module Trailblazer
 
             # @Runtime
             # Injects {:exec_context} so that {:instance_method}s work.
-            def call(ctx, flow_options, **circuit_options)
+            def call(ctx, flow_options, circuit_options)
               activity = @state.get(:activity)
 
               activity.(
                 ctx,
                 flow_options,
-                **circuit_options.merge(exec_context: new)
+                circuit_options.merge(exec_context: new)
               )
             end
 

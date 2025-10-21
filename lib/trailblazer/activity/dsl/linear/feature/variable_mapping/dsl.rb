@@ -190,7 +190,7 @@ module Trailblazer
               end
             end # Out
 
-            def self.In(variable_name = nil, add_variables_class: SetVariable, filters_builder: In::FiltersBuilder, insert_args: {prepend: "input.scope"}, path_prefix: "input")
+            def self.In(variable_name = nil, add_variables_class: SetVariable, filters_builder: Tuple::Left::In::Builder, insert_args: {prepend: "input.scope"}, path_prefix: "input")
               In.new(
                 variable_name,
                 add_variables_class,
@@ -201,7 +201,7 @@ module Trailblazer
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filters_builder: Out::FiltersBuilder, read_from_aggregate: false, insert_args: {prepend: "output.merge_with_original"}, path_prefix: "output")
+            def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filters_builder: Tuple::Left::Out::Builder, read_from_aggregate: false, insert_args: {prepend: "output.merge_with_original"}, path_prefix: "output")
               add_variables_class = SetVariable::Output::Delete     if delete
               add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
               add_variables_class = Output::WithOuterContext if with_outer_ctx

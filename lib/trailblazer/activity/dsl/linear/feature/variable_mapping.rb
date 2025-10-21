@@ -1,4 +1,4 @@
-module Trailblazer
+  module Trailblazer
   class Activity
     module DSL
       module Linear

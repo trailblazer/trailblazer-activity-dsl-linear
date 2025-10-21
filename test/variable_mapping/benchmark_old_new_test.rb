@@ -69,7 +69,6 @@ puts "testsssssssssssssssss"
 end
 
 
-
 =begin
 
 1. 30 steps, each 5 In, 3 Out.
@@ -213,11 +212,43 @@ Comparison:
         object-based:     1347.1 i/s
       activity-based:      433.1 i/s - 3.11x  (± 0.00) slower
 
+
+15. comparing different signature concepts in benchmarking_bla.rb, second test.
+
+#       Comparison:
+#           positional:        3208137.1 i/s
+#                mixed:        2798721.9 i/s - 1.15x  (± 0.00) slower
+#  positional_wildcard:        2684332.2 i/s - 1.20x  (± 0.00) slower
+# positional_wildcard kwargs:  2141092.9 i/s - 1.50x  (± 0.00) slower
+
+We are seeking for a good way to combine (ctx, **ctx)  concepts while maintaining the ability for tracing.
+Tracing means, we need to return flow_options.
+
+16. new style, (ctx, flow_options, circuit_options, **kwargs)
+
+Comparison:
+        object-based:     1274.8 i/s
+      activity-based:      493.7 i/s - 2.58x  (± 0.00) slower
+
+17. removing *, and adding all positional arguments for each step
+
+2.62 => 2.54x
+
+hm, deciding against it, not worth it.
+
+
+18. benchmarking two separate gems using appraisal.
+
+activities with lots of In() and Out() are 3x slower.
+pure activities using the new 3-positional interface are actually faster!
+@@@@@ 2.1 "8.010k"
+@@@@@ 2.2 "8.064k"
+
+
+
 =end
 
-
 =begin
-
 #<Pipe::Input
   we need this to build the aggregate at runtime, and to set the input ctx after the input pipe has been run.
 
@@ -229,19 +260,8 @@ pipe.call:
     this we could probably avoid by setting instance variables on Activity?
 
 ]
-
-
-15. comaring different signature concepts in benchmarking_bla.rb, second test.
-
-#       Comparison:
-#           positional:        3208137.1 i/s
-#                mixed:        2798721.9 i/s - 1.15x  (± 0.00) slower
-#  positional_wildcard:        2684332.2 i/s - 1.20x  (± 0.00) slower
-# positional_wildcard kwargs:  2141092.9 i/s - 1.50x  (± 0.00) slower
-
-We are seeking for a good way to combine (ctx, **ctx)  concepts while maintaining the ability for tracing.
-Tracing means, we need to return flow_options.
 =end
+
 
 
 =begin
