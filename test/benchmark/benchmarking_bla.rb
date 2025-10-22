@@ -61,6 +61,17 @@ class SignatureBenchmark < Minitest::Spec
     def self.positional_wildcard_kwargs_wildcard(ctx, *, **)
       ctx[:seq] << 1
     end
+
+    def self.positional_explicit_and_kwargs(ctx, flow_options, circuit_options, seq:, **)
+      seq << 1
+    end
+
+    def self.positional_translating_to_step_interface(ctx, flow_options, circuit_options)
+      filter_with_step_interface(ctx, **ctx)
+    end
+    def self.filter_with_step_interface(ctx, seq:, **)
+      seq << 1
+    end
   end
 
   it "comparing different signature concepts" do
@@ -85,17 +96,30 @@ class SignatureBenchmark < Minitest::Spec
         Bla.positional_wildcard_kwargs_wildcard(ctx={seq: []}, {}, {runner: Object}, **ctx)
       end
 
+      # no wildcard
+      x.report("positional all args explicit and with kwargs") do
+        Bla.positional_explicit_and_kwargs(ctx={seq: []}, {}, {runner: Object}, **ctx)
+      end
+
       x.report("positional two wildcards, omitting **ctx") do
         Bla.positional_wildcard_kwargs_wildcard(ctx={seq: []}, {}, {runner: Object})
       end
 
+      x.report("positional translating to step interface") do
+        Bla.positional_translating_to_step_interface({seq: []}, {}, {runner: Object})
+      end
+
       x.compare!
 
-#       Comparison:
-#           positional:        3208137.1 i/s
-#                mixed:        2798721.9 i/s - 1.15x  (± 0.00) slower
-#  positional_wildcard:        2684332.2 i/s - 1.20x  (± 0.00) slower
-# positional_wildcard kwargs:  2141092.9 i/s - 1.50x  (± 0.00) slower
+# Comparison:
+#           positional:  3011101.7 i/s
+#                mixed:  2628040.6 i/s - 1.15x  (± 0.00) slower
+#  positional_wildcard:  2546450.1 i/s - 1.18x  (± 0.00) slower
+# positional two wildcards, omitting **ctx:  2467748.2 i/s - 1.22x  (± 0.00) slower
+# positional two wildcards:  2412093.2 i/s - 1.25x  (± 0.00) slower
+# positional translating to step interface:  2187172.0 i/s - 1.38x  (± 0.00) slower
+# positional_wildcard kwargs:  1986416.5 i/s - 1.52x  (± 0.00) slower
+
 
     end
   end
