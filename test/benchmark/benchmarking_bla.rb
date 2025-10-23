@@ -123,4 +123,77 @@ class SignatureBenchmark < Minitest::Spec
 
     end
   end
+
+  it "comparing Pipeline that directly calls task vs. with runner" do
+    module Blaa
+      def self.pipeline_call_with_direct_task_call(sequence, ctx, flow_options, circuit_options)
+        sequence.each do |task, call_options|
+          ctx, flow_options = task.(ctx, flow_options, call_options)
+        end
+
+        return ctx, flow_options, circuit_options
+      end
+
+      def self.pipeline_calls_activity(sequence, ctx, flow_options, circuit_options)
+        sequence.each do |activity|
+          ctx, flow_options = activity.(ctx, flow_options, circuit_options)
+        end
+
+        return ctx, flow_options, circuit_options
+      end
+
+      Task = ->(ctx, flow_options, circuit_options) { ctx[:seq] << 1; [ctx, flow_options] }
+
+      # def self.my_runner(task, ctx, flow_options, circuit_options)
+
+      # end
+
+      # def self.pipeline_call_with_runner(sequence, ctx, flow_options, circuit_options)
+      #   sequence.each do |task|
+      #     ctx, flow_options = my_runner(task, ctx, flow_options, circuit_options)
+      #   end
+      # end
+    end
+
+    sequence_with_call_options = (1..30).collect do |i|
+      [Blaa::Task, {bla: 1}]
+    end
+
+    class MyActivity
+      MyCallOptions = {bla: 1}
+
+      def self.call(ctx, flow_options, circuit_options)
+        Blaa::Task.(ctx, flow_options, MyCallOptions)
+      end
+    end
+
+    sequence_with_activity = (1..30).collect do |i|
+      MyActivity
+    end
+
+    ctx, _ = Blaa.pipeline_call_with_direct_task_call(sequence_with_call_options, {seq: []}, {}, {})
+    puts "@@@@@ #{ctx.inspect}"
+
+    ctx, _ = Blaa.pipeline_calls_activity(sequence_with_activity, {seq: []}, {}, {})
+    puts "@@@@@ #{ctx.inspect}"
+
+    Benchmark.ips do |x|
+      x.report("direct") {
+        Blaa.pipeline_call_with_direct_task_call(sequence_with_call_options, {seq: []}, {}, {})
+      }
+
+      x.report("activity") {
+        Blaa.pipeline_calls_activity(sequence_with_activity, {seq: []}, {}, {})
+      }
+
+      x.compare!
+
+# Learning: indirection via Activity.call isn't much slower.
+
+# Comparison:
+#               direct:   192105.2 i/s
+#             activity:   177651.9 i/s - 1.08x  (± 0.00) slower
+
+    end
+  end
 end

@@ -7,9 +7,10 @@ range = 1..30
 
 activity = Class.new(Trailblazer::Activity::Railway) do
   range.each do |i|
-    step i.to_s.to_sym,#, In() => [:model, :record, :params, :type, :action, :seq],
+    step i.to_s.to_sym, In() => [:model, :record, :params, :type, :action, :seq],
     Out() => [:model, :id, :seq],
-    In() => [:seq, :action],
+    # In() => [:seq, :action],
+    # In() => :my_input,
     Out() => :my_output
   end
 
@@ -17,6 +18,10 @@ activity = Class.new(Trailblazer::Activity::Railway) do
 
   def my_output(ctx, action:, **)
     {todo: action}
+  end
+
+  def my_input(ctx, seq:, **)
+    {seq: seq}
   end
   # step :parse, In() => [:model, :record, :params, :type, :action, :seq], Out() => [:model, :id, :seq]
 
