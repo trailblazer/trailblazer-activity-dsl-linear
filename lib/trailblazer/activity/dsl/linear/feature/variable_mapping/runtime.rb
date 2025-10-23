@@ -24,11 +24,11 @@ module Trailblazer
 
           # TODO: document
           def self.merge_with_original(wrap_ctx, flow_options, circuit_options)
-            original_ctx     = wrap_ctx[:original_ctx]  # outer ctx
+            application_ctx     = wrap_ctx[:application_ctx]  # outer ctx
             output_variables = wrap_ctx[:aggregate]
 
-            # merge_variables(output_variables, wrap_ctx, original_args, original_ctx)
-            wrap_ctx[:aggregate] = original_ctx.merge(output_variables)
+            # merge_variables(output_variables, wrap_ctx, original_args, application_ctx)
+            wrap_ctx[:aggregate] = application_ctx.merge(output_variables)
 
             return nil, wrap_ctx, flow_options
           end
@@ -70,17 +70,18 @@ module Trailblazer
 
             # Called from the official taskWrap, with the official taskWrap interface (wrap_ctx, flow_options, **).
             def call(wrap_ctx, flow_options, circuit_options)
-              original_ctx = wrap_ctx[:original_ctx]
+              application_ctx = wrap_ctx[:application_ctx]
 
               # let user compute new ctx for the wrapped task.
               ctx_for_pipe = {
-                original_ctx: original_ctx,
+                application_ctx: application_ctx,
                 aggregate:    {},
               }
 
               # use our own "runner":
+              # DISCUSS: executing each filter_circuit here could also be done with a special runner,
+              #          one that knows where to find the call_options, etc. this could be a generic Pipeline feature.
               @sequence.each do |filter_circuit, call_options|
-# raise "use the new FiltersBuilder".inspect
                 # DISCUSS: {filter_circuit} is not always correct as some "steps" are methods.
 
           #     # instead of the original Context, pass on the filtered `ctx_from_input` in the wrap.
@@ -88,15 +89,15 @@ module Trailblazer
                 # puts "@@@@@ Pipe, step => #{call_options[:exec_context].instance_variable_get(:@write_name).inspect}"
                 # for each variable, we're calling a real Circuit instance here. So we kind of need the flow_options argument, in case we ever want to apply tracing.
                 signal, ctx_for_pipe, flow_options = filter_circuit.(ctx_for_pipe, flow_options, call_options) # DISCUSS: pass {circuit_options} here?
-              end # DISCUSS: what about state? # DISCUSS: here, we can add :start_task, etc.
+              end # DISCUSS: what about state? # DISCUSS: here, we   can add :start_task, etc.
 
               ctx_from_input    = ctx_for_pipe[:input_ctx]
 
-              wrap_ctx = wrap_ctx.merge(@id => original_ctx) # remember the original ctx under the key {@id}.
+              wrap_ctx = wrap_ctx.merge(@id => application_ctx) # remember the original ctx under the key {@id}.
 
               # instead of the original Context, pass on the filtered `ctx_from_input` in the wrap.
               # FIXME: rename to {:application_ctx}
-              return wrap_ctx.merge(original_ctx: ctx_from_input), flow_options
+              return wrap_ctx.merge(application_ctx: ctx_from_input), flow_options
             end
           end
 
@@ -117,13 +118,13 @@ module Trailblazer
 
             def call(wrap_ctx, flow_options, circuit_options)
               returned_ctx, returned_flow_options = wrap_ctx[:return_args]  # this is the Context returned from {call}ing the wrapped user task.
-              original_ctx                        = wrap_ctx[@id]           # grab the original ctx from before which was set in the {:input} filter.
+              application_ctx                        = wrap_ctx[@id]           # grab the original ctx from before which was set in the {:input} filter.
               # _, original_circuit_options         = original_args
 
 # FIXME: do we actually need returned flow_options?
 
               ctx_for_pipe = {
-                original_ctx: original_ctx,
+                application_ctx: application_ctx,
                 aggregate: {},
                 returned_ctx: returned_ctx,
               }

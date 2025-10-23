@@ -17,10 +17,8 @@ module Trailblazer
 
                 filter_step_exec_context = circuit_options[:filter_step_exec_context]
 
-                # DISCUSS: we're doing "atomic calls" here, where we lose tracing, circuit_options, etc, because
-                #          we literally don't need or want it anymore. this is for the sake of speed, but on the
-                #          other hand we're introducing a "new" signature.
-                new_ctx, _ = filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, **ctx.to_h) # DISCUSS: no {flow_options} being passed. we're calling an "atomic function" here?!
+                new_ctx, _ = filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, **ctx.to_h)
+                # FIXME: new_ctx gets lost?
 
                 # FIXME: we do have Left, too!
                 return Trailblazer::Activity::Right, ctx, flow_options
@@ -84,8 +82,8 @@ module Trailblazer
               step :wrap_value_with_hash
               step :merge_variables_into_aggregate
 
-              def self.args_for_filter(ctx, *, original_ctx:, **)
-                ctx[:args_for_filter] = original_ctx
+              def self.args_for_filter(ctx, *, application_ctx:, **)
+                ctx[:args_for_filter] = application_ctx
               end
 
               # def self.call_filter(ctx, filter:, args_for_filter:, **)
@@ -118,8 +116,8 @@ module Trailblazer
                 end
 
                 # DISCUSS: signature.
-                private def merge_into_ctx!(ctx, original_ctx:, merge_variables:, **) # TODO: improve performance?
-                  new_ctx = original_ctx.merge(**merge_variables)
+                private def merge_into_ctx!(ctx, application_ctx:, merge_variables:, **) # TODO: improve performance?
+                  new_ctx = application_ctx.merge(**merge_variables)
 
                   ctx[:args_for_filter] = new_ctx
                 end
@@ -132,9 +130,9 @@ module Trailblazer
               extend Features
 
               class Output < MergeVariables
-                def self.args_for_filter(ctx, *, original_ctx:, returned_ctx:, **)
+                def self.args_for_filter(ctx, *, application_ctx:, returned_ctx:, **)
                   # super(ctx, **ctx, original_args: [[new_ctx, original_args[0][1]], original_args[1]])
-                  ctx[:args_for_filter] = original_ctx # FIXME.
+                  ctx[:args_for_filter] = application_ctx # FIXME.
                 end
 
                 # FIXME: structure!
