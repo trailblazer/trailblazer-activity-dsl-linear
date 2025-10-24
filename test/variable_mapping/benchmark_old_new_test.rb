@@ -71,6 +71,12 @@ end
 
 =begin
 
+It all started with
+  def self.build(filter_activity = MergeVariables, wrap_value_with_hash: true, **options_for_step, &block)
+  vs.
+  the wrap_value_with_hash decision at runtime, as a hack.
+
+
 1. 30 steps, each 5 In, 3 Out.
    FilterStep is called using normal Activity#call, no optimizations.
 
@@ -244,6 +250,12 @@ pure activities using the new 3-positional interface are actually faster!
 @@@@@ 2.1 "8.010k"
 @@@@@ 2.2 "8.064k"
 
+Again, why are we changing from [ctx, flow_options], **circuit_options? because we
+can have "filters" with the following signature now
+  def self.args_for_filter(ctx, *, original_ctx:, **)
+they don't need any TaskAdapter wrapping, and they're traceable. We're not "wasting"
+the kwargs.
+ALSO: pipeline etc have the same interface.
 
 
 =end

@@ -52,7 +52,7 @@ module Trailblazer
               CustomOutput  = Struct.new(:signal, :semantic, :generic?).include(Output) # generic? is always false
             end
 
-            def normalize_output_tuples(ctx, **)
+            def normalize_output_tuples(ctx, flow_options, _, **)
               output_tuples = ctx.find_all { |k, v| k.is_a?(OutputTuples::Output) }
 
               # key by semantic in the order they were added to filter out overridden default outputs:
@@ -62,23 +62,27 @@ module Trailblazer
               outputs_by_semantic = output_tuples.collect { |output, target| [output.semantic, [output, target]] }.to_h
               output_tuples = outputs_by_semantic.collect { |_, (output, target)| [output, target] }.to_h
 
-              ctx.merge(output_tuples: output_tuples)
+              ctx = ctx.merge(output_tuples: output_tuples)
+
+              return ctx, flow_options
             end
 
             # Remember all custom (non-generic) {:output_tuples}.
-            def remember_custom_output_tuples(ctx, output_tuples:, **)
+            def remember_custom_output_tuples(ctx, flow_options, _, output_tuples:, **)
               # We don't include generic OutputSemantic (from Subprocess(strict: true)) for inheritance, as this is not a user customization.
               custom_output_tuples = output_tuples.reject { |k, v| k.generic? }
 
               # save Output() tuples under {:custom_output_tuples} for inheritance.
-              ctx.merge(
+              ctx = ctx.merge(
                 Normalizer::Inherit.Record(custom_output_tuples.to_h, type: :custom_output_tuples)
               )
+
+              return ctx, flow_options
             end
 
             # Take all Output(signal, semantic), convert to OutputSemantic and extend {:outputs}.
             # Since only users use this style, we don't have to filter.
-            def register_additional_outputs(ctx, output_tuples:, outputs:, id:,**)
+            def register_additional_outputs(ctx, flow_options, _, output_tuples:, outputs:, id:,**)
               # We need to preserve the order when replacing Output with OutputSemantic,
               # that's why we recreate {output_tuples} here.
               output_tuples =
@@ -94,18 +98,20 @@ module Trailblazer
                   end
                 end
 
-              ctx.merge(
+              ctx = ctx.merge(
                 output_tuples: output_tuples,
                 outputs:       outputs
               )
+
+              return ctx, flow_options
             end
 
             # Implements {inherit: :outputs, strict: false}
             # return connections from {parent} step which are supported by current step
-            def filter_inherited_output_tuples(ctx, outputs:, output_tuples:, inherit: false, inherited_recorded_options: {}, **)
-              return unless inherit === true
+            def filter_inherited_output_tuples(ctx, flow_options, _, outputs:, output_tuples:, inherit: false, inherited_recorded_options: {}, **)
+              return ctx, flow_options unless inherit === true
               strict_outputs = false # TODO: implement "strict outputs" for inherit! meaning we connect all inherited Output regardless of the new activity's interface
-              return if strict_outputs === true
+              return ctx, flow_options if strict_outputs === true
 
               # Grab the inherited {:custom_output_tuples} so we can throw those out if the new activity doesn't support
               # the respective outputs.
@@ -118,9 +124,11 @@ module Trailblazer
 
               filtered_output_tuples = output_tuples.reject { |output, _| unsupported_semantics.include?(output.semantic) }
 
-              ctx.merge(
+              ctx = ctx.merge(
                 output_tuples: filtered_output_tuples.to_h
               )
+
+              return ctx, flow_options
             end
 
             # Compile connections from tuples.
@@ -129,7 +137,7 @@ module Trailblazer
 
               # we want this in the end:
               # {output.semantic => search strategy}
-              def compile_wirings(ctx, adds:, output_tuples:, outputs:, id:, **)
+              def compile_wirings(ctx, flow_options, _, adds:, output_tuples:, outputs:, id:, **)
                 # DISCUSS: how could we add another magnetic_to to an end?
                 # Go through all {Output() => Track()/Id()/End()} tuples.
                 wirings =
@@ -145,10 +153,12 @@ module Trailblazer
                     search_builder.(output, *search_args)
                   end
 
-                ctx.merge(
+                ctx = ctx.merge(
                   wirings: wirings,
                   adds: adds
                 )
+
+                return ctx, flow_options
               end
 
               # Returns ADDS for the new terminus.

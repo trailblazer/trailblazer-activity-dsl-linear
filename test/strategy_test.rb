@@ -101,7 +101,7 @@ EOS
     start_task = Activity::Introspect.Nodes(activity, id: :find_model).task
     ctx = {seq: []}
     #@ Positionals and kwargs are passed on:
-    signal, (ctx, _) = activity.invoke([ctx, {}], start_task: start_task)
+    ctx, _, signal = activity.invoke(ctx, {}, start_task: start_task)
 
     assert_equal signal.to_h[:semantic], :success
     # The presence of {:model} here means taskWrap extensions have been run.

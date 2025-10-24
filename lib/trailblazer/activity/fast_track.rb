@@ -15,9 +15,9 @@ module Trailblazer
 
         def Normalizer(prepend_to_default_outputs: {}, base_normalizer_builder: Railway::DSL.method(:Normalizer))
           fast_track_output_steps = {
-            "fast_track.pass_fast_output"     => Linear::Normalizer.Task(method(:add_pass_fast_output)),
-            "fast_track.fail_fast_output"     => Linear::Normalizer.Task(method(:add_fail_fast_output)),
-            "fast_track.fast_track_outputs"   => Linear::Normalizer.Task(method(:add_fast_track_outputs)),
+            "fast_track.pass_fast_output"     => method(:add_pass_fast_output),
+            "fast_track.fail_fast_output"     => method(:add_fail_fast_output),
+            "fast_track.fast_track_outputs"   => method(:add_fast_track_outputs),
           }
 
           # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
@@ -29,10 +29,10 @@ module Trailblazer
             step_normalizer,
             PREPEND_TO,
             {
-              "fast_track.record_options"     => Linear::Normalizer.Task(method(:record_options)),
-              "fast_track.pass_fast_option"   => Linear::Normalizer.Task(method(:pass_fast_option)),
-              "fast_track.fail_fast_option"   => Linear::Normalizer.Task(method(:fail_fast_option)),
-              "fast_track.fast_track_option"  => Linear::Normalizer.Task(method(:add_fast_track_connectors)),
+              "fast_track.record_options"     => method(:record_options),
+              "fast_track.pass_fast_option"   => method(:pass_fast_option),
+              "fast_track.fail_fast_option"   => method(:fail_fast_option),
+              "fast_track.fast_track_option"  => method(:add_fast_track_connectors),
             }
           )
         end
@@ -47,7 +47,7 @@ module Trailblazer
               pipeline,
               PREPEND_TO,
               {
-                "fast_track.fail_fast_option_for_fail"  => Linear::Normalizer.Task(DSL.method(:fail_fast_option_for_fail)),
+                "fast_track.fail_fast_option_for_fail"  => DSL.method(:fail_fast_option_for_fail),
               }
             )
           end
@@ -63,7 +63,7 @@ module Trailblazer
               pipeline,
               PREPEND_TO,
               {
-                "fast_track.pass_fast_option_for_pass"  => Linear::Normalizer.Task(DSL.method(:pass_fast_option_for_pass)),
+                "fast_track.pass_fast_option_for_pass"  => DSL.method(:pass_fast_option_for_pass),
               }
             )
           end

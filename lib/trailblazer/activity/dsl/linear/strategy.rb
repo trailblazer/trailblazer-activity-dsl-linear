@@ -175,6 +175,7 @@ module Trailblazer
             end
 
             # Wraps {user_step} into a circuit-interface compatible callable, a.k.a. "task".
+            # TODO: why is this here and not in the normalizer?
             def build_circuit_task_for_step(user_step)
               Activity::Circuit::TaskAdapter.for_step(user_step, option: true)
             end

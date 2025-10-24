@@ -2,6 +2,8 @@
 
 ## Normalizer
 
+* Remove Linear::Normalizer.Task(
+
 * Make the `ctx` immutable, each normalizer step can `merge` and has to return the new ctx or nil. This also
   simplifies merging particular options before others.
 * This is implemented in the new `Normalizer::TaskAdapter`.
@@ -44,6 +46,7 @@ Activity subclasses maintain a field {:task_wrap_extensions} that can be used to
 * Adding `Extension(append: ...)`, making DSL extensions (the "left" ones) sortable. That allows to tweak things like
   the variable mapping extensions even after they have been created. Note that this is still undocumented and considered
   private. :kiss:
+  Trailblazer::Activity::Railway.Extension(append: "variable_mapping") => Trailblazer::Activity::TaskWrap::Extension(
 * Removed deprecated :override. Use :replace.
 *  Removed Inject () => { ... }
 * Removed :row, use ADDS [row, id: row.id, ...]

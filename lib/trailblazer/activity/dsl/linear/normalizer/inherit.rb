@@ -23,8 +23,8 @@ module Trailblazer
             #
             ### Recall
             # Fetch remembered options and add them to the processed options.
-            def recall_recorded_options(ctx, sequence:, id:, inherit: nil, **)
-              return unless inherit === true || inherit.is_a?(Array)
+            def recall_recorded_options(ctx, flow_options, _, sequence:, id:, inherit: nil, **)
+              return ctx, flow_options unless inherit === true || inherit.is_a?(Array)
 
               # E.g. {variable_mapping: true, wiring_api: true}
               types_to_recall =
@@ -45,9 +45,11 @@ module Trailblazer
               end
 
 
-              ctx.merge(
+              ctx = ctx.merge(
                 inherited_recorded_options: row.data[:recorded_options]
               )
+
+              return ctx, flow_options
             end
 
             def find_row(sequence, id)
@@ -57,7 +59,7 @@ module Trailblazer
             ### Record
             # Figure out what to remember from the options and store it in {row.data[:recorded_options]}.
             # Note that this is generic logic not tied to variable_mapping, OutputTuples or anything.
-            def compile_recorded_options(ctx, **)
+            def compile_recorded_options(ctx, flow_options, _, **)
               recorded_options = {}
 
               ctx
@@ -66,11 +68,13 @@ module Trailblazer
                   recorded_options[k.type] = k   # DISCUSS: we overwrite potential data with same type.
                 end
 
-              ctx.merge(
+              ctx = ctx.merge(
                 recorded_options:   recorded_options,
                 # add {row.data[:recorded_options]} in Sequence:
                 Strategy.DataVariable() => :recorded_options
               )
+
+              return ctx, flow_options
             end
           end # Inherit
         end

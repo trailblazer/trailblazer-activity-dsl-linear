@@ -30,21 +30,23 @@ module Trailblazer
             # Don't record Extension()s created by the DSL! This happens in VariableMapping, for instance.
             # Either the user also inherits I/O tuples and the extension will be recreated,
             # or they really don't want this particular extension to be inherited.
-            def compile_recorded_extensions(ctx, **)
+            def compile_recorded_extensions(ctx, flow_options, _, **)
               recorded_extension_tuples =
                 ctx
                   .find_all { |k, v| k.instance_of?(Extension) }
                   .reject   { |k, v| k.generic? }
                   .to_h
 
-              ctx.merge(
+              ctx = ctx.merge(
                 Normalizer::Inherit.Record(recorded_extension_tuples, type: :extensions)
               )
+
+              return ctx, flow_options
             end
 
             # Fetch the {:normalizer_extensions} from the activity's field.
-            def compute_normalizer_extensions(ctx, subprocess: false, task:, normalizer_extensions: nil, **)
-              return if normalizer_extensions
+            def compute_normalizer_extensions(ctx, flow_options, _, subprocess: false, task:, normalizer_extensions: nil, **)
+              return ctx, flow_options if normalizer_extensions
 
               if subprocess
                 # Activity subclasses maintain a field {:task_wrap_extensions} that can be used to expose the
@@ -54,17 +56,21 @@ module Trailblazer
                 normalizer_extensions = Strategy::INITIAL_NORMALIZER_EXTENSIONS
               end
 
-              ctx.merge(normalizer_extensions: normalizer_extensions)
+              ctx = ctx.merge(normalizer_extensions: normalizer_extensions)
+
+              return ctx, flow_options
             end
 
             # (Normalizer step)
             # Compile all normalizer extensions.
             # Note that they have access to the entire normalizer {ctx}.
-            def compile_normalizer_extensions(ctx, normalizer_extensions:, **)
+            def compile_normalizer_extensions(ctx, flow_options, _, normalizer_extensions:, **)
               # pp normalizer_extensions
-              normalizer_extensions.inject(ctx) do |ctx, ext|
+              ctx = normalizer_extensions.inject(ctx) do |ctx, ext|
                 ext.(ctx, **ctx.to_hash)
               end
+
+              return ctx, flow_options
             end
           end # Extensions
         end

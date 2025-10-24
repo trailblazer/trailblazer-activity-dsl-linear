@@ -8,7 +8,7 @@ module Trailblazer
 
         def Normalizer(prepend_to_default_outputs: {})
           railway_output_steps = {
-            "railway.outputs" => Linear::Normalizer.Task(method(:add_failure_output)),
+            "railway.outputs" => method(:add_failure_output),
           }
 
           # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
@@ -20,7 +20,7 @@ module Trailblazer
             step_normalizer,
             Path::DSL::PREPEND_TO,
             {
-              "railway.step.add_failure_connector" => Linear::Normalizer.Task(method(:add_failure_connector)),
+              "railway.step.add_failure_connector" => method(:add_failure_connector),
             },
           )
         end
@@ -36,25 +36,29 @@ module Trailblazer
               DSL.Normalizer(**options), # grab Railway::DSL::Normalizer.
               Path::DSL::PREPEND_TO,
               {
-                "railway.magnetic_to.fail" => Linear::Normalizer.Task(Fail.method(:merge_magnetic_to)),
+                "railway.magnetic_to.fail" => Fail.method(:merge_magnetic_to),
               }
             )
 
             pipeline = Linear::Normalizer.replace(
               pipeline,
               "path.step.add_success_connector",
-              ["railway.fail.success_to_failure", Linear::Normalizer.Task(Fail.method(:connect_success_to_failure))],
+              ["railway.fail.success_to_failure", Fail.method(:connect_success_to_failure)],
             )
           end
 
-          def merge_magnetic_to(ctx, **)
-            ctx.merge(magnetic_to: :failure)
+          def merge_magnetic_to(ctx, flow_options, _, **)
+            ctx = ctx.merge(magnetic_to: :failure)
+
+            return ctx, flow_options
           end
 
           SUCCESS_TO_FAILURE_CONNECTOR = {Linear::Normalizer::OutputTuples.Output(:success) => Linear::Strategy.Track(:failure)}
 
-          def connect_success_to_failure(ctx, **)
-            SUCCESS_TO_FAILURE_CONNECTOR.merge(ctx)
+          def connect_success_to_failure(ctx, flow_options, _, **)
+            ctx = SUCCESS_TO_FAILURE_CONNECTOR.merge(ctx)
+
+            return ctx, flow_options
           end
         end
 
@@ -65,14 +69,14 @@ module Trailblazer
             Linear::Normalizer.replace(
               DSL.Normalizer(**options), # grab Railway::DSL::Normalizer.
               "railway.step.add_failure_connector",
-              ["railway.pass.failure_to_success", Linear::Normalizer.Task(Pass.method(:connect_failure_to_success))]
+              ["railway.pass.failure_to_success", Pass.method(:connect_failure_to_success)]
             )
           end
 
           FAILURE_TO_SUCCESS_CONNECTOR = {Linear::Normalizer::OutputTuples.Output(:failure) => Linear::Strategy.Track(:success)}
 
-          def connect_failure_to_success(ctx, **options)
-            Railway::DSL.add_failure_connector(ctx, **options, failure_connector: FAILURE_TO_SUCCESS_CONNECTOR)
+          def connect_failure_to_success(ctx, flow_options, _, **options)
+            Railway::DSL.add_failure_connector(ctx, flow_options, _, **options, failure_connector: FAILURE_TO_SUCCESS_CONNECTOR)
           end
         end
 
@@ -83,17 +87,21 @@ module Trailblazer
 
         # Add {:failure} output to {:outputs}.
         # This is only called for non-Subprocess steps.
-        def add_failure_output(ctx, outputs:, **)
-          ctx.merge(
+        def add_failure_output(ctx, flow_options, _, outputs:, **)
+          ctx = ctx.merge(
             outputs: FAILURE_OUTPUT.merge(outputs)
           )
+
+          return ctx, flow_options
         end
 
-        def add_failure_connector(ctx, outputs:, failure_connector: FAILURE_CONNECTOR, **)
-          return unless outputs[:failure] # do not add the default failure connection when we don't have
+        def add_failure_connector(ctx, flow_options, _, outputs:, failure_connector: FAILURE_CONNECTOR, **)
+          return ctx, flow_options unless outputs[:failure] # do not add the default failure connection when we don't have
                                           # a corresponding output.
 
-          failure_connector.merge(ctx)
+          ctx = failure_connector.merge(ctx)
+
+          return ctx, flow_options
         end
 
         Normalizers = Linear::Normalizer::Normalizers.new(

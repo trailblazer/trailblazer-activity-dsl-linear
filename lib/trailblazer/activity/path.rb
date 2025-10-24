@@ -14,7 +14,7 @@ module Trailblazer
 
         def Normalizer(prepend_to_default_outputs: {})
           path_output_steps = {
-            "path.outputs" => Linear::Normalizer.Task(method(:add_success_output))
+            "path.outputs" => method(:add_success_output)
           }
 
           # Retrieve the base normalizer from {linear/normalizer.rb} and add processing steps.
@@ -26,26 +26,32 @@ module Trailblazer
             dsl_normalizer,
             PREPEND_TO,
             {
-              "path.step.add_success_connector" => Linear::Normalizer.Task(method(:add_success_connector)),
-              "path.magnetic_to"                => Linear::Normalizer.Task(method(:normalize_magnetic_to)),
+              "path.step.add_success_connector" => method(:add_success_connector),
+              "path.magnetic_to"                => method(:normalize_magnetic_to),
             }
           )
         end
 
         SUCCESS_OUTPUT = {success: Activity::Output(Activity::Right, :success)}
 
-        def add_success_output(ctx, **)
-          ctx.merge(outputs: SUCCESS_OUTPUT)
+        def add_success_output(ctx, flow_options, _, **)
+          ctx = ctx.merge(outputs: SUCCESS_OUTPUT)
+
+          return ctx, flow_options
         end
 
-        def add_success_connector(ctx, track_name:, **)
+        def add_success_connector(ctx, flow_options, _, track_name:, **)
           connectors = {Linear::Normalizer::OutputTuples.Output(:success) => Linear::Strategy.Track(track_name)}
 
-          connectors.merge(ctx)
+          ctx = connectors.merge(ctx)
+
+          return ctx, flow_options
         end
 
-        def normalize_magnetic_to(ctx, track_name:, **) # TODO: merge with Railway.merge_magnetic_to
-          ctx.merge(magnetic_to: ctx.key?(:magnetic_to) ? ctx[:magnetic_to] : track_name) # FIXME: can we be magnetic_to {nil}?
+        def normalize_magnetic_to(ctx, flow_options, _, track_name:, **) # TODO: merge with Railway.merge_magnetic_to
+          ctx = ctx.merge(magnetic_to: ctx.key?(:magnetic_to) ? ctx[:magnetic_to] : track_name) # FIXME: can we be magnetic_to {nil}?
+
+          return ctx, flow_options
         end
 
         # This is slow and should be done only once at compile-time,

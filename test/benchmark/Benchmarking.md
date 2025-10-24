@@ -3,6 +3,7 @@
 
 ```ruby
 rvm use 3.4.1
+test/benchmark$ bundle exec appraisal install
 test/benchmark$ ruby benchmark_gems.rb
 ```
 
@@ -10,7 +11,6 @@ test/benchmark$ ruby benchmark_gems.rb
 
 
 ```
-test/benchmark$ bundle exec appraisal install
 
 bundle exec appraisal ruby run_activity_for_benchmarking.rb
 ```

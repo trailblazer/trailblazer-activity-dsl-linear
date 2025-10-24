@@ -196,4 +196,53 @@ class SignatureBenchmark < Minitest::Spec
 
     end
   end
+
+  it "what the fuck with each and decomposition" do
+    class A
+      def initialize(i)
+        @i = i
+
+      end
+
+      def to_h
+        raise
+        {
+          i: @i,
+          bla: 1
+        }
+      end
+    end
+
+    seq1 = (1..30).collect { |i| [A.new(i), {}] }
+    seq2 = (1..30).collect { |i| A.new(i) }
+
+    Benchmark.ips do |x|
+      x.report("decomposition") {
+        seq1.each { |i, _| i }
+      }
+
+      x.report("single") {
+        seq2.each { |i| i }
+      }
+
+      x.compare!
+    end
+  end
+
+  it "still unfucking the above ^^" do
+    class Pipeline
+      def initialize(sequence)
+        @sequence = sequence # [[id, task], ..]
+      end
+
+      # Execute the pipeline and call all its steps, passing around the {wrap_ctx}.
+      def call(wrap_ctx, flow_options, circuit_options = {})
+        # DISCUSS: to be completely consistent, we should be using a runner to invoke the task here.
+        @sequence.each do |(_id, task)|
+          wrap_ctx, flow_options = task.(wrap_ctx, flow_options, circuit_options)
+        end
+
+        return wrap_ctx, flow_options
+      end
+  end
 end

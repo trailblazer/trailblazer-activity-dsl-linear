@@ -14,10 +14,10 @@ module Trailblazer
 
               # Replace a block-expecting {PathBranch} instance with another one that's holding
               # the global {:block} from {#step ... do end}.
-              def forward_block_for_path_branch(ctx, options:, normalizer_options:, library_options:, **)
+              def forward_block_for_path_branch(ctx, flow_options, _, options:, normalizer_options:, library_options:, **)
                 block = options[:block]
 
-                return unless block
+                return ctx, flow_options unless block
 
                 output, path_branch =
                   options.find { |output, cfg| cfg.is_a?(Linear::PathBranch) }
@@ -28,21 +28,25 @@ module Trailblazer
                     .merge(block: block)
                 )
 
-                ctx.merge(
+                ctx = ctx.merge(
                   options: ctx[:options].merge(output => path_branch_with_block)
                 )
+
+                return ctx, flow_options
               end
 
               # Convert all occurrences of Path() to a corresponding {Track}.
               # The {Track} instance contains all additional {adds} steps and
               # is picked up in {Normalizer.normalize_connections_from_dsl}.
-              def convert_paths_to_tracks(ctx, block: false, **)
+              def convert_paths_to_tracks(ctx, flow_options, _, block: false, **)
                 new_tracks = ctx
                   .find_all { |output, cfg| cfg.is_a?(Linear::PathBranch) }
                   .collect {  |output, cfg| [output, Path.convert_path_to_track(block: block, **cfg.options)]  }
                   .to_h
 
-                ctx.merge(new_tracks)
+                ctx = ctx.merge(new_tracks)
+
+                return ctx, flow_options
               end
             end # Normalizer
 

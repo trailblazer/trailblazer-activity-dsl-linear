@@ -27,8 +27,8 @@
           def self.steps_for_normalizer
             {
               # In(), Out(), {:input}, Inject() feature
-              "activity.normalize_input_output_filters"   => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:normalize_input_output_filters)),
-              "activity.input_output_dsl"                 => Linear::Normalizer.Task(VariableMapping::Normalizer.method(:input_output_dsl)),
+              "activity.normalize_input_output_filters"   => VariableMapping::Normalizer.method(:normalize_input_output_filters),
+              "activity.input_output_dsl"                 => VariableMapping::Normalizer.method(:input_output_dsl),
             }
           end
 
@@ -42,20 +42,22 @@
           # Steps that are added to the DSL normalizer.
           module Normalizer
             # Process {In() => [:model], Inject() => [:current_user], Out() => [:model]}
-            def self.normalize_input_output_filters(ctx, **)
+            def self.normalize_input_output_filters(ctx, flow_options, _, **)
               in_exts     = ctx.find_all { |k, v| k.is_a?(VariableMapping::DSL::In) || k.is_a?(VariableMapping::DSL::Inject) }
               output_exts = ctx.find_all { |k, v| k.is_a?(VariableMapping::DSL::Out) }
-              return unless in_exts.any? || output_exts.any?
+              return ctx, flow_options unless in_exts.any? || output_exts.any?
 
-              ctx.merge(
+              ctx = ctx.merge(
                 in_filters:  in_exts,
                 out_filters: output_exts
               )
+
+              return ctx, flow_options
             end
 
-            def self.input_output_dsl(ctx, **options) # TODO: rename to {#compile_task_wrap_extensions}.
+            def self.input_output_dsl(ctx, flow_options, _, **options) # TODO: rename to {#compile_task_wrap_extensions}.
               # no Input()/Output()/:initial_input_pipeline passed.
-              return unless ctx[:in_filters] || ctx[:out_filters] || ctx[:initial_input_pipeline]
+              return ctx, flow_options unless ctx[:in_filters] || ctx[:out_filters] || ctx[:initial_input_pipeline]
 
               extension = Linear.VariableMapping(**options) # {in_filters:}, {out_filters:} and {:initial_input_pipeline}.
 
@@ -65,10 +67,12 @@
 
               ctx = ctx.merge(record)
 
-              ctx.merge(
+              ctx = ctx.merge(
                 # The ("left") DSL extension got an ID so other Extensions can be evaluated after it.
                 Strategy.Extension(is_generic: true, id: "variable_mapping")  => extension
               )
+
+              return ctx, flow_options
             end
           end
 
