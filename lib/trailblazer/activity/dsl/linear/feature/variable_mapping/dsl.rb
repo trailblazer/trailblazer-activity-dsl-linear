@@ -31,7 +31,7 @@ module Trailblazer
               # No In() or {:input}. Use default ctx, which is the original ctx.
               # When using Inject without In/:input, we also need a {default_input} ctx.
               pipeline_steps = {
-                "input.scope" => VariableMapping.method(:scope), # last step
+                "input.scope" => VariableMapping::Runtime.method(:build_context), # last step
               }
 
               if add_default_ctx
@@ -53,16 +53,16 @@ module Trailblazer
 
             def initial_output_pipeline(add_default_ctx: false)
               default_ctx_row =
-                add_default_ctx ? default_output_ctx_config : {}
+                add_default_ctx ? row_for_default_output_ctx : {}
 
               Activity.Pipeline(
                 default_ctx_row
-                  .merge("output.merge_with_original" => VariableMapping.method(:merge_with_original))
+                  .merge("output.merge_with_original" => VariableMapping::Runtime.method(:merge_with_original))
               )
             end
 
-            def default_output_ctx_config # almost a Row.
-              {"output.default_output" => VariableMapping.method(:default_output_ctx)}
+            def row_for_default_output_ctx
+              {"output.default_output" => VariableMapping::Runtime.method(:default_output_ctx)}
             end
 
 

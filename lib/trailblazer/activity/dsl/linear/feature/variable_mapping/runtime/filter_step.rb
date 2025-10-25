@@ -21,7 +21,7 @@ module Trailblazer
                 # FIXME: new_ctx gets lost?
 
                 # FIXME: we do have Left, too!
-                return Trailblazer::Activity::Right, ctx, flow_options
+                return ctx, flow_options, Trailblazer::Activity::Right
               end
             end
 
@@ -41,7 +41,7 @@ module Trailblazer
               last_task = metal_circuit.to_h[:map].keys[-3]
 
               metal_circuit.instance_variable_set(:@termini, [last_task])
-              metal_circuit.instance_variable_set(:@start_task, start_task)
+              metal_circuit.instance_variable_set(:@start_task, start_task) # FIXME: we're changing a "different" circuit instance here that's sometimes shared with a superclass.
               # /Optimization time:
 
 
@@ -53,8 +53,11 @@ module Trailblazer
                 filter_activity.instance_variable_set(:"@#{key}", value)
               end
 
+              filter_activity.instance_variable_set(:"@circuit", metal_circuit)
+
               # new(filter_activity)
-              return metal_circuit, {filter_step_exec_context: filter_activity, runner: MyRunner}
+              # return metal_circuit, {filter_step_exec_context: filter_activity, runner: MyRunner}
+              return filter_activity#, {}
             end
 
             class DeleteFromAggregate < Trailblazer::Activity::Railway
@@ -68,6 +71,11 @@ module Trailblazer
             end
 
             class MergeVariables < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
+              def self.call(ctx, flow_options, circuit_options)
+                @circuit.(ctx, flow_options, circuit_options.merge(runner: MyRunner, filter_step_exec_context: self))
+              end
+
+
               Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step, :pass) do |normalizer|
                 _normalizer = Trailblazer::Activity::Adds.(
                   normalizer,
