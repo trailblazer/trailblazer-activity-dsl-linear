@@ -23,7 +23,7 @@ module Trailblazer
           end
 
           # TODO: document
-          def self.merge_with_original(wrap_ctx, flow_options, circuit_options)
+          def self.merge_with_original(wrap_ctx, flow_options, _circuit_options)
             application_ctx  = wrap_ctx[:application_ctx]  # outer ctx
             output_variables = wrap_ctx[:aggregate]
 
@@ -38,15 +38,15 @@ module Trailblazer
           # This means only variables added using {inner_ctx[..]=} are merged on the outside.
           #
           # This unscoping is used when there is no explicit Out() filter.
-          def self.default_output_ctx((pipe_ctx, _), **)
-            new_ctx = pipe_ctx[:returned_ctx]
+          def self.default_output_ctx(wrap_ctx, flow_options, _circuit_options)
+            new_ctx = wrap_ctx[:returned_ctx]
 
             _wrapped, mutable = new_ctx.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
 
             # merge_variables(mutable, pipe_ctx, original_args)
-            pipe_ctx[:aggregate] = pipe_ctx[:aggregate].merge(mutable)
+            wrap_ctx[:aggregate] = wrap_ctx[:aggregate].merge(mutable)
 
-            return nil, [pipe_ctx, _]
+            return wrap_ctx, flow_options
           end
 
         end
@@ -55,7 +55,7 @@ module Trailblazer
           class Input
             def initialize(pipe)
               @pipe = pipe
-              @id = "XXX"
+              @id = "variable_mapping.original_ctx"
             end
 
             # Called from the official taskWrap, with the official taskWrap interface (wrap_ctx, flow_options, **).
@@ -100,8 +100,8 @@ module Trailblazer
 
               ctx_for_pipe = {
                 application_ctx: application_ctx,
-                aggregate: {},
-                returned_ctx: returned_ctx,
+                aggregate:       {},
+                returned_ctx:    returned_ctx,
               }
 
               ctx_for_pipe, flow_options = @pipe.(ctx_for_pipe, flow_options, circuit_options)
@@ -132,14 +132,14 @@ module Trailblazer
         #
 
         # Filter
-        class VariableFromCtx
+        class VariableFromCtx # TODO: ReadVariableFromCtx
           def initialize(variable_name:)
             @variable_name = variable_name
           end
 
           # Grab @variable_name from {ctx}.
-          def call(ctx, _, **) # Circuit-step interface
-            return ctx[@variable_name], ctx
+          def call(ctx, flow_options, _)
+            return ctx, flow_options, ctx[@variable_name]
           end
         end
 

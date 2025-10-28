@@ -85,7 +85,7 @@ module Trailblazer
                 # pp _normalizer
               end
 
-              step :args_for_filter
+              step :args_for_filter # TODO: rename {#ctx_for_filter}.
               pass :call_filter # filter could return an actual {nil} as a value.
               step :wrap_value_with_hash
               step :merge_variables_into_aggregate
@@ -96,21 +96,14 @@ module Trailblazer
 
               # def self.call_filter(ctx, filter:, args_for_filter:, **)
               def self.call_filter(ctx, flow_options, circuit_options, args_for_filter:, **)
-                # raise circuit_options.inspect
-                # Calling a filter with a circuit-step interface means we
-                # need to pass [[ctx, flow_options], **cicuit_args] BUT WE DON'T WANT TO PASS THE O.G. circuit_options, and maybe also not the flow_options in most cases.
-                #
-                # DISCUSS: ctx needs to be different sometimes, e.g. in Out, how to do that?
-                variable, _ = @filter.(args_for_filter, flow_options, **circuit_options) # FIXME circuit-step interface
-                # variable, _ = filter.(args_for_filter[0], **args_for_filter[1]) # circuit-step interface
+                _, flow_options, value = @filter.(args_for_filter, flow_options, circuit_options)
 
-                ctx[:value] = variable
+                ctx[:value] = value # FIXME: this is a "signal to value" filter, we use that in macro, too.
               end
 
               # def self.wrap_value_with_hash(ctx, value:, write_name:, **)
               def self.wrap_value_with_hash(ctx, *, value:, **)
                 ctx[:value] = {@write_name => value}
-                # ctx[:value] = {write_name => value}
               end
 
               def self.merge_variables_into_aggregate(ctx, *, aggregate:, value:, **)
@@ -140,7 +133,7 @@ module Trailblazer
               class Output < MergeVariables
                 def self.args_for_filter(ctx, *, application_ctx:, returned_ctx:, **)
                   # super(ctx, **ctx, original_args: [[new_ctx, original_args[0][1]], original_args[1]])
-                  ctx[:args_for_filter] = application_ctx # FIXME.
+                  ctx[:args_for_filter] = returned_ctx # FIXME.
                 end
 
                 # FIXME: structure!

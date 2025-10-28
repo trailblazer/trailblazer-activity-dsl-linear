@@ -12,11 +12,9 @@ module Trailblazer
 
             # Compute pipeline for In() and Inject().
             def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
-              in_filters_adds  = DSL::Tuple.compile_tuples_to_filters(in_filters)  # Compile tuples {In() => ...}  into tw steps.
+              in_filters_adds  = DSL::Tuple.compile_tuples(in_filters)  # Compile tuples {In() => ...}  into tw steps.
 
-              _pipeline   = Activity::Adds.(initial_input_pipeline, *in_filters_adds)
-# pp _pipeline
-              _pipeline
+              Activity::Adds.(initial_input_pipeline, *in_filters_adds)
             end
 
             # initial pipleline depending on whether or not we got any In() filters.
@@ -46,11 +44,12 @@ module Trailblazer
             end
 
             def pipe_for_composable_output(out_filters: [], initial_output_pipeline: initial_output_pipeline(add_default_ctx: Array(out_filters).empty?), **)
-              out_filters_adds = DSL::Tuple.compile_tuples_to_filters(out_filters)
+              out_filters_adds = DSL::Tuple.compile_tuples(out_filters)
 
               Activity::Adds.(initial_output_pipeline, *out_filters_adds)
             end
 
+# TODO: move to Runtime
             def initial_output_pipeline(add_default_ctx: false)
               default_ctx_row =
                 add_default_ctx ? row_for_default_output_ctx : {}
@@ -74,34 +73,24 @@ module Trailblazer
             # This is also the reason why a lot of options computation such as {:with_outer_ctx} happens here and not in the IO code.
 
             class Tuple
-              def initialize(variable_name, add_variables_class, filters_builder, insert_args: {prepend: "input.scope"}, path_prefix: "input", **options)
-                @options =
-                  {
-                    variable_name:        variable_name,
-                    add_variables_class:  add_variables_class,
-                    filters_builder:      filters_builder,
-                    insert_args:          insert_args,
-                    path_prefix:          path_prefix,
-                    **options
-                  }
+              def initialize(**options)
+                @options = options
               end
 
               def to_h
                 @options
               end
 
-              def self.compile_tuples_to_filters(tuples_to_user_filters)
-                tuples_to_user_filters.flat_map { |tuple, user_filter| tuple.(user_filter) }
+              def self.compile_tuples(tuples)
+                tuples.flat_map { |left_option, right_option| call_builder(right_option, **left_option.to_h) }
               end
 
               # @return [Filter] Filter instance that keeps {name} and {aggregate_step}.
               # Tuple currently is called with the argument from the right-hand side:
               #   Inject(:name) => <right_option>
-              #
               # DISCUSS: in OutputTuples, this is called to_a
-              # Called by DSL in {#compile_tuples_to_filters}.
-              def call(right_option)
-                @options[:filters_builder].(right_option, **to_h)
+              def self.call_builder(right_option, builder:, **options)
+                builder.(right_option, **options)
               end
             end # TODO: test {:insert_args}
 
@@ -190,35 +179,35 @@ module Trailblazer
               end
             end # Out
 
-            def self.In(variable_name = nil, add_variables_class: SetVariable, filters_builder: Tuple::Left::In::Builder, insert_args: {prepend: "input.scope"}, path_prefix: "input")
+            def self.In(variable_name = nil, filter_activity: Runtime::FilterStep::MergeVariables, builder: Tuple::Left::In::Builder, insert_args: {prepend: "input.scope"}, path_prefix: "input")
               In.new(
-                variable_name,
-                add_variables_class,
-                filters_builder,
-                insert_args: insert_args,
-                path_prefix: path_prefix,
+                variable_name:   variable_name,
+                filter_activity: filter_activity,
+                builder:         builder,
+                insert_args:     insert_args,
+                path_prefix:     path_prefix,
               )
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(variable_name = nil, add_variables_class: SetVariable::Output, with_outer_ctx: false, delete: false, filters_builder: Tuple::Left::Out::Builder, read_from_aggregate: false, insert_args: {prepend: "output.merge_with_original"}, path_prefix: "output")
-              add_variables_class = SetVariable::Output::Delete     if delete
-              add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
-              add_variables_class = Output::WithOuterContext if with_outer_ctx
+            def self.Out(variable_name = nil, filter_activity: Runtime::FilterStep::MergeVariables::Output, builder: Tuple::Left::In::Builder, insert_args: {prepend: "output.merge_with_original"}, path_prefix: "output", with_outer_ctx: false, delete: false, read_from_aggregate: false)
+              # add_variables_class = SetVariable::Output::Delete     if delete
+              # add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
+              # add_variables_class = Output::WithOuterContext if with_outer_ctx
 
               Out.new(
-                variable_name,
-                add_variables_class,
-                filters_builder,
-                with_outer_ctx: with_outer_ctx,
-                insert_args: insert_args,
-                path_prefix: path_prefix,
+                variable_name:   variable_name,
+                filter_activity: filter_activity,
+                builder:         builder,
+                insert_args:     insert_args,
+                path_prefix:     path_prefix,
               )
             end
 
             # Used in the DSL by you.
             # DISCUSS: should we move the options processing and deciding code into the resp. FiltersBuilder?
-            def self.Inject(variable_name = nil, filters_builder: Inject::FiltersBuilder, override: false, pass_aggregate: false, insert_args: {prepend: "input.scope"}, path_prefix: "inject", **)
+            def self.Inject(variable_name = nil, builder: Inject::FiltersBuilder, override: false, pass_aggregate: false, insert_args: {prepend: "input.scope"}, path_prefix: "inject", **)
+              return
               options = {}
               add_variables_class = SetVariable::Default
 
@@ -229,7 +218,7 @@ module Trailblazer
               Inject.new(
                 variable_name,
                 add_variables_class,
-                filters_builder,
+                builder,
                 insert_args: insert_args,
                 path_prefix: path_prefix,
                 **options
@@ -245,6 +234,7 @@ module Trailblazer
               class FiltersBuilder < In::FiltersBuilder
                 # Called via {Tuple#call}
                 def self.translate_tuple_call_to_filters_adds(user_filter, variable_name:, **options)
+                  return []
                   # Build {SetVariable::Conditioned}
                   if user_filter.is_a?(Array)
                     user_filter = Filter.hash_for(user_filter)
@@ -299,103 +289,90 @@ module Trailblazer
             require_relative "runtime/filter_step"
             class Tuple
               module Left # FIXME: new implementation, based on Activity::Railway.
+                # Utility methods for translating right-hand options and building filters along with ADDS.
+                module Builder
+                  def self.hash_for_array(ary)
+                    ary.collect { |name| [name, name] }.to_h
+                  end
+
+                  def self.build_filter_adds_for_hash(user_hash, **options)
+                    user_hash.collect do |from_name, to_name|
+                      options_for_build = yield(options, from_name, to_name)
+
+                      circuit_filter = VariableMapping::VariableFromCtx.new(variable_name: from_name)
+
+                      build_filter_step_adds(
+                        **options_for_build,
+                        circuit_filter: circuit_filter,
+                      )
+                    end
+                  end
+
+                  def self.build_filter_step_adds(circuit_filter:, filter_activity:, insert_args:, **options_for_build)
+                    runtime_step = Runtime::FilterStep.build(
+                      filter_activity,
+                      filter: circuit_filter,
+                      **options_for_build
+                    )
+
+                    return [runtime_step, id: "FIXME.give.me.a.name", **insert_args]
+                  end
+                end
+
                 class In
-                  class Builder < DSL::In::FiltersBuilder # FIXME: for {.call}.
-                    def self.call(user_filter, insert_args:, path_prefix:, **options)
-                      translate_tuple_call_to_filters_adds(user_filter, **options)
+                  # A Builder produces a set of ADDS instructions. Each instruction adds a filter for one or many variables.
+                  class Builder
+                    # Invoked from {DSL.call_builder}.
+                    def self.call(right_option, **options)
+                      translate_right_option_to_filter_adds(right_option, **options)
                     end
 
 
-                    def self.translate_tuple_call_to_filters_adds(user_filter, type: :In, **options)
-                      # 1. how do we know we're In? because we're the filters_builder from In
-                      # 2.
-                      adds = user_filter.collect do |variable|
-                        user_filter = VariableMapping::VariableFromCtx.new(variable_name: variable)
-                        filter = user_filter # no Ciruit::Step wrapping as VariableFromCtx exposes circuit-step interface.
-
-                        runtime_step = VariableMapping::Runtime::FilterStep.build(
-                          Runtime::FilterStep::MergeVariables,
-                          filter:     filter,
-                          write_name: variable
-                        )
-
-                        [runtime_step, id: variable, prepend: "input.scope"]
+                    def self.translate_right_option_to_filter_adds(right_option, type: :In, **options_from_left_option)
+                      # # In()/Out() => [:current_user]
+                      if right_option.is_a?(Array)
+                        right_option = Left::Builder.hash_for_array(right_option)
                       end
 
-                    end
+                      # In()/Out() => {:user => :current_user}
+                      if right_option.is_a?(Hash)
+                        adds = Left::Builder.build_filter_adds_for_hash(right_option, **options_from_left_option) do |build_adds_options, from_name, to_name|
+                          build_adds_options.merge(
+                            name:                 Filter.name_for(type, from_name.inspect),
+                            write_name:           to_name,
+                            read_name:            from_name,
+                            wrap_value_with_hash: true,
+                          )
+                        end
 
-                  end
-                end
-
-                class Out
-                  class Builder < In::Builder # FIXME: for {.call}.
-                    def self.translate_tuple_call_to_filters_adds(user_filter, type: :In, **options)
-# raise "build an :instance filter"
-                      if user_filter.is_a?(Symbol) # FIXME: architecture, where do we decide that?
-                        filter = Activity::Circuit.Step(user_filter, option: true)
-
-                        runtime_step = VariableMapping::Runtime::FilterStep.build(
-                          Runtime::FilterStep::MergeVariables::Output,
-                          filter:     filter,
-                          wrap_value_with_hash: false
-                        )
-
-                        return [[runtime_step, id: "FIXME.give.me.a.name", prepend: "output.merge_with_original"]]
+                        return adds
                       end
 
-                      # 1. how do we know we're In? because we're the filters_builder from In
-                      # 2.
-                      adds = user_filter.collect do |variable|
-                        user_filter = VariableMapping::VariableFromCtx.new(variable_name: variable)
-                        filter = user_filter # no Ciruit::Step wrapping as VariableFromCtx exposes circuit-step interface.
+                      # In()/Out() => ->(*) { snippet }
+                      circuit_filter = Activity::Circuit.Step(right_option) # signature is right_option(ctx, **ctx)
 
-                        runtime_step = VariableMapping::Runtime::FilterStep.build(
-                          Runtime::FilterStep::MergeVariables::Output,
-                          filter:     filter,
-                          write_name: variable
-                        )
+                      adds_row = Left::Builder.build_filter_step_adds(
+                        circuit_filter:       circuit_filter,
+                        name:                 Filter.name_for(type, right_option.inspect), # FIXME: name.
+                        wrap_value_with_hash: false,
+                        **options_from_left_option
+                      )
 
-                        [runtime_step, id: variable, prepend: "output.merge_with_original"]
-                      end
+                      return [adds_row]
                     end
 
                   end
-                end
+                end # In
+
+
               end
             end
 
             # DISCUSS: generic, again
             module Filter
-              def self.build(add_variables_class:, **options)
-                add_variables_class.new(
-                  **options,
-                )
-              end
 
-              def self.options_for_reading(read_name:, **options)
-                {
-                  **options,
-                  filter: VariableFromCtx.new(variable_name: read_name),
-                }
-              end
 
-              def self.build_filters_for_hash(user_filter, **options)
-                user_filter.collect do |from_name, to_name|
-                  options_for_filter = yield(options, from_name, to_name)
 
-                  options_for_filter = options_for_reading(**options_for_filter)
-
-                  build(
-                    **options_for_filter,
-                    user_filter: user_filter,
-                    _FIXME_wrap_with_hash: true # FIXME: this is for single variables, as opposed to hash return values that we also support above.
-                  )
-                end
-              end
-
-              def self.hash_for(ary)
-                ary.collect { |name| [name, name] }.to_h
-              end
 
               def self.name_for(type, name, specifier = nil)
                 [type, specifier].compact.join(".") + "{#{name}}"
