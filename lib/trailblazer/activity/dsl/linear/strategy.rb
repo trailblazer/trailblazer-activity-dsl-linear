@@ -150,7 +150,7 @@ module Trailblazer
               initial_sequence = process_termini(strategy_options[:sequence], termini || strategy_termini, normalizers: strategy_dsl::Normalizers)
 
               {
-                step_interface_builder: method(:build_circuit_task_for_step),
+                step_interface_builder: Normalizer.method(:build_circuit_step_for_filter),
                 adds:                   [], # DISCUSS: needed?
                 **user_options,
                 **strategy_options, # this might (and should!) override :track_name etc.
@@ -172,12 +172,6 @@ module Trailblazer
             def append_terminus(sequence, task, normalizers:, **options)
               # DISCUSS: why are we requiring {:normalizers} here? only for invoking Normalizer.terminus
               _sequence = Linear::Sequence::Builder.update_sequence_for(:terminus, task, options, normalizers: normalizers, sequence: sequence, normalizer_options: {})
-            end
-
-            # Wraps {user_step} into a circuit-interface compatible callable, a.k.a. "task".
-            # TODO: why is this here and not in the normalizer?
-            def build_circuit_task_for_step(user_step)
-              Activity::Circuit::TaskAdapter.for_step(user_step, option: true)
             end
           end # DSL
 

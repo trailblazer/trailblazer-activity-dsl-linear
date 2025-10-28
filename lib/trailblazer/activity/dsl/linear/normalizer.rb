@@ -193,6 +193,11 @@ module Trailblazer
             return ctx, flow_options
           end
 
+          # Wraps {user_step} into a circuit-interface compatible callable, a.k.a. step.
+          def build_circuit_step_for_filter(user_step)
+            Activity::Circuit.Step(user_step, binary: true)
+          end
+
           def normalize_id(ctx, flow_options, _, task:, id: false, **)
             ctx = ctx.merge(id: id || task)
 
