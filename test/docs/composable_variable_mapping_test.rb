@@ -795,6 +795,35 @@ class CVInjectPassAggregateTest < DocsTest
   end
 end
 
+# FIXME: Unit test
+class PassAggregateTest < DocsTest
+  Memo = Module.new
+  module Memo::Activity
+    class Create < Trailblazer::Activity::Railway
+      step :create_model,
+        # We can combine options.
+        Out(
+          pass_aggregate: true,
+          with_outer_ctx: true) => :my_output
+
+      def my_output(ctx, aggregate:, params:, outer_ctx:, **)
+        {
+          aggregate_inspect: CU.inspect(aggregate),
+          outer_ctx_inspect: CU.inspect(outer_ctx),
+          params_inspect: CU.inspect(params),
+        }
+      end
+      #~meths
+      include ComposableVariableMappingDocTest::Steps
+      #~meths end
+    end
+  end
+
+  it "Out() with {:pass_aggregate} and {:with_outer_ctx}" do
+    assert_invoke Memo::Activity::Create, params: [], expected_ctx_variables: {:aggregate_inspect=>"{}", :outer_ctx_inspect=>"{:seq=>[], :params=>[]}", :params_inspect=>"[]"}
+  end
+end
+
 #@ Out() 1.5
 #@   First, blacklist all, then add whitelisted.
 class OutMultipleTimes < DocsTest

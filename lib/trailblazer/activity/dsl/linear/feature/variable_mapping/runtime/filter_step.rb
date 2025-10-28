@@ -27,13 +27,15 @@ module Trailblazer
 
             # This is the only public API the DSL part may use.
             # DESIGN NOTE: takes away decisions about internal step structure, such as the optional {#wrap_value_with_hash} step.
-            def self.build(filter_activity = MergeVariables, wrap_value_with_hash: true, **options_for_step, &block)
-              if ! wrap_value_with_hash || block_given? # NOTE: this is a compile-time {if}. :D
+            def self.build(filter_activity = MergeVariables, wrap_value_with_hash: true, block_for_filter_step_build: nil, **options_for_step, &block)
+              if ! wrap_value_with_hash  # NOTE: this is a compile-time {if}. :D
                 filter_activity = Class.new(filter_activity) do
                   step nil, delete: :wrap_value_with_hash unless wrap_value_with_hash # DISCUSS: how do we compose those differing logic flows?
-                  instance_exec(&block) if block_given? # FIXME: FUCK THIS
                 end
               end
+
+              # current way of adding "features":
+              filter_activity.instance_exec(&block_for_filter_step_build) if block_for_filter_step_build
 
               # Optimization time:
               metal_circuit = filter_activity.to_h[:activity].to_h[:circuit]
@@ -111,16 +113,14 @@ module Trailblazer
               end
 
               module Features
-                # DISCUSS: {:with_outer_ctx} only makes sense with callable filter.
-                def pass_aggregate(ctx, aggregate:, **options)
-                  merge_into_ctx!(ctx, **options, merge_variables: {aggregate: aggregate})
+                def pass_aggregate(pipe_ctx, *, aggregate:, args_for_filter:, **)
+                  merge_into_ctx!(pipe_ctx, args_for_filter, {aggregate: aggregate})
                 end
 
-                # DISCUSS: signature.
-                private def merge_into_ctx!(ctx, application_ctx:, merge_variables:, **) # TODO: improve performance?
-                  new_ctx = application_ctx.merge(**merge_variables)
+                private def merge_into_ctx!(pipe_ctx, target_ctx, merge_variables) # TODO: improve performance?
+                  new_ctx = target_ctx.merge(merge_variables)
 
-                  ctx[:args_for_filter] = new_ctx
+                  pipe_ctx[:args_for_filter] = new_ctx
                 end
 
                 def swap_ctx_with_aggregate(ctx, args_for_filter:, aggregate:, **)
@@ -131,15 +131,14 @@ module Trailblazer
               extend Features
 
               class Output < MergeVariables
-                def self.args_for_filter(ctx, *, application_ctx:, returned_ctx:, **)
-                  # super(ctx, **ctx, original_args: [[new_ctx, original_args[0][1]], original_args[1]])
-                  ctx[:args_for_filter] = returned_ctx # FIXME.
+                def self.args_for_filter(ctx, *, returned_ctx:, **)
+                  ctx[:args_for_filter] = returned_ctx
                 end
 
-                # FIXME: structure!
+                # FIXME: make it {:pass_outer_ctx}.
                 # DISCUSS: {:with_outer_ctx} only makes sense with callable filter.
-                def self.with_outer_ctx(ctx, original_args:, **options)
-                  merge_into_ctx!(ctx, **options, merge_variables: {outer_ctx: original_args[0][0]})
+                def self.with_outer_ctx(ctx, *, args_for_filter:, application_ctx:, **)
+                  merge_into_ctx!(ctx, args_for_filter, {outer_ctx: application_ctx})
                 end
               end
 

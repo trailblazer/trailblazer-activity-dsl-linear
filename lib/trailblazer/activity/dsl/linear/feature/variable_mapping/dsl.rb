@@ -40,7 +40,7 @@ module Trailblazer
             end
 
             def default_input_ctx_config
-              {"input.default_input" => VariableMapping.method(:default_input_ctx)}
+              {"input.default_input" => VariableMapping::Runtime.method(:default_input_ctx)}
             end
 
             def pipe_for_composable_output(out_filters: [], initial_output_pipeline: initial_output_pipeline(add_default_ctx: Array(out_filters).empty?), **)
@@ -190,10 +190,17 @@ module Trailblazer
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(variable_name = nil, filter_activity: Runtime::FilterStep::MergeVariables::Output, builder: Tuple::Left::In::Builder, insert_args: {prepend: "output.merge_with_original"}, path_prefix: "output", with_outer_ctx: false, delete: false, read_from_aggregate: false)
+            def self.Out(variable_name = nil, filter_activity: Runtime::FilterStep::MergeVariables::Output, builder: Tuple::Left::In::Builder, insert_args: {prepend: "output.merge_with_original"}, path_prefix: "output", with_outer_ctx: false, delete: false, read_from_aggregate: false, pass_aggregate: false)
               # add_variables_class = SetVariable::Output::Delete     if delete
               # add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
               # add_variables_class = Output::WithOuterContext if with_outer_ctx
+
+              # DISCUSS: here, we're using a lot of knowledge about the internals of Runtime::FilterStep in the DSL domain, questionable. let's see.
+              #          because actually we shouldn't know anything about FilterStep and the like here.
+              block_for_filter_step_build = -> {
+                step :with_outer_ctx, after: :args_for_filter if with_outer_ctx
+                step :pass_aggregate, after: :args_for_filter if pass_aggregate
+              }
 
               Out.new(
                 variable_name:   variable_name,
@@ -201,6 +208,7 @@ module Trailblazer
                 builder:         builder,
                 insert_args:     insert_args,
                 path_prefix:     path_prefix,
+                block_for_filter_step_build: block_for_filter_step_build,
               )
             end
 

@@ -49,6 +49,15 @@ module Trailblazer
             return wrap_ctx, flow_options
           end
 
+          # Merge all original ctx variables into the new input_ctx.
+          # This happens when no In() is provided.
+          def self.default_input_ctx(pipe_ctx, flow_options, _)
+            default_ctx = pipe_ctx[:application_ctx]
+
+            pipe_ctx[:aggregate] = pipe_ctx[:aggregate].merge(default_ctx)
+
+            return pipe_ctx, flow_options
+          end
         end
 
         module Pipe
@@ -115,13 +124,7 @@ module Trailblazer
           end
         end
 
-        # Merge all original ctx variables into the new input_ctx.
-        # This happens when no {:input} is provided.
-        def default_input_ctx(wrap_ctx, original_args)
-          default_ctx = wrap_ctx[:original_ctx]
 
-          merge_variables(default_ctx, wrap_ctx, original_args)
-        end
 
         # Write one particular variable to the {aggregate} using {aggregate[:name] = (value)}.
         #
