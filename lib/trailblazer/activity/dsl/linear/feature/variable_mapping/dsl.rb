@@ -179,13 +179,20 @@ module Trailblazer
               end
             end # Out
 
-            def self.In(variable_name = nil, filter_activity: Runtime::FilterStep::MergeVariables, builder: Tuple::Left::In::Builder, insert_args: {prepend: "input.scope"}, path_prefix: "input")
+            def self.In(variable_name = nil, filter_activity: Runtime::FilterStep::MergeVariables, builder: Tuple::Left::In::Builder, insert_args: {prepend: "input.scope"}, path_prefix: "input", pass_aggregate: false)
+              block_for_filter_step_build = -> {
+                # step :with_outer_ctx, after: :args_for_filter if with_outer_ctx
+                step :pass_aggregate, after: :args_for_filter if pass_aggregate
+              } # FIXME: redundancy.
+
               In.new(
                 variable_name:   variable_name,
                 filter_activity: filter_activity,
                 builder:         builder,
                 insert_args:     insert_args,
                 path_prefix:     path_prefix,
+                pass_aggregate:  pass_aggregate,
+                block_for_filter_step_build: block_for_filter_step_build,
               )
             end
 

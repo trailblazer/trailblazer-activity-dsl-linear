@@ -796,7 +796,7 @@ class CVInjectPassAggregateTest < DocsTest
 end
 
 # FIXME: Unit test
-class PassAggregateTest < DocsTest
+class Out_PassAggregateTest < DocsTest
   Memo = Module.new
   module Memo::Activity
     class Create < Trailblazer::Activity::Railway
@@ -821,6 +821,37 @@ class PassAggregateTest < DocsTest
 
   it "Out() with {:pass_aggregate} and {:with_outer_ctx}" do
     assert_invoke Memo::Activity::Create, params: [], expected_ctx_variables: {:aggregate_inspect=>"{}", :outer_ctx_inspect=>"{:seq=>[], :params=>[]}", :params_inspect=>"[]"}
+  end
+end
+
+# FIXME: Unit test
+class In_PassAggregateTest < DocsTest
+  Memo = Module.new
+  module Memo::Activity
+    class Create < Trailblazer::Activity::Railway
+      step :create_model,
+        # We can combine options.
+        In() => [:model],
+        In(pass_aggregate: true) => :my_input
+
+      def my_input(ctx, aggregate:, params:, **)
+        {
+          aggregate_inspect: CU.inspect(aggregate),
+          params_inspect: CU.inspect(params),
+        }
+      end
+      #~meths
+      include ComposableVariableMappingDocTest::Steps
+      #~meths end
+      def create_model(ctx, aggregate_inspect:, params_inspect:, **)
+        ctx[:aggregate_inspect] = aggregate_inspect
+        ctx[:params_inspect] = params_inspect
+      end
+    end
+  end
+
+  it "Out() with {:pass_aggregate} and {:with_outer_ctx}" do
+    assert_invoke Memo::Activity::Create, params: [], model: Object, expected_ctx_variables: {:aggregate_inspect=>"{:model=>Object}", :params_inspect=>"[]"}
   end
 end
 

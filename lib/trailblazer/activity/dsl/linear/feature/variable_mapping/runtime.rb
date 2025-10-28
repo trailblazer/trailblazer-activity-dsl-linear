@@ -10,7 +10,7 @@ module Trailblazer
         # and run the latter as a taskWrap step.
 
         module Runtime
-          def self.build_context(wrap_ctx, flow_options, circuit_options)
+          def self.build_context(wrap_ctx, flow_options, _)
             # this is the actual context passed into the step.
             wrap_ctx[:input_ctx] = Trailblazer::Context(
               wrap_ctx[:aggregate],
@@ -23,7 +23,7 @@ module Trailblazer
           end
 
           # TODO: document
-          def self.merge_with_original(wrap_ctx, flow_options, _circuit_options)
+          def self.merge_with_original(wrap_ctx, flow_options, _)
             application_ctx  = wrap_ctx[:application_ctx]  # outer ctx
             output_variables = wrap_ctx[:aggregate]
 
@@ -38,7 +38,7 @@ module Trailblazer
           # This means only variables added using {inner_ctx[..]=} are merged on the outside.
           #
           # This unscoping is used when there is no explicit Out() filter.
-          def self.default_output_ctx(wrap_ctx, flow_options, _circuit_options)
+          def self.default_output_ctx(wrap_ctx, flow_options, _)
             new_ctx = wrap_ctx[:returned_ctx]
 
             _wrapped, mutable = new_ctx.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
