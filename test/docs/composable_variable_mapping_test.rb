@@ -850,7 +850,7 @@ class In_PassAggregateTest < DocsTest
     end
   end
 
-  it "Out() with {:pass_aggregate} and {:with_outer_ctx}" do
+  it "In() with {:pass_aggregate}" do
     assert_invoke Memo::Activity::Create, params: [], model: Object, expected_ctx_variables: {:aggregate_inspect=>"{:model=>Object}", :params_inspect=>"[]"}
   end
 end

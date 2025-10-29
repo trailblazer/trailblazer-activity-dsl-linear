@@ -198,7 +198,7 @@ module Trailblazer
 
             # Builder for a DSL Output() object.
             def self.Out(variable_name = nil, filter_activity: Runtime::FilterStep::MergeVariables::Output, builder: Tuple::Left::In::Builder, insert_args: {prepend: "output.merge_with_original"}, path_prefix: "output", with_outer_ctx: false, delete: false, read_from_aggregate: false, pass_aggregate: false)
-              # add_variables_class = SetVariable::Output::Delete     if delete
+              filter_activity = Runtime::FilterStep::DeleteFromAggregate if delete
               # add_variables_class = SetVariable::ReadFromAggregate  if read_from_aggregate
               # add_variables_class = Output::WithOuterContext if with_outer_ctx
 
@@ -207,7 +207,10 @@ module Trailblazer
               block_for_filter_step_build = -> {
                 step :with_outer_ctx, after: :args_for_filter if with_outer_ctx
                 step :pass_aggregate, after: :args_for_filter if pass_aggregate
+                step :swap_ctx_with_aggregate, replace: :args_for_filter, id: :args_for_filter if read_from_aggregate
+                # step :delete_from_aggregate, replace: :merge_variables_into_aggregate if delete
               }
+
 
               Out.new(
                 variable_name:   variable_name,

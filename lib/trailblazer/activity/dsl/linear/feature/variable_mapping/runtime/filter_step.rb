@@ -62,17 +62,7 @@ module Trailblazer
               return filter_activity#, {}
             end
 
-            class DeleteFromAggregate < Trailblazer::Activity::Railway
-              step :delete_from_aggregate
-
-              def delete_from_aggregate(ctx, aggregate:, write_name:, **)
-                variables_to_keep = aggregate.keys - [write_name]
-
-                ctx[:aggregate] = aggregate.slice(*variables_to_keep)
-              end
-            end
-
-            class MergeVariables < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
+            class Activity < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
               def self.call(ctx, flow_options, circuit_options)
                 @circuit.(ctx, flow_options, circuit_options.merge(runner: MyRunner, filter_step_exec_context: self))
               end
@@ -86,7 +76,9 @@ module Trailblazer
                 )
                 # pp _normalizer
               end
+            end
 
+            class MergeVariables < Activity
               step :args_for_filter # TODO: rename {#ctx_for_filter}.
               pass :call_filter # filter could return an actual {nil} as a value.
               step :wrap_value_with_hash
@@ -112,6 +104,10 @@ module Trailblazer
                 ctx[:aggregate] = aggregate.merge(value)
               end
 
+              def self.swap_ctx_with_aggregate(ctx, *, aggregate:, **)
+                ctx[:args_for_filter] = aggregate
+              end
+
               module Features
                 def pass_aggregate(pipe_ctx, *, aggregate:, args_for_filter:, **)
                   merge_into_ctx!(pipe_ctx, args_for_filter, {aggregate: aggregate})
@@ -121,10 +117,6 @@ module Trailblazer
                   new_ctx = target_ctx.merge(merge_variables)
 
                   pipe_ctx[:args_for_filter] = new_ctx
-                end
-
-                def swap_ctx_with_aggregate(ctx, args_for_filter:, aggregate:, **)
-                  ctx[:args_for_filter] = [[aggregate.freeze, args_for_filter[0][1]], args_for_filter[1]]
                 end
               end
 
@@ -164,7 +156,20 @@ module Trailblazer
                 include Features
 
               end
+            end # MergeVariables
+
+            # DISCUSS: analyze how much logic is needed to introduce this feature.
+            class DeleteFromAggregate < Activity
+              step :delete_from_aggregate
+
+              def self.delete_from_aggregate(ctx, *, aggregate:, **)
+                new_aggregate = aggregate.dup
+                new_aggregate.delete(@write_name)
+
+                ctx[:aggregate] = new_aggregate
+              end
             end
+
           end # Filter
         end
       end
