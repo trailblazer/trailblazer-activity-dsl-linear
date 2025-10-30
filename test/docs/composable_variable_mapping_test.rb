@@ -706,7 +706,7 @@ class CVInjectOverrideTest < DocsTest
   end
   #:inject-override end
 
-  it "Inject() with default" do
+  it "Inject() with override: true" do
     #= {:action} override
     assert_invoke Memo::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object}
 

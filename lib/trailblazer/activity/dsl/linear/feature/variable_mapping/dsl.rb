@@ -172,11 +172,6 @@ module Trailblazer
             end # In
 
             class Out < Tuple
-              class FiltersBuilder
-                def self.call(user_filter, **options)
-                  In::FiltersBuilder.(user_filter, type: :Out, **options)
-                end
-              end
             end # Out
 
             def self.In(variable_name = nil, filter_activity: Runtime::FilterStep::MergeVariables, builder: Tuple::Left::In::Builder, insert_args: {prepend: "input.scope"}, path_prefix: "input", pass_aggregate: false)
@@ -208,7 +203,6 @@ module Trailblazer
                 step :with_outer_ctx, after: :args_for_filter if with_outer_ctx
                 step :pass_aggregate, after: :args_for_filter if pass_aggregate
                 step :swap_ctx_with_aggregate, replace: :args_for_filter, id: :args_for_filter if read_from_aggregate
-                # step :delete_from_aggregate, replace: :merge_variables_into_aggregate if delete
               }
 
 
@@ -224,8 +218,17 @@ module Trailblazer
 
             # Used in the DSL by you.
             # DISCUSS: should we move the options processing and deciding code into the resp. FiltersBuilder?
-            def self.Inject(variable_name = nil, builder: Inject::FiltersBuilder, override: false, pass_aggregate: false, insert_args: {prepend: "input.scope"}, path_prefix: "inject", **)
-              return
+            def self.Inject(variable_name = nil, filter_activity: Runtime::FilterStep::Conditioned, builder: Tuple::Left::Inject::Builder, override: false, pass_aggregate: false, insert_args: {prepend: "input.scope"}, path_prefix: "inject", **)
+              return Inject.new(
+                variable_name: variable_name,
+                filter_activity: filter_activity,
+                builder: builder,
+                insert_args: insert_args,
+                path_prefix: path_prefix,
+                # **options
+              )
+
+
               options = {}
               add_variables_class = SetVariable::Default
 
@@ -233,14 +236,6 @@ module Trailblazer
               add_variables_class = SetVariable::PassAggregate if pass_aggregate
               options.merge!(condition: ->(*) { false }) if override # an override is a defaulted Inject with condition "always on".
 
-              Inject.new(
-                variable_name,
-                add_variables_class,
-                builder,
-                insert_args: insert_args,
-                path_prefix: path_prefix,
-                **options
-              )
             end
 
             # This class is supposed to hold configuration options for Inject().
@@ -382,6 +377,47 @@ module Trailblazer
                   end
                 end # In
 
+                class Inject
+                  class Builder < In::Builder
+                    def self.translate_right_option_to_filter_adds(right_option, type: :Inject, **options_from_left_option)
+                      # # In()/Out() => [:current_user]
+                      if right_option.is_a?(Array)
+                        right_option = Left::Builder.hash_for_array(right_option)
+                      end
+
+                      # In()/Out() => {:user => :current_user}
+                      if right_option.is_a?(Hash)
+                        adds = Left::Builder.build_filter_adds_for_hash(right_option, **options_from_left_option) do |build_adds_options, from_name, to_name|
+
+                          # FIXME: this is different to In
+                          condition = VariablePresent.new(variable_name: to_name)
+
+                          build_adds_options.merge(
+                            name:                 Filter.name_for(type, from_name.inspect),
+                            write_name:           to_name,
+                            read_name:            from_name,
+                            wrap_value_with_hash: true,
+                            condition: condition,
+                          )
+                        end
+
+                        return adds
+                      end
+
+                      # In()/Out() => ->(*) { snippet }
+                      circuit_filter = Activity::Circuit.Step(right_option) # signature is right_option(ctx, **ctx)
+
+                      adds_row = Left::Builder.build_filter_step_adds(
+                        circuit_filter:       circuit_filter,
+                        name:                 Filter.name_for(type, right_option.inspect), # FIXME: name.
+                        wrap_value_with_hash: false,
+                        **options_from_left_option
+                      )
+
+                      return [adds_row]
+                    end
+                  end
+                end
 
               end
             end

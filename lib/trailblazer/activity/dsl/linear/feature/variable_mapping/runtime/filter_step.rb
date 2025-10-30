@@ -17,8 +17,12 @@ module Trailblazer
 
                 filter_step_exec_context = circuit_options[:filter_step_exec_context]
 
-                new_ctx, _ = filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, **ctx.to_h)
+# FIXME: return real flow_options
+                new_ctx, _flow_options, result = filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, **ctx.to_h)
                 # FIXME: new_ctx gets lost?
+                if result === false # FIXME: this sucks, of course
+                 return ctx, flow_options, Trailblazer::Activity::Left
+                end
 
                 # FIXME: we do have Left, too!
                 return ctx, flow_options, Trailblazer::Activity::Right
@@ -42,7 +46,10 @@ module Trailblazer
               start_task = metal_circuit.to_h[:map].keys[1]
               last_task = metal_circuit.to_h[:map].keys[-3]
 
-              metal_circuit.instance_variable_set(:@termini, [last_task])
+# TODO: we can detect termini steps if they only have one output, and set them directly here. for binary, we need to execute the failure terminus.
+failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "deciding" activities.
+
+              metal_circuit.instance_variable_set(:@termini, [last_task, failure_end])
               metal_circuit.instance_variable_set(:@start_task, start_task) # FIXME: we're changing a "different" circuit instance here that's sometimes shared with a superclass.
               # /Optimization time:
 
@@ -62,10 +69,26 @@ module Trailblazer
               return filter_activity#, {}
             end
 
-            class Activity < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
+            # class Activity < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
+            _normalizers = Trailblazer::Activity::Railway::DSL::Normalizers
+
+            normalizer_step = _normalizers.instance_variable_get(:@normalizers).fetch(:terminus).instance_variable_get(:@sequence)[5]
+            # Remove the task wrapping in the terminus normalizer.... uff.
+            _normalizers.instance_variable_get(:@normalizers).fetch(:terminus).instance_variable_get(:@sequence).delete(normalizer_step) # FIXME: make it simpler to add lightweight normalizers.
+
+            Activity = Trailblazer::Activity.Railway(
+              termini: {:success => {semantic: :success, id: "End.success", magnetic_to: :success, append_to: nil}, :failure => {semantic: :failure}},
+              normalizers: _normalizers,
+            ) do
               def self.call(ctx, flow_options, circuit_options)
                 @circuit.(ctx, flow_options, circuit_options.merge(runner: MyRunner, filter_step_exec_context: self))
               end
+
+              # FIXME: hack to prevent
+              def self.failure(ctx, flow_options, circuit_options, **)
+                return ctx, flow_options, nil
+              end
+
 
 
               Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step, :pass) do |normalizer|
@@ -89,8 +112,8 @@ module Trailblazer
               end
 
               # def self.call_filter(ctx, filter:, args_for_filter:, **)
-              def self.call_filter(ctx, flow_options, circuit_options, args_for_filter:, **)
-                _, flow_options, value = @filter.(args_for_filter, flow_options, circuit_options)
+              def self.call_filter(ctx, flow_options, circuit_options, args_for_filter:, filter: @filter, **)
+                _, flow_options, value = filter.(args_for_filter, flow_options, circuit_options)
 
                 ctx[:value] = value # FIXME: this is a "signal to value" filter, we use that in macro, too.
               end
@@ -133,30 +156,31 @@ module Trailblazer
                   merge_into_ctx!(ctx, args_for_filter, {outer_ctx: application_ctx})
                 end
               end
-
-              # Set variable on ctx if {condition} is true.
-              class Conditioned < MergeVariables # currently used for Inject.
-                step :evaluate_condition, after: :args_for_filter
-
-                def evaluate_condition(ctx, condition:, args_for_filter:, **)
-                  # DISCUSS: should we use #call_filter here?
-                  call_filter({}, filter: condition, args_for_filter: args_for_filter) # result is value.
-                end
-              end
-
-              class Defaulted < Conditioned
-                left :set_default_value
-                left :wrap_value_with_hash, id: :wrap_value_with_hash_for_default
-                left :merge_variables_into_aggregate, id: :merge_variables_into_aggregate_for_default
-
-                def set_default_value(ctx, filter_for_default:, **options)
-                  call_filter(ctx, **options, filter: filter_for_default)
-                end
-
-                include Features
-
-              end
             end # MergeVariables
+
+            # Set variable on ctx if {condition} is true.
+            class Conditioned < MergeVariables # currently used for Inject.
+              step :evaluate_condition, after: :args_for_filter
+
+              def self.evaluate_condition(ctx, flow_options, circuit_options, args_for_filter:, **)
+                # DISCUSS: should we use #call_filter here?
+                # call_filter({}, flow_options, circuit_options, filter: @condition, args_for_filter: args_for_filter) # result is value.
+                _, flow_options, value = @condition.(args_for_filter, flow_options, circuit_options)
+              end
+            end
+
+            class Defaulted < Conditioned
+              left :set_default_value
+              left :wrap_value_with_hash, id: :wrap_value_with_hash_for_default
+              left :merge_variables_into_aggregate, id: :merge_variables_into_aggregate_for_default
+
+              def set_default_value(ctx, filter_for_default:, **options)
+                call_filter(ctx, **options, filter: filter_for_default)
+              end
+
+              include Features
+
+            end
 
             # DISCUSS: analyze how much logic is needed to introduce this feature.
             class DeleteFromAggregate < Activity

@@ -149,8 +149,8 @@ module Trailblazer
         # Filter
         class VariablePresent < VariableFromCtx
           # Grab @variable_name from {ctx} if it's there.
-          def call((ctx, _), **) # Circuit-step interface
-            return ctx.key?(@variable_name), ctx
+          def call(ctx, flow_options, _, **) # Circuit-step interface
+            return ctx, flow_options, ctx.key?(@variable_name)
           end
         end
 
