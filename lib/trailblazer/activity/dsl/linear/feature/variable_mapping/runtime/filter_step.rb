@@ -46,12 +46,13 @@ module Trailblazer
               # Optimization time:
               metal_circuit = filter_activity.to_h[:activity].to_h[:circuit]
               start_task = metal_circuit.to_h[:map].keys[1]
-              last_task = metal_circuit.to_h[:map].keys[-3]
+              # last_task = metal_circuit.to_h[:map].keys[-3]
 
 # TODO: we can detect termini steps if they only have one output, and set them directly here. for binary, we need to execute the failure terminus.
 failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "deciding" activities.
 
-              metal_circuit.instance_variable_set(:@termini, [last_task, failure_end])
+# FIXME: last_task only works with Paths.
+              # metal_circuit.instance_variable_set(:@termini, [last_task, failure_end])
               metal_circuit.instance_variable_set(:@start_task, start_task) # FIXME: we're changing a "different" circuit instance here that's sometimes shared with a superclass.
               # /Optimization time:
 
@@ -86,14 +87,17 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
                 @circuit.(ctx, flow_options, circuit_options.merge(runner: MyRunner, filter_step_exec_context: self))
               end
 
-              # FIXME: hack to prevent
+              # FIXME: hack so the MyRunner can "execute" the terminus without logic change.
               def self.failure(ctx, flow_options, circuit_options, **)
+                return ctx, flow_options, nil
+              end
+              def self.success(ctx, flow_options, circuit_options, **) # FIXME: how do we handle termini, how could we detect "last steps"?
                 return ctx, flow_options, nil
               end
 
 
 
-              Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step, :pass) do |normalizer|
+              Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step, :pass, :fail) do |normalizer|
                 _normalizer = Trailblazer::Activity::Adds.(
                   normalizer,
                   [nil, id: "activity.macro_options_with_symbol_task", delete: "activity.macro_options_with_symbol_task"],
@@ -168,17 +172,16 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
                 # DISCUSS: should we use #call_filter here?
                 # call_filter({}, flow_options, circuit_options, filter: @condition, args_for_filter: args_for_filter) # result is value.
                 _, flow_options, value = @condition.(args_for_filter, flow_options, circuit_options)
-                value === false ? Trailblazer::Activity::Left : value
+
+                value == false ? Trailblazer::Activity::Left : value
               end
             end
 
             class Defaulted < Conditioned
-              left :set_default_value
-              left :wrap_value_with_hash, id: :wrap_value_with_hash_for_default
-              left :merge_variables_into_aggregate, id: :merge_variables_into_aggregate_for_default
+              left :set_default_value, Output(:success) => Id(:wrap_value_with_hash), Output(:failure) => Id(:wrap_value_with_hash)
 
-              def set_default_value(ctx, filter_for_default:, **options)
-                call_filter(ctx, **options, filter: filter_for_default)
+              def self.set_default_value(ctx, flow_options, circuit_options, **options)
+                call_filter(ctx, flow_options, circuit_options, **options, filter: @default_filter)
               end
 
               include Features

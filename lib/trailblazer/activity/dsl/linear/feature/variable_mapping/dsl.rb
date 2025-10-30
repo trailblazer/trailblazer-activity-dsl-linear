@@ -316,15 +316,15 @@ module Trailblazer
 
                       build_filter_step_adds(
                         **options_for_build,
-                        circuit_filter: circuit_filter,
+                        filter: circuit_filter,
                       )
                     end
                   end
 
-                  def self.build_filter_step_adds(circuit_filter:, filter_activity:, insert_args:, **options_for_build)
+                  def self.build_filter_step_adds(filter:, filter_activity:, insert_args:, **options_for_build)
                     runtime_step = Runtime::FilterStep.build(
                       filter_activity,
-                      filter: circuit_filter,
+                      filter: filter,
                       **options_for_build
                     )
 
@@ -365,7 +365,7 @@ module Trailblazer
                       circuit_filter = Activity::Circuit.Step(right_option) # signature is right_option(ctx, **ctx)
 
                       adds_row = Left::Builder.build_filter_step_adds(
-                        circuit_filter:       circuit_filter,
+                        filter:       circuit_filter,
                         name:                 Filter.name_for(type, right_option.inspect), # FIXME: name.
                         wrap_value_with_hash: false,
                         **options_from_left_option
@@ -379,7 +379,7 @@ module Trailblazer
 
                 class Inject
                   class Builder < In::Builder
-                    def self.translate_right_option_to_filter_adds(right_option, type: :Inject, **options_from_left_option)
+                    def self.translate_right_option_to_filter_adds(right_option, type: :Inject, variable_name:, **options_from_left_option)
                       # # In()/Out() => [:current_user]
                       if right_option.is_a?(Array)
                         right_option = Left::Builder.hash_for_array(right_option)
@@ -404,14 +404,27 @@ module Trailblazer
                         return adds
                       end
 
-                      # In()/Out() => ->(*) { snippet }
-                      circuit_filter = Activity::Circuit.Step(right_option) # signature is right_option(ctx, **ctx)
+                      # Inject(:variable_name) => ->(*) { snippet }
+                      filter = VariableMapping::VariableFromCtx.new(variable_name: variable_name)
+                      default_filter = Activity::Circuit.Step(right_option) # signature is right_option(ctx, **ctx)
+
+                        # FIXME: this is different to In
+                      condition = VariablePresent.new(variable_name: variable_name)
 
                       adds_row = Left::Builder.build_filter_step_adds(
-                        circuit_filter:       circuit_filter,
+                        filter:       filter,
                         name:                 Filter.name_for(type, right_option.inspect), # FIXME: name.
-                        wrap_value_with_hash: false,
-                        **options_from_left_option
+                        wrap_value_with_hash: true,
+
+
+                        **options_from_left_option,
+
+                        # FIXME: this is different to In
+                        write_name: variable_name,
+                        condition: condition,
+                        default_filter: default_filter,
+                        # FIXME: add the actual inject filter, VariableFromCtx
+                        filter_activity: Runtime::FilterStep::Defaulted,
                       )
 
                       return [adds_row]
