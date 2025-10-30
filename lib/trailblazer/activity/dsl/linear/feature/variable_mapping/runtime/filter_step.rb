@@ -18,14 +18,16 @@ module Trailblazer
                 filter_step_exec_context = circuit_options[:filter_step_exec_context]
 
 # FIXME: return real flow_options
-                new_ctx, _flow_options, result = filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, **ctx.to_h)
+                # new_ctx, _flow_options, result = filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, **ctx.to_h)
+                result = filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, **ctx.to_h)
                 # FIXME: new_ctx gets lost?
-                if result === false # FIXME: this sucks, of course
-                 return ctx, flow_options, Trailblazer::Activity::Left
+
+                signal = Trailblazer::Activity::Right
+                if result == Trailblazer::Activity::Left # FIXME: this sucks, of course
+                 signal = result
                 end
 
-                # FIXME: we do have Left, too!
-                return ctx, flow_options, Trailblazer::Activity::Right
+                return ctx, flow_options, signal
               end
             end
 
@@ -166,6 +168,7 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
                 # DISCUSS: should we use #call_filter here?
                 # call_filter({}, flow_options, circuit_options, filter: @condition, args_for_filter: args_for_filter) # result is value.
                 _, flow_options, value = @condition.(args_for_filter, flow_options, circuit_options)
+                value === false ? Trailblazer::Activity::Left : value
               end
             end
 
