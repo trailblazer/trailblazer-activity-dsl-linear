@@ -34,8 +34,10 @@ module Trailblazer
             # This is the only public API the DSL part may use.
             # DESIGN NOTE: takes away decisions about internal step structure, such as the optional {#wrap_value_with_hash} step.
             def self.build(filter_activity = MergeVariables, wrap_value_with_hash: true, block_for_filter_step_build: nil, **options_for_step, &block)
+              filter_activity = Class.new(filter_activity)
+
               if ! wrap_value_with_hash  # NOTE: this is a compile-time {if}. :D
-                filter_activity = Class.new(filter_activity) do
+                filter_activity.class_eval do
                   step nil, delete: :wrap_value_with_hash unless wrap_value_with_hash # DISCUSS: how do we compose those differing logic flows?
                 end
               end
@@ -60,7 +62,6 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
               # pp metal_circuit
               # raise
 
-              filter_activity = Class.new(filter_activity)
               options_for_step.each do |key, value|
                 filter_activity.instance_variable_set(:"@#{key}", value)
               end
