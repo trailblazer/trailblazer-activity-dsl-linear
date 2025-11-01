@@ -706,7 +706,7 @@ class CVInjectOverrideTest < DocsTest
   end
   #:inject-override end
 
-  it "Inject() with override: true" do
+  it "Inject() with {override: true}" do
     #= {:action} override
     assert_invoke Memo::Activity::Create, current_user: Module, expected_ctx_variables: {model: Object}
 
@@ -716,7 +716,7 @@ class CVInjectOverrideTest < DocsTest
     current_user = Module
 
     #:inject-override-call
-    signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create,
+    ctx, _ = Trailblazer::Activity.(Memo::Activity::Create,
       current_user: current_user,
       action: :update # this is always overridden.
     )

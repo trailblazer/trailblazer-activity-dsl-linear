@@ -184,9 +184,6 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
               def self.set_default_value(ctx, flow_options, circuit_options, **options)
                 call_filter(ctx, flow_options, circuit_options, **options, filter: @default_filter)
               end
-
-              include Features
-
             end
 
             # DISCUSS: analyze how much logic is needed to introduce this feature.
