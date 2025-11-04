@@ -57,8 +57,8 @@ class DocsTest < Minitest::Spec
   #          to mix it into the dsl gem tests.
   module Trailblazer
     module Activity
-      def self.call(*args, **kws)
-        ::Trailblazer::Activity::TaskWrap.invoke(*args, [kws, {}])
+      def self.call(*args)
+        ::Trailblazer::Activity::TaskWrap.invoke(*args)
       end
 
       Railway = ::Trailblazer::Activity::Railway

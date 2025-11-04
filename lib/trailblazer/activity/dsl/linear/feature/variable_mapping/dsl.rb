@@ -271,15 +271,14 @@ module Trailblazer
                         step :pass_aggregate, after: :args_for_filter if pass_aggregate
                       } # FIXME: redundancy.
 
-                      filter_activity = Runtime::FilterStep::MergeVariables if override
-
                       options_from_left_option.merge(
                         filter_activity:             filter_activity,
                         block_for_filter_step_build: block_for_filter_step_build,
+                        override: override, # DISCUSS: do we want to pass that here?
                       )
                     end
 
-                    def self.translate_right_option_to_filter_adds(right_option, type: :Inject, variable_name:, **options_from_left_option)
+                    def self.translate_right_option_to_filter_adds(right_option, type: :Inject, variable_name:, override:, filter_activity:, **options_from_left_option)
                       # # In()/Out() => [:current_user]
                       if right_option.is_a?(Array)
                         right_option = Left::Builder.hash_for_array(right_option)
@@ -298,24 +297,43 @@ module Trailblazer
                             read_name:            from_name,
                             wrap_value_with_hash: true,
                             condition: condition,
+                            filter_activity: filter_activity,
                           )
                         end
 
                         return adds
                       end
 
+                      default_filter = Activity::Circuit.Step(right_option) # signature is right_option(ctx, **ctx)
+
                       # TODO: override is MergeVariables with filter: default_filter
+                      if override
+                        adds_row = Left::Builder.build_filter_step_adds(
+                          name:   Filter.name_for(type, right_option.inspect), # FIXME: name.
+                          wrap_value_with_hash: true,
+
+
+                          **options_from_left_option,
+
+                          # FIXME: this is different to In
+                          filter: default_filter,
+                          write_name: variable_name,
+                          filter_activity: Runtime::FilterStep::MergeVariables,
+                        )
+
+                        return [adds_row]
+                      end
 
                       # Inject(:variable_name) => ->(*) { snippet }
                       filter = VariableMapping::VariableFromCtx.new(variable_name: variable_name)
-                      default_filter = Activity::Circuit.Step(right_option) # signature is right_option(ctx, **ctx)
 
                         # FIXME: this is different to In
                       condition = VariablePresent.new(variable_name: variable_name)
 
+
                       adds_row = Left::Builder.build_filter_step_adds(
-                        filter:       filter,
-                        name:                 Filter.name_for(type, right_option.inspect), # FIXME: name.
+                        filter: filter,
+                        name:   Filter.name_for(type, right_option.inspect), # FIXME: name.
                         wrap_value_with_hash: true,
 
 

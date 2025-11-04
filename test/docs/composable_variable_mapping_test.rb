@@ -717,8 +717,8 @@ class CVInjectOverrideTest < DocsTest
 
     #:inject-override-call
     ctx, _ = Trailblazer::Activity.(Memo::Activity::Create,
-      current_user: current_user,
-      action: :update # this is always overridden.
+      {current_user: current_user,
+      action: :update} # this is always overridden.
     )
     #~ctx_to_result
     puts ctx[:model] #=> #<Memo id: 1, ...>
