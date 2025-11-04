@@ -107,35 +107,35 @@ module Trailblazer
             class Out < Tuple
             end # Out
 
-            def self.In(variable_name = nil, builder: Tuple::Left::In::Builder, insert_args: {prepend: "input.scope"}, path_prefix: "input", **left_user_options)
+            def self.In(variable_name = nil, builder: Tuple::Left::In::Builder, insert_args: {prepend: "input.scope"}, **left_user_options)
               In.new(
-                variable_name:   variable_name,
-                builder:         builder,
-                insert_args:     insert_args,
-                path_prefix:     path_prefix,
+                variable_name: variable_name,
+                builder:       builder,
+                insert_args:   insert_args,
+                type:          :In,
                 **left_user_options,
               )
             end
 
             # Builder for a DSL Output() object.
-            def self.Out(variable_name = nil, builder: Tuple::Left::Out::Builder, insert_args: {prepend: "output.merge_with_original"}, path_prefix: "output", **left_user_options)
+            def self.Out(variable_name = nil, builder: Tuple::Left::Out::Builder, insert_args: {prepend: "output.merge_with_original"}, **left_user_options)
               Out.new(
-                variable_name:   variable_name,
-                builder:         builder,
-                insert_args:     insert_args,
-                path_prefix:     path_prefix,
+                variable_name: variable_name,
+                builder:       builder,
+                insert_args:   insert_args,
+                type:          :Out,
                 **left_user_options,
               )
             end
 
             # Used in the DSL by you.
             # DISCUSS: should we move the options processing and deciding code into the resp. FiltersBuilder?
-            def self.Inject(variable_name = nil, builder: Tuple::Left::Inject::Builder, insert_args: {prepend: "input.scope"}, path_prefix: "inject", **left_user_options)
+            def self.Inject(variable_name = nil, builder: Tuple::Left::Inject::Builder, insert_args: {prepend: "input.scope"}, **left_user_options)
               Inject.new(
                 variable_name: variable_name,
-                builder: builder,
-                insert_args: insert_args,
-                path_prefix: path_prefix,
+                builder:       builder,
+                insert_args:   insert_args,
+                type:          :Inject,
                 **left_user_options,
               )
             end
@@ -171,14 +171,22 @@ module Trailblazer
                   end
 
                   # build a special activity based on {filter_activity}, add all "remaining" options as instance variables.
-                  def self.build_filter_step_adds(filter:, filter_activity:, insert_args:, **options_for_build)
+                  def self.build_filter_step_adds(filter:, filter_activity:, insert_args:, name:, **options_for_build)
                     runtime_step = Runtime::FilterStep.build(
                       filter_activity,
                       filter: filter,
                       **options_for_build
                     )
 
-                    return [runtime_step, id: "FIXME.give.me.a.name", **insert_args]
+                    return [runtime_step, id: name, **insert_args]
+                  end
+
+                  def self.name_for_filter(name: nil, type:, specifier: nil, user_filter: nil, **)
+                    if user_filter
+                      name = user_filter # DISCUSS: some more elaborate naming here?
+                    end
+
+                    [type, specifier].compact.join(".") + "{#{name}}"
                   end
                 end
 
@@ -205,7 +213,7 @@ module Trailblazer
                         )
                     end
 
-                    def self.translate_right_option_to_filter_adds(right_option, type: :In, **options)
+                    def self.translate_right_option_to_filter_adds(right_option, **options)
                       # # In()/Out() => [:current_user]
                       if right_option.is_a?(Array)
                         right_option = Left::Builder.hash_for_array(right_option)
@@ -215,7 +223,7 @@ module Trailblazer
                       if right_option.is_a?(Hash)
                         adds = Left::Builder.build_filter_adds_for_hash(right_option, **options) do |build_adds_options, from_name, to_name|
                           build_adds_options.merge(
-                            name:                 Filter.name_for(type, from_name.inspect),
+                            name:                 Left::Builder.name_for_filter(name: "#{from_name.inspect} > #{to_name.inspect}", **options),
                             write_name:           to_name,
                             read_name:            from_name,
                             wrap_value_with_hash: true,
@@ -229,8 +237,8 @@ module Trailblazer
                       circuit_filter = Activity::Circuit.Step(right_option) # signature is right_option(ctx, **ctx)
 
                       adds_row = Left::Builder.build_filter_step_adds(
-                        filter:       circuit_filter,
-                        name:                 Filter.name_for(type, right_option.inspect), # FIXME: name.
+                        filter:               circuit_filter,
+                        name:                 Left::Builder.name_for_filter(**options, user_filter: right_option), # FIXME: name.
                         wrap_value_with_hash: false,
                         **options
                       )
@@ -278,7 +286,7 @@ module Trailblazer
                       )
                     end
 
-                    def self.translate_right_option_to_filter_adds(right_option, type: :Inject, variable_name:, override:, filter_activity:, **options_from_left_option)
+                    def self.translate_right_option_to_filter_adds(right_option, variable_name:, override:, filter_activity:, **options_from_left_option)
                       # # In()/Out() => [:current_user]
                       if right_option.is_a?(Array)
                         right_option = Left::Builder.hash_for_array(right_option)
@@ -292,7 +300,7 @@ module Trailblazer
                           condition = VariablePresent.new(variable_name: to_name)
 
                           build_adds_options.merge(
-                            name:                 Filter.name_for(type, from_name.inspect),
+                            name:                 Left::Builder.name_for_filter(name: from_name.inspect, **options_from_left_option),
                             write_name:           to_name,
                             read_name:            from_name,
                             wrap_value_with_hash: true,
@@ -308,62 +316,41 @@ module Trailblazer
 
                       # TODO: override is MergeVariables with filter: default_filter
                       if override
-                        adds_row = Left::Builder.build_filter_step_adds(
-                          name:   Filter.name_for(type, right_option.inspect), # FIXME: name.
+                        adds_instruction = Left::Builder.build_filter_step_adds(
+                          filter_activity:  Runtime::FilterStep::MergeVariables,
+                          filter:           default_filter,
+                          write_name:       variable_name,
+                          name:             Left::Builder.name_for_filter(user_filter: right_option, **options_from_left_option, specifier: "{override: true}"),
                           wrap_value_with_hash: true,
-
-
-                          **options_from_left_option,
-
-                          # FIXME: this is different to In
-                          filter: default_filter,
-                          write_name: variable_name,
-                          filter_activity: Runtime::FilterStep::MergeVariables,
+                          **options_from_left_option
                         )
 
-                        return [adds_row]
+                        return [adds_instruction]
                       end
 
                       # Inject(:variable_name) => ->(*) { snippet }
+                      # FIXME: this is different to In
+                      condition = VariablePresent.new(variable_name: variable_name)
                       filter = VariableMapping::VariableFromCtx.new(variable_name: variable_name)
 
-                        # FIXME: this is different to In
-                      condition = VariablePresent.new(variable_name: variable_name)
-
-
-                      adds_row = Left::Builder.build_filter_step_adds(
-                        filter: filter,
-                        name:   Filter.name_for(type, right_option.inspect), # FIXME: name.
-                        wrap_value_with_hash: true,
-
-
-                        **options_from_left_option,
-
-                        # FIXME: this is different to In
-                        write_name: variable_name,
-                        condition: condition,
-                        default_filter: default_filter,
+                      # Return one ADDS instruction that inserts a particular filter into the In/Out pipeline.
+                      adds_instruction = Left::Builder.build_filter_step_adds(
                         filter_activity: Runtime::FilterStep::Defaulted,
+                        condition: condition,
+                        filter: filter,
+                        default_filter: default_filter,
+                        write_name: variable_name,
+                        name:             Left::Builder.name_for_filter(user_filter: right_option, **options_from_left_option, specifier: "#{variable_name.inspect}.{defaulted: true}"),
+                        **options_from_left_option,
                       )
 
-                      return [adds_row]
+                      return [adds_instruction]
                     end
                   end
                 end
 
               end
             end
-
-            # DISCUSS: generic, again
-            module Filter
-
-
-
-
-              def self.name_for(type, name, specifier = nil)
-                [type, specifier].compact.join(".") + "{#{name}}"
-              end
-            end # Filter
           end # DSL
         end
       end
