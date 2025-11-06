@@ -7,13 +7,13 @@ class RailwayTest < Minitest::Spec
     activity = Class.new(Activity::Railway) do
     end
 
-    assert_process_for activity, :success, :failure, %{
+    assert_process_for activity, :success, :failure, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
 #<End/:failure>
-}
+)
 
     assert_call activity
   end

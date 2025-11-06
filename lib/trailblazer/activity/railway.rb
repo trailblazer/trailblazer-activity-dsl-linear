@@ -111,12 +111,20 @@ module Trailblazer
           terminus: Linear::Normalizer::Terminus.Normalizer(),
         )
 
-        def options_for_sequence_build(failure_end: Activity::End.new(semantic: :failure), **options)
-          failure_terminus_options = [failure_end, magnetic_to: :failure, id: "End.failure", normalizers: Normalizers]
+        # Default options for build.
+        def self.options_for_build(failure_end: Activity::End.new(semantic: :failure), **options)
+          options = Path::DSL.options_for_build(**options)
 
-          path_options, path_termini = Path::DSL.options_for_sequence_build(**options)
+          layout_instructions = options[:layout_instructions] +
+            [[:terminus, task: failure_end, magnetic_to: :failure, id: "End.failure", after: nil]]
 
-          return path_options, path_termini + [failure_terminus_options]
+          normalizer_options = options[:normalizer_options].merge(failure_end: failure_end) # FIXME: do we need this?
+
+          {
+            layout_instructions: layout_instructions,
+            normalizers: Normalizers,
+            normalizer_options: normalizer_options
+          }
         end
       end # DSL
 
@@ -131,7 +139,8 @@ module Trailblazer
         end
       end
 
-      compile_strategy!(DSL, normalizers: DSL::Normalizers)
+      compile_strategy!(DSL)
+      # pp @state.get(:sequence)
     end # Railway
 
     def self.Railway(**options, &block)

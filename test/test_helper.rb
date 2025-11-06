@@ -61,7 +61,7 @@ class DocsTest < Minitest::Spec
         ::Trailblazer::Activity::TaskWrap.invoke(*args)
       end
 
-      Railway = ::Trailblazer::Activity::Railway
+      # Railway = ::Trailblazer::Activity::Railway
       Introspect = ::Trailblazer::Activity::Introspect
     end
 

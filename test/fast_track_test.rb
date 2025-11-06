@@ -18,7 +18,11 @@ class FastTrackTest < Minitest::Spec
         step task: T.def_tasks(:a).method(:a)
       end
 
-      assert_equal CU.inspect(activity.to_h[:outputs]), %([#<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MySuccess semantic=:my_success>, semantic=:my_success>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyPassFast semantic=:pass_fast>, semantic=:pass_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailFast semantic=:fail_fast>, semantic=:fail_fast>, #<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailure semantic=:my_failure>, semantic=:my_failure>])
+      assert_equal CU.inspect(activity.to_h[:outputs]), %(\
+[#<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MySuccess semantic=:my_success>, semantic=:my_success>, \
+#<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailure semantic=:my_failure>, semantic=:my_failure>, \
+#<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyFailFast semantic=:fail_fast>, semantic=:fail_fast>, \
+#<struct Trailblazer::Activity::Output signal=#<FastTrackTest::MyPassFast semantic=:pass_fast>, semantic=:pass_fast>])
 
       assert_circuit activity, %{
 #<Start/:default>
@@ -28,11 +32,11 @@ class FastTrackTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<FastTrackTest::MySuccess/:my_success>
 #<FastTrackTest::MySuccess/:my_success>
 
-#<FastTrackTest::MyPassFast/:pass_fast>
+#<FastTrackTest::MyFailure/:my_failure>
 
 #<FastTrackTest::MyFailFast/:fail_fast>
 
-#<FastTrackTest::MyFailure/:my_failure>
+#<FastTrackTest::MyPassFast/:pass_fast>
 }
     end
 
@@ -68,92 +72,74 @@ class FastTrackTest < Minitest::Spec
  {#<Trailblazer::Activity::End semantic=:success>} => #<End/:failure>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
   end
 
   describe "Activity::FastTrack" do
 
     it "provides defaults" do
-      implementing = T.def_steps(:f, :a, :g, :c, :b, :d)
-
       activity = Class.new(Activity::FastTrack) do
-        step implementing.method(:f), id: :f
-        fail implementing.method(:a), id: :a
-        step implementing.method(:g), id: :g
-        step implementing.method(:c), id: :c, fast_track: true
-        fail implementing.method(:b), id: :b
-        pass implementing.method(:d), id: :d
+        include T.def_steps(:f, :a, :g, :c, :b, :d)
+
+        step :f
+        fail :a
+        step :g
+        step :c, fast_track: true
+        fail :b
+        pass :d
       end
 
-      process = activity.to_h
-
-      assert_process_for process, :success, :pass_fast, :fail_fast, :failure, %{
+      assert_process_for activity, :success, :pass_fast, :fail_fast, :failure, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
-<*#<Method: #<Module:0x>.f>>
- {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.g>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.g>>
- {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
-<*#<Method: #<Module:0x>.c>>
- {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.d>>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Left} => <*a>
+ {Trailblazer::Activity::Right} => <*g>
+<*a>
+ {Trailblazer::Activity::Left} => <*b>
+ {Trailblazer::Activity::Right} => <*b>
+<*g>
+ {Trailblazer::Activity::Left} => <*b>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Left} => <*b>
+ {Trailblazer::Activity::Right} => <*d>
  {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
  {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
-<*#<Method: #<Module:0x>.b>>
+<*b>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
-<*#<Method: #<Module:0x>.d>>
+<*d>
  {Trailblazer::Activity::Left} => #<End/:success>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
 
   # right track
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:f, :g, :c, :d]}}
+      assert_call activity, seq: "[:f, :g, :c, :d]"
 
   # left track
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:f, :a, :b], :f=>false}}
+      assert_call activity, terminus: :failure, seq: "[:f, :a, :b]", f: false
 
   # left track
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], g: false}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:f, :g, :b], :g=>false}}
+      assert_call activity, terminus: :failure, seq: "[:f, :g, :b]", g: false
 
   # c --> pass_fast
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: Trailblazer::Activity::FastTrack::PassFast}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:f, :g, :c], :c=>Trailblazer::Activity::FastTrack::PassFast}}
+      assert_call activity, terminus: :pass_fast, seq: "[:f, :g, :c]", c: Trailblazer::Activity::FastTrack::PassFast
 
   # c --> fail_fast
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], c: Trailblazer::Activity::FastTrack::FailFast}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:f, :g, :c], :c=>Trailblazer::Activity::FastTrack::FailFast}}
-
+      assert_call activity, terminus: :fail_fast, seq: "[:f, :g, :c]", c: Trailblazer::Activity::FastTrack::FailFast
     end
 
     it "{#fail} with {fail_fast: true}" do
@@ -170,187 +156,161 @@ class FastTrackTest < Minitest::Spec
  {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
     end
 
     it "provides {:pass_fast} and {:fail_fast}" do
-      implementing = T.def_steps(:f, :a, :g, :c, :b, :d)
-
       activity = Class.new(Activity::FastTrack) do
-        step implementing.method(:f), id: :f
-        fail implementing.method(:a), id: :a, fail_fast: true
-        step implementing.method(:g), id: :g, pass_fast: true, fail_fast: true
-        fail implementing.method(:b), id: :b
-        step implementing.method(:d), id: :d
+        include T.def_steps(:f, :a, :g, :c, :b, :d)
+
+        step :f
+        fail :a, fail_fast: true
+        step :g, pass_fast: true, fail_fast: true
+        fail :b
+        step :d
       end
 
-      process = activity.to_h
-
-      assert_process_for process, :success, :pass_fast, :fail_fast, :failure, %{
+      assert_process_for activity, :success, :pass_fast, :fail_fast, :failure, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
-<*#<Method: #<Module:0x>.f>>
- {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.g>>
-<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Left} => <*a>
+ {Trailblazer::Activity::Right} => <*g>
+<*a>
  {Trailblazer::Activity::Left} => #<End/:fail_fast>
  {Trailblazer::Activity::Right} => #<End/:fail_fast>
  {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
-<*#<Method: #<Module:0x>.g>>
+<*g>
  {Trailblazer::Activity::Left} => #<End/:fail_fast>
  {Trailblazer::Activity::Right} => #<End/:pass_fast>
  {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
  {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
-<*#<Method: #<Module:0x>.b>>
+<*b>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
-<*#<Method: #<Module:0x>.d>>
+<*d>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
 
   # g --> :pass_fast
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:f, :g]}}
+      assert_call activity, terminus: :pass_fast, seq: "[:f, :g]"
 
   # a --> :fail_fast
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:f, :a], :f=>false}}
+      assert_call activity, terminus: :fail_fast, seq: "[:f, :a]", f: false
 
   # a --> :fail_fast
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false, a: false}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:f, :a], :f=>false, :a=>false}}
+      assert_call activity, terminus: :fail_fast, seq: "[:f, :a]", f: false, a: false
 
   # g --> :fail_fast
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], g: false}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:f, :g], :g=>false}}
+      assert_call activity, terminus: :fail_fast, seq: "[:f, :g]", g: false
     end
 
     it "{:pass_fast} and {:fail_fast} DSL options also registers their own termini" do
-      implementing = T.def_tasks(:a, :b, :c, :d, :e, :f)
-
       sub_nested = Class.new(Activity::FastTrack) do
-        step task: implementing.method(:a), id: :a, Output(:failure) => End(:fail_fast)
-        step task: implementing.method(:b), id: :b
+        include T.def_steps(:a, :b)
+        step :a, Output(:failure) => End(:fail_fast)
+        step :b
       end
 
       nested = Class.new(Activity::FastTrack) do
+        include T.def_steps(:c, :d)
         step Subprocess(sub_nested), fail_fast: true
-        step task: implementing.method(:c), id: :c, Output(:success) => End(:pass_fast)
-        step task: implementing.method(:d), id: :d
+        step :c, Output(:success) => End(:pass_fast)
+        step :d
       end
 
       activity = Class.new(Activity::FastTrack) do
+        include T.def_steps(:e, :f)
         step Subprocess(nested), fail_fast: true, pass_fast: true
-        fail implementing.method(:e), id: :e
-        step implementing.method(:f), id: :f
+        fail :e
+        step :f
       end
 
-      process = activity.to_h
-
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
-
   # nested --> :pass_fast
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:a, :b, :c]}}
-
-      signal, (ctx, _) = process.to_h[:circuit].([{seq: [], a: Activity::Left }])
+      assert_call activity, seq: "[:a, :b, :c]", terminus: :pass_fast
 
   # a --> :fail_fast
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:fail_fast>}
-      assert_equal CU.inspect(ctx),     %{{:seq=>[:a], :a=>Trailblazer::Activity::Left}}
+      assert_call activity, seq: "[:a]", terminus: :fail_fast, a: Trailblazer::Activity::Left
     end
 
     it "fails when parent activity has not registered for any fast tracks but nested activity emits it" do
       implementing = T.def_tasks(:a, :b, :c, :d)
 
       nested = Class.new(Activity::FastTrack) do
-        step task: implementing.method(:a), id: :a, Output(:failure) => End(:fail_fast)
-        step task: implementing.method(:b), id: :b
+        include T.def_steps(:a, :b)
+        step :a, Output(:failure) => End(:fail_fast)
+        step :b
       end
 
       activity = Class.new(Activity::FastTrack) do
         step Subprocess(nested)
-        step task: implementing.method(:c), id: :c, Output(:success) => End(:pass_fast)
+        step :c, Output(:success) => End(:pass_fast)
       end
 
       exception = assert_raises Trailblazer::Activity::Circuit::IllegalSignalError do
-        activity.([{seq: [], a: Activity::Left }])
+        activity.({seq: [], a: Activity::Left }, {}, {})
       end
 
       assert_includes exception.message, "Unrecognized signal `#<Trailblazer::Activity::End semantic=:fail_fast>` returned from #{nested}"
     end
 
     it "{#pass} with {:pass_fast}" do
-      implementing = T.def_steps(:f, :a, :g, :c, :b, :d)
 
       activity = Class.new(Activity::FastTrack) do
-        pass implementing.method(:f), pass_fast: true
-        fail implementing.method(:a), fail_fast: true
-        step implementing.method(:d)
-        fail implementing.method(:g)
+        include T.def_steps(:f, :a, :g, :c, :b, :d)
+
+        pass :f, pass_fast: true
+        fail :a, fail_fast: true
+        step :d
+        fail :g
       end
 
       process = activity.to_h
 
       assert_process_for process, :success, :pass_fast, :fail_fast, :failure, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
-<*#<Method: #<Module:0x>.f>>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
  {Trailblazer::Activity::Left} => #<End/:pass_fast>
  {Trailblazer::Activity::Right} => #<End/:pass_fast>
  {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
-<*#<Method: #<Module:0x>.a>>
+<*a>
  {Trailblazer::Activity::Left} => #<End/:fail_fast>
  {Trailblazer::Activity::Right} => #<End/:fail_fast>
  {Trailblazer::Activity::FastTrack::FailFast} => #<End/:fail_fast>
-<*#<Method: #<Module:0x>.d>>
- {Trailblazer::Activity::Left} => <*#<Method: #<Module:0x>.g>>
+<*d>
+ {Trailblazer::Activity::Left} => <*g>
  {Trailblazer::Activity::Right} => #<End/:success>
-<*#<Method: #<Module:0x>.g>>
+<*g>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:failure>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
 
   # f --> Right --> :pass_fast
-        signal, (ctx, _) = process.to_h[:circuit].([{seq: []}])
-
-        _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
-        assert_equal CU.inspect(ctx),     %{{:seq=>[:f]}}
+      assert_call activity, terminus: :pass_fast, seq: "[:f]"
 
   # f --> Left --> :pass_fast
-        signal, (ctx, _) = process.to_h[:circuit].([{seq: [], f: false}])
-
-        _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:pass_fast>}
-        assert_equal CU.inspect(ctx),     %{{:seq=>[:f], :f=>false}}
-
+      assert_call activity, terminus: :pass_fast, seq: "[:f]", f: false
     end
   end
 
@@ -416,11 +376,11 @@ Trailblazer::Activity::FastTrack
  {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:success>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
   end
 
@@ -452,11 +412,11 @@ Trailblazer::Activity::FastTrack
  {Trailblazer::Activity::Right} => #<End/:failure>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 )
 
     # right track

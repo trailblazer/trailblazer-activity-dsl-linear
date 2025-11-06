@@ -71,7 +71,7 @@ module Trailblazer
 
           {
             layout_instructions: [
-              [:step, id: "Start.default", task: start, magnetic_to: nil, after: nil],
+              [:step, id: "Start.default", task: start, magnetic_to: nil, after: nil, outputs: {success: Activity.Output(Trailblazer::Activity::Right, :success)}], # DISCUSS: technically, we shouldn't have to define only one output here, but it's easier for Railway and FastTrack.
               [:terminus, id: end_id, task: end_task, magnetic_to: track_name, after: nil],
             ],
 
