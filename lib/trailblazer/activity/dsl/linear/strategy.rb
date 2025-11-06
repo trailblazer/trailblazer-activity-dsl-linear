@@ -76,9 +76,8 @@ module Trailblazer
 
             # Used only once per strategy class body.
             def compile_strategy!(strategy_dsl, **options)
-              options = DSL.OptionsForSequenceBuilder(strategy_dsl, **options)
-
-              compile_strategy_for!(**options)
+              sequence = initialize_options!(strategy_dsl) # sets @sequence.
+              recompile!(sequence)
             end
 
             def compile_strategy_for!(sequence:, normalizers:, **normalizer_options)
@@ -86,6 +85,38 @@ module Trailblazer
               @state.update!(:normalizer_options) { normalizer_options } # immutable
 
               recompile!(sequence)
+            end
+
+            # Logic for creating a new Strategy type.
+            module Build
+              # module_function
+
+              # def call(strategy_class, options_from_strategy = )
+
+              # end
+            end
+
+            # This is logic done only once, when creating a new Strategy base type.
+            def initialize_options!(strategy_class, user_options_to_merge = {}, options_from_strategy = strategy_class.options_for_build(**user_options_to_merge),
+                normalizers:          options_from_strategy.fetch(:normalizers),
+                normalizer_options:   options_from_strategy.fetch(:normalizer_options),
+                layout_instructions:  options_from_strategy.fetch(:layout_instructions)
+              )
+
+              # normalizer_options = normalizer_options.merge(normalizer_options_to_merge) # FIXME: is this properly tested?
+              pp normalizer_options
+
+              @state.update!(:normalizers) { normalizers }
+              @state.update!(:normalizer_options) { normalizer_options }
+              @state.update!(:sequence) { [] }
+
+              # Add start and termini. This will only change @state{:sequence}
+              layout_instructions.each do |dsl_method, options|
+                # puts "@@@@@ #{dsl_method.inspect} #{options}"
+                send(dsl_method, options)
+              end
+
+              @state.get(:sequence)
             end
 
             # Mainly used for introspection.
@@ -119,60 +150,16 @@ module Trailblazer
           module DSL
             module_function
 
-            def start_sequence(wirings: [], id: "Start.default")
-              start_default = Activity::Start.new(semantic: :default)
-              start_event   = Linear::Sequence.Row(
-                task: start_default,
-                magnetic_to: nil,
-                wirings: wirings,
-                task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP, # TODO: replace with empty NOOP tw to skip Start at runtime.
-                data: {id: id},
-              )
-
-              _sequence = Linear::Sequence.new([])
-              _sequence = Adds.(_sequence, [start_event, id: id, append: nil]) # add first element, the start event.
-            end
-
-            def Build(strategy, **options, &block)
+            def Build(strategy, options, &block)
               Class.new(strategy) do
-                compile_strategy!(strategy::DSL, normalizers: @state.get(:normalizers), **options)
+                # compile_strategy!(strategy::DSL, **options)
+                sequence = initialize_options!(strategy::DSL, options) # sets @sequence.
+                recompile!(sequence)
 
                 class_exec(&block) if block
               end
             end
 
-            def OptionsForSequenceBuilder(strategy_dsl, termini: nil, **user_options)
-              # DISCUSS: instead of calling a separate {initial_sequence} method we could make DSL strategies
-              # use the actual DSL to build up the initial_sequence, somewhere outside? Maybe using {:adds}?
-              strategy_options, strategy_termini = strategy_dsl.options_for_sequence_build(**user_options) # call Path.options_for_sequence_builder
-
-              # DISCUSS: passing on Normalizers here is a service, not sure I like it.
-              initial_sequence = process_termini(strategy_options[:sequence], termini || strategy_termini, normalizers: strategy_dsl::Normalizers)
-
-              {
-                step_interface_builder: Normalizer.method(:build_circuit_step_for_filter),
-                adds:                   [], # DISCUSS: needed?
-                **user_options,
-                **strategy_options, # this might (and should!) override :track_name etc.
-                sequence:               initial_sequence,
-              }
-              # no {:termini} left in options
-            end
-
-            # If no {:termini} were provided by the Strategy user, we use the default
-            # {strategy_termini}.
-            def process_termini(sequence, termini, **options_for_append_terminus)
-              termini.each do |task, terminus_options|
-                sequence = append_terminus(sequence, task, **options_for_append_terminus, **terminus_options)
-              end
-
-              sequence
-            end
-
-            def append_terminus(sequence, task, normalizers:, **options)
-              # DISCUSS: why are we requiring {:normalizers} here? only for invoking Normalizer.terminus
-              _sequence = Linear::Sequence::Builder.update_sequence_for(:terminus, task, options, normalizers: normalizers, sequence: sequence, normalizer_options: {})
-            end
           end # DSL
 
           # FIXME: move to State#dup
@@ -215,9 +202,8 @@ module Trailblazer
             )
           end
 
-          # override :sequencer, :sequence, :activity
           # This is done in every subclass.
-          recompile!(DSL.start_sequence)
+          # recompile!([]) # DISCUSS: DO WE NEED IT?
         end # Strategy
       end
     end

@@ -126,4 +126,51 @@ EOS
     assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::FastTrack, id: "End.fail_fast").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:fail_fast})
     assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::FastTrack, id: "End.pass_fast").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:pass_fast})
   end
+
+  it "options for sequence builider refactoring # FIXME:" do
+    # TODO: this happens in Strategy.Build().
+    options = {
+      # normalizers: {}
+
+    }
+
+    module MyPath
+
+      def self.options_for_build(track_name: :success, end_task: Trailblazer::Activity::End.new(semantic: :success), end_id: "End.success")
+        start = Trailblazer::Activity::Start.new(semantic: :default)
+
+        {
+          layout_instructions: [
+            [:step, id: "Start.default", task: start, magnetic_to: nil, after: nil],
+            [:terminus, id: "End.success", task: end_task, magnetic_to: track_name, after: nil],
+          ],
+
+          normalizers: Trailblazer::Activity::Path::DSL::Normalizers,
+
+          # normalizer_options?
+          normalizer_options: {
+            track_name: track_name,
+
+# FIXME: needed in #wrap_task_with_step_interface
+            step_interface_builder: Trailblazer::Activity::DSL::Linear::Normalizer.method(:build_circuit_step_for_filter), # DISCUSS: hm, do we want this here in Path, for example?
+# FIXME: needed in #normalize_sequence_insert
+            end_id: "End.success",
+          }
+        }
+      end
+    end
+
+
+    # NOTE: All we want to do here is compose a sequence and compile it to an activity.
+    # And we're storing that and calling/invoking it via Strategy.call
+
+    strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy) do
+      # TODO: overwrite normalizer or normalizer options if there are any, then start adding steps.
+
+      compile_strategy!(MyPath) # sets @sequence.
+
+      # pp @state.get(:activity).to_h
+
+    end
+  end
 end

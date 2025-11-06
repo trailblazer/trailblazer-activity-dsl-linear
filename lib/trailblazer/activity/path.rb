@@ -65,35 +65,36 @@ module Trailblazer
 
         # DISCUSS: following methods are not part of Normalizer
 
-        # @private
-        def start_sequence(track_name:)
-          Linear::Strategy::DSL.start_sequence(wirings: [Linear::Sequence::Search::Forward(SUCCESS_OUTPUT[:success], track_name)])
-        end
+        # Default options for build.
+        def self.options_for_build(track_name: :success, end_task: Trailblazer::Activity::End.new(semantic: :success), end_id: "End.success")
+          start = Trailblazer::Activity::Start.new(semantic: :default)
 
-        def options_for_sequence_build(track_name: :success, end_task: Activity::End.new(semantic: :success), end_id: "End.success", **)
-          initial_sequence = start_sequence(track_name: track_name)
+          {
+            layout_instructions: [
+              [:step, id: "Start.default", task: start, magnetic_to: nil, after: nil],
+              [:terminus, id: end_id, task: end_task, magnetic_to: track_name, after: nil],
+            ],
 
-          termini = [
-            [end_task, id: end_id, magnetic_to: track_name,
-              append_to: nil # DISCUSS: processed in {terminus.rb}.
-            ]
-          ]
+            normalizers: Normalizers, # see above.
 
-          options = {
-            sequence:   initial_sequence,
-            track_name: track_name,
-            end_id:     end_id,           # needed in Normalizer.normalize_sequence_insert.
+            # normalizer_options?
+            normalizer_options: {
+              track_name: track_name,
+
+  # FIXME: needed in #wrap_task_with_step_interface
+              step_interface_builder: Trailblazer::Activity::DSL::Linear::Normalizer.method(:build_circuit_step_for_filter), # DISCUSS: hm, do we want this here in Path, for example?
+  # FIXME: needed in #normalize_sequence_insert
+              end_id: end_id,
+            }
           }
-
-          return options, termini
         end
       end # DSL
 
-      compile_strategy!(Path::DSL, normalizers: DSL::Normalizers) # sets :normalizer, normalizer_options, sequence and activity
+      compile_strategy!(Path::DSL) # sets :normalizer, normalizer_options, sequence and activity on @state.
     end # Path
 
     def self.Path(**options, &block)
-      Activity::DSL::Linear::Strategy::DSL.Build(Path, **options, &block)
+      Activity::DSL::Linear::Strategy::DSL.Build(Path, options, &block)
     end
   end
 end

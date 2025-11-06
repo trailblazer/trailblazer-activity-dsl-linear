@@ -137,7 +137,7 @@ module Trailblazer
 
               # we want this in the end:
               # {output.semantic => search strategy}
-              def compile_wirings(ctx, flow_options, _, adds:, output_tuples:, outputs:, id:, **)
+              def compile_wirings(ctx, flow_options, _, adds: [], output_tuples:, outputs:, id:, **)
                 # DISCUSS: how could we add another magnetic_to to an end?
                 # Go through all {Output() => Track()/Id()/End()} tuples.
                 wirings =

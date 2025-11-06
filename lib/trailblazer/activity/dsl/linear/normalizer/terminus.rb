@@ -22,6 +22,8 @@ module Trailblazer
                   "terminus.normalize_magnetic_to"          => Terminus.method(:normalize_magnetic_to),
                   "terminus.append_end"                     => Terminus.method(:append_end),
 
+                  "activity.sequence_insert"                => Normalizer.method(:normalize_sequence_insert),
+
                   # "step.normalize_task_wrap_extensions" => Normalizer.Task(TaskWrap.method(:normalize_task_wrap_extensions)),
                   "step.compute_normalizer_extensions" => Normalizer::Extensions.method(:compute_normalizer_extensions),
                   "step.compile_normalizer_extensions" => Normalizer::Extensions.method(:compile_normalizer_extensions),
