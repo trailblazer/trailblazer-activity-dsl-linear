@@ -75,8 +75,8 @@ module Trailblazer
             end
 
             # Used only once per strategy class body.
-            def compile_strategy!(strategy_dsl, user_options_to_merge = {})
-              sequence = initialize_options!(strategy_dsl, user_options_to_merge) # sets @sequence.
+            def compile_strategy!(strategy_dsl, *args)
+              sequence = initialize_options!(strategy_dsl, *args) # sets @sequence.
               recompile!(sequence)
             end
 
@@ -97,7 +97,7 @@ module Trailblazer
             end
 
             # This is logic done only once, when creating a new Strategy base type.
-            def initialize_options!(strategy_class, user_options_to_merge = {}, options_from_strategy = strategy_class.options_for_build(**user_options_to_merge),
+            def initialize_options!(strategy_class, user_options_for_strategy = {}, options_from_strategy = strategy_class.options_for_build(**user_options_for_strategy),
                 normalizers:          options_from_strategy.fetch(:normalizers),
                 normalizer_options:   options_from_strategy.fetch(:normalizer_options),
                 layout_instructions:  options_from_strategy.fetch(:layout_instructions)
