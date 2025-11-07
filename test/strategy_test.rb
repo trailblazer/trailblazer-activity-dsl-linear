@@ -127,50 +127,42 @@ EOS
     assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::FastTrack, id: "End.pass_fast").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:pass_fast})
   end
 
-  it "options for sequence builider refactoring # FIXME:" do
-    # TODO: this happens in Strategy.Build().
-    options = {
-      # normalizers: {}
-
-    }
-
+  describe "Stragegy::Build" do
     module MyPath
-
-      def self.options_for_build(track_name: :success, end_task: Trailblazer::Activity::End.new(semantic: :success), end_id: "End.success")
-        start = Trailblazer::Activity::Start.new(semantic: :default)
-
+      def self.options_for_build(track_name:) # {track_name} is passed through {#compile_strategy!}.
         {
           layout_instructions: [
-            [:step, id: "Start.default", task: start, magnetic_to: nil, after: nil],
-            [:terminus, id: "End.success", task: end_task, magnetic_to: track_name, after: nil],
+            [:step, id: "Start.default",   task: Trailblazer::Activity::Start.new(semantic: :default), magnetic_to: nil, after: nil],
+            [:terminus, id: "End.#{track_name}", task: Trailblazer::Activity::End.new(semantic: track_name), magnetic_to: track_name, after: nil],
           ],
 
           normalizers: Trailblazer::Activity::Path::DSL::Normalizers,
 
-          # normalizer_options?
           normalizer_options: {
             track_name: track_name,
-
 # FIXME: needed in #wrap_task_with_step_interface
-            step_interface_builder: Trailblazer::Activity::DSL::Linear::Normalizer.method(:build_circuit_step_for_filter), # DISCUSS: hm, do we want this here in Path, for example?
+            step_interface_builder: ->(task) { task },
 # FIXME: needed in #normalize_sequence_insert
-            end_id: "End.success",
+            end_id: "End.#{track_name}",
           }
         }
       end
     end
 
+    it "we can use {MyStrategy.options_for_build} to set up basic DSL behavior, and we can pass {user_options_to_merge} to {#compile_strategy!}" do
+      # NOTE: All we want to do here is compose a sequence and compile it to an activity.
+      # And we're storing that and calling/invoking it via Strategy.call
 
-    # NOTE: All we want to do here is compose a sequence and compile it to an activity.
-    # And we're storing that and calling/invoking it via Strategy.call
+      my_strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy) do
+        compile_strategy!(MyPath, {track_name: :winning}) # sets @sequence.
+      end
 
-    strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy) do
-      # TODO: overwrite normalizer or normalizer options if there are any, then start adding steps.
+      activity = Class.new(my_strategy) do
+        step :a, magnetic_to: :success # never reached, not connected.
+        step T.def_tasks(:b).method(:b)#, magnetic_to: :winning
+      end
 
-      compile_strategy!(MyPath) # sets @sequence.
-
-      # pp @state.get(:activity).to_h
-
+      assert_call activity, seq: "[:b]", terminus: :winning
     end
   end
 end

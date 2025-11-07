@@ -198,7 +198,7 @@ module Trailblazer
         end
       end
 
-      compile_strategy!(DSL, normalizers: DSL::Normalizers)
+      compile_strategy!(DSL)
     end # FastTrack
 
     def self.FastTrack(**options, &block)

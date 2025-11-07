@@ -75,8 +75,8 @@ module Trailblazer
             end
 
             # Used only once per strategy class body.
-            def compile_strategy!(strategy_dsl, **options)
-              sequence = initialize_options!(strategy_dsl) # sets @sequence.
+            def compile_strategy!(strategy_dsl, user_options_to_merge = {})
+              sequence = initialize_options!(strategy_dsl, user_options_to_merge) # sets @sequence.
               recompile!(sequence)
             end
 
@@ -102,9 +102,6 @@ module Trailblazer
                 normalizer_options:   options_from_strategy.fetch(:normalizer_options),
                 layout_instructions:  options_from_strategy.fetch(:layout_instructions)
               )
-
-              # normalizer_options = normalizer_options.merge(normalizer_options_to_merge) # FIXME: is this properly tested?
-              pp normalizer_options
 
               @state.update!(:normalizers) { normalizers }
               @state.update!(:normalizer_options) { normalizer_options }
