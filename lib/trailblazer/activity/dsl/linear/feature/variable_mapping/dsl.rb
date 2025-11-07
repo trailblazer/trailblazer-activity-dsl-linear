@@ -341,6 +341,7 @@ module Trailblazer
                         default_filter: default_filter,
                         write_name: variable_name,
                         name:             Left::Builder.name_for_filter(user_filter: right_option, **options_from_left_option, specifier: "#{variable_name.inspect}.{defaulted: true}"),
+                        wrap_value_with_hash: true,
                         **options_from_left_option,
                       )
 

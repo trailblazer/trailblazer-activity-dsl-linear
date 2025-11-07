@@ -5,7 +5,6 @@ require "minitest/autorun"
 require "trailblazer/core"
 
 CU = Trailblazer::Core::Utils
-
 T = Trailblazer::Core
 
 Minitest::Spec::Activity = Trailblazer::Activity # TODO: remove this.
@@ -61,7 +60,7 @@ class DocsTest < Minitest::Spec
         ::Trailblazer::Activity::TaskWrap.invoke(*args)
       end
 
-      # Railway = ::Trailblazer::Activity::Railway
+      Railway = ::Trailblazer::Activity::Railway
       Introspect = ::Trailblazer::Activity::Introspect
     end
 

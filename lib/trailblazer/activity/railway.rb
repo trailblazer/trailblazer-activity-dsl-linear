@@ -143,8 +143,8 @@ module Trailblazer
       # pp @state.get(:sequence)
     end # Railway
 
-    def self.Railway(**options, &block)
-      Activity::DSL::Linear::Strategy::DSL.Build(Railway, **options, &block)
+    def self.Railway(*args, &block)
+      Activity::DSL::Linear::Strategy::DSL.Build(Railway, *args, &block)
     end
   end
 end

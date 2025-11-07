@@ -66,7 +66,7 @@ module Trailblazer
         # DISCUSS: following methods are not part of Normalizer
 
         # Default options for build.
-        def self.options_for_build(track_name: :success, end_task: Trailblazer::Activity::End.new(semantic: :success), end_id: "End.success")
+        def self.options_for_build(track_name: :success, end_task: Trailblazer::Activity::End.new(semantic: track_name), end_id: "End.#{track_name}") # TODO: test track_name properly.
           start = Trailblazer::Activity::Start.new(semantic: :default)
 
           {

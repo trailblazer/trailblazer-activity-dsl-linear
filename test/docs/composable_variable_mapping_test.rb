@@ -176,7 +176,7 @@ class CVInCallableTest < DocsTest
 
   it "exception because we don't pass {:current_user}" do
     exception = assert_raises ArgumentError do
-      result = Trailblazer::Activity.(Memo::Activity::Create, **{}) # no {:current_user}
+      result = Trailblazer::Activity.(Memo::Activity::Create, {}) # no {:current_user}
     end
 
     assert_equal exception.message, "missing keyword: #{Trailblazer::Core.symbol_inspect_for(:user)}"

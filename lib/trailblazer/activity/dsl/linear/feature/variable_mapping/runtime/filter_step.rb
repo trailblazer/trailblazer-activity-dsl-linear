@@ -7,7 +7,6 @@ module Trailblazer
           class FilterStep
             def initialize(filter_activity)
               @filter_activity = filter_activity
-              # @options         = options
               @circuit = filter_activity.to_h[:activity].to_h[:circuit]
             end
 
@@ -74,15 +73,34 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
             end
 
             # class Activity < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
-            _normalizers = Trailblazer::Activity::Railway::DSL::Normalizers
+            normalizers = Trailblazer::Activity::Railway::DSL::Normalizers
 
-            normalizer_step = _normalizers.instance_variable_get(:@normalizers).fetch(:terminus).instance_variable_get(:@sequence)[5]
+
             # Remove the task wrapping in the terminus normalizer.... uff.
-            _normalizers.instance_variable_get(:@normalizers).fetch(:terminus).instance_variable_get(:@sequence).delete(normalizer_step) # FIXME: make it simpler to add lightweight normalizers.
+            normalizers =
+              Trailblazer::Activity::DSL::Linear::Normalizer.apply(normalizers.to_h, :terminus) do |normalizer|
+                Adds.(normalizer, [nil, id: "terminus.normalize_task", delete: "terminus.normalize_task"])
+              end
+# TODO: allow composing a much smaller normalizer instead of deleting unwanted steps.
+            normalizers =
+              Trailblazer::Activity::DSL::Linear::Normalizer.apply(normalizers.to_h, :step, :pass, :fail) do |normalizer|
+                Adds.(
+                  normalizer,
+                  [nil, id: "activity.macro_options_with_symbol_task", delete: "activity.macro_options_with_symbol_task"],
+                  [nil, id: "activity.wrap_task_with_step_interface", delete: "activity.wrap_task_with_step_interface"],
+                )
+              end
 
             Activity = Trailblazer::Activity.Railway(
-              termini: {:success => {semantic: :success, id: "End.success", magnetic_to: :success, append_to: nil}, :failure => {semantic: :failure}},
-              normalizers: _normalizers,
+              {},
+              Trailblazer::Activity::Railway::DSL.options_for_build.merge(
+                layout_instructions: [
+                  [:step, id: "Start.default", task: :start, magnetic_to: nil, after: nil, outputs: {success: Activity.Output(Trailblazer::Activity::Right, :success)}], # DISCUSS: technically, we shouldn't have to define only one output here, but it's easier for Railway and FastTrack.
+                  [:terminus, id: "End.success", task: :success, magnetic_to: :success, semantic: :success, after: nil],
+                  [:terminus, id: "End.failure", task: :failure, magnetic_to: :failure, semantic: :failure, after: nil],
+                ],
+                normalizers: normalizers,
+              )
             ) do
               def self.call(ctx, flow_options, circuit_options)
                 @circuit.(ctx, flow_options, circuit_options.merge(runner: MyRunner, filter_step_exec_context: self))
@@ -94,17 +112,6 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
               end
               def self.success(ctx, flow_options, circuit_options, **) # FIXME: how do we handle termini, how could we detect "last steps"?
                 return ctx, flow_options, nil
-              end
-
-
-
-              Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step, :pass, :fail) do |normalizer|
-                _normalizer = Trailblazer::Activity::Adds.(
-                  normalizer,
-                  [nil, id: "activity.macro_options_with_symbol_task", delete: "activity.macro_options_with_symbol_task"],
-                  [nil, id: "activity.wrap_task_with_step_interface", delete: "activity.wrap_task_with_step_interface"],
-                )
-                # pp _normalizer
               end
             end
 

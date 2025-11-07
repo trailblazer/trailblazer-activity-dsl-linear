@@ -36,6 +36,10 @@ module Trailblazer
 
               wrap_ctx
             end
+
+            def to_h # FIXME: test me.
+              @normalizers
+            end
           end
 
           module_function
@@ -55,19 +59,23 @@ module Trailblazer
           end
 
           # Extend a particular normalizer with new steps and save it on the activity.
-          def self.extend!(activity_class, *step_methods)
+          def self.extend!(activity_class, *step_methods, &block)
             activity_class.instance_variable_get(:@state).update!(:normalizers) do |normalizers|
-              hsh = normalizers.instance_variable_get(:@normalizers) # TODO: introduce {#to_h}.
-
-              new_normalizers = # {step: #<..>, pass: #<..>}
-                step_methods.collect do |name|
-                  extended_normalizer = hsh.fetch(name)            # grab existing normalizer.
-                  new_normalizer      = yield(extended_normalizer) # and let the user block change it.
-                  [name, new_normalizer]
-                end.to_h
-
-              Normalizers.new(**hsh.merge(new_normalizers))
+              apply(normalizers.to_h, *step_methods, &block)
             end
+          end
+
+          def self.apply(normalizers_hsh, *step_methods) # TODO: test or make private! we use it in FilterStep!
+            new_normalizers = # {step: #<..>, pass: #<..>}
+              step_methods.collect do |name|
+                extended_normalizer = normalizers_hsh.fetch(name)            # grab existing normalizer.
+
+                new_normalizer = yield(extended_normalizer) # and let the user block change it.
+
+                [name, new_normalizer]
+              end.to_h
+
+            Normalizers.new(**normalizers_hsh.merge(new_normalizers))
           end
 
           # The generic normalizer not tied to `step` or friends.
