@@ -147,11 +147,9 @@ module Trailblazer
           module DSL
             module_function
 
-            def Build(strategy, options, &block)
+            def Build(strategy, *args, &block)
               Class.new(strategy) do
-                # compile_strategy!(strategy::DSL, **options)
-                sequence = initialize_options!(strategy::DSL, options) # sets @sequence.
-                recompile!(sequence)
+                compile_strategy!(strategy::DSL, *args) # sets @sequence.
 
                 class_exec(&block) if block
               end
