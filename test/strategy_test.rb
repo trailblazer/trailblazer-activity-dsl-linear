@@ -127,7 +127,8 @@ EOS
     assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::FastTrack, id: "End.pass_fast").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:pass_fast})
   end
 
-  describe "Stragegy::Build" do
+  # describe "Stragegy::Build" do
+  describe "#compile_strategy!" do
     module MyPath
       def self.options_for_build(track_name:) # {track_name} is passed through {#compile_strategy!}.
         {
@@ -149,7 +150,7 @@ EOS
       end
     end
 
-    it "we can use {MyStrategy.options_for_build} to set up basic DSL behavior, and we can pass {user_options_to_merge} to {#compile_strategy!}" do
+    it "we can use {MyStrategy.options_for_build} to set up basic DSL behavior, and we can pass {user_options_for_strategy} to {#compile_strategy!}" do
       # NOTE: All we want to do here is compose a sequence and compile it to an activity.
       # And we're storing that and calling/invoking it via Strategy.call
 
@@ -163,6 +164,58 @@ EOS
       end
 
       assert_call activity, seq: "[:b]", terminus: :winning
+    end
+
+    it "we can override normalizers, for example, when building small, fast Railways in Representable or Reform" do
+      my_strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy) do
+        # This normalizer is basically one step that returns {:adds}. Note that each step is *prepended* to sequence,
+        # making {my_all_in_one_step} the first (and also last).
+        def self.my_normalizer(ctx, flow_options, _, options:, **)
+          ctx = ctx.merge(
+            adds: [
+              [
+                Trailblazer::Activity::DSL::Linear::Sequence.Row(
+                  task: options[:task],
+                  magnetic_to: nil,
+                  wirings: [],
+                  data: {id: options[:id], stop_event: true, semantic: :bla},
+                  task_wrap: nil
+                ),
+                id: options[:id],
+                prepend: nil,
+              ]
+            ]
+          )
+          return ctx, flow_options
+        end
+
+        # my_strategy_options = MyPath.options_for_build(track_name: :winning)
+        my_strategy_options = {
+          layout_instructions: [
+            # no terminus, we don't need it, thanks to our magic normalizer, see below.
+            [:step, id: "Start.default", task: Trailblazer::Activity::Start.new(semantic: :default), magnetic_to: nil, after: nil],
+          ],
+          normalizers: Trailblazer::Activity::DSL::Linear::Normalizer::Normalizers.new(
+            step: [[:my_id, method(:my_normalizer)]]
+          ),
+          normalizer_options: {}
+        }
+
+        compile_strategy!(MyPath, {}, my_strategy_options) # sets @sequence.
+      end
+
+      activity = Class.new(my_strategy) do
+        # This is a start, business and stop task.
+        def self.my_all_in_one_step(ctx, flow_options, _)
+          ctx[:seq] << :my_all_in_one_step
+
+          return ctx, flow_options, {semantic: :winning}
+        end
+
+        step task: method(:my_all_in_one_step)
+      end
+
+      assert_call activity, seq: "[:my_all_in_one_step]", terminus: :winning
     end
   end
 end
