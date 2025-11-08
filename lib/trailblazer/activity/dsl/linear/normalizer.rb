@@ -58,7 +58,7 @@ module Trailblazer
             Adds.(pipe, [task, id: id, replace: insertion_id])
           end
 
-          # Extend a particular normalizer with new steps and save it on the activity.
+          # Within an activity, Extend a set of normalizers with new steps.
           def self.extend!(activity_class, *step_methods, &block)
             activity_class.instance_variable_get(:@state).update!(:normalizers) do |normalizers|
               apply(normalizers.to_h, *step_methods, &block)
@@ -148,6 +148,7 @@ module Trailblazer
                 "activity.create_row" => method(:create_row),
                 "activity.create_add" => method(:create_add),
                 "activity.create_adds" => method(:create_adds),
+                "activity.apply_adds" => method(:apply_adds)
               }
             )
           end
@@ -344,6 +345,12 @@ module Trailblazer
             ctx = ctx.merge(
               adds: [add] + adds
             )
+
+            return ctx, flow_options
+          end
+
+          def apply_adds(ctx, flow_options, _, adds:, sequence:, **)
+            ctx[:sequence] = Adds.(sequence, *adds)
 
             return ctx, flow_options
           end

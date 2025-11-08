@@ -34,6 +34,7 @@ module Trailblazer
                   "activity.create_row" => Normalizer.method(:create_row),
                   "activity.create_add" => Normalizer.method(:create_add),
                   "activity.create_adds" => Normalizer.method(:create_adds),
+                  "activity.apply_adds" => Normalizer.method(:apply_adds),
                 }
 
               Activity::Pipeline(normalizer_steps)

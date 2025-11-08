@@ -15,9 +15,9 @@ module Trailblazer
             # Run a specific normalizer (e.g. for `#step`), apply the adds to the sequence and return the latter.
             # DISCUSS: where does this method belong? Sequence + Normalizers?
             def self.update_sequence_for(type, task, options = {}, sequence:, **kws, &block)
-              step_options = invoke_normalizer_for(type, task, options, sequence: sequence, **kws, &block)
+              ctx = invoke_normalizer_for(type, task, options, sequence: sequence, **kws, &block)
 
-              _sequence = Adds.(sequence, *step_options[:adds])
+              ctx[:sequence]
             end
 
             # @private
