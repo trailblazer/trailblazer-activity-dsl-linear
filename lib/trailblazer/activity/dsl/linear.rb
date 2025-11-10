@@ -30,7 +30,6 @@ class Trailblazer::Activity
 end
 
 require "trailblazer/activity/dsl/linear/sequence"
-require "trailblazer/activity/dsl/linear/sequence/builder"
 require "trailblazer/activity/dsl/linear/sequence/search"
 require "trailblazer/activity/dsl/linear/sequence/compiler"
 require "trailblazer/activity/dsl/linear/normalizer/inherit" # DISCUSS. should we add normalizer/options/... or something?

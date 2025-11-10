@@ -36,21 +36,22 @@ module Trailblazer
             end
 
             private def recompile_activity_for(type, *args, &block)
-              sequence = apply_step_on_sequence_builder(type, *args, &block)
+              sequence = apply_step_on_sequence(type, *args, &block)
 
               recompile!(sequence)
             end
 
-            # TODO: make {rescue} optional, only in dev mode.
             # @return Sequence
-            private def apply_step_on_sequence_builder(type, arg, options = {}, &block)
-              Sequence::Builder.(type, arg, options,
+            private def apply_step_on_sequence(type, arg, options = {}, &block)
+              DSL.invoke_normalizer(
+                type,
+                arg,
+                options,
                 sequence:           @state.get(:sequence),
                 normalizers:        @state.get(:normalizers),
-
                 normalizer_options: @state.get(:normalizer_options),
-
-                &block)
+                &block
+              )
             rescue Activity::Adds::IndexError
               # re-raise this exception with activity class prepended
               # to the message this time.
@@ -153,6 +154,29 @@ module Trailblazer
 
                 class_exec(&block) if block
               end
+            end
+
+            # Call a specific normalizer for an invocation of step, left, fail, terminus, pass.
+            # @private
+            # DISCUSS: used in {Normalizer#add_terminus}, too.
+            def self.invoke_normalizer(type, task, options, normalizers:, normalizer_options:, sequence:, &block)
+              # These options represent direct configuration of the very method call that causes the normalizer to be run.
+              library_options = {
+                dsl_track:   type,
+                block:       block,
+                normalizers: normalizers,
+                sequence:    sequence,
+              }
+
+              ctx = normalizers.(
+                type,
+                normalizer_options: normalizer_options, # class-level Strategy configuration, such as :step_interface_builder
+                options:            task,               # macro-options
+                user_options:       options,            # user-specified options from the DSL method
+                library_options:    library_options     # see above, "runtime" options (from compile-time, haha).
+              )
+
+              ctx[:sequence]
             end
 
           end # DSL

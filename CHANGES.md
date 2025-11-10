@@ -1,5 +1,7 @@
 # 1.3.0
 
+Railway(:termini ) is deprecated
+
 ## Normalizer
 
 * Remove Linear::Normalizer.Task(
