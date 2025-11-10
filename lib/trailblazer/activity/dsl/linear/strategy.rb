@@ -36,13 +36,13 @@ module Trailblazer
             end
 
             private def recompile_activity_for(type, *args, &block)
-              sequence = apply_step_on_sequence(type, *args, &block)
+              sequence = apply_on_sequence(type, *args, &block)
 
               recompile!(sequence)
             end
 
             # @return Sequence
-            private def apply_step_on_sequence(type, arg, options = {}, &block)
+            private def apply_on_sequence(type, arg, options = {}, &block)
               DSL.invoke_normalizer(
                 type,
                 arg,
@@ -161,11 +161,12 @@ module Trailblazer
             # DISCUSS: used in {Normalizer#add_terminus}, too.
             def self.invoke_normalizer(type, task, options, normalizers:, normalizer_options:, sequence:, &block)
               # These options represent direct configuration of the very method call that causes the normalizer to be run.
-              library_options = {
+              options = {
                 dsl_track:   type,
                 block:       block,
                 normalizers: normalizers,
                 sequence:    sequence,
+                **options,
               }
 
               ctx = normalizers.(
@@ -173,7 +174,6 @@ module Trailblazer
                 normalizer_options: normalizer_options, # class-level Strategy configuration, such as :step_interface_builder
                 options:            task,               # macro-options
                 user_options:       options,            # user-specified options from the DSL method
-                library_options:    library_options     # see above, "runtime" options (from compile-time, haha).
               )
 
               ctx[:sequence]

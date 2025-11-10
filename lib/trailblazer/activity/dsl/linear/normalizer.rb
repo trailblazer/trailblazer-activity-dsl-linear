@@ -98,7 +98,6 @@ module Trailblazer
                 "activity.normalize_step_interface"       => method(:normalize_step_interface),        # Makes sure {:options} is always a hash.
                 "activity.macro_options_with_symbol_task" => method(:macro_options_with_symbol_task),  # DISCUSS: we might deprecate {task: :instance_method}
 
-                "activity.merge_library_options"          => method(:merge_library_options),    # Merge "macro"/user options over library options.
                 "activity.normalize_for_macro"            => method(:merge_user_options),       # Merge user_options over "macro" options.
                 "activity.normalize_normalizer_options"   => method(:merge_normalizer_options), # Merge user_options over normalizer_options.
 
@@ -179,7 +178,6 @@ module Trailblazer
           def normalize_step_interface(ctx, flow_options, _, options:, **)
             return ctx, flow_options if options.is_a?(Hash)
 
-            # Step Interface
             # step :find, ...
             # step Callable, ... (Method, Proc etc)
             ctx = ctx.merge(
@@ -209,15 +207,6 @@ module Trailblazer
 
           def normalize_id(ctx, flow_options, _, task:, id: false, **)
             ctx = ctx.merge(id: id || task)
-
-            return ctx, flow_options
-          end
-
-          # {:library_options} such as :sequence, :dsl_track, etc.
-          def merge_library_options(ctx, flow_options, _, options:, library_options:, **)
-            ctx = ctx.merge(
-                options: library_options.merge(options)
-              )
 
             return ctx, flow_options
           end

@@ -14,7 +14,7 @@ module Trailblazer
 
               # Replace a block-expecting {PathBranch} instance with another one that's holding
               # the global {:block} from {#step ... do end}.
-              def forward_block_for_path_branch(ctx, flow_options, _, options:, normalizer_options:, library_options:, **)
+              def forward_block_for_path_branch(ctx, flow_options, _, options:, normalizer_options:, **)
                 block = options[:block]
 
                 return ctx, flow_options unless block
