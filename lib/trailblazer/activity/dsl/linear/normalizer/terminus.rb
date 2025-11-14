@@ -12,7 +12,6 @@ module Trailblazer
                 {
                   "activity.normalize_step_interface"       => Normalizer.method(:normalize_step_interface),      # first
                   "activity.normalize_for_macro"            => Normalizer.method(:merge_user_options),
-                  # "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),
                   "activity.normalize_context"              => Normalizer.method(:normalize_context),
 
                   "terminus.normalize_task"                 => Terminus.method(:normalize_task),

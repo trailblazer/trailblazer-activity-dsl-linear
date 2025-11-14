@@ -195,7 +195,7 @@ class PathTest < Minitest::Spec
       assert_call path, seq: "[:f, :g]", terminus: :winning
     end
 
-    it "accepts {:layout_instructions} and allows using {Path.options_for_build}" do
+    it "accepts manual {options_for_build} and allows using {Path.options_for_build}" do
       path_options = Activity::Path::DSL.options_for_build
 
       start_instructions = path_options[:layout_instructions][0]

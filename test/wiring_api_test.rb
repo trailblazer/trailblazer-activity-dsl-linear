@@ -2,6 +2,10 @@ require "test_helper"
 
 # TODO: move all wiring-related tests over here!
 class WiringApiTest < Minitest::Spec
+  it "what" do
+    raise "test terminus with different magnetic_to and semantic"
+  end
+
   it "accepts {Output() => Id()}" do
     strategy = Class.new(Activity::Path) do
       include T.def_steps(:f, :g, :a)

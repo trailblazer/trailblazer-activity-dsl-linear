@@ -412,31 +412,46 @@ class RailwayTest < Minitest::Spec
     end
   end
 
-  it "accepts {:termini} and overrides Railway's termini" do
-      path = Activity.Railway(
-        termini: [
-                  [Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: "Start.default"],
-                  [Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner],
-                ]
-      ) do
+    it "accepts manual {options_for_build} and allows using {Railway.options_for_build}" do
+      railway_options = Activity::Railway::DSL.options_for_build
+
+      start_instructions = railway_options[:layout_instructions][0]
+
+      my_railway_options = railway_options.merge(
+        layout_instructions: [
+          start_instructions,
+          [:terminus, task: Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: nil],
+          [:terminus, task: Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner, append_to: nil],
+          [:terminus, task: Activity::End.new(semantic: :void), id: "End.void",     magnetic_to: :void, append_to: nil], # this shouldn't be connected.
+        ]
+      )
+
+      activity = Activity.Railway({}, my_railway_options) do
         step :f
-        step :g, Output(Object, :failure) => Track(:winner)
+        step :g, Output(:failure) => Track(:winner)
+        include T.def_steps(:f, :g)
       end
 
-# FIXME: f/failure shouldn't go to End.winner
-      assert_circuit path, %{
+      # pp activity.to_h
+
+      assert_circuit activity, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*f>
 <*f>
- {Trailblazer::Activity::Left} => #<End/:winning>
+ {Trailblazer::Activity::Left} => #<End/:void>
  {Trailblazer::Activity::Right} => <*g>
 <*g>
- {Object} => #<End/:winning>
+ {Trailblazer::Activity::Left} => #<End/:winning>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
 #<End/:winning>
+
+#<End/:void>
 }
+
+      assert_call activity, seq: "[:f, :g]"
+      assert_call activity, seq: "[:f, :g]", g: false, terminus: :winning
     end
 
   # @generic strategy test
