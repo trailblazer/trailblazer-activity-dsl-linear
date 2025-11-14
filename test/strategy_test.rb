@@ -3,12 +3,15 @@ require "test_helper"
 class StrategyTest < Minitest::Spec
   it "empty Strategy" do
     strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy)
+    assert_nil strategy.to_h[:sequence]
 
-    assert_equal CU.strip(CU.inspect(strategy.to_h[:sequence])), %(#<Trailblazer::Activity::DSL::Linear::Sequence:0x @sequence=[[\"Start.default\", #<struct Trailblazer::Activity::DSL::Linear::Sequence::Row magnetic_to=nil, task=#<Trailblazer::Activity::Start semantic=:default>, wirings=[], data=#{{:id=>"Start.default"}.inspect}, task_wrap=#{CU.strip(Trailblazer::Activity::TaskWrap::INITIAL_TASK_WRAP.inspect)}>]]>)
+#     assert_equal CU.strip(CU.inspect(strategy.to_h[:sequence])), %(#<Trailblazer::Activity::DSL::Linear::Sequence:0x @sequence=[[\"Start.default\", #<struct Trailblazer::Activity::DSL::Linear::Sequence::Row magnetic_to=nil, task=#<Trailblazer::Activity::Start semantic=:default>, wirings=[], data=#{{:id=>"Start.default"}.inspect}, task_wrap=#{CU.strip(Trailblazer::Activity::TaskWrap::INITIAL_TASK_WRAP.inspect)}>]]>)
 
-    assert_circuit strategy.to_h, %{
-#<Start/:default>
-}
+#     assert_circuit strategy.to_h, %{
+# #<Start/:default>
+# }
+
+#     assert_call strategy
   end
 
   let(:default_normalizer_extensions_in_fields) { {normalizer_extensions: Trailblazer::Activity::DSL::Linear::Strategy::INITIAL_NORMALIZER_EXTENSIONS} }

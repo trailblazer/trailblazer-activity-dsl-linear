@@ -94,8 +94,8 @@ module Trailblazer
       compile_strategy!(Path::DSL) # sets :normalizer, normalizer_options, sequence and activity on @state.
     end # Path
 
-    def self.Path(**options, &block)
-      Activity::DSL::Linear::Strategy::DSL.Build(Path, options, &block)
+    def self.Path(*args, &block)
+      Activity::DSL::Linear::Strategy::DSL.Build(Path, *args, &block)
     end
   end
 end

@@ -84,13 +84,6 @@ module Trailblazer
               recompile!(sequence)
             end
 
-            def compile_strategy_for!(sequence:, normalizers:, **normalizer_options)
-              @state.update!(:normalizers)        { normalizers }        # immutable
-              @state.update!(:normalizer_options) { normalizer_options } # immutable
-
-              recompile!(sequence)
-            end
-
             # This is logic done only once, when creating a new Strategy base type.
             def initialize_options!(strategy_class, user_options_for_strategy = {}, options_from_strategy = strategy_class.options_for_build(**user_options_for_strategy),
                 normalizers:          options_from_strategy.fetch(:normalizers),
@@ -170,8 +163,6 @@ module Trailblazer
                 options:            task,               # macro-options
                 user_options:       options,            # user-specified options from the DSL method
               )
-
-
             end
 
           end # DSL
@@ -217,7 +208,8 @@ module Trailblazer
           end
 
           # This is done in every subclass.
-          # recompile!([]) # DISCUSS: DO WE NEED IT?
+          # DISCUSS: currently, a Strategy is an abstract class that cannot be used directly unless you configure it using Build(). See strategy_test.
+          # compile_strategy!(self, {}, normalizers: {}, normalizer_options: {}, layout_instructions: [])
         end # Strategy
       end
     end

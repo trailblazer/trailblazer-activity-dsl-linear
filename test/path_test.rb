@@ -131,6 +131,23 @@ class PathTest < Minitest::Spec
   end
 
   describe "Activity.Path() builder" do
+    it "works witout options" do
+      path = Activity.Path() do
+        step :a
+        include T.def_steps(:a)
+      end
+
+      assert_circuit path, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+)
+
+      assert_call path, seq: "[:a]"
+    end
+
     it "accepts {:track_name}, which doesn't change the terminus semantic, though." do
       path = Activity.Path(track_name: :green) do
         include Implementing
@@ -178,15 +195,23 @@ class PathTest < Minitest::Spec
       assert_call path, seq: "[:f, :g]", terminus: :winning
     end
 
-    it "accepts {:termini} and overrides Path's termini" do
-      path = Activity.Path(
-        termini: [
-                  [Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: "Start.default"],
-                  [Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner],
-                ]
-      ) do
+    it "accepts {:layout_instructions} and allows using {Path.options_for_build}" do
+      path_options = Activity::Path::DSL.options_for_build
+
+      start_instructions = path_options[:layout_instructions][0]
+
+      my_path_options = path_options.merge(
+        layout_instructions: [
+          start_instructions,
+          [:terminus, Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: nil],
+          [:terminus, Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner, append_to: nil],
+        ]
+      )
+
+      path = Activity.Path({}, my_path_options) do
         step :f
-        step :g, Output(Object, :failure) => Track(:winner)
+        step :g, Output(Trailblazer::Activity::Left, :failure) => Track(:winner)
+        include T.def_steps(:f, :g)
       end
 
       assert_circuit path, %{
@@ -196,11 +221,14 @@ class PathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => <*g>
 <*g>
  {Trailblazer::Activity::Right} => #<End/:success>
- {Object} => #<End/:winning>
+ {Trailblazer::Activity::Left} => #<End/:winning>
 #<End/:success>
 
 #<End/:winning>
 }
+
+      assert_call path, seq: "[:f, :g]"
+      assert_call path, seq: "[:f, :g]", g: false, terminus: :winning
     end
 
     it "allows setting {normalizer_options} through Path()" do
