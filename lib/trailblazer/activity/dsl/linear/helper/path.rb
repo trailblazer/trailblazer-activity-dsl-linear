@@ -14,22 +14,20 @@ module Trailblazer
 
               # Replace a block-expecting {PathBranch} instance with another one that's holding
               # the global {:block} from {#step ... do end}.
-              def forward_block_for_path_branch(ctx, flow_options, _, options:, user_options:, **)
-                block = options[:block]
-
+              def forward_block_for_path_branch(ctx, flow_options, _, block:, normalizer_options:, **)
                 return ctx, flow_options unless block
 
                 output, path_branch =
-                  options.find { |output, cfg| cfg.is_a?(Linear::PathBranch) }
+                  ctx.find { |output, cfg| cfg.is_a?(Linear::PathBranch) }
 
                 path_branch_with_block = Linear::PathBranch.new(
-                  user_options.fetch(:normalizer_options)
+                  normalizer_options
                     .merge(path_branch.options)
                     .merge(block: block)
                 )
 
                 ctx = ctx.merge(
-                  options: options.merge(output => path_branch_with_block)
+                  output => path_branch_with_block
                 )
 
                 return ctx, flow_options

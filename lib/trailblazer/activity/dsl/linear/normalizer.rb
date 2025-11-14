@@ -99,10 +99,9 @@ module Trailblazer
                 "activity.macro_options_with_symbol_task" => method(:macro_options_with_symbol_task),  # DISCUSS: we might deprecate {task: :instance_method}
 
                 "activity.normalize_for_macro"            => method(:merge_user_options),       # Merge user_options over "macro" options.
-
+                "activity.normalize_context"              => method(:normalize_context),
                 "activity.path_helper.forward_block"      => Helper::Path::Normalizer.method(:forward_block_for_path_branch),     # forward the "global" block
 
-                "activity.normalize_context"              => method(:normalize_context),
                 "activity.id_with_inherit_and_replace"    => method(:id_with_inherit_and_replace),
                 "activity.normalize_id"                   => method(:normalize_id),
                 "activity.wrap_task_with_step_interface"  => method(:wrap_task_with_step_interface),
