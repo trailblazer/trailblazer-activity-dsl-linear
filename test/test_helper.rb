@@ -69,25 +69,11 @@ class DocsTest < Minitest::Spec
 end
 
 module Fixtures
-  module_function
+  class StepInterface < Struct.new(:task)
+    def call(ctx, flow_options, circuit_options)
+      ctx[:seq] << task
 
-  def circuit_interface_builder(step)
-    CircuitInterface.new(step)
-  end
-
-  class CircuitInterface
-    def initialize(step)
-      @step = step
-    end
-
-    def call((ctx, flow_options), *)
-      @step.(ctx)
-
-      return Trailblazer::Activity::Right, [ctx, flow_options]
-    end
-
-    def inspect
-      %{#<Fixtures::CircuitInterface:0x @step=#{Trailblazer::Core::Utils::Assertions.render_task(@step)}>}
+      return ctx, flow_options, Trailblazer::Activity::Right
     end
   end
 end

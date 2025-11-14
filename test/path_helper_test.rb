@@ -37,11 +37,11 @@ class PathHelperTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:failure>
 #<End/:success>
 
-#<End/:new>
-
 #<End/:roundtrip>
 
 #<End/:failure>
+
+#<End/:new>
 }
   end
 
@@ -246,7 +246,7 @@ class PathHelperTest < Minitest::Spec
     end
 
     activity = Class.new(Activity::Railway) do
-      step :c, Output(:success) => Path() do
+      step :c, Output(:success) => Path(connect_to: Track(:success)) do # TODO: test this "officially"!
         step :e
         step Subprocess(nested), Output(:charge) => End(:with_cc)
         step :d
@@ -268,7 +268,7 @@ class PathHelperTest < Minitest::Spec
  {#<Trailblazer::Activity::End semantic=:success>} => <*d>
  {#<Trailblazer::Activity::End semantic=:charge>} => #<End/:with_cc>
 <*d>
- {Trailblazer::Activity::Right} => #<End/:failure>
+ {Trailblazer::Activity::Right} => <*f>
 <*f>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
@@ -403,32 +403,36 @@ class PathHelperTest < Minitest::Spec
 }
   end
 
-  it "allows using a different task builder, etc" do
-    implementing = T.def_steps(:a, :f, :b) # circuit interface.
+  it "allows using a different task builder, etc. via {normalizer_options}" do
+    def my_step_interface_builder(task)
+      Fixtures::StepInterface.new(task)
+    end
 
     shared_options = {
-      step_interface_builder: Fixtures.method(:circuit_interface_builder)
+      step_interface_builder: method(:my_step_interface_builder)
     }
 
-    path = Trailblazer::Activity.Path(**shared_options) # {shared_options} gets merged into {:normalizer_options} automatically.
-    path.step implementing.method(:a), id: :a, path.Output(:success) => path.Path(terminus: :roundtrip) do
-      step implementing.method(:f), id: :f
+    path = Trailblazer::Activity.Path(**shared_options) do # {shared_options} gets merged into {:normalizer_options} automatically.
+      step :a, Output(:success) => Path(terminus: :roundtrip) do
+        step :f
+      end
+      step :b, Output(:success) => Id(:a)
     end
-    path.step implementing.method(:b), id: :b, path.Output(:success) => path.Id(:a)
 
-    assert_circuit path, %{
+    # All tasks, including the "nested" Path(), use an alternative step builder.
+    assert_circuit path, %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.f>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.f>>
+ {Trailblazer::Activity::Right} => #<struct Fixtures::StepInterface task=:a>
+#<struct Fixtures::StepInterface task=:a>
+ {Trailblazer::Activity::Right} => #<struct Fixtures::StepInterface task=:f>
+#<struct Fixtures::StepInterface task=:f>
  {Trailblazer::Activity::Right} => #<End/:roundtrip>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
+#<struct Fixtures::StepInterface task=:b>
+ {Trailblazer::Activity::Right} => #<struct Fixtures::StepInterface task=:a>
 #<End/:success>
 
 #<End/:roundtrip>
-}
+)
 
     assert_call path, a: false, :seq=>"[:a, :f]", terminus: :roundtrip
   end

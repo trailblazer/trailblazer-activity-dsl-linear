@@ -7,7 +7,7 @@ class Trailblazer::Activity
       # A Sequence is compiled into an activity using {Compiler}.
       #
       # Complies with the Adds interface (#to_a).
-      class Sequence < Pipeline
+      class Sequence
         # Row interface is part of the ADDs specification.
         class Row < Struct.new(:magnetic_to, :task, :wirings, :data, :task_wrap)
           # Part of ADDS compliancy, see {activity} gem {adds.rb}.

@@ -14,7 +14,7 @@ module Trailblazer
 
               # Replace a block-expecting {PathBranch} instance with another one that's holding
               # the global {:block} from {#step ... do end}.
-              def forward_block_for_path_branch(ctx, flow_options, _, options:, normalizer_options:, **)
+              def forward_block_for_path_branch(ctx, flow_options, _, options:, user_options:, **)
                 block = options[:block]
 
                 return ctx, flow_options unless block
@@ -23,13 +23,13 @@ module Trailblazer
                   options.find { |output, cfg| cfg.is_a?(Linear::PathBranch) }
 
                 path_branch_with_block = Linear::PathBranch.new(
-                  normalizer_options
+                  user_options.fetch(:normalizer_options)
                     .merge(path_branch.options)
                     .merge(block: block)
                 )
 
                 ctx = ctx.merge(
-                  options: ctx[:options].merge(output => path_branch_with_block)
+                  options: options.merge(output => path_branch_with_block)
                 )
 
                 return ctx, flow_options
@@ -41,7 +41,7 @@ module Trailblazer
               def convert_paths_to_tracks(ctx, flow_options, _, block: false, **)
                 new_tracks = ctx
                   .find_all { |output, cfg| cfg.is_a?(Linear::PathBranch) }
-                  .collect {  |output, cfg| [output, Path.convert_path_to_track(block: block, **cfg.options)]  }
+                  .collect {  |output, cfg| [output, Path.convert_path_to_adds(block: block, **cfg.options)]  }
                   .to_h
 
                 ctx = ctx.merge(new_tracks)
@@ -52,7 +52,9 @@ module Trailblazer
 
             module_function
 
-            def convert_path_to_track(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, terminus: nil, **options)
+            # Take the "nested", already evaluated Path sequence and transform it into ADDS instruuctions.
+            # Those are then applied on the outer sequence via the {:adds} DSL option.
+            def convert_path_to_adds(track_color: "track_#{rand}", connect_to: nil, before: false, block: nil, terminus: nil, **options)
               options =
                 if connect_to
                   {}
@@ -66,8 +68,6 @@ module Trailblazer
                 end
 
               # DISCUSS:  if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.
-
-              # DISCUSS: use Path::Sequencer::Builder here instead?
               path = Activity::Path(**options, track_name: track_color, &block)
 
               seq = path.to_h[:sequence]
@@ -95,6 +95,8 @@ module Trailblazer
                 ]
               end
 
+              # pp adds
+
               # Connect the Output() => Track(path_track)
               Linear::Normalizer::OutputTuples::Track.new(track_color, adds, {})
             end
@@ -102,13 +104,16 @@ module Trailblazer
             # Connect last row of the {sequence} to the given step via its {Id}
             # Useful when steps needs to be inserted in between {Start} and {connect Id()}.
             private def connect_for_sequence(sequence, connect_to:)
-              last_step_on_path = sequence[-1]
-              output_searches   = last_step_on_path[2]
+              termini = sequence.find_all { |row| row.data[:stop_event] }
+              user_steps = sequence - termini
 
+              last_step_on_path = user_steps[-1]
+              output_searches   = last_step_on_path[2]
+# pp last_step_on_path
               last_step_outputs =
                 output_searches.collect do |search_strategy|
                   # TODO: introduce {search_strategy.to_h} so we don't need to execute it here.
-                  output, _ = search_strategy.(sequence, last_step_on_path) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
+                  output, _ = search_strategy.(user_steps, last_step_on_path) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
                   output
                 end
 
@@ -126,7 +131,7 @@ module Trailblazer
               row_options = last_step_on_path.to_h.merge(wirings: output_searches)
               row = Sequence.Row(**row_options)
 
-              sequence[0..-2] + [row]
+              user_steps[0..-2] + [row] + termini
             end
           end # Path
         end

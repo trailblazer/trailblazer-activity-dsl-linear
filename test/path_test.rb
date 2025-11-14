@@ -131,7 +131,7 @@ class PathTest < Minitest::Spec
   end
 
   describe "Activity.Path() builder" do
-    it "accepts {:track_name}" do
+    it "accepts {:track_name}, which doesn't change the terminus semantic, though." do
       path = Activity.Path(track_name: :green) do
         include Implementing
         step :f
@@ -154,10 +154,13 @@ class PathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
+
+      assert_call path, seq: "[:f, :g, :b]" # terminus is :success.
     end
 
     it "accepts {:end_task}" do
       path = Activity.Path(end_task: Activity::End.new(semantic: :winning), end_id: "End.winner") do
+        include T.def_steps(:f, :g)
         step :f
         step :g
       end
@@ -171,6 +174,8 @@ class PathTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:winning>
 #<End/:winning>
 }
+
+      assert_call path, seq: "[:f, :g]", terminus: :winning
     end
 
     it "accepts {:termini} and overrides Path's termini" do
@@ -196,6 +201,27 @@ class PathTest < Minitest::Spec
 
 #<End/:winning>
 }
+    end
+
+    it "allows setting {normalizer_options} through Path()" do
+      def my_step_interface_builder(task)
+        Fixtures::StepInterface.new(task)
+      end
+
+      path = Activity.Path(step_interface_builder: method(:my_step_interface_builder)) do
+        step :a
+        step :b
+      end
+
+      assert_circuit path, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<struct Fixtures::StepInterface task=:a>
+#<struct Fixtures::StepInterface task=:a>
+ {Trailblazer::Activity::Right} => #<struct Fixtures::StepInterface task=:b>
+#<struct Fixtures::StepInterface task=:b>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+)
     end
 
     # @generic strategy test

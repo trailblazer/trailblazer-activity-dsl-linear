@@ -12,7 +12,6 @@ module Trailblazer
                 {
                   "activity.normalize_step_interface"       => Normalizer.method(:normalize_step_interface),      # first
                   "activity.normalize_for_macro"            => Normalizer.method(:merge_user_options),
-                  "activity.normalize_normalizer_options"   => Normalizer.method(:merge_normalizer_options),
                   # "activity.normalize_non_symbol_options"   => Normalizer.Task(Normalizer.method(:normalize_non_symbol_options)),
                   "activity.normalize_context"              => Normalizer.method(:normalize_context),
 
@@ -84,10 +83,10 @@ module Trailblazer
             end
 
             # @private
-            def append_end(ctx, flow_options, _, task:, append_to: "End.success", **)
+            def append_end(ctx, flow_options, _, task:, append_to: nil, **)
               terminus_args = {
-                sequence_insert:    {append: append_to}, #[Activity::Adds::Insert.method(:Append), append_to],
-                stop_event:         true,
+                after:      append_to,
+                stop_event: true,
                 Strategy.DataVariable() => [:stop_event, :semantic],
               }
 
@@ -95,7 +94,7 @@ module Trailblazer
                 wirings: [],
                 adds:    [],
               ).merge(terminus_args)
-                # **terminus_args
+
               return ctx, flow_options
             end
           end # Terminus

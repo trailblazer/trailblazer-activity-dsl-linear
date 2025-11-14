@@ -43,7 +43,7 @@ module Trailblazer
 
             # @return Sequence
             private def apply_on_sequence(type, arg, options = {}, &block)
-              DSL.invoke_normalizer(
+              ctx = DSL.invoke_normalizer(
                 type,
                 arg,
                 options,
@@ -52,7 +52,9 @@ module Trailblazer
                 normalizer_options: @state.get(:normalizer_options),
                 &block
               )
-            rescue Activity::Adds::IndexError
+
+              return ctx[:sequence]
+            rescue Activity::Adds::IndexError # TODO: allow passing the "source class" to compiling.
               # re-raise this exception with activity class prepended
               # to the message this time.
               raise $!, "#{self}:#{$!.message}"
@@ -78,6 +80,7 @@ module Trailblazer
             # Used only once per strategy class body.
             def compile_strategy!(strategy_dsl, *args)
               sequence = initialize_options!(strategy_dsl, *args) # sets @sequence.
+
               recompile!(sequence)
             end
 
@@ -86,15 +89,6 @@ module Trailblazer
               @state.update!(:normalizer_options) { normalizer_options } # immutable
 
               recompile!(sequence)
-            end
-
-            # Logic for creating a new Strategy type.
-            module Build
-              # module_function
-
-              # def call(strategy_class, options_from_strategy = )
-
-              # end
             end
 
             # This is logic done only once, when creating a new Strategy base type.
@@ -106,7 +100,7 @@ module Trailblazer
 
               @state.update!(:normalizers) { normalizers }
               @state.update!(:normalizer_options) { normalizer_options }
-              @state.update!(:sequence) { [] }
+              @state.update!(:sequence) { Activity.Pipeline({}) }
 
               # Add start and termini. This will only change @state{:sequence}
               layout_instructions.each do |dsl_method, options|
@@ -167,16 +161,17 @@ module Trailblazer
                 normalizers: normalizers,
                 sequence:    sequence,
                 **options,
+                **normalizer_options,
+                normalizer_options: normalizer_options, # currently, we need those as an "extra" option in Helper::Path. # FIXME: test these options.
               }
 
               ctx = normalizers.(
                 type,
-                normalizer_options: normalizer_options, # class-level Strategy configuration, such as :step_interface_builder
                 options:            task,               # macro-options
                 user_options:       options,            # user-specified options from the DSL method
               )
 
-              ctx[:sequence]
+
             end
 
           end # DSL

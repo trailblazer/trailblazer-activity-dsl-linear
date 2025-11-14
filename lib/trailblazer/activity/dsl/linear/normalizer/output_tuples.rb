@@ -34,7 +34,7 @@ module Trailblazer
 
                 terminus = Activity.End(semantic)
 
-                adds = end_exists ? [] : OutputTuples::Connections.add_terminus(terminus, id: end_id, sequence: sequence, normalizers: ctx[:normalizers])
+                adds = end_exists ? [] : OutputTuples::Connections.adds_for_terminus(terminus, semantic: semantic, id: end_id, sequence: sequence, normalizers: ctx[:normalizers], normalizer_options: ctx[:normalizer_options])
 
                 return [Linear::Sequence::Search.method(:ById), end_id], adds
               end
@@ -163,10 +163,10 @@ module Trailblazer
 
               # Returns ADDS for the new terminus.
               # @private
-              def add_terminus(end_event, id:, sequence:, normalizers:)
-                step_options = Linear::Sequence::Builder.invoke_normalizer_for(:terminus, end_event, {id: id}, sequence: sequence, normalizer_options: {}, normalizers: normalizers)
+              def adds_for_terminus(terminus, **options)
+                ctx = Strategy::DSL.invoke_normalizer(:terminus, terminus, options, normalizers: options[:normalizers], normalizer_options: options[:normalizer_options], sequence: [])
 
-                step_options[:adds]
+                ctx[:adds]
               end
             end # Connections
           end # OutputTuples

@@ -66,7 +66,7 @@ module Trailblazer
         # DISCUSS: following methods are not part of Normalizer
 
         # Default options for build.
-        def self.options_for_build(track_name: :success, end_task: Trailblazer::Activity::End.new(semantic: track_name), end_id: "End.#{track_name}") # TODO: test track_name properly.
+        def self.options_for_build(track_name: :success, end_task: Trailblazer::Activity::End.new(semantic: :success), end_id: "End.success", **normalizer_options)
           start = Trailblazer::Activity::Start.new(semantic: :default)
 
           {
@@ -85,6 +85,7 @@ module Trailblazer
               step_interface_builder: Trailblazer::Activity::DSL::Linear::Normalizer.method(:build_circuit_step_for_filter), # DISCUSS: hm, do we want this here in Path, for example?
   # FIXME: needed in #normalize_sequence_insert
               end_id: end_id,
+              **normalizer_options
             }
           }
         end

@@ -38,7 +38,7 @@ class StrategyTest < Minitest::Spec
 
     assert_equal hsh.keys.inspect, %{[:circuit, :outputs, :nodes, :config, :activity, :sequence, :fields]}
     assert_equal hsh[:activity].class, Trailblazer::Activity
-    assert_equal hsh[:sequence].class, Trailblazer::Activity::DSL::Linear::Sequence
+    assert_equal hsh[:sequence].class, Trailblazer::Activity::Pipeline
     assert_equal hsh[:sequence].to_a.size, 3 # DISCUSS: private API.
     assert_equal hsh[:fields], default_normalizer_extensions_in_fields # FIXME: get the Pipeline vs. ary conflict sorted.
   end
@@ -127,6 +127,14 @@ EOS
     assert_equal CU.inspect(Activity::Introspect.Nodes(Activity::FastTrack, id: "End.pass_fast").data.slice(:stop_event, :semantic)), %({:stop_event=>true, :semantic=>:pass_fast})
   end
 
+  describe "#step to normalizer behavior" do
+    activity = Class.new(Trailblazer::Activity::Path) do
+      step :a, magnetic_to: :success
+    end
+
+    pp activity.to_h
+  end
+
   # describe "Stragegy::Build" do
   describe "#compile_strategy!" do
     module MyPath
@@ -166,26 +174,26 @@ EOS
       assert_call activity, seq: "[:b]", terminus: :winning
     end
 
-    def my_normalizer(ctx, flow_options, _, options:, **)
+    def my_normalizer(ctx, flow_options, _, task:, id:, **)
       ctx = ctx.merge(
         adds: [
           [
             Trailblazer::Activity::DSL::Linear::Sequence.Row(
-              task: options[:task],
+              task: task,
               magnetic_to: nil,
               wirings: [],
-              data: {id: options[:id], stop_event: true, semantic: :bla},
+              data: {id: id, stop_event: true, semantic: :bla},
               task_wrap: nil
             ),
-            id: options[:id],
+            id: id,
             prepend: nil,
           ]
-        ]
+        ],
       )
       return ctx, flow_options
     end
 
-    it "we can override normalizers, for example, when building small, fast Railways in Representable or Reform" do
+    it "we can override normalizers and layout_instructions, for example, when building small, fast Railways in Representable or Reform" do
       my_normalizer = method(:my_normalizer)
 
       my_strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy) do
@@ -196,10 +204,15 @@ EOS
         my_strategy_options = {
           layout_instructions: [
             # no terminus, we don't need it, thanks to our magic normalizer, see below.
-            [:step, id: "Start.default", task: Trailblazer::Activity::Start.new(semantic: :default), magnetic_to: nil, after: nil],
+            [:step, id: "Start.default", task: Trailblazer::Activity::Start.new(semantic: :default), magnetic_to: nil, after: nil, sequence: []],
           ],
           normalizers: Trailblazer::Activity::DSL::Linear::Normalizer::Normalizers.new(
-            step: [[:my_id, my_normalizer]]
+            step: {
+              normalize_for_macro: Trailblazer::Activity::DSL::Linear::Normalizer.method(:merge_user_options),
+              normalize_ctx: Trailblazer::Activity::DSL::Linear::Normalizer.method(:normalize_context),
+              my_normalizer_step: my_normalizer,
+              compile_sequence: Trailblazer::Activity::DSL::Linear::Normalizer.method(:apply_adds),
+            }
           ),
           normalizer_options: {}
         }
@@ -214,7 +227,7 @@ EOS
           return ctx, flow_options, {semantic: :winning}
         end
 
-        step task: method(:my_all_in_one_step)
+        step task: method(:my_all_in_one_step), id: :my_id
       end
 
       assert_call activity, seq: "[:my_all_in_one_step]", terminus: :winning
@@ -229,7 +242,12 @@ EOS
             [:step, id: "Start.default", task: Trailblazer::Activity::Start.new(semantic: :default), magnetic_to: nil, after: nil],
           ],
           normalizers: Trailblazer::Activity::DSL::Linear::Normalizer::Normalizers.new(
-            step: [[:my_id, my_normalizer]]
+            step: {
+              normalize_for_macro: Trailblazer::Activity::DSL::Linear::Normalizer.method(:merge_user_options),
+              normalize_ctx: Trailblazer::Activity::DSL::Linear::Normalizer.method(:normalize_context),
+              my_normalizer_step: my_normalizer,
+              compile_sequence: Trailblazer::Activity::DSL::Linear::Normalizer.method(:apply_adds),
+            }
           ),
           normalizer_options: {}
         }
@@ -240,10 +258,51 @@ EOS
           return ctx, flow_options, {semantic: :winning}
         end
 
-        step task: method(:my_all_in_one_step)
+        step task: method(:my_all_in_one_step), id: :my_id
       end
 
       assert_call activity, seq: "[:my_all_in_one_step]", terminus: :winning
     end
+  end
+
+  # it "you can override #step and #terminus and that won't affect the basic layout" do
+  #   activity = Class.new(Trailblazer::Activity::Strategy) do
+
+  #   end
+  # end
+
+  it "all termini should be at the end of sequence, even if they were created somewhere before" do
+    # raise ""
+    activity = Class.new(Trailblazer::Activity::Path) do
+      step :a
+      terminus :failure
+      step :b, Output(:success) => End(:winning)
+      step :c
+    end
+
+    assert_circuit activity, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
+ {Trailblazer::Activity::Right} => #<End/:winning>
+<*c>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+
+#<End/:winning>
+)
+
+   # task_wrap=
+   #  #<Trailblazer::Activity::Pipeline:0x000074f80764c700
+   #   @sequence=
+   #    [["task_wrap.call_task", #<Method: Trailblazer::Activity::TaskWrap.call_task(wrap_ctx, flow_options, _) /home/nick/projects/trailblazer-activity/lib/trailblazer/activity/task_wrap/call_task.rb:6>],
+   #     ["task_wrap.call_task", #<Method: Trailblazer::Activity::TaskWrap.call_task(wrap_ctx, flow_options, _) /home/nick/projects/trailblazer-activity/lib/trailblazer/activity/task_wrap/call_task.rb:6>],
+   #     ["task_wrap.call_task", #<Method: Trailblazer::Activity::TaskWrap.call_task(wrap_ctx, flow_options, _) /home/nick/projects/trailblazer-activity/lib/trailblazer/activity/task_wrap/call_task.rb:6>],
+   #     ["task_wrap.call_task", #<Method: Trailblazer::Activity::TaskWrap.call_task(wrap_ctx, flow_options, _) /home/nick/projects/trailblazer-activity/lib/trailblazer/activity/task_wrap/call_task.rb:6>]]>>,
+    assert_equal activity.to_h[:config][:wrap_static].values.last.to_a.size, 1
   end
 end

@@ -99,7 +99,6 @@ module Trailblazer
                 "activity.macro_options_with_symbol_task" => method(:macro_options_with_symbol_task),  # DISCUSS: we might deprecate {task: :instance_method}
 
                 "activity.normalize_for_macro"            => method(:merge_user_options),       # Merge user_options over "macro" options.
-                "activity.normalize_normalizer_options"   => method(:merge_normalizer_options), # Merge user_options over normalizer_options.
 
                 "activity.path_helper.forward_block"      => Helper::Path::Normalizer.method(:forward_block_for_path_branch),     # forward the "global" block
 
@@ -216,15 +215,6 @@ module Trailblazer
             # {options} are either a <#task> or {} from macro
             ctx = ctx.merge(
               options: options.merge(user_options) # Note that the user options are merged over the macro options.
-            )
-
-            return ctx, flow_options
-          end
-
-          # {:normalizer_options} such as {:track_name} get overridden by user/macro.
-          def merge_normalizer_options(ctx, flow_options, _, normalizer_options:, options:, **)
-            ctx = ctx.merge(
-              options: normalizer_options.merge(options)
             )
 
             return ctx, flow_options
