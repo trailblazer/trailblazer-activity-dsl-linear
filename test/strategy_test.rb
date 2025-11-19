@@ -141,7 +141,7 @@ EOS
   # describe "Stragegy::Build" do
   describe "#compile_strategy!" do
     module MyPath
-      def self.options_for_build(track_name:) # {track_name} is passed through {#compile_strategy!}.
+      def self.options_for_initialize(track_name:) # {track_name} is passed through {#compile_strategy!}.
         {
           layout_instructions: [
             [:step, id: "Start.default",   task: Trailblazer::Activity::Start.new(semantic: :default), magnetic_to: nil, after: nil],
@@ -161,7 +161,7 @@ EOS
       end
     end
 
-    it "we can use {MyStrategy.options_for_build} to set up basic DSL behavior, and we can pass {user_options_for_strategy} to {#compile_strategy!}" do
+    it "we can use {MyStrategy.options_for_initialize} to set up basic DSL behavior, and we can pass {user_options_for_strategy} to {#compile_strategy!}" do
       # NOTE: All we want to do here is compose a sequence and compile it to an activity.
       # And we're storing that and calling/invoking it via Strategy.call
 
@@ -203,7 +203,7 @@ EOS
         # This normalizer is basically one step that returns {:adds}. Note that each step is *prepended* to sequence,
         # making {my_all_in_one_step} the first (and also last).
 
-        # my_strategy_options = MyPath.options_for_build(track_name: :winning)
+        # my_strategy_options = MyPath.options_for_initialize(track_name: :winning)
         my_strategy_options = {
           layout_instructions: [
             # no terminus, we don't need it, thanks to our magic normalizer, see below.
@@ -255,7 +255,7 @@ EOS
           normalizer_options: {}
         }
 
-      activity = Trailblazer::Activity::DSL::Linear::Strategy::DSL.Build(Trailblazer::Activity::DSL::Linear::Strategy, {}, my_strategy_options) do
+      activity = Trailblazer::Activity::DSL::Linear::Strategy::DSL.Build(Trailblazer::Activity::DSL::Linear::Strategy, **my_strategy_options) do
         def self.my_all_in_one_step(ctx, flow_options, _)
           ctx[:seq] << :my_all_in_one_step
           return ctx, flow_options, {semantic: :winning}

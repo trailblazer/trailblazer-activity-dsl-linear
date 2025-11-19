@@ -413,20 +413,18 @@ class RailwayTest < Minitest::Spec
   end
 
     it "accepts manual {options_for_build} and allows using {Railway.options_for_build}" do
-      railway_options = Activity::Railway::DSL.options_for_build
-
+      railway_options = Activity::Railway::DSL.options_for_initialize
       start_instructions = railway_options[:layout_instructions][0]
 
-      my_railway_options = railway_options.merge(
-        layout_instructions: [
-          start_instructions,
-          [:terminus, task: Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: nil],
-          [:terminus, task: Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner, append_to: nil],
-          [:terminus, task: Activity::End.new(semantic: :void), id: "End.void",     magnetic_to: :void, append_to: nil], # this shouldn't be connected.
-        ]
-      )
+      my_layout_instructions = [
+        start_instructions,
+        [:terminus, task: Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: nil],
+        [:terminus, task: Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner, append_to: nil],
+        [:terminus, task: Activity::End.new(semantic: :void), id: "End.void",     magnetic_to: :void, append_to: nil], # this shouldn't be connected.
+      ]
 
-      activity = Activity.Railway({}, my_railway_options) do
+
+      activity = Activity.Railway(layout_instructions: my_layout_instructions) do
         step :f
         step :g, Output(:failure) => Track(:winner)
         include T.def_steps(:f, :g)
@@ -463,6 +461,9 @@ class RailwayTest < Minitest::Spec
         seq << id
       end
     end
+
+    # pp path.instance_variable_get(:@state).get(:normalizers)
+    puts "@@@@@ ++++++??+ #{path.instance_variable_get(:@state).get(:normalizers)} "
 
     assert_invoke path, seq: %{[1]}
   end

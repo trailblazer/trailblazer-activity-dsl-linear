@@ -72,7 +72,6 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
               return filter_activity#, {}
             end
 
-            # class Activity < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
             normalizers = Trailblazer::Activity::Railway::DSL::Normalizers
 
 
@@ -91,16 +90,14 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
                 )
               end
 
+            # class Activity < Trailblazer::Activity::Railway # TODO: performance, Path, Runner, etc.
             Activity = Trailblazer::Activity.Railway(
-              {},
-              Trailblazer::Activity::Railway::DSL.options_for_build.merge(
-                layout_instructions: [
-                  [:step, id: "Start.default", task: :start, magnetic_to: nil, after: nil, outputs: {success: Activity.Output(Trailblazer::Activity::Right, :success)}], # DISCUSS: technically, we shouldn't have to define only one output here, but it's easier for Railway and FastTrack.
-                  [:terminus, id: "End.success", task: :success, magnetic_to: :success, semantic: :success, after: nil],
-                  [:terminus, id: "End.failure", task: :failure, magnetic_to: :failure, semantic: :failure, after: nil],
-                ],
-                normalizers: normalizers,
-              )
+              normalizers: normalizers,
+              layout_instructions: [
+                [:step, id: "Start.default", task: :start, magnetic_to: nil, after: nil, outputs: {success: Activity.Output(Trailblazer::Activity::Right, :success)}], # DISCUSS: technically, we shouldn't have to define only one output here, but it's easier for Railway and FastTrack.
+                [:terminus, id: "End.success", task: :success, magnetic_to: :success, semantic: :success, after: nil],
+                [:terminus, id: "End.failure", task: :failure, magnetic_to: :failure, semantic: :failure, after: nil],
+              ],
             ) do
               def self.call(ctx, flow_options, circuit_options)
                 @circuit.(ctx, flow_options, circuit_options.merge(runner: MyRunner, filter_step_exec_context: self))

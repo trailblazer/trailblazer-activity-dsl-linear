@@ -65,8 +65,8 @@ module Trailblazer
 
         # DISCUSS: following methods are not part of Normalizer
 
-        # Default options for build.
-        def self.options_for_build(track_name: :success, end_task: Trailblazer::Activity::End.new(semantic: :success), end_id: "End.success", **normalizer_options)
+        # Default options for {#initialize_options!}.
+        def self.options_for_initialize(track_name: :success, end_task: Trailblazer::Activity::End.new(semantic: :success), end_id: "End.success", **normalizer_options)
           start = Trailblazer::Activity::Start.new(semantic: :default)
 
           {
@@ -94,8 +94,8 @@ module Trailblazer
       compile_strategy!(Path::DSL) # sets :normalizer, normalizer_options, sequence and activity on @state.
     end # Path
 
-    def self.Path(*args, &block)
-      Activity::DSL::Linear::Strategy::DSL.Build(Path, *args, &block)
+    def self.Path(**kws, &block)
+      Activity::DSL::Linear::Strategy::DSL.Build(Path, **kws, &block)
     end
   end
 end

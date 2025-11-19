@@ -195,20 +195,17 @@ class PathTest < Minitest::Spec
       assert_call path, seq: "[:f, :g]", terminus: :winning
     end
 
-    it "accepts manual {options_for_build} and allows using {Path.options_for_build}" do
-      path_options = Activity::Path::DSL.options_for_build
-
+    it "accepts manual {:layout_instructions} and allows using {Path.options_for_initialize}" do
+      path_options = Activity::Path::DSL.options_for_initialize
       start_instructions = path_options[:layout_instructions][0]
 
-      my_path_options = path_options.merge(
-        layout_instructions: [
-          start_instructions,
-          [:terminus, Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: nil],
-          [:terminus, Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner, append_to: nil],
-        ]
-      )
+      my_layout_instructions = [
+        start_instructions,
+        [:terminus, Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: nil],
+        [:terminus, Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner, append_to: nil],
+      ]
 
-      path = Activity.Path({}, my_path_options) do
+      path = Activity.Path(layout_instructions: my_layout_instructions) do
         step :f
         step :g, Output(Trailblazer::Activity::Left, :failure) => Track(:winner)
         include T.def_steps(:f, :g)

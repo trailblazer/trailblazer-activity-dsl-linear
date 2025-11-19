@@ -66,7 +66,7 @@ module Trailblazer
                 end
 
               # DISCUSS:  if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.
-              path = Activity::Path(**options, track_name: track_color, &block)
+              path = Activity.Path(**options, track_name: track_color, &block)
 
               seq = path.to_h[:sequence]
               seq = seq.to_a.to_h.values # strip off IDs. # FIXME: similar to when passing it to Compiler.

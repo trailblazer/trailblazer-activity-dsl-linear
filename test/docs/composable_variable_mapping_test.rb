@@ -735,7 +735,7 @@ class DefaultInjectOnlyTest < DocsTest
       step :write,
         Inject(:name) => ->(ctx, field:, **) { field }
 
-      def write(ctx, name: nil, **)
+      def write(ctx, name:, **)
         ctx[:write] = %(name: #{name.inspect})
       end
     end

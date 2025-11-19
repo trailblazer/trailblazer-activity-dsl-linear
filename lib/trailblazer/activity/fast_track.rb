@@ -168,8 +168,8 @@ module Trailblazer
         )
 
         # Default options for build.
-        def self.options_for_build(fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **options)
-          options = Railway::DSL.options_for_build(**options)
+        def self.options_for_initialize(fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **options)
+          options = Railway::DSL.options_for_initialize(**options)
 
           layout_instructions = options[:layout_instructions] + [
             [:terminus, task: fail_fast_end, magnetic_to: :fail_fast, id: "End.fail_fast", after: nil],
@@ -188,7 +188,7 @@ module Trailblazer
       end # DSL
 
       class << self
-        private def fail(*args, &block)
+        private def fail(*args, &block)# FIXME: what about Railway?
           recompile_activity_for(:fail, *args, &block) # from Path::Strategy
         end
         alias left fail
@@ -201,8 +201,8 @@ module Trailblazer
       compile_strategy!(DSL)
     end # FastTrack
 
-    def self.FastTrack(**options, &block)
-      Activity::DSL::Linear::Strategy::DSL.Build(FastTrack, options, &block)
+    def self.FastTrack(**kws, &block)
+      Activity::DSL::Linear::Strategy::DSL.Build(FastTrack, **kws, &block)
     end
   end
 end

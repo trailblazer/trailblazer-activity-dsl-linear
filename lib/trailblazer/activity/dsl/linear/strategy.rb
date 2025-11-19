@@ -78,14 +78,14 @@ module Trailblazer
             end
 
             # Used only once per strategy class body.
-            def compile_strategy!(strategy_dsl, *args)
-              sequence = initialize_options!(strategy_dsl, *args) # sets @sequence.
+            def compile_strategy!(strategy_dsl, *args, **kws)
+              sequence = initialize_options!(strategy_dsl, *args, **kws) # sets @sequence.
 
               recompile!(sequence)
             end
 
             # This is logic done only once, when creating a new Strategy base type.
-            def initialize_options!(strategy_class, user_options_for_strategy = {}, options_from_strategy = strategy_class.options_for_build(**user_options_for_strategy),
+            def initialize_options!(strategy_class, user_options_for_strategy = {}, options_from_strategy = strategy_class.options_for_initialize(**user_options_for_strategy),
                 normalizers:          options_from_strategy.fetch(:normalizers),
                 normalizer_options:   options_from_strategy.fetch(:normalizer_options),
                 layout_instructions:  options_from_strategy.fetch(:layout_instructions)
@@ -135,9 +135,24 @@ module Trailblazer
           module DSL
             module_function
 
-            def Build(strategy, *args, &block)
+            def options_for_initialize(**options) # DISCUSS: only needed for a very specific test.
+              options
+            end
+
+
+            # Build is a mix of inheritance and composition. We want DSL methods from the superclass, but also need to allow injecting alternative normalizers etc.
+            # In case those aren't passed, we "inherit" normalizers and normalizer_options from the superclass, too.
+            # This isn't hacky at all, just a bit tricky since Ruby doesn't allow passing options into the {#inherited} method.
+            #
+            # Also it would probably be better to have three options methods, default_normalizers, default_normalizer_options and default_layout, currently we have
+            # one big method per strategy that computes unnecessary things, such as the layout_instructions or the normalizer even if it was passed here.
+            def Build(strategy, normalizers: strategy.instance_variable_get(:@state).get(:normalizers), layout_instructions: nil, **normalizer_options_from_user, &block)
+              options = {normalizers: normalizers}
+              options.merge!(layout_instructions: layout_instructions) if layout_instructions
+
               Class.new(strategy) do
-                compile_strategy!(strategy::DSL, *args) # sets @sequence.
+                compile_strategy!(strategy::DSL, normalizer_options_from_user, **options) # sets @sequence.
+                # pp @state.get(:normalizers)
 
                 class_exec(&block) if block
               end

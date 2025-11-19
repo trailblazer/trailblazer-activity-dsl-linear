@@ -112,8 +112,8 @@ module Trailblazer
         )
 
         # Default options for build.
-        def self.options_for_build(failure_end: Activity::End.new(semantic: :failure), **options)
-          options = Path::DSL.options_for_build(**options)
+        def self.options_for_initialize(failure_end: Activity::End.new(semantic: :failure), **options)
+          options = Path::DSL.options_for_initialize(**options)
 
           layout_instructions = options[:layout_instructions] +
             [[:terminus, task: failure_end, magnetic_to: :failure, id: "End.failure", after: nil]]
@@ -143,8 +143,8 @@ module Trailblazer
       # pp @state.get(:sequence)
     end # Railway
 
-    def self.Railway(*args, &block)
-      Activity::DSL::Linear::Strategy::DSL.Build(Railway, *args, &block)
+    def self.Railway(**kws, &block)
+      Activity::DSL::Linear::Strategy::DSL.Build(Railway, **kws, &block)
     end
   end
 end

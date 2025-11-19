@@ -314,37 +314,48 @@ class FastTrackTest < Minitest::Spec
     end
   end
 
-  it "accepts {:termini} and overrides FastTrack's termini" do
-      path = Activity.FastTrack(
-        termini: [
-                  [Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: "Start.default"],
-                  [Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner],
-                  [Activity::End.new(semantic: :pass_fast), id: "End.pass_fast",   magnetic_to: :pass_fast],
-                ]
-      ) do
-        step :f
-        step :g, Output(Object, :failure) => Track(:winner), pass_fast: true, fast_track: true
+  it "accepts manual {options_for_build} and allows using {FastTrack.options_for_build}" do
+      railway_options = Activity::FastTrack::DSL.options_for_initialize
+      start_instructions = railway_options[:layout_instructions][0]
+
+      my_layout_instructions = [
+        start_instructions,
+        [:terminus, task: Activity::End.new(semantic: :success), id: "End.success",  magnetic_to: :success, append_to: nil],
+        [:terminus, task: Activity::End.new(semantic: :winning), id: "End.winner",   magnetic_to: :winner, append_to: nil],
+        [:terminus, task: Activity::End.new(semantic: :pass_fast), id: "End.pass_fast", magnetic_to: :pass_fast, append_to: nil],
+        [:terminus, task: Activity::End.new(semantic: :failure), id: "End.failure",     magnetic_to: :failure, append_to: nil],
+      ]
+
+      activity = Activity.FastTrack(layout_instructions: my_layout_instructions) do
+        step :f, pass_fast: true
+        step :g, Output(:failure) => Track(:winner)
+        include T.def_steps(:f, :g)
       end
 
-# FIXME: f/failure shouldn't go to End.winner
-      assert_circuit path, %{
+      # pp activity.to_h
+
+      assert_circuit activity, %(
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*f>
 <*f>
- {Trailblazer::Activity::Left} => #<End/:winning>
- {Trailblazer::Activity::Right} => <*g>
-<*g>
- {Object} => #<End/:winning>
+ {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:pass_fast>
- {Trailblazer::Activity::FastTrack::FailFast} => #<End/:winning>
  {Trailblazer::Activity::FastTrack::PassFast} => #<End/:pass_fast>
+<*g>
+ {Trailblazer::Activity::Left} => #<End/:winning>
+ {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
+
+#<End/:winning>
 
 #<End/:pass_fast>
 
-#<End/:winning>
-}
-  end
+#<End/:failure>
+)
+
+      assert_call activity, seq: "[:f]", terminus: :pass_fast
+      assert_call activity, seq: "[:f]", f: false, terminus: :failure
+    end
 
   it "{fast_track: true} respects returned {FailFast} and {PassFast} signals from the step" do
     activity = Class.new(Activity::FastTrack) do
