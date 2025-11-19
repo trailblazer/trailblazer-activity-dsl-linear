@@ -20,7 +20,7 @@ class VariableMappingTest < Minitest::Spec
 
   ## this must break because of missing {:date} - it is not defaulted, only injected when present.
     exception = assert_raises do
-      signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(T::Create, [{time: "yesterday", model: Object}, {}])
+      ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(T::Create, {time: "yesterday", model: Object})
     end
     assert_match /missing keywords?: :?date/, exception.message
 
@@ -36,11 +36,12 @@ class VariableMappingTest < Minitest::Spec
 
   ## {:time} is defaulted through kw
   ## {:current_user} is defaulted through Inject()
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(T::Create, [{date: "today"}, {}])
+
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(T::Create, {date: "today"})
     assert_equal CU.inspect(ctx), '{:date=>"today", :log=>"Called @ Time.now and \"today\" by [:date]{:date=>\"today\"}!", :private=>"[:date, :current_user, :log]"}'
 
   ## {:current_user} is passed-through
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(T::Create, [{date: "today", current_user: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(T::Create, {date: "today", current_user: Object})
     assert_equal CU.inspect(ctx), '{:date=>"today", :current_user=>Object, :log=>"Called @ Time.now and \"today\" by Object!", :private=>"[:date, :current_user, :log]"}'
   end
 
@@ -62,7 +63,7 @@ class VariableMappingTest < Minitest::Spec
     end
 
   ## we can only see variables combined from Inject() and In() in the step.
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(TT::Create, [{date: "today", model: Object, something: 99}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(TT::Create, {date: "today", model: Object, something: 99})
     assert_equal CU.inspect(ctx), '{:date=>"today", :model=>Object, :something=>99, :log=>"Called @ Time.now and \"today\" by [:date, :model, :something]!", :private=>"[:date, :current_user, :model, :thing, :log]Object"}'
   end
 
@@ -80,7 +81,7 @@ class VariableMappingTest < Minitest::Spec
       end
     end
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(EEE::Create, [{seq: ["today"]}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(EEE::Create, {seq: ["today"]})
     assert_equal CU.inspect(ctx), %{{:seq=>["today"]}} #= the additions from the In() filter and from `#write` are missing.
   end
 
@@ -96,10 +97,10 @@ class VariableMappingTest < Minitest::Spec
       end
     end
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RR::Create, [{time: "yesterday", model: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RR::Create, {time: "yesterday", model: Object})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :model=>Object, :incoming=>[9, nil, [:current_user]]}}
     # pass {:current_user} from the outside
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RR::Create, {time: "yesterday", model: Object, current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :incoming=>[9, Module, [:current_user]]}}
   end
 
@@ -117,11 +118,11 @@ class VariableMappingTest < Minitest::Spec
     end
 
   ## {:private} invisible in outer ctx
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RRR::Create, {time: "yesterday", model: Object, current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module}}
 
     # no {:model} for invocation
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRR::Create, [{time: "yesterday", current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RRR::Create, {time: "yesterday", current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :current_user=>Module, :model=>[Module, [:time, :current_user, :private]]}}
   end
 
@@ -139,11 +140,11 @@ class VariableMappingTest < Minitest::Spec
     end
 
   ## {:model} is in outer ctx as we passed it into invocation, {:private} invisible:
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RRRR::Create, {time: "yesterday", model: Object, current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]]}}
 
     # no {:model} in outer ctx
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RRRR::Create, {time: "yesterday", current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :current_user=>Module, :song=>[Module, [:time, :current_user, :private]]}}
   end
 
@@ -165,11 +166,11 @@ class VariableMappingTest < Minitest::Spec
     end
 
     # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RRRRR::Create, {time: "yesterday", model: Object, current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :model=>Object, :current_user=>Module, :song=>[Module, [:time, :model, :current_user, :private]], :user=>Module, :hit=>[Module, [:time, :model, :current_user, :private]]}}
 
     # no {:model} in original ctx
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RRRRR::Create, {time: "yesterday", current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :current_user=>Module, :song=>[Module, [:time, :current_user, :private]], :user=>Module, :hit=>[Module, [:time, :current_user, :private]]}}
   end
 
@@ -192,11 +193,11 @@ class VariableMappingTest < Minitest::Spec
     end
 
     # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RRRRRR::Create, {time: "yesterday", model: Object, current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :model=>[Module, [:time, :model, :current_user, :private]], :current_user=>Module, :private=>"XXX"}}
 
     # no {:model} in original ctx
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RRRRRR::Create, {time: "yesterday", current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :current_user=>Module, :model=>[Module, [:time, :current_user, :private]], :private=>"XXX"}}
   end
 
@@ -220,11 +221,11 @@ class VariableMappingTest < Minitest::Spec
     end
 
     # {:model} is in original ctx as we passed it into invocation, {:private} invisible:
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", model: Object, current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RRRRRRR::Create, {time: "yesterday", model: Object, current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :model=>"<[Module, [:time, :model, :current_user, :private]]>", :current_user=>Module, :private=>"XXX"}}
 
     # no {:model} in original ctx
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(RRRRRRR::Create, [{time: "yesterday", current_user: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(RRRRRRR::Create, {time: "yesterday", current_user: Module})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :current_user=>Module, :model=>"<[Module, [:time, :current_user, :private]]>", :private=>"XXX"}}
   end
 
@@ -257,34 +258,34 @@ class VariableMappingTest < Minitest::Spec
       end
     end
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Create, [{time: "yesterday", model: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(R::Create, {time: "yesterday", model: Object})
     assert_equal CU.inspect(ctx), %{{:time=>\"yesterday\", :model=>Object, :out=>[\"Objecthello! yesterday\", [\"Objecthello! yesterday\", nil, {:time=>"yesterday", :model=>"Objecthello! yesterday", :current_user=>nil}]]}}
 
   ## {:time} is defaulted by Inject()
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Create, [{model: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(R::Create, {model: Object})
     assert_equal CU.inspect(ctx), %{{:model=>Object, :out=>["Objecthello! ", ["Objecthello! ", nil, {:time=>99, :model=>"Objecthello! ", :current_user=>nil}]]}}
 
 
   ## Inheriting I/O taskWrap filters
     ## {:time} is defaulted by Inject()
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Update, [{model: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(R::Update, {model: Object})
     assert_equal CU.inspect(ctx), %{{:model=>Object, :out=>[\"Objecthello! \", [\"Objecthello! \", nil, {:time=>99, :model=>"Objecthello! ", :current_user=>nil}]]}}
 
   ## currently, the In() in Upsert overrides the inherited taskWrap.
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(R::Upsert, [{model: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(R::Upsert, {model: Object})
     assert_equal CU.inspect(ctx), %{{:model=>Object, :incoming=>[Object, nil, {:model=>Object, :current_user=>nil}]}}
 
   end
 
   #@ unit test
   it "uses and returns the correct {flow_options}" do
-    lets_change_flow_options = ->((ctx, flow_options), circuit_options) do
+    lets_change_flow_options = ->(ctx, flow_options, circuit_options) do
       ctx[:seq] = ctx[:seq] + [:lets_change_flow_options]
 
     # allows to change flow_options in the task.
       flow_options = flow_options.merge(coffee: true)
 
-      [Trailblazer::Activity::Right, [ctx, flow_options]]
+      return ctx, flow_options, Trailblazer::Activity::Right
     end
 
     activity = Class.new(Trailblazer::Activity::Railway) do
@@ -296,12 +297,10 @@ class VariableMappingTest < Minitest::Spec
       include ::T.def_steps(:uuid)
     end
 
-    signal, (ctx, flow_options) = Activity::TaskWrap.invoke(
+    ctx, flow_options, signal = Activity::TaskWrap.invoke(
       activity,
-      [
-        {seq: [], model_input: "great!"},
-        {yo: 1} #@ flow_options to be changed by the step.
-      ]
+      {seq: [], model_input: "great!"},
+      {yo: 1} #@ flow_options to be changed by the step.
     )
 
     assert_equal CU.inspect(ctx), %{{:seq=>[:model_input, :lets_change_flow_options, :uuid], :model_input=>"great!"}}
@@ -327,27 +326,27 @@ class VariableMappingTest < Minitest::Spec
     end
 
     #@ Path
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Path, :step), [{model: Object, ignore: 1}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Path, :step), {model: Object, ignore: 1})
     assert_equal CU.inspect(ctx), %{{:model=>Object, :ignore=>1, :write_model=>Object, :incoming=>[Object, [:model]]}}
 
     #@ Railway
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Railway, :step), [{model: Object, ignore: 1}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Railway, :step), {model: Object, ignore: 1})
     assert_equal CU.inspect(ctx), %{{:model=>Object, :ignore=>1, :write_model=>Object, :incoming=>[Object, [:model]]}}
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Railway, :pass), [{model: Object, ignore: 1}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Railway, :pass), {model: Object, ignore: 1})
     assert_equal CU.inspect(ctx), %{{:model=>Object, :ignore=>1, :write_model=>Object, :incoming=>[Object, [:model]]}}
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Railway, :fail), [{model: Object, ignore: 1, deviate: false}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::Railway, :fail), {model: Object, ignore: 1, deviate: false})
     assert_equal CU.inspect(ctx), %{{:model=>Object, :ignore=>1, :deviate=>false, :write_model=>Object, :incoming=>[Object, [:model]]}}
 
     #@ FastTrack
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::FastTrack, :step), [{model: Object, ignore: 1}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::FastTrack, :step), {model: Object, ignore: 1})
     assert_equal CU.inspect(ctx), %{{:model=>Object, :ignore=>1, :write_model=>Object, :incoming=>[Object, [:model]]}}
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::FastTrack, :pass), [{model: Object, ignore: 1}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::FastTrack, :pass), {model: Object, ignore: 1})
     assert_equal CU.inspect(ctx), %{{:model=>Object, :ignore=>1, :write_model=>Object, :incoming=>[Object, [:model]]}}
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::FastTrack, :fail), [{model: Object, ignore: 1, deviate: false}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(write_step_for.(Trailblazer::Activity::FastTrack, :fail), {model: Object, ignore: 1, deviate: false})
     assert_equal CU.inspect(ctx), %{{:model=>Object, :ignore=>1, :deviate=>false, :write_model=>Object, :incoming=>[Object, [:model]]}}
   end
 
@@ -368,7 +367,7 @@ class VariableMappingTest < Minitest::Spec
   #     end
   #   end
 
-  #   signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(YYY::Create, [{model: [], ignore: 1}, {}])
+  #   ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(YYY::Create, [{model: [], ignore: 1}, {}])
   #   assert_equal CU.inspect(ctx), %{{:model=>[], :ignore=>1, :incoming=>[[asdfasdf], {:model=>Object, :current_user=>nil}]}}
   # end
 
@@ -376,18 +375,21 @@ class VariableMappingTest < Minitest::Spec
 
   #@ unit test
   it "accepts {:initial_input_pipeline} as normalizer option" do
-    my_input_ctx = ->(wrap_ctx, original_args) do
+    my_input_ctx = ->(wrap_ctx, flow_options, _) do
     # The default ctx is the original ctx but with uppercased values.
-      default_ctx = wrap_ctx[:original_ctx].collect { |k,v| [k.to_s.upcase, v.to_s.upcase] }.to_h
+      default_ctx = wrap_ctx[:application_ctx].collect { |k,v| [k.to_s.upcase, v.to_s.upcase] }.to_h
 
-      Trailblazer::Activity::DSL::Linear::VariableMapping.merge_variables(default_ctx, wrap_ctx, original_args)
+      # Trailblazer::Activity::DSL::Linear::VariableMapping.merge_variables(default_ctx, wrap_ctx, flow_options)
+      wrap_ctx[:aggregate] = default_ctx
+
+      return wrap_ctx, flow_options
     end
 
     activity = Class.new(Trailblazer::Activity::Railway) do
       input_pipe = Trailblazer::Activity.Pipeline(
       # we use the standard input pipeline but with our own default_ctx that has UPPERCASED variables and values.
         "input.my_input_ctx" => my_input_ctx,
-        "input.scope" => Trailblazer::Activity::DSL::Linear::VariableMapping.method(:scope),
+        "input.scope" => Trailblazer::Activity::DSL::Linear::VariableMapping::Runtime.method(:build_context),
       ) # DISCUSS: use VariableMapping.initial_input_pipeline here, and modify it?
 
       step :write,
@@ -398,7 +400,7 @@ class VariableMappingTest < Minitest::Spec
       end
     end
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{time: "yesterday", model: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(activity, {time: "yesterday", model: Object})
     assert_equal CU.inspect(ctx), %{{:time=>"yesterday", :model=>Object, :incoming=>[Object, {:TIME=>"YESTERDAY", :MODEL=>"OBJECT", :model=>Object}]}}
   end
 
@@ -418,22 +420,22 @@ class VariableMappingTest < Minitest::Spec
     end
 
     # We see a {Trailblazer::Context} in #write from the :initial_input_pipeline, even though we're not using In().
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{model: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(activity, {model: Object})
     assert_equal CU.inspect(ctx), %({:model=>Object, :incoming=>\"#<Trailblazer::Context::Container wrapped_options={:model=>Object} mutable_options={}>\"})
   end
 
   #@ unit test
   # TODO: remove this test, it's not public API anymore.
   it "accepts :initial_output_pipeline as normalizer option" do
-    my_output_ctx = ->(wrap_ctx, original_args) do
+    my_output_ctx = ->(wrap_ctx, flow_options, _) do
       wrap_ctx[:aggregate] = wrap_ctx[:aggregate].collect { |k,v| [k.to_s.upcase, v.to_s.upcase] }.to_h
 
-      return wrap_ctx, original_args
+      return wrap_ctx, flow_options
     end
 
     activity = Class.new(Trailblazer::Activity::Railway) do
       output_pipe = Trailblazer::Activity::DSL::Linear::VariableMapping::DSL.initial_output_pipeline()
-      output_pipe = Trailblazer::Activity::TaskWrap::Extension([my_output_ctx, id: "my.output_uppercaser", append: "output.merge_with_original"]).(output_pipe)
+      output_pipe = Trailblazer::Activity::Adds.(output_pipe, [my_output_ctx, id: "my.output_uppercaser", append: "output.merge_with_original"])
 
 
       step :write,
@@ -444,7 +446,7 @@ class VariableMappingTest < Minitest::Spec
       end
     end
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{model: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(activity, {model: Object})
     assert_equal CU.inspect(ctx), %{{"MODEL"=>"OBJECT"}}
   end
 
@@ -525,7 +527,7 @@ class VariableMappingTest < Minitest::Spec
 
       Benchmark.ips do |x|
         x.report("ruby") {
-          signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{params: [], }, {}])
+          ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(activity, [{params: [], }, {}])
         }
       end
     end
@@ -534,6 +536,8 @@ class VariableMappingTest < Minitest::Spec
       activity = activity_for()
 
       input_pipe = activity.to_h[:config][:wrap_static][Capture].to_a[0][1].instance_variable_get(:@pipe).to_a
+
+      pp input_pipe
 
       set_variable = input_pipe[0][1]
       assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :params
@@ -651,28 +655,28 @@ class VariableMappingInheritTest < Minitest::Spec
 
   # Create
     #= we don't see {:model} because Create doesn't have an In() for it.
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Create, [{time: "yesterday", model: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(Create, {time: "yesterday", model: Object})
 
     assert_equal CU.inspect(ctx), %({:time=>"yesterday", :model=>Object, :acting_user=>nil, :incoming=>[nil, nil, {:time=>"yesterday", :current_user=>nil}]})
     #@ {:time} is defaulted by Inject()
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Create, [{}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(Create, {})
     assert_equal CU.inspect(ctx), %{{:acting_user=>nil, :incoming=>[nil, nil, {:time=>99, :current_user=>nil}]}}
 
   # Update and Create work identically
     #= we don't see {:model} because Create doesn't have an In() for it.
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Update, [{time: "yesterday", model: Object}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(Update, {time: "yesterday", model: Object})
     assert_equal CU.inspect(ctx), %({:time=>"yesterday", :model=>Object, :acting_user=>nil, :incoming=>[nil, nil, {:time=>"yesterday", :current_user=>nil}]})
 
     #@ {:time} is defaulted by Inject()
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Update, [{}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(Update, {})
     assert_equal CU.inspect(ctx), %({:acting_user=>nil, :incoming=>[nil, nil, {:time=>99, :current_user=>nil}]})
 
   #= Upsert additionally sees {:model}
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Upsert, [{time: "yesterday", model: Object, action: :upsert}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(Upsert, {time: "yesterday", model: Object, action: :upsert})
     assert_equal CU.inspect(ctx), %({:time=>"yesterday", :model=>Object, :action=>:upsert, :acting_user=>nil, :output_of_write=>[Object, nil, {:time=>"yesterday", :current_user=>nil, :model=>Object}]})
 
     #@ {:time} is defaulted by Inject()
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(Upsert, [{model: Object, action: :upsert}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(Upsert, {model: Object, action: :upsert})
     assert_equal CU.inspect(ctx), %({:model=>Object, :action=>:upsert, :acting_user=>nil, :output_of_write=>[Object, nil, {:time=>99, :current_user=>nil, :model=>Object}]})
 
   #@ inherit works without adding filters

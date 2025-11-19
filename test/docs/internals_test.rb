@@ -31,10 +31,12 @@ class DocsInternalsNormalizerExtendTest < Minitest::Spec
 
   #:upcase
   module MyNormalizer
-    def self.upcase_id(ctx, upcase_id: nil, id:, **)
-      return unless upcase_id
+    def self.upcase_id(ctx, flow_options, _, upcase_id: nil, id:, **)
+      return ctx, flow_options unless upcase_id
 
-      ctx.merge(id: id.to_s.upcase)
+      ctx = ctx.merge(id: id.to_s.upcase)
+
+      return ctx, flow_options
     end
   end
   #:upcase end
@@ -50,7 +52,8 @@ class DocsInternalsNormalizerExtendTest < Minitest::Spec
           normalizer,
           "activity.default_outputs", # few steps after "activity.normalize_id"
           {
-            "my.upcase_id" => Trailblazer::Activity::DSL::Linear::Normalizer.Task(MyNormalizer.method(:upcase_id)),
+            # "my.upcase_id" => Trailblazer::Activity::DSL::Linear::Normalizer.Task(MyNormalizer.method(:upcase_id)),
+            "my.upcase_id" => MyNormalizer.method(:upcase_id),
           }
         )
       end
@@ -82,19 +85,23 @@ class DocsInternalsRecordSymbolOptionTest < Minitest::Spec
   #:record-normalizer
   module MyNormalizer
     #~meths
-    def self.upcase_id(ctx, upcase_id: false, id:, **)
-      return unless upcase_id
+    def self.upcase_id(ctx, flow_options, _, upcase_id: false, id:, **)
+      return ctx, flow_options unless upcase_id
 
-      ctx.merge(id: id.to_s.upcase)
+      ctx = ctx.merge(id: id.to_s.upcase)
+
+      return ctx, flow_options
     end
     #~meths end
-    def self.record_upcase_id_flag(ctx, upcase_id: nil, **)
-      ctx.merge(
+    def self.record_upcase_id_flag(ctx, flow_options, _, upcase_id: nil, **)
+      ctx = ctx.merge(
         Trailblazer::Activity::DSL::Linear::Normalizer::Inherit.Record(
           {upcase_id: upcase_id},   # what do you want to record?
           type: :upcase_id_feature, # categorize the recorded data.
         )
       )
+
+      return ctx, flow_options
     end
   end
   #:record-normalizer end
@@ -108,8 +115,10 @@ class DocsInternalsRecordSymbolOptionTest < Minitest::Spec
           normalizer,
           "activity.default_outputs", # step after "activity.normalize_id"
           {
-            "my.upcase_id"             => Trailblazer::Activity::DSL::Linear::Normalizer.Task(MyNormalizer.method(:upcase_id)),
-            "my.record_upcase_id_flag" => Trailblazer::Activity::DSL::Linear::Normalizer.Task(MyNormalizer.method(:record_upcase_id_flag)),
+            # "my.upcase_id"             => Trailblazer::Activity::DSL::Linear::Normalizer.Task(MyNormalizer.method(:upcase_id)),
+            # "my.record_upcase_id_flag" => Trailblazer::Activity::DSL::Linear::Normalizer.Task(MyNormalizer.method(:record_upcase_id_flag)),
+            "my.upcase_id"             => MyNormalizer.method(:upcase_id),
+            "my.record_upcase_id_flag" => MyNormalizer.method(:record_upcase_id_flag),
           }
         )
       end
