@@ -5,13 +5,12 @@ class DocsTaskWrapTest < Minitest::Spec
   it "uses {:wrap_runtime} via {TaskWrap.invoke}" do
     #:run-logger
     module TaskWrapLogger
-      def self.log_before(wrap_ctx, original_args)
-        # Pick what you need here.
-        (ctx, flow_options), circuit_options = original_args
+      def self.log_before(wrap_ctx, flow_options, _)
+        ctx = wrap_ctx[:application_ctx]
 
         ctx[:log] << "Before #{wrap_ctx[:task]}"
 
-        return wrap_ctx, original_args
+        return wrap_ctx, flow_options
       end
     end
     #:run-logger end
@@ -33,8 +32,11 @@ class DocsTaskWrapTest < Minitest::Spec
 
     wrap_runtime = Hash.new(default_ext) # wrap_runtime[...] will always return the same wrap
 
-    signal, (ctx, flow_options) = Trailblazer::Activity::TaskWrap.invoke(Create, [{seq: [], log: []}, {}], wrap_runtime: wrap_runtime)
-    assert_equal CU.inspect(ctx), %{{:seq=>[:model, :save], :log=>[\"Before DocsTaskWrapTest::Create\", \"Before #<Trailblazer::Activity::Start semantic=:default>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=model>\", \"Before #<Trailblazer::Activity::TaskBuilder::Task user_proc=save>\", \"Before #<Trailblazer::Activity::End semantic=:success>\"]}}
+    model_task = Trailblazer::Activity::Introspect.Nodes(Create, id: :model).task
+    save_task = Trailblazer::Activity::Introspect.Nodes(Create, id: :save).task
+
+    ctx, flow_options, signal = Trailblazer::Activity::TaskWrap.invoke(Create, {seq: [], log: []}, {}, {wrap_runtime: wrap_runtime})
+    assert_equal CU.inspect(ctx), %{{:seq=>[:model, :save], :log=>[\"Before DocsTaskWrapTest::Create\", \"Before #<Trailblazer::Activity::Start semantic=:default>\", \"Before #{model_task}\", \"Before #{save_task}\", \"Before #<Trailblazer::Activity::End semantic=:success>\"]}}
   end
 end
 
@@ -67,8 +69,8 @@ class DocsRuntimeExtensionTest < Minitest::Spec
   #:myapm_start
   module MyAPM # Advanced performance monitoring, done right!
     module Extension
-      def self.start_instrumentation(wrap_ctx, original_args)
-        (ctx, _flow_options), circuit_options = original_args
+      def self.start_instrumentation(wrap_ctx, flow_options, circuit_options)
+        ctx = wrap_ctx[:application_ctx]
 
         activity  = circuit_options[:activity] # currently running Activity.
         task      = wrap_ctx[:task]            # the current "step".
@@ -79,7 +81,7 @@ class DocsRuntimeExtensionTest < Minitest::Spec
 
         wrap_ctx[:span] = span
 
-        return wrap_ctx, original_args
+        return wrap_ctx, flow_options
       end
     end
   end
@@ -88,13 +90,13 @@ class DocsRuntimeExtensionTest < Minitest::Spec
   #:myapm
   module MyAPM # Advanced performance monitoring, done right!
     module Extension
-      def self.finish_instrumentation(wrap_ctx, original_args)
-        ctx   = original_args[0][0]
+      def self.finish_instrumentation(wrap_ctx, flow_options, _)
+        ctx   = wrap_ctx[:application_ctx]
         span  = wrap_ctx[:span]
 
         span.finish(payload: ctx.inspect)
 
-        return wrap_ctx, original_args
+        return wrap_ctx, flow_options
       end
     end
   end
@@ -142,16 +144,15 @@ class DocsRuntimeExtensionTest < Minitest::Spec
 
     #:runtime_invoke
     Song::Activity::Create.invoke(
-      [
-        # ctx:
-        {
-          song: {title: "Timebomb"},
-          #:meths
-          seq: []
-          #:meths end
-        }
-      ],
-      wrap_runtime: my_wrap # runtime taskWrap extensions!
+      # ctx:
+      {
+        song: {title: "Timebomb"},
+        #:meths
+        seq: []
+        #:meths end
+      },
+      {},
+      {wrap_runtime: my_wrap} # runtime taskWrap extensions!
     )
     #:runtime_invoke end
     #:runtime end
@@ -228,7 +229,7 @@ class DocsWrapStaticExtensionTest < Minitest::Spec
     ctx = {song: {title: "Timebomb"}, seq: []}
 
     #:static_invoke
-    signal, (ctx, _) = Song::Activity::Create.invoke([ctx, {}])
+    ctx, _ = Song::Activity::Create.invoke(ctx, {})
     #:static_invoke end
   end
 end
