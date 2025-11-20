@@ -181,12 +181,13 @@ module Trailblazer
                     return [runtime_step, id: name, **insert_args]
                   end
 
-                  def self.name_for_filter(name: nil, type:, specifier: nil, user_filter: nil, **)
+                  def self.name_for_filter(name: nil, type:, specifier: [], user_filter: nil, **)
                     if user_filter
-                      name = user_filter # DISCUSS: some more elaborate naming here?
+                      specifier = [user_filter] + specifier # DISCUSS: some more elaborate naming here?
                     end
 
-                    [type, specifier].compact.join(".") + "{#{name}}"
+                    # [type, specifier].compact.join(".") + "{#{name}}"
+                    ([type, "{#{name}}"] + specifier).join(" ")
                   end
                 end
 
@@ -320,7 +321,7 @@ module Trailblazer
                           filter_activity:  Runtime::FilterStep::MergeVariables,
                           filter:           default_filter,
                           write_name:       variable_name,
-                          name:             Left::Builder.name_for_filter(user_filter: right_option, **options_from_left_option, specifier: "{override: true}"),
+                          name:             Left::Builder.name_for_filter(user_filter: right_option, **options_from_left_option, specifier: ["{override: true}"]),
                           wrap_value_with_hash: true,
                           **options_from_left_option
                         )
@@ -340,7 +341,7 @@ module Trailblazer
                         filter: filter,
                         default_filter: default_filter,
                         write_name: variable_name,
-                        name:             Left::Builder.name_for_filter(user_filter: right_option, **options_from_left_option, specifier: "#{variable_name.inspect}.{defaulted: true}"),
+                        name:             Left::Builder.name_for_filter(user_filter: right_option, **options_from_left_option, name: variable_name.inspect, specifier: ["{defaulted: true}"]),
                         wrap_value_with_hash: true,
                         **options_from_left_option,
                       )

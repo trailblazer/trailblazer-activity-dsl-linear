@@ -49,7 +49,7 @@ class DocsBasicTest < Minitest::Spec
     #:upsert-call
     ctx = {id: 1, params: {text: "Hydrate!"}}
 
-    signal, (ctx, flow_options) = A::Upsert.([ctx, {}])
+    ctx, flow_options, signal = A::Upsert.(ctx, {}, {})
     #:upsert-call end
 
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
@@ -57,7 +57,7 @@ class DocsBasicTest < Minitest::Spec
 
     ctx = {id: 0, params: {text: "Hydrate!"}}
 
-    signal, (ctx, flow_options) = A::Upsert.([ctx, {}])
+    ctx, flow_options, signal = A::Upsert.(ctx, {}, {})
 
     #:upsert-result
     # FIXME
@@ -182,9 +182,9 @@ class DocsBasicTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
-#<End/:declined>
-
 #<End/:failure>
+
+#<End/:declined>
 )
 
     module F

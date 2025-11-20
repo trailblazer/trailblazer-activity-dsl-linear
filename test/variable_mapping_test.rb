@@ -537,65 +537,65 @@ class VariableMappingTest < Minitest::Spec
 
       input_pipe = activity.to_h[:config][:wrap_static][Capture].to_a[0][1].instance_variable_get(:@pipe).to_a
 
-      pp input_pipe
+      # pp input_pipe
 
-      set_variable = input_pipe[0][1]
-      assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :params
-      assert_equal set_variable.instance_variable_get(:@write_name), :params
-      assert_equal set_variable.instance_variable_get(:@name), "In{:params}"
+      id, filter_step = input_pipe[0]
+      assert_equal filter_step.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :params
+      assert_equal filter_step.instance_variable_get(:@write_name), :params
+      assert_equal id, "In {:params > :params}"
 
-      set_variable = input_pipe[1][1]
-      assert_equal set_variable.instance_variable_get(:@write_name), :mode
-      assert_equal set_variable.instance_variable_get(:@name), "In{:mode}"
+      id, filter_step = input_pipe[1]
+      assert_equal filter_step.instance_variable_get(:@write_name), :mode
+      assert_equal id, "In {:mode > :mode}"
 
-      set_variable = input_pipe[2][1]
-      assert_equal set_variable.instance_variable_get(:@write_name), :styles
-      assert_equal set_variable.instance_variable_get(:@name), "In{:styles}"
+      id, filter_step = input_pipe[2]
+      assert_equal filter_step.instance_variable_get(:@write_name), :styles
+      assert_equal id, "In {:styles > :styles}"
 
   # {:variable_name} is what we write to ctx
-      set_variable = input_pipe[3][1]
+      id, filter_step = input_pipe[3]
       #@ test the VariableFromCtx
-      assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :current_user
-      assert_equal set_variable.instance_variable_get(:@write_name), :user
-      assert_equal set_variable.instance_variable_get(:@name), "In{:current_user>:user}"
+      assert_equal filter_step.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :current_user
+      assert_equal filter_step.instance_variable_get(:@write_name), :user
+      assert_equal id, "In {:current_user > :user}"
 
-      set_variable = input_pipe[4][1]
-      assert_equal set_variable.name, "In.add_variables{#{proc_in.object_id}}"
+      id, filter_step = input_pipe[4]
+      assert_equal id, "In {} #{proc_in.inspect}"
 
   # Inject
-      set_variable = input_pipe[5][1]
+      id, filter_step = input_pipe[5]
       #@ test the VariableFromCtx
-      assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :field
-      assert_equal set_variable.instance_variable_get(:@write_name), :field
-      assert_equal set_variable.instance_variable_get(:@name), "Inject.default{:field}"
+      assert_equal filter_step.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :field
+      assert_equal filter_step.instance_variable_get(:@write_name), :field
+      assert_equal CU.strip(id), "Inject {:field} #<Proc:0x test/variable_mapping_test.rb:494 (lambda)> {defaulted: true}"
 
-      set_variable = input_pipe[6][1]
+      id, filter_step = input_pipe[6]
       #@ test the VariableFromCtx
-      assert_equal set_variable.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :key
-      assert_equal set_variable.instance_variable_get(:@write_name), :key
-      assert_equal set_variable.instance_variable_get(:@name), "Inject{:key}"
+      assert_equal filter_step.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :key
+      assert_equal filter_step.instance_variable_get(:@write_name), :key
+      assert_equal id, "Inject {:key}"
 
   # Out
       output_pipe = activity.to_h[:config][:wrap_static][Capture].to_a[2][1].instance_variable_get(:@pipe).to_a
 
-      set_variable = output_pipe[0][1]
-      assert_equal set_variable.instance_variable_get(:@write_name), :result
-      assert_equal set_variable.instance_variable_get(:@name), "Out{:result}"
+      id, filter_step = output_pipe[0]
+      assert_equal filter_step.instance_variable_get(:@write_name), :result
+      assert_equal id, "Out {:result > :result}"
 
-      set_variable = output_pipe[1][1]
-      assert_equal set_variable.instance_variable_get(:@write_name), :message
-      assert_equal set_variable.instance_variable_get(:@name), "Out{:message}"
+      id, filter_step = output_pipe[1]
+      assert_equal filter_step.instance_variable_get(:@write_name), :message
+      assert_equal id, "Out {:message > :message}"
 
-      set_variable = output_pipe[2][1]
-      assert_equal set_variable.instance_variable_get(:@write_name), :status
-      assert_equal set_variable.instance_variable_get(:@name), "Out{:status}"
+      id, filter_step = output_pipe[2]
+      assert_equal filter_step.instance_variable_get(:@write_name), :status
+      assert_equal id, "Out {:status > :status}"
 
-      set_variable = output_pipe[3][1]
-      assert_equal set_variable.instance_variable_get(:@write_name), :error_code
-      assert_equal set_variable.instance_variable_get(:@name), "Out{:code>:error_code}"
+      id, filter_step = output_pipe[3]
+      assert_equal filter_step.instance_variable_get(:@write_name), :error_code
+      assert_equal id, "Out {:code > :error_code}"
 
-      set_variable = output_pipe[4][1]
-      assert_equal set_variable.name, "Out.add_variables{#{proc_out.object_id}}"
+      id, filter_step = output_pipe[4]
+      assert_equal id, "Out {} #{proc_out}"
     end
   end
 end
