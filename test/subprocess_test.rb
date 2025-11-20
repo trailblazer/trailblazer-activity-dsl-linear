@@ -3,16 +3,18 @@ require "test_helper"
 class SubprocessTest < Minitest::Spec
   it "the Subprocess() macro sets the {subprocess: true} option in the normalizer ctx" do
     activity = Class.new(Trailblazer::Activity::Railway) do
-      def self.set_subprocess_in_data(ctx, **)
+      def self.set_subprocess_in_data(ctx, flow_options, _, **)
         # raise non_symbol_options.inspect
-        ctx.merge(Trailblazer::Activity::Railway.DataVariable() => :subprocess)
+        ctx = ctx.merge(Trailblazer::Activity::Railway.DataVariable() => :subprocess)
+
+        return ctx, flow_options
       end
 
       Trailblazer::Activity::DSL::Linear::Normalizer.extend!(self, :step, :fail, :pass) do |normalizer|
 
         Trailblazer::Activity::TaskWrap.Extension(
           [
-            Trailblazer::Activity::DSL::Linear::Normalizer.Task(method(:set_subprocess_in_data)), id: "my.set_subprocess_in_data", prepend: "activity.compile_data"
+            method(:set_subprocess_in_data), id: "my.set_subprocess_in_data", prepend: "activity.compile_data"
           ]
         ).(normalizer)
       end
@@ -46,9 +48,9 @@ class SubprocessTest < Minitest::Spec
  {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
 #<End/:success>
 
-#<End/:unknown>
-
 #<End/:failure>
+
+#<End/:unknown>
 }
   end
 
@@ -239,8 +241,7 @@ class WithCustomSignalReturnedInSubprocess < Minitest::Spec
       include T.def_steps(:create_model, :handle_invalid_params, :save)
     end
 
-    signal, (ctx, _) = Memo::Create.([{seq: [], validate: InvalidParams}])
-    ctx[:seq].must_equal([:create_model, :validate, :handle_invalid_params, :save])
+    assert_call Memo::Create, seq: "[:create_model, :validate, :handle_invalid_params, :save]", validate: InvalidParams
   end
 end
 
@@ -283,11 +284,11 @@ SubprocessUnitTest::Memo::JustPassFast
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
   end
 end
@@ -327,18 +328,18 @@ class Subprocess_Strict_UnitTest < Minitest::Spec
 Subprocess_Strict_UnitTest::Song::Activity::Validate
  {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
  {#<Trailblazer::Activity::End semantic=:success>} => <*save>
- {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
  {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
 <*save>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
 
     assert_invoke Song::Activity::Create, seq: "[:create_model, :just_pass_fast]", terminus: :pass_fast
@@ -372,18 +373,18 @@ class Subprocess_Strict2_UnitTest < Minitest::Spec
 Subprocess_Strict_UnitTest::Song::Activity::Validate
  {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
  {#<Trailblazer::Activity::End semantic=:success>} => <*save>
- {#<Trailblazer::Activity::End semantic=:pass_fast>} => <*save>
  {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => <*save>
 <*save>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
     #@ Validate's pass_fast goes to our success Track, we call {#save}.
     assert_invoke Song::Activity::Create, seq: "[:create_model, :just_pass_fast, :save]"
@@ -443,19 +444,19 @@ class Subprocess_Terminus_UnitTest < Minitest::Spec
 Subprocess_Terminus_UnitTest::Song::Activity::Validate
  {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
  {#<Trailblazer::Activity::End semantic=:success>} => <*save>
- {#<Trailblazer::Activity::End semantic=:http_timeout>} => #<End/:fail_fast>
- {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
  {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
+ {#<Trailblazer::Activity::End semantic=:http_timeout>} => #<End/:fail_fast>
 <*save>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
     #@ Follow {http_timeout} to fail_fast.
     assert_invoke Song::Activity::Create, params: 408, seq: "[:create_model]", terminus: :fail_fast

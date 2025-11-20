@@ -46,7 +46,7 @@ module X
       #:memo-create end
 
       #:memo-call
-      signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create,
+      ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create,
         params: {memo: {text: "Do not forget!"}}
       )
 
@@ -55,7 +55,7 @@ module X
       #:memo-call end
 
       #:memo-call-model
-      signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create,
+      ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create,
         params: {memo: {text: "Do not forget!"}}
       )
 

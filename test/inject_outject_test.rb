@@ -185,7 +185,7 @@ ctx[:months]: [1, 2, 3]
     # puts pipe
     # raise
 
-    signal, (ctx, _) = Trailblazer::Activity::TaskWrap.invoke(activity, [{model: Module}, {}])
+    ctx, _, signal = Trailblazer::Activity::TaskWrap.invoke(activity, {model: Module})
 
     # pp ctx
     assert_equal ctx.class, Trailblazer::Context::Container
@@ -226,42 +226,52 @@ class VariableMappingUnitTest < Minitest::Spec
 
       user_filter = :my_model
 
-      filter = Trailblazer::Activity::Circuit.Step(user_filter, option: true)
+      filter = Trailblazer::Activity::Circuit.Step(user_filter, instance_method: true)
 
-      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(write_name: :model, filter: filter, user_filter: user_filter, name: :model, _FIXME_wrap_with_hash: true)
-
+      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::Runtime::FilterStep.build(write_name: :model, filter: filter, user_filter: user_filter, name: :model, wrap_value_with_hash: true)
 
       ctx = {current_user: Object, mode: :update}
 
+      wrap_ctx = {aggregate: {}, application_ctx: ctx}
 
-      wrap_ctx = {aggregate: {}}
-
-
-      wrap_ctx, _ = pipe_task.(wrap_ctx, [[ctx, {}], {exec_context: my_exec_context}])
+      wrap_ctx, _ = pipe_task.(wrap_ctx, {}, {exec_context: my_exec_context})
 
       assert_equal wrap_ctx[:aggregate], {:model=>"<MyModel Object>"}
     end
 
     it "SetVariable#call can invoke any self-made circuit-step interface filter" do
-      my_lowlevel_inject_filter = ->((ctx, flow_options), **) { "<MyModel #{ctx.fetch(:current_user)}>" }
+      my_lowlevel_inject_filter = ->(ctx, flow_options, _) {
+        value = "<MyModel #{ctx.fetch(:current_user)}>"
 
-      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(write_name: :model, filter: my_lowlevel_inject_filter, user_filter: my_lowlevel_inject_filter, name: :model, _FIXME_wrap_with_hash: true)
+        return ctx, flow_options, value
+      }
+
+      pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::Runtime::FilterStep.build(write_name: :model, filter: my_lowlevel_inject_filter, user_filter: my_lowlevel_inject_filter, name: :model, wrap_value_with_hash: true)
+      # pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(write_name: :model, filter: my_lowlevel_inject_filter, user_filter: my_lowlevel_inject_filter, name: :model, _FIXME_wrap_with_hash: true)
 
       ctx = {current_user: Object, mode: :update}
 
-      wrap_ctx = {aggregate: {}}
+      wrap_ctx = {aggregate: {}, application_ctx: ctx}
 
-      wrap_ctx, _ = pipe_task.(wrap_ctx, [[ctx, {}], {}])
+      wrap_ctx, _ = pipe_task.(wrap_ctx, {}, {})
 
       assert_equal wrap_ctx[:aggregate], {:model=>"<MyModel Object>"}
     end
 
     it "we can add a low-level filter via the DSL, ie to access {circuit_options}" do
-      my_lowlevel_inject_filter = ->((ctx, flow_options), my_record:,**circuit_options) { "<MyModel #{my_record}>" }
-      my_filter_builder = ->(*) {
+      my_lowlevel_inject_filter = ->(ctx, flow_options, circuit_options) {
+        my_record = circuit_options[:my_record]
+        value     = "<MyModel #{my_record}>"
+
+        return ctx, flow_options, value
+      }
+
+      my_filter_builder = ->(right_option, **options_from_left) {
+        pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::Runtime::FilterStep.build(write_name: :record, filter: my_lowlevel_inject_filter, wrap_value_with_hash: true)
+
         [
           [
-            Trailblazer::Activity::DSL::Linear::VariableMapping::SetVariable.new(name: "bla.FIXME", filter: my_lowlevel_inject_filter, write_name: :record, user_filter: nil, _FIXME_wrap_with_hash: true),
+            pipe_task,
             id: "bla.FIXME",
             prepend: "input.scope"
           ]
@@ -270,7 +280,7 @@ class VariableMappingUnitTest < Minitest::Spec
 
       activity = Class.new(Trailblazer::Activity::Railway) do
         step :model,
-          Inject(:record, filters_builder: my_filter_builder) => my_lowlevel_inject_filter
+          Inject(:record, builder: my_filter_builder) => my_lowlevel_inject_filter
 
         def model(ctx, record:, **)
           ctx[:record_in_model] = record

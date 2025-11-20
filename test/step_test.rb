@@ -55,7 +55,7 @@ Object
   # ID for {task: <task>}
   it "ID is {:task} unless specified" do
     activity = Class.new(Activity::Path) do
-      include implementing = T.def_tasks(:a, :b, :d, :f)
+      include implementing =  T.def_tasks(:a, :b, :d, :f)
 
       step task: :a
       step task: :b, id: :B
@@ -248,7 +248,7 @@ class StepInheritOptionTest < Minitest::Spec
 #@ {:inhert} implements inheriting {:extensions}
   let(:ext) do
     merge = [method(:add_1), id: "user.add_1", prepend: "task_wrap.call_task"]
-    ext   = Trailblazer::Activity::TaskWrap::Extension.WrapStatic(merge)
+    ext   = Trailblazer::Activity::TaskWrap::Extension(merge)
   end
 
   it "{inherit: true} copies {Extension()}" do
@@ -334,18 +334,18 @@ class StepInheritOptionTest < Minitest::Spec
 #<Class:0x>
  {#<Trailblazer::Activity::End semantic=:failure>} => #<End/:failure>
  {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
- {#<Trailblazer::Activity::End semantic=:invalid>} => #<End/:invalid>
- {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
  {#<Trailblazer::Activity::End semantic=:fail_fast>} => #<End/:fail_fast>
+ {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
+ {#<Trailblazer::Activity::End semantic=:invalid>} => #<End/:invalid>
 #<End/:success>
 
-#<End/:invalid>
-
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
+
+#<End/:invalid>
 }
 
     assert_process_for strict_sub_activity, :success, :invalid, :pass_fast, :fail_fast, :failure, %{
@@ -357,13 +357,13 @@ class StepInheritOptionTest < Minitest::Spec
  {#<Trailblazer::Activity::End semantic=:invalid>} => #<End/:invalid>
 #<End/:success>
 
-#<End/:invalid>
-
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
+
+#<End/:invalid>
 }
 
     assert_process_for sub_activity, :success, :invalid, :pass_fast, :fail_fast, :failure, %{
@@ -374,13 +374,13 @@ class StepInheritOptionTest < Minitest::Spec
  {#<Trailblazer::Activity::End semantic=:success>} => #<End/:success>
 #<End/:success>
 
-#<End/:invalid>
-
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
+
+#<End/:invalid>
 }
   end
 
@@ -410,9 +410,9 @@ Trailblazer::Activity::Path
  {#<Trailblazer::Activity::End semantic=:success>} => #<End/:ok>
 #<End/:success>
 
-#<End/:ok>
-
 #<End/:failure>
+
+#<End/:ok>
 }
   end
 
@@ -653,11 +653,11 @@ Trailblazer::Activity::Path
  {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
 
     assert_invoke sub_activity, model: true,  seq: "[:model]", terminus: :pass_fast
@@ -682,11 +682,11 @@ Trailblazer::Activity::Path
  {#<Trailblazer::Activity::End semantic=:pass_fast>} => #<End/:pass_fast>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
 
   end

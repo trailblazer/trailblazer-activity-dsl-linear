@@ -35,16 +35,20 @@ Minitest::Spec.class_eval do
 
 
     # taskWrap tester :)
-  def add_1(wrap_ctx, original_args)
-    ctx, _ = original_args[0]
+  def add_1(wrap_ctx, flow_options, _)
+    ctx = wrap_ctx[:application_ctx]
+
     ctx[:seq] << 1
-    return wrap_ctx, original_args # yay to mutable state. not.
+
+    return wrap_ctx, flow_options # yay to mutable state. not.
   end
 
-  def add_2(wrap_ctx, original_args)
-    ctx, _ = original_args[0]
+  def add_2(wrap_ctx, flow_options, _)
+    ctx = wrap_ctx[:application_ctx]
+
     ctx[:seq] << 2
-    return wrap_ctx, original_args # yay to mutable state. not.
+
+    return wrap_ctx, flow_options # yay to mutable state. not.
   end
 end
 
