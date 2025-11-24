@@ -19,12 +19,9 @@ class CompilerTest < Minitest::Spec
         magnetic_to:  nil,
         task:         implementing::Start,
         wirings:
-          [
-            Lin::Sequence::Search::Forward(
-              Act::Output(R, :success),
-              :success
-            ),
-          ],
+          {
+            Act::Output(R, :success) => Lin::Sequence::Search::Forward.new(:success),
+          },
         task_wrap: default_task_wrap,
         data: {id: "Start.default"},
       ),
@@ -33,16 +30,10 @@ class CompilerTest < Minitest::Spec
         # [Search::Forward(:success), Search::ById(:a)]
         task: implementing.method(:a),
         wirings:
-          [
-            Lin::Sequence::Search::Forward(
-              Act::Output(R, :success),
-              :success
-            ),
-            Lin::Sequence::Search::Forward(
-              Act::Output(L, :failure),
-              :failure
-            ),
-          ],
+          {
+            Act::Output(R, :success) => Lin::Sequence::Search::Forward.new(:success),
+            Act::Output(L, :failure) => Lin::Sequence::Search::Forward.new(:failure),
+          },
         task_wrap: default_task_wrap,
         data: {id: :a},
       ),
@@ -50,16 +41,10 @@ class CompilerTest < Minitest::Spec
         magnetic_to: :success,
         task: implementing.method(:b),
         wirings:
-          [
-            Lin::Sequence::Search::Forward(
-              Act::Output("B/success", :success),
-              :success
-            ),
-            Lin::Sequence::Search::Forward(
-              Act::Output("B/failure", :failure),
-              :failure
-            )
-          ],
+          {
+            Act::Output("B/success", :success) => Lin::Sequence::Search::Forward.new(:success),
+            Act::Output("B/failure", :failure) => Lin::Sequence::Search::Forward.new(:failure)
+          },
         task_wrap: default_task_wrap,
         data: {id: :b},
       ),
@@ -67,16 +52,10 @@ class CompilerTest < Minitest::Spec
         magnetic_to: :failure,
         task: implementing.method(:c),
         wirings:
-          [
-            Lin::Sequence::Search::Forward(
-              Act::Output(R, :success),
-              :failure
-            ),
-            Lin::Sequence::Search::Forward(
-              Act::Output(L, :failure),
-              :failure
-           )
-          ],
+          {
+            Act::Output(R, :success) => Lin::Sequence::Search::Forward.new(:failure),
+            Act::Output(L, :failure) => Lin::Sequence::Search::Forward.new(:failure)
+          },
         task_wrap: default_task_wrap,
         data: {id: :c},
       ),
@@ -84,30 +63,24 @@ class CompilerTest < Minitest::Spec
         magnetic_to: :success,
         task: implementing.method(:d),
         wirings:
-          [
-            Lin::Sequence::Search::Forward(
-              Act::Output("D/success", :success),
-              :success
-            ),
-            Lin::Sequence::Search::Forward(
-              Act::Output(L, :failure),
-              :failure
-            )
-          ],
+          {
+            Act::Output("D/success", :success) => Lin::Sequence::Search::Forward.new(:success),
+            Act::Output(L, :failure) => Lin::Sequence::Search::Forward.new(:failure)
+          },
         task_wrap: default_task_wrap,
         data: {id: :d},
       ),
       sequence.Row(
         magnetic_to: :success,
         task: implementing::Success,
-        wirings: [],
+        wirings: {},
         task_wrap: default_task_wrap,
         data: {id: "End.success", stop_event: true, semantic: :success},
       ),
       sequence.Row(
         magnetic_to: :failure,
         task: implementing::Failure,
-        wirings: [],
+        wirings: {},
         task_wrap: default_task_wrap,
         data: {id: "End.failure", stop_event: true, semantic: :failure},
       ),
