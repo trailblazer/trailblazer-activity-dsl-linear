@@ -108,25 +108,18 @@ module Trailblazer
               last_step_on_path = user_steps[-1]
               output_searches   = last_step_on_path[2]
 # pp last_step_on_path
-              last_step_outputs =
-                output_searches.collect do |search_strategy|
-                  # TODO: introduce {search_strategy.to_h} so we don't need to execute it here.
-                  output, _ = search_strategy.(user_steps, last_step_on_path) # FIXME: the Forward() proc contains the row's Output, and the only current way to retrieve it is calling the search strategy. It should be Forward#to_h
-                  output
-                end
-
+              output_2_search_hash = output_searches.to_h
               # we want to reconnect the last step's {:success} output, everything else we keep.
-              success_output = last_step_outputs.find { |output| output.to_h[:semantic] == :success } or raise
+              success_output,  _ = output_2_search_hash.find { |output, _| output.to_h[:semantic] == :success }
+              raise if success_output.nil?
 
                 # FIXME: what about End()?
-              success_search = Sequence::Search.ById(success_output, connect_to.value) if connect_to.instance_of?(Linear::Normalizer::OutputTuples::Id)
-              success_search = Sequence::Search.Forward(success_output, connect_to.color) if connect_to.instance_of?(Linear::Normalizer::OutputTuples::Track) # FIXME: use existing mapping logic!
+              success_search = Sequence::Search::ById.new(connect_to.value) if connect_to.instance_of?(Linear::Normalizer::OutputTuples::Id)
+              success_search = Sequence::Search::Forward.new(connect_to.color) if connect_to.instance_of?(Linear::Normalizer::OutputTuples::Track) # FIXME: use existing mapping logic!
 
-              success_output_index = last_step_outputs.index(success_output)
+              output_2_search_hash[success_output] = success_search # replace the success search strategy.
 
-              output_searches[success_output_index] = success_search # replace the success search strategy. # DISCUSS: a bit cryptical with this index.
-
-              row_options = last_step_on_path.to_h.merge(wirings: output_searches)
+              row_options = last_step_on_path.to_h.merge(wirings: output_2_search_hash.to_a)
               row = Sequence.Row(**row_options)
 
               user_steps[0..-2] + [row] + termini

@@ -75,8 +75,8 @@ module Trailblazer
             # Execute all search strategies for a row, retrieve outputs and
             # their respective target IDs.
             def find_connections(seq_row, searches, sequence_ary)
-              searches.collect do |search|
-                output, target_seq_row = search.(sequence_ary, seq_row) # invoke the node's "connection search" strategy.
+              searches.collect do |output, search|
+                target_seq_row = search.(sequence_ary, seq_row) # invoke the node's "connection search" strategy.
 
                 target_seq_row = sequence_ary[-1] if target_seq_row.nil? # connect to an End if target unknown. # DISCUSS: make this configurable, maybe?
 

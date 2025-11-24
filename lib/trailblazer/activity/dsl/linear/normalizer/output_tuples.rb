@@ -10,23 +10,23 @@ module Trailblazer
 
             # Connector when using Id(:validate).
             class Id < Struct.new(:value)
-              def to_a(*)
-                return [Linear::Sequence::Search.method(:ById), value], [] # {value} is the "target".
+              def call(*)
+                return Sequence::Search::ById.new(value), [] # {value} is the "target".
               end
             end
 
             # Connector when using Track(:success).
             class Track < Struct.new(:color, :adds, :options)
-              def to_a(*)
-                search_strategy = options[:wrap_around] ? :WrapAround : :Forward
+              def call(*)
+                search_strategy = options[:wrap_around] ? Sequence::Search::WrapAround : Sequence::Search::Forward
 
-                return [Linear::Sequence::Search.method(search_strategy), color], adds
+                return search_strategy.new(color), adds
               end
             end
 
             # Connector representing a (to-be-created?) terminus when using End(:semantic).
             class End < Struct.new(:semantic)
-              def to_a(ctx)
+              def call(ctx)
                 sequence = ctx[:sequence]
 
                 end_id     = Linear::Strategy.end_id(semantic: semantic)
@@ -36,7 +36,7 @@ module Trailblazer
 
                 adds = end_exists ? [] : OutputTuples::Connections.adds_for_terminus(terminus, semantic: semantic, id: end_id, sequence: sequence, normalizers: ctx[:normalizers], normalizer_options: ctx[:normalizer_options])
 
-                return [Linear::Sequence::Search.method(:ById), end_id], adds
+                return Sequence::Search::ById.new(end_id), adds
               end
             end
 
@@ -142,15 +142,14 @@ module Trailblazer
                 # Go through all {Output() => Track()/Id()/End()} tuples.
                 wirings =
                   output_tuples.collect do |output, target|
-                    (search_builder, search_args), connector_adds = target.to_a(ctx) # Call {#to_a} on Track/Id/End/...
-
-                    adds += connector_adds
-
                     semantic = output.semantic
                     output   = outputs[semantic] || raise("No `#{semantic}` output found for #{id.inspect} and outputs #{outputs.inspect}")
 
-                    # return proc to be called when compiling Seq, e.g. {ById(output, :id)}
-                    search_builder.(output, *search_args)
+                    search, connector_adds = target.(ctx)
+
+                    adds += connector_adds
+
+                    [output, search]
                   end
 
                 ctx = ctx.merge(
