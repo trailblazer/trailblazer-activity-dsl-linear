@@ -153,7 +153,7 @@ module Trailblazer
                   end
 
                 ctx = ctx.merge(
-                  wirings: wirings,
+                  wirings: wirings.to_h,
                   adds: adds
                 )
 

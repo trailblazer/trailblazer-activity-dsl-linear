@@ -106,20 +106,20 @@ module Trailblazer
               user_steps = sequence - termini
 
               last_step_on_path = user_steps[-1]
-              output_searches   = last_step_on_path[2]
+              output_2_search   = last_step_on_path[2]
 # pp last_step_on_path
-              output_2_search_hash = output_searches.to_h
+
               # we want to reconnect the last step's {:success} output, everything else we keep.
-              success_output,  _ = output_2_search_hash.find { |output, _| output.to_h[:semantic] == :success }
+              success_output,  _ = output_2_search  .find { |output, _| output.to_h[:semantic] == :success }
               raise if success_output.nil?
 
                 # FIXME: what about End()?
               success_search = Sequence::Search::ById.new(connect_to.value) if connect_to.instance_of?(Linear::Normalizer::OutputTuples::Id)
               success_search = Sequence::Search::Forward.new(connect_to.color) if connect_to.instance_of?(Linear::Normalizer::OutputTuples::Track) # FIXME: use existing mapping logic!
 
-              output_2_search_hash[success_output] = success_search # replace the success search strategy.
+              output_2_search[success_output] = success_search # replace the success search strategy.
 
-              row_options = last_step_on_path.to_h.merge(wirings: output_2_search_hash.to_a)
+              row_options = last_step_on_path.to_h.merge(wirings: output_2_search)
               row = Sequence.Row(**row_options)
 
               user_steps[0..-2] + [row] + termini
