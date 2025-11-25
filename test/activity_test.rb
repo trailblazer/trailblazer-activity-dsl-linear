@@ -12,17 +12,17 @@ class ActivityTest < Minitest::Spec
       implementing = self.implementing
 
       activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
+        step :a
         # step MyMacro()
-        step(id: :b, task: implementing.method(:b), before: :a)
+        step id: :b, task: implementing.method(:b), before: :a
       end
 
       assert_process_for activity.to_h, :success, %{
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -32,18 +32,18 @@ class ActivityTest < Minitest::Spec
       implementing = self.implementing
 
       activity = Class.new(Activity::Path) do
-        step implementing.method(:f)
-        step implementing.method(:f), id: :f2
+        step :f
+        step :f, id: :f2
       end
 
       process = activity.to_h
 
       assert_process_for process, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
-<*#<Method: #<Module:0x>.f>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
-<*#<Method: #<Module:0x>.f>>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -103,18 +103,18 @@ class ActivityTest < Minitest::Spec
     it "accepts {:outputs}" do
       implementing = self.implementing
 
-      _activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
+      activity = Class.new(Activity::Path) do
+        step :a
         # step MyMacro()
-        step(id: :b, task: implementing.method(:b), before: :a, outputs: {success: Activity.Output("Yo", :success)})
+        step :b, before: :a, outputs: {success: Activity.Output("Yo", :success)}
       end
 
-      assert_process_for _activity, :success, %{
+      assert_process_for activity, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.b>
- {Yo} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
+ {Yo} => <*a>
+<*a>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -125,16 +125,16 @@ class ActivityTest < Minitest::Spec
       implementing = self.implementing
 
       activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
-        step(id: :b, task: implementing.method(:b), before: :a, Output(:success) => End(:new))
+        step :a
+        step :b, before: :a, Output(:success) => End(:new)
       end
 
       assert_process activity, :success, :new, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
  {Trailblazer::Activity::Right} => #<End/:new>
-<*#<Method: #<Module:0x>.a>>
+<*a>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
@@ -143,62 +143,52 @@ class ActivityTest < Minitest::Spec
     end
 
     it "doesn't create the same End twice" do
-      implementing = T.def_steps(:a, :c, :b)
-
       activity = Class.new(Activity::Railway) do
-        step implementing.method(:a), Output(:failure) => End(:new)
-        step implementing.method(:c)
-        step implementing.method(:b), Output(:success) => End(:new)
+        step :a, Output(:failure) => End(:new)
+        step :c
+        step :b, Output(:success) => End(:new)
+
+        include T.def_steps(:a, :c, :b)
       end
 
       assert_process activity, :success, :new, :failure, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
  {Trailblazer::Activity::Left} => #<End/:new>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
-<*#<Method: #<Module:0x>.c>>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
  {Trailblazer::Activity::Left} => #<End/:failure>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
  {Trailblazer::Activity::Left} => #<End/:failure>
  {Trailblazer::Activity::Right} => #<End/:new>
 #<End/:success>
 
-#<End/:new>
-
 #<End/:failure>
+
+#<End/:new>
 }
 
-      signal, (ctx, _) = activity.([{seq: [], a: false}])
-
-      _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:new>}
-      CU.inspect(ctx).must_equal     %{{:seq=>[:a], :a=>false}}
-
-      new_signal, (ctx, _) = activity.([{seq: [], b: true}])
-
-      _(new_signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:new>}
-      CU.inspect(ctx).must_equal %{{:seq=>[:a, :c, :b], :b=>true}}
-  # End.new is always the same instance
-      _(signal).must_equal new_signal
-
+      assert_invoke activity, seq: "[:a]", a: false, terminus: :new
+      assert_invoke activity, seq: "[:a, :c, :b]", b: true, terminus: :new
     end
 
     it "accepts {Output() => Id()}" do
       implementing = self.implementing
 
       activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
-        step(id: :b, task: implementing.method(:b), Output(:success) => Id(:a))
+        step :a
+        step :b, Output(:success) => Id(:a)
       end
 
       assert_process_for activity.to_h, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.b>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
+ {Trailblazer::Activity::Right} => <*a>
 #<End/:success>
 }
     end
@@ -207,16 +197,16 @@ class ActivityTest < Minitest::Spec
       implementing = self.implementing
 
       activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
-        step(id: :b, task: implementing.method(:b), Output(:success) => Track(:unknown))
+        step :a
+        step :b, Output(:success) => Track(:unknown)
       end
 
       assert_process_for activity.to_h, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -257,20 +247,20 @@ class ActivityTest < Minitest::Spec
       implementing = self.implementing
 
       activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
-        step(id: :b, task: implementing.method(:b),
+        step :a
+        step :b,
           Output(Activity::Left, :success) => Track(:success),
-          Output("Signalovich", :new)      => Id(:a))
+          Output("Signalovich", :new)      => Id(:a)
       end
 
       assert_process_for activity.to_h, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
-#<Method: #<Module:0x>.b>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
  {Trailblazer::Activity::Left} => #<End/:success>
- {Signalovich} => <*#<Method: #<Module:0x>.a>>
+ {Signalovich} => <*a>
 #<End/:success>
 }
     end
@@ -281,13 +271,13 @@ class ActivityTest < Minitest::Spec
       circuit_interface_tasks = T.def_tasks(:c)
 
       activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
+        step :a
 
         row = Trailblazer::Activity::DSL::Linear::Sequence.Row(
           task: circuit_interface_tasks.method(:c),
           data: {id: :c},
           magnetic_to: :success,
-          wirings: [Trailblazer::Activity::DSL::Linear::Sequence::Search::Forward(Activity.Output(Activity::Right, :success), :success)],
+          wirings: {Activity.Output(Activity::Right, :success) => Activity::DSL::Linear::Sequence::Search::Forward.new(:success)},
           task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP,
         )
 
@@ -304,8 +294,8 @@ class ActivityTest < Minitest::Spec
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.c>
 #<Method: #<Module:0x>.c>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
  {Trailblazer::Activity::Right} => #<Method: #<Module:0x>.b>
 #<Method: #<Module:0x>.b>
  {Trailblazer::Activity::Right} => #<End/:success>
@@ -324,17 +314,17 @@ class ActivityTest < Minitest::Spec
       implementing = self.implementing
 
       activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a, Output(:success) => Track(:new), Output(false, :failure) => Track(:success)
-        step implementing.method(:b), magnetic_to: :new
+        step :a, Output(:success) => Track(:new), Output(false, :failure) => Track(:success)
+        step :b, magnetic_to: :new
       end
 
       assert_process_for activity.to_h, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
  {false} => #<End/:success>
-<*#<Method: #<Module:0x>.b>>
+<*b>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -408,41 +398,41 @@ class ActivityTest < Minitest::Spec
     implementing = self.implementing
 
     activity = Class.new(Activity::Path) do
-      step implementing.method(:a), id: :a
-      step implementing.method(:b), id: :b
+      step :a
+      step :b
     end
 
     copy = Class.new(activity)
 
     sub_activity = Class.new(activity) do
-      step implementing.method(:c), id: :c
-      step implementing.method(:d), id: :d
+      step :c
+      step :d
     end
 
     sub_sub_activity = Class.new(sub_activity) do
-      step implementing.method(:g), id: :g, before: :b
-      step implementing.method(:f), id: :f, replace: :a
-      step nil,                             delete: :c
+      step :g, before: :b
+      step :f, replace: :a
+      step nil, delete: :c
     end
 
     process = activity.to_h
 # raise process.inspect
     assert_process_for process, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
 
     assert_process_for copy.to_h, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -451,14 +441,14 @@ class ActivityTest < Minitest::Spec
 
     assert_process_for process, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
-<*#<Method: #<Module:0x>.c>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.d>>
-<*#<Method: #<Module:0x>.d>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -467,14 +457,14 @@ class ActivityTest < Minitest::Spec
 
     assert_process_for process, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.f>>
-<*#<Method: #<Module:0x>.f>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.g>>
-<*#<Method: #<Module:0x>.g>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.d>>
-<*#<Method: #<Module:0x>.d>>
+ {Trailblazer::Activity::Right} => <*f>
+<*f>
+ {Trailblazer::Activity::Right} => <*g>
+<*g>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -485,23 +475,27 @@ class ActivityTest < Minitest::Spec
       extend T.def_steps(:a, :f, :b) # circuit interface.
     end
 
-    activity = Class.new(Activity::Path(step_interface_builder: Fixtures.method(:circuit_interface_builder))) do
-      step implementing.method(:a), id: :a
-      step implementing.method(:b), id: :b
+    activity = Class.new(Activity::Path(step_interface_builder: Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface)) do
+      step :a
+      step :b
+
+      include T.def_tasks(:a, :b)
     end
 
     sub_activity = Class.new(activity) do
-      step implementing.method(:f), id: :f
+      step :f
+
+      include T.def_tasks(:f)
     end
 
     process = activity.to_h
 
     assert_process_for activity, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.b>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => #<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:a>>
+#<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:a>>
+ {Trailblazer::Activity::Right} => #<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:b>>
+#<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:b>>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -510,26 +504,19 @@ class ActivityTest < Minitest::Spec
 
     assert_process_for process, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.b>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.f>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Module:0x>.f>>
+ {Trailblazer::Activity::Right} => #<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:a>>
+#<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:a>>
+ {Trailblazer::Activity::Right} => #<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:b>>
+#<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:b>>
+ {Trailblazer::Activity::Right} => #<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:f>>
+#<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:f>>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
 
 
-    signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
-
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    CU.inspect(ctx).must_equal %{{:seq=>[:a, :b]}}
-
-    signal, (ctx, _) = Activity::TaskWrap.invoke(sub_activity, [{seq: []}, {}])
-
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    CU.inspect(ctx).must_equal %{{:seq=>[:a, :b, :f]}}
+    assert_invoke activity, seq: "[:a, :b]"
+    assert_invoke sub_activity, seq: "[:a, :b, :f]"
   end
 
   describe "#merge!" do

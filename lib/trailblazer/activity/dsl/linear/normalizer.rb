@@ -163,7 +163,7 @@ module Trailblazer
             def self.call(task)
               option = Activity::Option::InstanceMethod.new(task) # only wrap in {Option}, not {Circuit::Step}.
 
-              InstanceMethodWithCircuitInterface.new(option)
+              new(option)
             end
           end
 
@@ -196,8 +196,8 @@ module Trailblazer
             # step Callable, ... (Method, Proc etc)
             ctx = ctx.merge(
                 options: {
-                  task:       options,
-                  wrap_task:  true # task exposes step interface.
+                  task:      options,
+                  wrap_task: true # task exposes step interface.
                 }
               )
 
