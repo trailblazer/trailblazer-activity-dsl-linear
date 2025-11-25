@@ -96,7 +96,7 @@ module Trailblazer
             Activity::Pipeline(
               {
                 "activity.normalize_step_interface"       => method(:normalize_step_interface),        # Makes sure {:options} is always a hash.
-                "activity.macro_options_with_symbol_task" => method(:macro_options_with_symbol_task),  # DISCUSS: we might deprecate {task: :instance_method}
+                "activity.symbol_task_with_circuit_interface" => method(:symbol_task_with_circuit_interface),
 
                 "activity.normalize_for_macro"            => method(:merge_user_options),       # Merge user_options over "macro" options.
                 "activity.normalize_context"              => method(:normalize_context),
@@ -150,18 +150,34 @@ module Trailblazer
             )
           end
 
-          # TODO: remove this! it doesn't receive correct ciruit_options.
+          # We cannot use Circuit.Step::Option as it only returns the "signal" or value, not the entire
+          # return set.
+          class InstanceMethodWithCircuitInterface < Struct.new(:instance_method_option)
+            # NOTE: Same happens in Circuit::Step::Option, except for we're returning the full
+            #       return set.
+            def call(ctx, flow_options, circuit_options)
+              instance_method_option.(ctx, flow_options, circuit_options, **circuit_options)
+            end
+
+            # Builder method, used inn {#symbol_task_with_circuit_interface}.
+            def self.call(task)
+              option = Activity::Option::InstanceMethod.new(task) # only wrap in {Option}, not {Circuit::Step}.
+
+              InstanceMethodWithCircuitInterface.new(option)
+            end
+          end
+
           # DISCUSS: should we remove this special case?
           # This handles
           #   step task: :instance_method_exposing_circuit_interface
-          def macro_options_with_symbol_task(ctx, flow_options, _, options:, **)
+          def symbol_task_with_circuit_interface(ctx, flow_options, _, options:, user_options:, **)
             return ctx, flow_options if options[:wrap_task]
             return ctx, flow_options unless options[:task].is_a?(Symbol)
 
             ctx = ctx.merge(
-              options: options.merge(
-                wrap_task:              true,
-                step_interface_builder: ->(task) { Trailblazer::Option(task) } # only wrap in Option, not {TaskAdapter}.
+              user_options: user_options.merge(
+                wrap_task: true,
+                step_interface_builder: InstanceMethodWithCircuitInterface
               )
             )
 

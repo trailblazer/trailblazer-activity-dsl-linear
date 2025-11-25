@@ -85,7 +85,7 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
               Trailblazer::Activity::DSL::Linear::Normalizer.apply(normalizers.to_h, :step, :pass, :fail) do |normalizer|
                 Adds.(
                   normalizer,
-                  [nil, id: "activity.macro_options_with_symbol_task", delete: "activity.macro_options_with_symbol_task"],
+                  [nil, id: "activity.symbol_task_with_circuit_interface", delete: "activity.symbol_task_with_circuit_interface"],
                   [nil, id: "activity.wrap_task_with_step_interface", delete: "activity.wrap_task_with_step_interface"],
                 )
               end

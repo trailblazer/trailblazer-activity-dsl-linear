@@ -1,28 +1,13 @@
 require "test_helper"
 
 class NormalizerTest < Minitest::Spec
-  it "Normalizer::TaskAdapter" do
-    def my_normalizer_step(ctx, id:, **)
-
-      {upcase_id: id.to_s.upcase}.merge(ctx)
-    end
-
-    my_normalizer_step = method(:my_normalizer_step)
-
-    ctx = {variable: true, id: :model}.freeze
-
-    adapter = Trailblazer::Activity::DSL::Linear::Normalizer::TaskAdapter.for_step(my_normalizer_step)
-    new_ctx, _ = adapter.(ctx, nil)
-
-    assert_equal CU.inspect(ctx), %({:variable=>true, :id=>:model})
-    assert_equal CU.inspect(new_ctx), %({:upcase_id=>\"MODEL\", :variable=>true, :id=>:model})
-  end
-
   it "Normalizer API" do
     # Your code to customize the DSL normalizer.
     module NormalizerExtensions
-      def self.upcase_id(ctx, id:, **)
-        ctx.merge(id: id.to_s.upcase)
+      def self.upcase_id(ctx, flow_options, _, id:, **)
+        ctx = ctx.merge(id: id.to_s.upcase)
+
+        return ctx, flow_options
       end
     end
 
@@ -33,7 +18,7 @@ class NormalizerTest < Minitest::Spec
           normalizer,
           "activity.wrap_task_with_step_interface", # step after "activity.normalize_id"
           {
-            "my.upcase_id" => Trailblazer::Activity::DSL::Linear::Normalizer.Task(NormalizerExtensions.method(:upcase_id)),
+            "my.upcase_id" => NormalizerExtensions.method(:upcase_id),
           }
         )
       end
