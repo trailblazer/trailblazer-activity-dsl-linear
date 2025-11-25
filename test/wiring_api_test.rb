@@ -59,9 +59,9 @@ class WiringApiTest < Minitest::Spec
  {#<Trailblazer::Activity::End semantic=:invalid>} => #<End/:validation_error>
 #<End/:success>
 
-#<End/:validation_error>
-
 #<End/:failure>
+
+#<End/:validation_error>
 )
   end
 end
@@ -159,11 +159,11 @@ class FastTrackWiringApiTest < Minitest::Spec
  {Trailblazer::Activity::Right} => <*catch_all>
 #<End/:success>
 
-#<End/:pass_fast>
+#<End/:failure>
 
 #<End/:fail_fast>
 
-#<End/:failure>
+#<End/:pass_fast>
 }
   end
 end

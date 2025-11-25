@@ -36,7 +36,7 @@ Object
   end
 
 #@ IDs in macro options
-  it "allows :instance_methods with circuit interface" do
+  it "allows {:instance_methods} with circuit interface" do
     nested_activity = Class.new(Activity::Path) do
       step task: :c
       include T.def_tasks(:c)

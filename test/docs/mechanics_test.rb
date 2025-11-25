@@ -19,12 +19,12 @@ module Y
       #:instance-method end
 
       #:instance-method-call
-      signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil}) #!hint result = Memo::Operation::Create.call(params: {memo: nil})
+      ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil}) #!hint result = Memo::Operation::Create.call(params: {memo: nil})
       #:instance-method-call end
       assert_equal signal.to_h[:semantic], :success #!hint assert_equal result.success?, true
 
       #:instance-method-implicit-call
-      signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil}) #!hint result = Memo::Operation::Create.(params: {memo: nil})
+      ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil}) #!hint result = Memo::Operation::Create.(params: {memo: nil})
       # #:instance-method-implicit-call end
       assert_equal signal.to_h[:semantic], :success #!hint assert_equal result.success?, true
     end
@@ -51,7 +51,7 @@ class ReadfromCtx_DocsMechanicsTest < DocsTest
     #:ctx-read end
 
     #:ctx-read-call
-    signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil})
+    ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil})
     #:ctx-read-call end
     assert_equal signal.to_h[:semantic], :success #!hint assert_equal result.success?, true
   end
@@ -76,13 +76,13 @@ class ReadfromCtxKwargs_DocsMechanicsTest < DocsTest
       end
     end
 
-    signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil})
+    ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil})
     assert_equal signal.to_h[:semantic], :success #!hint assert_equal result.success?, true
 
     user = Object
     assert_raises ArgumentError do
       #:kwargs-error
-      signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, current_user: user)
+      ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, current_user: user)
       #=> ArgumentError: missing keyword: :params
       #       memo/operation/create.rb:9:in `validate'
       #:kwargs-error end
@@ -125,7 +125,7 @@ class WriteToCtx_DocsMechanicsTest < DocsTest
     #:ctx-write-read end
 
     #:result-read
-    signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: {content: "remember that"}})
+    ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: {content: "remember that"}})
 
     ctx[:model] #=> #<Memo id: 1, ...> #!hint result[:model] #=> #<Memo id: 1, ...>
     #:result-read end
@@ -140,7 +140,7 @@ class WriteToCtx_DocsMechanicsTest < DocsTest
     user = Object
     assert_raises ArgumentError do
       #:kwargs-error
-      signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, current_user: user)
+      ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, current_user: user)
       #=> ArgumentError: missing keyword: :params
       #       memo/operation/create.rb:9:in `validate'
       #:kwargs-error end
@@ -167,7 +167,7 @@ class ReturnValueSuccess_DocsMechanicsTest < DocsTest
       end
     end
 
-    signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil})
+    ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil})
     assert_equal signal.to_h[:semantic], :success #!hint assert_equal result.success?, true
   end
 end
@@ -191,7 +191,7 @@ class ReturnValueFailure_DocsMechanicsTest < DocsTest
       end
     end
 
-    signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil})
+    ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil})
     assert_equal signal.to_h[:semantic], :failure #!hint assert_equal result.success?, false
   end
 end
@@ -237,11 +237,11 @@ class ReturnSignal_DocsMechanicsTest < DocsTest
     end
     #:signal-operation end
 
-    signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil, network_broken: false})
+    ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil, network_broken: false})
     assert_equal signal.to_h[:semantic], :success #!hint assert_equal result.success?, true
 
     #:terminus
-    signal, (ctx, _) = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil, network_broken: true}) #!hint result = Memo::Operation::Create.(params: {memo: nil, network_broken: true})
+    ctx, _, signal = Trailblazer::Activity.(Memo::Activity::Create, params: {memo: nil, network_broken: true}) #!hint result = Memo::Operation::Create.(params: {memo: nil, network_broken: true})
 
     signal.to_h[:semantic] #=> :network_error #!hint result.terminus.to_h[:semantic] #=> :network_error
     #:terminus end

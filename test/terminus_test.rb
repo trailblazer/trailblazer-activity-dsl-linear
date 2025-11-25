@@ -25,13 +25,13 @@ class TerminusTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
-#<End/:found_it>
-
-#<End/:found>
+#<End/:failure>
 
 #<End/:not_found>
 
-#<End/:failure>
+#<End/:found>
+
+#<End/:found_it>
 }
 
     assert_process_for with_steps, :success, :found_it, :found, :not_found, :failure, %{
@@ -42,13 +42,13 @@ class TerminusTest < Minitest::Spec
  {Trailblazer::Activity::Right} => #<End/:found>
 #<End/:success>
 
-#<End/:found_it>
-
-#<End/:found>
+#<End/:failure>
 
 #<End/:not_found>
 
-#<End/:failure>
+#<End/:found>
+
+#<End/:found_it>
 }
   end
 

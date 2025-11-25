@@ -32,14 +32,12 @@ class TaskWrapTest < Minitest::Spec
       step task: implementing.method(:c)
     end
 
-    signal, (ctx, flow_options) = taskWrap.invoke(activity, [{seq: []}, {}])
-
-    assert_equal CU.inspect(ctx), %{{:seq=>[1, :a, 2, :b, :c]}}
+    assert_invoke activity, seq: "[1, :a, 2, :b, :c]"
 
 # {Activity.invoke} is an alias for {TaskWrap.invoke}
-    signal, (ctx, flow_options) = activity.invoke([{seq: []}, {}], **{})
+    ctx, flow_options, signal = activity.invoke({seq: []}, {}, {})
 
-    assert_equal CU.inspect(ctx), %{{:seq=>[1, :a, 2, :b, :c]}}
+    assert_equal CU.inspect(ctx), %({:seq=>[1, :a, 2, :b, :c]})
 
 # it works nested as well
 
@@ -51,16 +49,14 @@ class TaskWrapTest < Minitest::Spec
       step task: c, Extension() => taskWrap::Extension.WrapStatic(*merge)
     end
 
-    signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}, {}], **{})
-
-    assert_equal CU.inspect(ctx), %{{:seq=>[:a, 1, :a, 2, :b, :c, 1, :c, 2]}}
+    assert_invoke nested_activity, seq: "[:a, 1, :a, 2, :b, :c, 1, :c, 2]"
 
 # it works nested plus allows {wrap_runtime}
 
     wrap_runtime = {c => taskWrap::Extension(*merge)}
 
-    signal, (ctx, flow_options) = taskWrap.invoke(nested_activity, [{seq: []}, {}], **{wrap_runtime: wrap_runtime})
+    ctx, flow_options, signal = taskWrap.invoke(nested_activity, {seq: []}, {}, {wrap_runtime: wrap_runtime})
 
-    assert_equal CU.inspect(ctx), %{{:seq=>[:a, 1, :a, 2, :b, 1, :c, 2, 1, 1, :c, 2, 2]}}
+    assert_equal CU.inspect(ctx), %({:seq=>[:a, 1, :a, 2, :b, 1, :c, 2, 1, 1, :c, 2, 2]})
   end
 end
