@@ -567,7 +567,8 @@ class VariableMappingTest < Minitest::Spec
       #@ test the VariableFromCtx
       assert_equal filter_step.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :field
       assert_equal filter_step.instance_variable_get(:@write_name), :field
-      assert_equal CU.strip(id), "Inject {:field} #<Proc:0x test/variable_mapping_test.rb:494 (lambda)> {defaulted: true}"
+      assert_equal id[0..24], "Inject {:field} #<Proc:0x"
+      assert_equal id[-27..-1], "(lambda)> {defaulted: true}"
 
       id, filter_step = input_pipe[6]
       #@ test the VariableFromCtx

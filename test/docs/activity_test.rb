@@ -243,7 +243,7 @@ class DocsActivityTest < DocsTest
       #:overview-call
       ctx = {id: 1, params: {body: "Awesome!"}}
 
-      event, (ctx, *) = Memo::Update.([ctx, {}])
+      ctx, _, signal = Memo::Update.(ctx, {}, {})
       #:overview-call end
 
       assert_equal CU.inspect(ctx), '{:id=>1, :params=>{:body=>"Awesome!"}, :model=>#<struct DocsActivityTest::Memo body=nil>, :errors=>"body not long enough"}'
@@ -255,7 +255,7 @@ class DocsActivityTest < DocsTest
     #:circuit-interface-create
     class Create < Trailblazer::Activity::Railway
       #:circuit-interface-validate
-      def self.validate((ctx, flow_options), **_circuit_options)
+      def self.validate(ctx, flow_options, _circuit_options)
         #~method
         is_valid = ctx[:name].nil? ? false : true
 
@@ -263,7 +263,7 @@ class DocsActivityTest < DocsTest
         signal = is_valid ? Trailblazer::Activity::Right : Trailblazer::Activity::Left
 
         #~method end
-        return signal, [ctx, flow_options]
+        return ctx, flow_options, signal
       end
       #:circuit-interface-validate end
 
@@ -275,14 +275,14 @@ class DocsActivityTest < DocsTest
     ctx          = {name: "Face to Face"}
     flow_options = {}
 
-    signal, (ctx, _flow_options) = Create.([ctx, flow_options])
+    ctx, _flow_options, signal = Create.(ctx, flow_options, {})
 
     signal #=> #<Trailblazer::Activity::End semantic=:success>
     ctx    #=> {:name=>\"Face to Face\", :validate_outcome=>true}
     #:circuit-interface-call end
 
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
-    assert_equal CU.inspect(ctx),  '{:name=>"Face to Face", :validate_outcome=>true}'
+    assert_equal signal.inspect, %(#<Trailblazer::Activity::End semantic=:success>)
+    assert_equal CU.inspect(ctx),  %({:name=>"Face to Face", :validate_outcome=>true})
   end
 
   # circuit interface: :start_task
@@ -307,9 +307,9 @@ class DocsActivityTest < DocsTest
       start_task: Trailblazer::Activity::Introspect::Nodes(B::Create, id: :validate).task
     }
 
-    signal, (ctx, flow_options) = B::Create.([ctx, flow_options], **circuit_options)
+    ctx, flow_options, signal = B::Create.(ctx, flow_options, circuit_options)
     #:circuit-interface-start-call end
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    assert_equal signal.inspect, %(#<Trailblazer::Activity::End semantic=:success>)
     assert_equal CU.inspect(ctx),  '{:name=>"Face to Face", :seq=>[:validate, :save]}'
   end
 
@@ -349,10 +349,10 @@ class DocsActivityTest < DocsTest
       exec_context: C::Create::Implementation.new
     }
 
-    signal, (ctx, flow_options) = C::Create.to_h[:circuit].([ctx, flow_options], **circuit_options)
+    ctx, flow_options, signal = C::Create.to_h[:circuit].(ctx, flow_options, circuit_options)
     #:circuit-interface-exec-call end
 
-    _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
+    assert_equal signal.inspect, %(#<Trailblazer::Activity::End semantic=:success>)
     assert_equal CU.inspect(ctx),  %{{:params=>{:name=>\"Face to Face\"}, :model=>#<struct DocsActivityTest::C::Memo name={:name=>\"Face to Face\"}>}}
   end
 end
@@ -367,7 +367,7 @@ class DocsActivityCallTest < DocsTest
   end
 
   it "Activity.call" do
-    signal, (ctx, _) = Trailblazer::Activity.(Song::Activity::Create, seq: [])
+    ctx, _, signal = Trailblazer::Activity.(Song::Activity::Create, seq: [])
 
     assert_equal signal.inspect, %{#<Trailblazer::Activity::End semantic=:success>}
     assert_equal CU.inspect(ctx), %{{:seq=>[:model]}}

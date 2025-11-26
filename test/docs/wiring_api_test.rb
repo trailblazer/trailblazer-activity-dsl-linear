@@ -399,8 +399,7 @@ class WiringApiDocsTest < DocsTest
   it { assert_invoke B::Payment::Operation::Create, find_provider: false, seq: "[:find_provider]", terminus: :provider_invalid }
 
   it do
-    signal, (ctx, _) = Trailblazer::Activity.(B::Payment::Operation::Create, find_provider: false, seq: [])
-    assert_equal signal.to_h[:semantic], :provider_invalid
+    assert_invoke B::Payment::Operation::Create, find_provider: false, terminus: :provider_invalid, seq: "[:find_provider]"
 =begin
     #:terminus-invalid
     signal, (ctx, _) = Payment::Operation::Create.(provider: "bla-unknown")

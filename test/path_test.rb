@@ -39,7 +39,7 @@ class PathTest < Minitest::Spec
       row = Activity::DSL::Linear::Sequence.Row(
         magnetic_to: :success,
         task: Implementing.method(:g),
-        wirings: [Trailblazer::Activity::DSL::Linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)],
+        wirings: {Activity.Output(Trailblazer::Activity::Right, :success) => Activity::DSL::Linear::Sequence::Search::Forward.new(:success)},
         data: {id: :g},
         task_wrap: Activity::TaskWrap::INITIAL_TASK_WRAP
       )

@@ -50,6 +50,12 @@ Minitest::Spec.class_eval do
 
     return wrap_ctx, flow_options # yay to mutable state. not.
   end
+
+  class MyStep
+    def self.call(ctx, **)
+      ctx[:seq] << :b
+    end
+  end
 end
 
 class DocsTest < Minitest::Spec

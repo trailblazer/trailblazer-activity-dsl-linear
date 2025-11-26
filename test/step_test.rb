@@ -80,20 +80,20 @@ Object
     implementing = T.def_tasks(:a, :b, :d, :c)
 
     activity = Class.new(Activity::Path) do
-      include T.def_tasks(:c, :d)
+      include T.def_steps(:a, :c, :d)
 
-      step implementing.method(:a), id: :a
-      step implementing.method(:b)
+      step :a
+      step MyStep
       step :c
       step :d, id: :D
     end
 
     assert_process activity, :success, %(
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => #<Trailblazer::Activity::Circuit::Step::Binary:0x @step=#<Trailblazer::Activity::Circuit::Step:0x @step=MyStep>>
+#<Trailblazer::Activity::Circuit::Step::Binary:0x @step=#<Trailblazer::Activity::Circuit::Step:0x @step=MyStep>>
  {Trailblazer::Activity::Right} => <*c>
 <*c>
  {Trailblazer::Activity::Right} => <*d>
@@ -106,7 +106,7 @@ Object
     assert_invoke activity, seq: %{[:a, :b, :c, :d]}
 
     assert Activity::Introspect.Nodes(activity, id: :a)
-    assert Activity::Introspect.Nodes(activity, id: implementing.method(:b))
+    assert Activity::Introspect.Nodes(activity, id: MyStep)
     assert Activity::Introspect.Nodes(activity, id: :c)
     assert Activity::Introspect.Nodes(activity, id: :D)
   end
