@@ -63,4 +63,39 @@ class TerminusTest < Minitest::Spec
     assert_equal CU.inspect(Trailblazer::Activity::Introspect.Nodes(activity, id: "End.tell_me").data), %({:id=>\"End.tell_me\", :dsl_track=>:terminus, :stop_event=>true, :semantic=>:tell_me})
     assert_equal Trailblazer::Activity::Introspect.Nodes(activity, id: "End.tell_me").task.class, my_terminus_class
   end
+
+  it "accepts {:magnetic_to}" do
+    activity = Class.new(Activity::Railway) do
+      terminus :approved,
+        magnetic_to: :green
+    end
+
+    assert_process activity, :success, :failure, :approved, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => #<End/:success>
+#<End/:success>
+
+#<End/:failure>
+
+#<End/:approved>
+)
+
+    my_activity = Class.new(activity) do
+      step :check,
+        Output(:success) => Track(:green) # connect to {End.approved}.
+    end
+
+    assert_process my_activity, :success, :failure, :approved, %(
+#<Start/:default>
+ {Trailblazer::Activity::Right} => <*check>
+<*check>
+ {Trailblazer::Activity::Left} => #<End/:failure>
+ {Trailblazer::Activity::Right} => #<End/:approved>
+#<End/:success>
+
+#<End/:failure>
+
+#<End/:approved>
+)
+  end
 end

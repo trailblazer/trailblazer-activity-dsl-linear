@@ -65,7 +65,7 @@ module Trailblazer
               )
             end
 
-            def _normalize_task_for_symbol(ctx, task:, semantic: task, **)
+            def _normalize_task_for_symbol(ctx, task:, semantic: task, **) # The :semantic option is @private.
               ctx.merge(
                 task:     Activity.End(semantic),
                 semantic: semantic
