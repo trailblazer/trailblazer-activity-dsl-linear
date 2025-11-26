@@ -243,7 +243,7 @@ class DocsActivityTest < DocsTest
       #:overview-call
       ctx = {id: 1, params: {body: "Awesome!"}}
 
-      ctx, _, signal = Memo::Update.(ctx, {}, {})
+      ctx, _, signal = Memo::Update.(ctx, {})
       #:overview-call end
 
       assert_equal CU.inspect(ctx), '{:id=>1, :params=>{:body=>"Awesome!"}, :model=>#<struct DocsActivityTest::Memo body=nil>, :errors=>"body not long enough"}'

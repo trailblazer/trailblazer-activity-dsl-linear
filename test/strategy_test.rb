@@ -14,6 +14,17 @@ class StrategyTest < Minitest::Spec
 #     assert_call strategy
   end
 
+  it "Strategy.call requires ctx and flow_options" do
+    # strategy = Class.new(Trailblazer::Activity::DSL::Linear::Strategy) do
+    strategy = Class.new(Trailblazer::Activity::Path) do
+    end
+
+    ctx, _flow_options, signal = strategy.({seq: []},  {})
+
+    assert_equal CU.inspect(ctx), %({:seq=>[]})
+    assert_equal signal.to_h[:semantic], :success
+  end
+
   let(:default_normalizer_extensions_in_fields) { {normalizer_extensions: Trailblazer::Activity::DSL::Linear::Strategy::INITIAL_NORMALIZER_EXTENSIONS} }
 
 #@ State-relevant tests

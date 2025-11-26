@@ -117,7 +117,7 @@ module Trailblazer
 
             # @Runtime
             # Injects {:exec_context} so that {:instance_method}s work.
-            def call(ctx, flow_options, circuit_options)
+            def call(ctx, flow_options, circuit_options = {}) # DISCUSS: do we want to require {flow_options} here?
               activity = @state.get(:activity)
 
               activity.(
