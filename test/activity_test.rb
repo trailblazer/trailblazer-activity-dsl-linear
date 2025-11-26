@@ -374,11 +374,11 @@ class ActivityTest < Minitest::Spec
   # Likewise, important fields like {wrap_static} are copied.
     assert_equal activity.to_h[:config][:wrap_static], sub.to_h[:config][:wrap_static]
 
-    signal, (ctx, _) = Activity::TaskWrap.invoke(activity, [{seq: []}, {}])
+    ctx, _, signal = Activity::TaskWrap.invoke(activity, {seq: []}, {})
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     CU.inspect(ctx).must_equal %{{:seq=>[1, :a]}}
 
-    signal, (ctx, _) = Activity::TaskWrap.invoke(sub, [{seq: []}, {}])
+    ctx, _, signal = Activity::TaskWrap.invoke(sub, {seq: []}, {})
     _(signal.inspect).must_equal %{#<Trailblazer::Activity::End semantic=:success>}
     CU.inspect(ctx).must_equal %{{:seq=>[1, :a]}}
 
@@ -524,44 +524,44 @@ class ActivityTest < Minitest::Spec
       implementing = self.implementing
 
       activity = Class.new(Activity::Path) do
-        step implementing.method(:a), id: :a
-        step implementing.method(:b), id: :b
+        step :a
+        step :b
       end
 
       sub_activity = Class.new(Activity::Path) do
-        step implementing.method(:c), id: :c
+        step :c
         merge!(activity)
-        step implementing.method(:d), id: :d
+        step :d
       end
 
       merge_is_last_activity = Class.new(Activity::Path) do
-        step implementing.method(:c), id: :c
+        step :c
         merge!(activity)
       end
 
       process = sub_activity
       assert_process_for process, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
-<*#<Method: #<Module:0x>.c>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.d>>
-<*#<Method: #<Module:0x>.d>>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
+ {Trailblazer::Activity::Right} => <*d>
+<*d>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
 
       assert_process_for merge_is_last_activity.to_h, :success, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.c>>
-<*#<Method: #<Module:0x>.c>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*b>
+<*b>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
@@ -592,16 +592,10 @@ class ActivityTest < Minitest::Spec
 
       scenario "automatic wiring from Subprocess()" do
   # a --> Nested(b) --> c
-        signal, (ctx, _) = activity.([{seq: []}])
-
-        _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-        CU.inspect(ctx).must_equal     %{{:seq=>[:a, :b, :c]}}
+        assert_invoke activity, seq: "[:a, :b, :c]"
 
   # a --> Nested(b) --> :failure
-        signal, (ctx, _) = activity.([{seq: [], b: false}])
-
-        _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-        CU.inspect(ctx).must_equal     %{{:seq=>[:a, :b], :b=>false}}
+        assert_invoke activity, seq: "[:a, :b]",  b:  false, terminus: :failure
       end
 
       scenario "manual wiring with Subprocess()" do
@@ -612,17 +606,11 @@ class ActivityTest < Minitest::Spec
         end
 
         test "Nested's :success End is mapped to outer :failure" do
-          signal, (ctx, _) = activity.([{seq: []}])
-
-          _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-          CU.inspect(ctx).must_equal     %{{:seq=>[:a, :b]}}
+          assert_invoke activity, seq: "[:a, :b]", terminus: :failure
         end
 
         test "Nested's :failure goes to outer :failure per default" do
-          signal, (ctx, _) = activity.([{seq: [], b: false}])
-
-          _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:failure>}
-          CU.inspect(ctx).must_equal     %{{:seq=>[:a, :b], :b=>false}}
+          assert_invoke activity, seq: "[:a, :b]", b: false, terminus: :failure
         end
       end
     end
@@ -631,25 +619,25 @@ class ActivityTest < Minitest::Spec
   describe "Path()" do
     it "allows referencing the activity classes' methods in the {Path} block" do
       activity = Class.new(Activity::Path) do
-        extend T.def_tasks(:a, :b, :c)
+        include T.def_tasks(:a, :b, :c)
 
         out = self
-        step method(:a), id: :a, Output(:success) => Path(terminus: :path) do
-          step out.method(:c), id: :c
+        step :a, Output(:success) => Path(terminus: :path) do
+          step :c
         end
-        step method(:b), id: :b
+        step :b
       end
 
       process = activity.to_h
 
     assert_process_for process, :success, :path, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => <*#<Method: #<Class:0x>.a>>
-<*#<Method: #<Class:0x>.a>>
- {Trailblazer::Activity::Right} => <*#<Method: #<Class:0x>.c>>
-<*#<Method: #<Class:0x>.c>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
+ {Trailblazer::Activity::Right} => <*c>
+<*c>
  {Trailblazer::Activity::Right} => #<End/:path>
-<*#<Method: #<Class:0x>.b>>
+<*b>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
@@ -658,29 +646,26 @@ class ActivityTest < Minitest::Spec
     end
 
     it "allows customized options" do
-      shared_options = {step_interface_builder: Fixtures.method(:circuit_interface_builder)}
+      shared_options = {step_interface_builder: Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface}
       # state = Activity::Path::DSL::State.new(Activity::Path::DSL.OptionsForState(**shared_options))
 
       activity = Class.new(Activity::Path(**shared_options)) do
-        extend T.def_steps(:a, :b, :c)
+        include T.def_steps(:a, :b, :c)
 
-        path = self
-        step method(:a), id: :a, Output(:success) => Path(terminus: :path) do
-          step path.method(:c), id: :c
+        step :a, Output(:success) => Path(terminus: :path) do
+          step :c
         end
-        step method(:b), id: :b
+        step :b
       end
 
-      process = activity.to_h
-
-      assert_process_for process, :success, :path, %{
+      assert_process_for activity, :success, :path, %{
 #<Start/:default>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.a>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.a>>
- {Trailblazer::Activity::Right} => #<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.c>>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.c>>
+ {Trailblazer::Activity::Right} => #<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:a>>
+#<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:a>>
+ {Trailblazer::Activity::Right} => #<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:c>>
+#<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:c>>
  {Trailblazer::Activity::Right} => #<End/:path>
-#<Fixtures::CircuitInterface:0x @step=#<Method: #<Class:0x>.b>>
+#<struct Trailblazer::Activity::DSL::Linear::Normalizer::InstanceMethodWithCircuitInterface instance_method_option=#<Trailblazer::Activity::Option::InstanceMethod:0x @filter=:b>>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 
@@ -705,10 +690,6 @@ class ActivityTest < Minitest::Spec
       include T.def_steps(:a, :b)
     end
 
-    signal, (ctx, _) = activity.([{seq: []}])
-
-    _(signal.inspect).must_equal  %{#<Trailblazer::Activity::End semantic=:success>}
-    CU.inspect(ctx).must_equal     %{{:seq=>[:a, :c, :d, :b]}}
+    assert_invoke activity, seq: "[:a, :c, :d, :b]"
   end
-
 end
