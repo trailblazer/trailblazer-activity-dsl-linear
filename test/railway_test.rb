@@ -344,7 +344,7 @@ class RailwayTest < Minitest::Spec
           linear::Sequence.Row(
             magnetic_to: :success,
             task: Implementing.method(:g),
-            wirings: [linear::Sequence::Search.Forward(Activity.Output(Activity::Right, :success), :success)],
+            wirings: {Activity.Output(Activity::Right, :success) => Activity::DSL::Linear::Sequence::Search::Forward.new(:success)},
             data: {id: :g},
             **row_options
           ),
@@ -357,7 +357,7 @@ class RailwayTest < Minitest::Spec
           linear::Sequence.Row(
             magnetic_to: :failure,
             task: Implementing.method(:b),
-            wirings: [linear::Sequence::Search.Forward(Activity.Output("f/signal", :failure), :failure)],
+            wirings: {Activity.Output("f/signal", :failure) => Activity::DSL::Linear::Sequence::Search::Forward.new(:failure)},
             data: {id: :b},
             **row_options
           ),

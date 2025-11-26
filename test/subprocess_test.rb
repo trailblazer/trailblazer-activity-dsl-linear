@@ -95,6 +95,7 @@ class SubprocessTest < Minitest::Spec
       step :f
 
       include T.def_steps(:g, :f)
+      include T.def_steps(:a) # needed for test below, we could also use a method instance but the inspect sucks.
     end
 
     controller = Class.new(Activity::Path) do
@@ -112,12 +113,12 @@ class SubprocessTest < Minitest::Spec
     end
 
     our_controller = Class.new(Activity::Path) do
-      step Subprocess(my_controller, patch: {[:controller, :advance] => -> { step implementing.method(:a), before: :f }}), id: :my_controller
+      step Subprocess(my_controller, patch: {[:controller, :advance] => -> { step :a, before: :f }}), id: :my_controller
     end
 
     whole_controller = Class.new(Activity::Path) do
       # patch our_controller itself
-      step Subprocess(our_controller, patch: -> { step implementing.method(:b), after: :my_controller }), id: :our_controller
+      step Subprocess(our_controller, patch: -> { step :b, after: :my_controller }), id: :our_controller
     end
 
 # all existing activities are untouched
@@ -171,8 +172,8 @@ class SubprocessTest < Minitest::Spec
 #<Start/:default>
  {Trailblazer::Activity::Right} => <*g>
 <*g>
- {Trailblazer::Activity::Right} => <*#<Method: #<Module:0x>.a>>
-<*#<Method: #<Module:0x>.a>>
+ {Trailblazer::Activity::Right} => <*a>
+<*a>
  {Trailblazer::Activity::Right} => <*f>
 <*f>
  {Trailblazer::Activity::Right} => #<End/:success>
@@ -185,8 +186,8 @@ class SubprocessTest < Minitest::Spec
 #<Start/:default>
  {Trailblazer::Activity::Right} => #<Class:0x>
 #<Class:0x>
- {#<Trailblazer::Activity::End semantic=:success>} => <*#<Method: #<Module:0x>.b>>
-<*#<Method: #<Module:0x>.b>>
+ {#<Trailblazer::Activity::End semantic=:success>} => <*b>
+<*b>
  {Trailblazer::Activity::Right} => #<End/:success>
 #<End/:success>
 }
