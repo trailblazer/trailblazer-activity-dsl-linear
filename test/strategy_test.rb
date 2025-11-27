@@ -173,7 +173,7 @@ EOS
     end
 
     it "we can use {MyStrategy.options_for_initialize} to set up basic DSL behavior, and we can pass {user_options_for_strategy} to {#compile_strategy!}" do
-      skip if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0') # FIXME.
+      skip if Gem::Version.new(RUBY_VERSION) <= Gem::Version.new('2.7.0') # FIXME.
 
       # NOTE: All we want to do here is compose a sequence and compile it to an activity.
       # And we're storing that and calling/invoking it via Strategy.call
@@ -210,7 +210,7 @@ EOS
     end
 
     it "we can override normalizers and layout_instructions, for example, when building small, fast Railways in Representable or Reform" do
-      skip if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0') # FIXME.
+      skip if Gem::Version.new(RUBY_VERSION) <= Gem::Version.new('2.7.0') # FIXME.
 
       my_normalizer = method(:my_normalizer)
 
