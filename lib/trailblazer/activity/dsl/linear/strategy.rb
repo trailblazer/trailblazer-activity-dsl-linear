@@ -170,13 +170,12 @@ module Trailblazer
                 block:       block,
                 normalizers: normalizers,
                 sequence:    sequence,
-              }.merge(options)
-
-                # **options,
-              options = options.merge(
-                **normalizer_options,
-                normalizer_options: normalizer_options, # currently, we need those as an "extra" option in Helper::Path. # FIXME: test these options.
-              )
+              }.
+                merge(options).
+                merge(
+                  **normalizer_options,
+                  normalizer_options: normalizer_options, # currently, we need those as an "extra" option in Helper::Path. # FIXME: test these options.
+                )
 
               ctx = normalizers.(
                 type,
