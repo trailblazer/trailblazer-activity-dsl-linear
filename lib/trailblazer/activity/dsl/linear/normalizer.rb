@@ -27,12 +27,12 @@ module Trailblazer
 
             # Execute the specific normalizer (step, fail, pass) for a particular option set provided
             # by the DSL user. Usually invoked when you call {#step}.
-            def call(name, ctx)
+            def call(name, ctx, runner: KwargsRunner)
               flow_options = {} # This can be used for tracing, at some point.
 
               normalizer = @normalizers.fetch(name)
 
-              wrap_ctx, _ = Pipeline.(normalizer, ctx, flow_options, runner: KwargsRunner) # FIXME: experimental feature from {activity}.
+              wrap_ctx, _ = Pipeline.(normalizer, ctx, flow_options, runner: runner) # FIXME: experimental feature from {activity}.
 
               wrap_ctx
             end
@@ -273,17 +273,17 @@ module Trailblazer
             }
           end
 
-          def normalize_duplications(ctx, flow_options, _, replace: false, **)
+          def normalize_duplications(ctx, flow_options, _, replace: false, task:, id:, sequence:, **)
             return ctx, flow_options if replace
 
-            raise_on_duplicate_id(ctx, **ctx.to_hash)
-            ctx = clone_duplicate_activity(ctx, **ctx.to_hash)
+            raise_on_duplicate_id(id: id, sequence: sequence)
+            ctx = clone_duplicate_activity(ctx, sequence: sequence, task: task)
 
             return ctx, flow_options
           end
 
           # @private
-          def raise_on_duplicate_id(ctx, id:, sequence:, **)
+          def raise_on_duplicate_id(id:, sequence:, **)
             raise "ID #{id} is already taken. Please specify an `:id`." if sequence.to_a.find { |row_id, _| row_id == id }
           end
 

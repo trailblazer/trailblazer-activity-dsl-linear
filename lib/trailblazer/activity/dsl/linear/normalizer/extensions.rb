@@ -64,10 +64,10 @@ module Trailblazer
             # (Normalizer step)
             # Compile all normalizer extensions.
             # Note that they have access to the entire normalizer {ctx}.
-            def compile_normalizer_extensions(ctx, flow_options, _, normalizer_extensions:, **)
+            def compile_normalizer_extensions(ctx, flow_options, circuit_options, normalizer_extensions:, **)
               # pp normalizer_extensions
               ctx = normalizer_extensions.inject(ctx) do |ctx, ext|
-                ext.(ctx, **ctx.to_hash)
+                circuit_options[:runner].(ext, ctx, flow_options, circuit_options)
               end
 
               return ctx, flow_options

@@ -44,7 +44,7 @@ class ExtensionsTest < Minitest::Spec
     assert_invoke activity, seq: "[1, :model]"
   end
 
-  def my_normalizer_extension(ctx, id:, **)
+  def my_normalizer_extension(ctx, flow_options, _, id:, **)
     ctx.merge(
       my_variable: id.inspect,
 

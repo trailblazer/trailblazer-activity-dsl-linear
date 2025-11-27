@@ -85,6 +85,8 @@ module Trailblazer
             end
 
             # This is logic done only once, when creating a new Strategy base type.
+            # DISCUSS: i think the {options_from_strategy} arg is never passed anywhere, by design!
+            #
             def initialize_options!(strategy_class, user_options_for_strategy = {}, options_from_strategy = strategy_class.options_for_initialize(**user_options_for_strategy),
                 normalizers:          options_from_strategy.fetch(:normalizers),
                 normalizer_options:   options_from_strategy.fetch(:normalizer_options),
@@ -168,15 +170,20 @@ module Trailblazer
                 block:       block,
                 normalizers: normalizers,
                 sequence:    sequence,
-                **options,
+              }.merge(options)
+
+                # **options,
+              options = options.merge(
                 **normalizer_options,
                 normalizer_options: normalizer_options, # currently, we need those as an "extra" option in Helper::Path. # FIXME: test these options.
-              }
+              )
 
               ctx = normalizers.(
                 type,
-                options:            task,               # macro-options
-                user_options:       options,            # user-specified options from the DSL method
+                {
+                  options:            task,               # macro-options
+                  user_options:       options,            # user-specified options from the DSL method
+                }
               )
             end
 
@@ -190,7 +197,7 @@ module Trailblazer
           require_relative "feature/merge"
           extend Merge::DSL # {Strategy.merge!}
 
-          def self.normalizer_ext_for_initial_task_wrap(ctx, **)
+          def self.normalizer_ext_for_initial_task_wrap(ctx, *, **)
             id, task = Activity::TaskWrap::ROW_ARGS_FOR_CALL_TASK
 
             # As this Extension should be the first to be executed, we need to merge the existing last.
