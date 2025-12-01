@@ -19,6 +19,11 @@ module Trailblazer
         #
         # Most parts of Normalizer are documented: https://trailblazer.to/2.1/docs/internals.html#internals-dsl-normalizer
         module Normalizer
+          # @private
+          def self.call_normalizer(normalizer, ctx, flow_options, runner: KwargsRunner)
+            wrap_ctx, _ = Pipeline.(normalizer, ctx, flow_options, runner: runner) # FIXME: experimental feature from {activity}.
+          end
+
           # Container for all final normalizers of a specific Strategy.
           class Normalizers
             def initialize(**options)
@@ -27,12 +32,12 @@ module Trailblazer
 
             # Execute the specific normalizer (step, fail, pass) for a particular option set provided
             # by the DSL user. Usually invoked when you call {#step}.
-            def call(name, ctx, runner: KwargsRunner)
+            def call(name, ctx, **options)
               flow_options = {} # This can be used for tracing, at some point.
 
               normalizer = @normalizers.fetch(name)
 
-              wrap_ctx, _ = Pipeline.(normalizer, ctx, flow_options, runner: runner) # FIXME: experimental feature from {activity}.
+              wrap_ctx, _ = Normalizer.call_normalizer(normalizer, ctx, flow_options, **options)
 
               wrap_ctx
             end

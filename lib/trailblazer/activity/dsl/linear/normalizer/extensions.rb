@@ -66,8 +66,8 @@ module Trailblazer
             # Note that they have access to the entire normalizer {ctx}.
             def compile_normalizer_extensions(ctx, flow_options, circuit_options, normalizer_extensions:, **)
               # pp normalizer_extensions
-              ctx = normalizer_extensions.inject(ctx) do |ctx, ext|
-                circuit_options[:runner].(ext, ctx, flow_options, circuit_options)
+              normalizer_extensions.each do |ext| # FIXME: this is basically a Pipeline.
+                ctx, flow_options = circuit_options[:runner].(ext, ctx, flow_options, circuit_options)
               end
 
               return ctx, flow_options

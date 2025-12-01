@@ -127,9 +127,7 @@ class ExtensionsTest < Minitest::Spec
   end
 
   describe "#Subprocess" do
-    let(:sub_activity) do
-      my_normalizer_ext = Activity::DSL::Linear::Normalizer.Extension(method(:my_normalizer_extension))
-
+    def sub_activity(my_normalizer_exts = [Activity::DSL::Linear::Normalizer.Extension(method(:my_normalizer_extension))])
       Class.new(Activity::Railway) do
         step :model
 
@@ -140,7 +138,7 @@ class ExtensionsTest < Minitest::Spec
 
         @state.update!(:fields) do |fields|
           fields.merge(
-            normalizer_extensions: fields[:normalizer_extensions] + [my_normalizer_ext]
+            normalizer_extensions: fields[:normalizer_extensions] + my_normalizer_exts
           )
         end
       end
@@ -170,6 +168,32 @@ class ExtensionsTest < Minitest::Spec
       # Nested OPs can tweak the options how they're added via {#step} in the outer OP.
       assert_equal Activity::Introspect::Nodes(activity, id: :sub).data[:my_variable], %(:sub)
       assert_invoke activity, bogus: true, seq: "[1, :model]", expected_ctx_variables: {ctx_in_model: %(#<Trailblazer::Context::Container wrapped_options={:current_user=>nil, :model=>nil, :seq=>[1]} mutable_options={}>)}
+    end
+
+    it "{:normalizer_extensions} also receive and return {flow_options}" do
+      def my_a_normalizer_extension(ctx, flow_options, _, **)
+        ctx = ctx.merge(a_flow_options: flow_options, Activity::Railway::DataVariable() => :a_flow_options)
+
+        return ctx, flow_options.merge(a: 1)
+      end
+
+      def my_b_normalizer_extension(ctx, flow_options, _, **)
+        ctx = ctx.merge(b_flow_options: flow_options, Activity::Railway::DataVariable() => :b_flow_options)
+
+        return ctx, flow_options.merge(b: 1)
+      end
+
+      my_normalizer_ext_a = Activity::DSL::Linear::Normalizer.Extension(method(:my_a_normalizer_extension))
+      my_normalizer_ext_b = Activity::DSL::Linear::Normalizer.Extension(method(:my_b_normalizer_extension))
+
+      sub_activity = sub_activity([my_normalizer_ext_a, my_normalizer_ext_b])
+
+      activity = Class.new(Activity::Railway) do
+        step Subprocess(sub_activity), id: :sub # here, we "inherit" settings from sub's {:normalizer_extensions}.
+      end
+
+      assert_equal Activity::Introspect::Nodes(activity, id: :sub).data[:a_flow_options], {}
+      assert_equal Activity::Introspect::Nodes(activity, id: :sub).data[:b_flow_options], {a: 1}
     end
   end
 

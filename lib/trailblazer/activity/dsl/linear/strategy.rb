@@ -196,12 +196,14 @@ module Trailblazer
           require_relative "feature/merge"
           extend Merge::DSL # {Strategy.merge!}
 
-          def self.normalizer_ext_for_initial_task_wrap(ctx, *, **)
+          def self.normalizer_ext_for_initial_task_wrap(ctx, flow_options, _, **)
             id, task = Activity::TaskWrap::ROW_ARGS_FOR_CALL_TASK
 
             # As this Extension should be the first to be executed, we need to merge the existing last.
-            {Strategy.Extension(is_generic: true) => TaskWrap.Extension([task, id: id, prepend: nil])}
+            ctx = {Strategy.Extension(is_generic: true) => TaskWrap.Extension([task, id: id, prepend: nil])}
               .merge(ctx)
+
+            return ctx, flow_options
           end
 
           state = Declarative::State(
@@ -227,10 +229,6 @@ module Trailblazer
               normalizer_extensions: INITIAL_NORMALIZER_EXTENSIONS # this will be the taskWrap used when being nested, to the composing activity, for "us".
             )
           end
-
-          # This is done in every subclass.
-          # DISCUSS: currently, a Strategy is an abstract class that cannot be used directly unless you configure it using Build(). See strategy_test.
-          # compile_strategy!(self, {}, normalizers: {}, normalizer_options: {}, layout_instructions: [])
         end # Strategy
       end
     end
