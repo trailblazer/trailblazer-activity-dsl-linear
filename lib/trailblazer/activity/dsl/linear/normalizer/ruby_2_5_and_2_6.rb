@@ -11,8 +11,9 @@ module Trailblazer
               end
             end
 
-            module NormalizersCall
-              def call(type, ctx, runner: Runner)
+            module CallNormalizer
+              # Inject our patched runner into the normalizer call.
+              def call_normalizer(normalizer, ctx, flow_options, runner: Runner)
                 super
               end
             end
@@ -25,7 +26,7 @@ module Trailblazer
           end # Ruby2_5_and_2_6
 
           # Monkey-patch!
-          Normalizers.prepend(Ruby2_5_and_2_6::NormalizersCall)
+          Normalizer.singleton_class.prepend(Ruby2_5_and_2_6::CallNormalizer)
         end
       end
     end
