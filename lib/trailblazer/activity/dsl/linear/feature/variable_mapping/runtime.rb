@@ -61,12 +61,9 @@ module Trailblazer
         end
 
         module Pipe
-          class Input
-            def initialize(pipe)
-              @pipe = pipe
-              @id = "variable_mapping.original_ctx"
-            end
+          ORIGINAL_CTX_ID = "variable_mapping.original_ctx"
 
+          class Input < Activity::Pipeline
             # Called from the official taskWrap, with the official taskWrap interface (wrap_ctx, flow_options, **).
             def call(wrap_ctx, flow_options, circuit_options)
               application_ctx = wrap_ctx[:application_ctx]
@@ -90,22 +87,23 @@ module Trailblazer
           #       # for each variable, we're calling a real Circuit instance here. So we kind of need the flow_options argument, in case we ever want to apply tracing.
           #       ctx_for_pipe, flow_options = filter_circuit.(ctx_for_pipe, flow_options, circuit_options) # DISCUSS: pass {circuit_options} here?
           #     end # DISCUSS: what about state? # DISCUSS: here, we   can add :start_task, etc.
-              ctx_for_pipe, flow_options = @pipe.(ctx_for_pipe, flow_options, circuit_options)
+              # ctx_for_pipe, flow_options = @sequence.(ctx_for_pipe, flow_options, circuit_options)
+              ctx_for_pipe, flow_options = super(ctx_for_pipe, flow_options, circuit_options)
 
               ctx_from_input    = ctx_for_pipe[:input_ctx]
 
-              wrap_ctx = wrap_ctx.merge(@id => application_ctx) # remember the original ctx under the key {@id}.
+              wrap_ctx = wrap_ctx.merge(Pipe::ORIGINAL_CTX_ID => application_ctx) # remember the original ctx under the key {ORIGINAL_CTX_ID}.
 
               # instead of the original Context, pass on the filtered `ctx_from_input` in the wrap.
               return wrap_ctx.merge(application_ctx: ctx_from_input), flow_options
             end
           end
 
-          class Output < Input
+          class Output < Activity::Pipeline
             def call(wrap_ctx, flow_options, circuit_options)
               returned_ctx, = wrap_ctx[:return_ctx]  # the Context returned from the wrapped (actual) task.
 
-              application_ctx = wrap_ctx[@id] # grab the original ctx from before any In() logic.
+              application_ctx = wrap_ctx[Pipe::ORIGINAL_CTX_ID] # grab the original ctx from before any In() logic.
 
               ctx_for_pipe = {
                 application_ctx: application_ctx,
@@ -113,7 +111,8 @@ module Trailblazer
                 returned_ctx:    returned_ctx,
               }
 
-              ctx_for_pipe, flow_options = @pipe.(ctx_for_pipe, flow_options, circuit_options)
+              # ctx_for_pipe, flow_options = @sequence.(ctx_for_pipe, flow_options, circuit_options)
+              ctx_for_pipe, flow_options = super(ctx_for_pipe, flow_options, circuit_options)
 
               ctx_from_output = ctx_for_pipe[:aggregate]
 

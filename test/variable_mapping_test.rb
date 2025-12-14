@@ -393,7 +393,7 @@ class VariableMappingTest < Minitest::Spec
       ) # DISCUSS: use VariableMapping.initial_input_pipeline here, and modify it?
 
       step :write,
-        initial_input_pipeline: input_pipe, In() => [:model]
+        initial_input_pipeline_hash: input_pipe, In() => [:model]
 
       def write(ctx, model:, **)
         ctx[:incoming] = [model, ctx.to_h]
@@ -406,13 +406,13 @@ class VariableMappingTest < Minitest::Spec
 
   #@ unit test
   # This is used in trailblazer-dependency (specifically, class dependencies).
-  it "providing {:initial_input_pipeline} even without In() or Inject() will use that very input pipeline" do
+  it "providing {:initial_input_pipeline_hash} even without In() or Inject() will use that very input pipeline" do
 
     activity = Class.new(Trailblazer::Activity::Railway) do
-      input_pipe = Trailblazer::Activity::DSL::Linear::VariableMapping::DSL.initial_input_pipeline(add_default_ctx: true)
+      input_pipe = Trailblazer::Activity::DSL::Linear::VariableMapping::DSL.initial_input_pipeline_hash(add_default_ctx: true)
 
       step :write,
-        initial_input_pipeline: input_pipe # NO In() or Inject() provided, but we still get a separate ctx that is visible after termination.
+        initial_input_pipeline_hash: input_pipe # NO In() or Inject() provided, but we still get a separate ctx that is visible after termination.
 
       def write(ctx, model:, **)
         ctx[:incoming] = ctx.inspect
@@ -434,12 +434,12 @@ class VariableMappingTest < Minitest::Spec
     end
 
     activity = Class.new(Trailblazer::Activity::Railway) do
-      output_pipe = Trailblazer::Activity::DSL::Linear::VariableMapping::DSL.initial_output_pipeline()
-      output_pipe = Trailblazer::Activity::Adds.(output_pipe, [my_output_ctx, id: "my.output_uppercaser", append: "output.merge_with_original"])
+      output_pipe = Trailblazer::Activity::DSL::Linear::VariableMapping::DSL.initial_output_pipeline_hash()
+      output_pipe = Trailblazer::Activity::Adds.(output_pipe.to_a, [my_output_ctx, id: "my.output_uppercaser", append: "output.merge_with_original"])
 
 
       step :write,
-        initial_output_pipeline: output_pipe, Out() => [:model]
+        initial_output_pipeline_hash: output_pipe, Out() => [:model]
 
       def write(ctx, model:, **)
         ctx[:current_user] = Module
@@ -535,9 +535,9 @@ class VariableMappingTest < Minitest::Spec
     it "filter API, order, naming" do
       activity = activity_for()
 
-      input_pipe = activity.to_h[:config][:wrap_static][Capture].to_a[0][1].instance_variable_get(:@pipe).to_a
+      input_pipe = activity.to_h[:config][:wrap_static][Capture].to_h["task_wrap.input"].to_a
 
-      # pp input_pipe
+      # pp activity.to_h[:config][:wrap_static][Capture]
 
       id, filter_step = input_pipe[0]
       assert_equal filter_step.instance_variable_get(:@filter).instance_variable_get(:@variable_name), :params
@@ -577,7 +577,7 @@ class VariableMappingTest < Minitest::Spec
       assert_equal id, "Inject {:key}"
 
   # Out
-      output_pipe = activity.to_h[:config][:wrap_static][Capture].to_a[2][1].instance_variable_get(:@pipe).to_a
+      output_pipe = activity.to_h[:config][:wrap_static][Capture].to_a[2][1].to_a
 
       id, filter_step = output_pipe[0]
       assert_equal filter_step.instance_variable_get(:@write_name), :result

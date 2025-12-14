@@ -11,21 +11,21 @@ module Trailblazer
             module_function
 
             # Compute pipeline for In() and Inject().
-            def pipe_for_composable_input(in_filters: [], initial_input_pipeline: initial_input_pipeline_for(in_filters), **)
+            def pipe_for_composable_input(in_filters: [], initial_input_pipeline_hash: initial_input_pipeline_hash_for(in_filters), **)
               in_filters_adds  = DSL::Tuple.compile_tuples(in_filters)  # Compile tuples {In() => ...}  into tw steps.
 
-              Activity::Adds.(initial_input_pipeline, *in_filters_adds)
+              Activity::Adds.(initial_input_pipeline_hash.to_a, *in_filters_adds)
             end
 
             # initial pipleline depending on whether or not we got any In() filters.
-            def initial_input_pipeline_for(in_filters)
+            def initial_input_pipeline_hash_for(in_filters)
               is_inject_only = in_filters.find { |k, v| k.is_a?(VariableMapping::DSL::In) }.nil?
 
-              initial_input_pipeline(add_default_ctx: is_inject_only)
+              initial_input_pipeline_hash(add_default_ctx: is_inject_only)
             end
 
             # Adds the default_ctx step as per option {:add_default_ctx}
-            def initial_input_pipeline(add_default_ctx: false)
+            def initial_input_pipeline_hash(add_default_ctx: false)
               # No In() or {:input}. Use default ctx, which is the original ctx.
               # When using Inject without In/:input, we also need a {default_input} ctx.
               pipeline_steps = {
@@ -36,28 +36,26 @@ module Trailblazer
                 pipeline_steps = default_input_ctx_config.merge(pipeline_steps)
               end
 
-              Activity.Pipeline(pipeline_steps)
+              pipeline_steps
             end
 
             def default_input_ctx_config
               {"input.default_input" => VariableMapping::Runtime.method(:default_input_ctx)}
             end
 
-            def pipe_for_composable_output(out_filters: [], initial_output_pipeline: initial_output_pipeline(add_default_ctx: Array(out_filters).empty?), **)
+            def pipe_for_composable_output(out_filters: [], initial_output_pipeline_hash: initial_output_pipeline_hash(add_default_ctx: Array(out_filters).empty?), **)
               out_filters_adds = DSL::Tuple.compile_tuples(out_filters)
 
-              Activity::Adds.(initial_output_pipeline, *out_filters_adds)
+              Activity::Adds.(initial_output_pipeline_hash.to_a, *out_filters_adds)
             end
 
 # TODO: move to Runtime
-            def initial_output_pipeline(add_default_ctx: false)
+            def initial_output_pipeline_hash(add_default_ctx: false)
               default_ctx_row =
                 add_default_ctx ? row_for_default_output_ctx : {}
 
-              Activity.Pipeline(
-                default_ctx_row
-                  .merge("output.merge_with_original" => VariableMapping::Runtime.method(:merge_with_original))
-              )
+              default_ctx_row
+                .merge("output.merge_with_original" => VariableMapping::Runtime.method(:merge_with_original))
             end
 
             def row_for_default_output_ctx

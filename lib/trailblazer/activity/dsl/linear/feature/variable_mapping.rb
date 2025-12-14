@@ -57,7 +57,7 @@
 
             def self.input_output_dsl(ctx, flow_options, _, **options) # TODO: rename to {#compile_task_wrap_extensions}.
               # no Input()/Output()/:initial_input_pipeline passed.
-              return ctx, flow_options unless ctx[:in_filters] || ctx[:out_filters] || ctx[:initial_input_pipeline]
+              return ctx, flow_options unless ctx[:in_filters] || ctx[:out_filters] || ctx[:initial_input_pipeline_hash]
 
               extension = Linear.VariableMapping(**options) # {in_filters:}, {out_filters:} and {:initial_input_pipeline}.
 
@@ -87,12 +87,10 @@
           # @private
           #
           def merge_instructions_from_dsl(input_class: Pipe::Input, output_class: Pipe::Output, **options)
-            pipeline  = DSL.pipe_for_composable_input(**options)
-            # input     = Pipe::Input.new(pipeline)
-            input     = input_class.new(pipeline)
+            sequence  = DSL.pipe_for_composable_input(**options)
+            input     = input_class.new(sequence)
 
             output_pipeline = DSL.pipe_for_composable_output(**options)
-            # output          = Pipe::Output.new(output_pipeline)
             output          = output_class.new(output_pipeline)
 
             return input, output
