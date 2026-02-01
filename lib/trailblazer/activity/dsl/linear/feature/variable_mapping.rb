@@ -5,7 +5,7 @@
         # Normalizer-steps to implement In(), Inject() and Out(). Deprecates {:input} and {:output}.
         # Returns an Extension instance to be thrown into the `step` DSL arguments.
         def self.VariableMapping(input_id: "task_wrap.input", output_id: "task_wrap.output", **options)
-          input, output = VariableMapping.merge_instructions_from_dsl(**options)
+          input, output = VariableMapping.task_wrap_adds_instructions_from_dsl(**options)
 
           VariableMapping.build_task_wrap_extension(input, output)
         end
@@ -86,7 +86,7 @@
           #
           # @private
           #
-          def merge_instructions_from_dsl(input_class: Pipe::Input, output_class: Pipe::Output, **options)
+          def task_wrap_adds_instructions_from_dsl(input_class: Pipe::Input, output_class: Pipe::Output, **options)
             sequence  = DSL.pipe_for_composable_input(**options)
             input     = input_class.new(sequence)
 
