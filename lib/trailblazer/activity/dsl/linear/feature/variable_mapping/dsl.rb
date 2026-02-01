@@ -233,7 +233,7 @@ module Trailblazer
                       end
 
                       # In()/Out() => ->(*) { snippet }
-                      circuit_filter = Activity::Circuit.Step(right_option) # signature is right_option(ctx, **ctx)
+                      circuit_filter = Activity::Circuit.Step(right_option, binary: false) # signature is right_option(ctx, **ctx)
 
                       adds_row = Left::Builder.build_filter_step_adds(
                         filter:               circuit_filter,
@@ -311,7 +311,7 @@ module Trailblazer
                         return adds
                       end
 
-                      default_filter = Activity::Circuit.Step(right_option) # signature is right_option(ctx, **ctx)
+                      default_filter = Activity::Circuit.Step(right_option, binary: false) # signature is right_option(ctx, **ctx)
 
                       # TODO: override is MergeVariables with filter: default_filter
                       if override

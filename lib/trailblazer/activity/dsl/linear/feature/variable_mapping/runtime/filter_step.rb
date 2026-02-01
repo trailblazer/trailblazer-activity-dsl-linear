@@ -13,7 +13,6 @@ module Trailblazer
             # NOTE: taskWrap/Pipeline runner, invoked directly via Input_new.call{ @sequence.each }
             class MyRunner
               def self.call(task_name, ctx, flow_options, circuit_options) # DISCUSS: we have a completely different set of circuit_options here
-
                 filter_step_exec_context = circuit_options[:filter_step_exec_context]
 
 # FIXME: return real flow_options
@@ -99,16 +98,43 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
                 [:terminus, id: "End.failure", task: :failure, magnetic_to: :failure, semantic: :failure, after: nil],
               ],
             ) do
-              def self.call(ctx, flow_options, circuit_options)
-                @circuit.(ctx, flow_options, circuit_options.merge(runner: MyRunner, filter_step_exec_context: self))
+
+
+
+              class MyCixRunner
+                def self.call(task_name, ctx, flow_options, circuit_options, signal, lib_ctx)
+puts "@@@@@ MyCixRunner #{task_name.inspect}"
+                  filter_step_exec_context = lib_ctx[:filter_step_exec_context]
+
+  # FIXME: return real flow_options
+                  # new_ctx, _flow_options, result = filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, **ctx.to_h)
+                  filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, signal, lib_ctx, **lib_ctx) # FIXME: redundant cix call
+                end
+              end
+              # def self.call(ctx, flow_options, circuit_options)
+              # this vv is the FilterStep Activity class.
+              # NOTE: called by Circuit::Processor in Pipe::Input.
+              def self.call(ctx, flow_options, circuit_options, signal, lib_ctx, **)
+                # @circuit.(ctx, flow_options, circuit_options.merge(runner: MyRunner, filter_step_exec_context: self))
+                # @circuit.(ctx, flow_options, circuit_options.merge(runner: MyCixRunner, filter_step_exec_context: self))
+
+                circuit_processor = Circuit::Circuit___.new(@circuit.to_h[:map], @circuit.to_h[:termini], start_task: @circuit.to_h[:start_task])
+
+signal = Trailblazer::Activity::Right # default signal?
+
+                ctx, flow_options, signal, lib_ctx =
+                  circuit_processor.(ctx, flow_options, circuit_options.merge(runner: MyCixRunner), signal, lib_ctx.merge(filter_step_exec_context: self))
+
+                return ctx, flow_options, signal, lib_ctx # DISCUSS: discard {lib_ctx}? this Activity is designed to be run within a Processor,
+                                                                    # where we pass around the lib_ctx.
               end
 
               # FIXME: hack so the MyRunner can "execute" the terminus without logic change.
               def self.failure(ctx, flow_options, circuit_options, **)
                 return ctx, flow_options, nil
               end
-              def self.success(ctx, flow_options, circuit_options, **) # FIXME: how do we handle termini, how could we detect "last steps"?
-                return ctx, flow_options, nil
+              def self.success(ctx, flow_options, circuit_options, signal, lib_ctx, **) # FIXME: how do we handle termini, how could we detect "last steps"?
+                return ctx, flow_options, signal, lib_ctx
               end
             end
 
@@ -118,24 +144,36 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
               step :wrap_value_with_hash
               step :merge_variables_into_aggregate
 
-              def self.args_for_filter(ctx, *, application_ctx:, **)
-                ctx[:args_for_filter] = application_ctx
+              # def self.args_for_filter(ctx, *, application_ctx:, **)
+              #   ctx[:args_for_filter] = application_ctx
+              # end
+              def self.args_for_filter(ctx, flow_options, _, signal, lib_ctx, **)
+                lib_ctx[:args_for_filter] = ctx
+
+                return ctx, flow_options, signal, lib_ctx
               end
 
+
               # def self.call_filter(ctx, filter:, args_for_filter:, **)
-              def self.call_filter(ctx, flow_options, circuit_options, args_for_filter:, filter: @filter, **)
+              def self.call_filter(ctx, flow_options, circuit_options, signal, lib_ctx, args_for_filter:, filter: @filter, **)
                 _, flow_options, value = filter.(args_for_filter, flow_options, circuit_options)
 
-                ctx[:value] = value # FIXME: this is a "signal to value" filter, we use that in macro, too.
+                lib_ctx[:value] = value # FIXME: this is a "signal to value" filter, we use that in macro, too.
+
+                return ctx, flow_options, signal, lib_ctx
               end
 
               # def self.wrap_value_with_hash(ctx, value:, write_name:, **)
-              def self.wrap_value_with_hash(ctx, *, value:, **)
-                ctx[:value] = {@write_name => value}
+              def self.wrap_value_with_hash(ctx, flow_options, _, signal, lib_ctx, value:, **)
+                lib_ctx[:value] = {@write_name => value}
+
+                return ctx, flow_options, signal, lib_ctx
               end
 
-              def self.merge_variables_into_aggregate(ctx, *, aggregate:, value:, **)
-                ctx[:aggregate] = aggregate.merge(value)
+              def self.merge_variables_into_aggregate(ctx, flow_options, _, signal, lib_ctx, aggregate:, value:, **)
+                lib_ctx[:aggregate] = aggregate.merge(value)
+
+                return ctx, flow_options, signal, lib_ctx
               end
 
               def self.swap_ctx_with_aggregate(ctx, *, aggregate:, **)

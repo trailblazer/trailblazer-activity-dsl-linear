@@ -10,16 +10,16 @@ module Trailblazer
         # and run the latter as a taskWrap step.
 
         module Runtime
-          def self.build_context(wrap_ctx, flow_options, _)
+          def self.build_context(ctx, flow_options, _, signal, lib_ctx, aggregate:, **)
             # this is the actual context passed into the step.
-            wrap_ctx[:input_ctx] = Trailblazer::Context(
-              wrap_ctx[:aggregate],
+            lib_ctx[:input_ctx] = Trailblazer::Context(
+              aggregate,
               {}, # mutable variables
               flow_options[:context_options]
             )
 
             # return pipe_ctx, original_args
-            return wrap_ctx, flow_options
+            return ctx, flow_options, signal, lib_ctx
           end
 
           # TODO: document
@@ -65,15 +65,12 @@ module Trailblazer
 
           class Input < Activity::Pipeline
             # Called from the official taskWrap, with the official taskWrap interface (wrap_ctx, flow_options, **).
-            def call(wrap_ctx, flow_options, circuit_options)
-              application_ctx = wrap_ctx[:application_ctx]
-
+            # def call(wrap_ctx, flow_options, circuit_options)
+            def call(ctx, flow_options, circuit_options, signal, lib_ctx, **)
               # let user compute new ctx for the wrapped task.
-              ctx_for_pipe = {
-                application_ctx: application_ctx,
-                aggregate:    {},
-              }
-
+              lib_ctx = lib_ctx.merge(
+                  aggregate: {}
+                )
               # use our own "runner":
               # DISCUSS: executing each filter_circuit here could also be done with a special runner,
               #          one that knows where to find the call_options, etc. this could be a generic Pipeline feature.
@@ -88,27 +85,35 @@ module Trailblazer
           #       ctx_for_pipe, flow_options = filter_circuit.(ctx_for_pipe, flow_options, circuit_options) # DISCUSS: pass {circuit_options} here?
           #     end # DISCUSS: what about state? # DISCUSS: here, we   can add :start_task, etc.
               # ctx_for_pipe, flow_options = @sequence.(ctx_for_pipe, flow_options, circuit_options)
-              ctx_for_pipe, flow_options = super(ctx_for_pipe, flow_options, circuit_options)
 
-              ctx_from_input    = ctx_for_pipe[:input_ctx]
+              # ctx_for_pipe, flow_options = super(ctx_for_pipe, flow_options, circuit_options)
+              # FIXME: remove this and make this another pipeline step.
+              # NOTE: call all steps using the cix interface, this includes the Activitys, too. (which currently doesn't work   )
 
-              wrap_ctx = wrap_ctx.merge(Pipe::ORIGINAL_CTX_ID => application_ctx) # remember the original ctx under the key {ORIGINAL_CTX_ID}.
+
+              ctx, flow_options, signal, lib_ctx = Circuit::Processor.(@sequence, ctx, flow_options, circuit_options, signal, lib_ctx)
+
+# FIXME: couldn't we do all the below in the last step of Pipe::Input/Output? that would make this class here unnecessary and everything more concise?
+              ctx_from_input    = lib_ctx[:input_ctx]
+
+              lib_ctx = lib_ctx.merge(Pipe::ORIGINAL_CTX_ID => ctx) # remember the original ctx under the key {ORIGINAL_CTX_ID}.
 
               # instead of the original Context, pass on the filtered `ctx_from_input` in the wrap.
-              return wrap_ctx.merge(application_ctx: ctx_from_input), flow_options
+              # return wrap_ctx.merge(application_ctx: ctx_from_input), flow_options
+              return ctx_from_input, flow_options, signal, lib_ctx
             end
           end
 
           class Output < Activity::Pipeline
-            def call(wrap_ctx, flow_options, circuit_options)
-              returned_ctx, = wrap_ctx[:return_ctx]  # the Context returned from the wrapped (actual) task.
+            def call(ctx, flow_options, circuit_options, signal, lib_ctx, **)
+              # returned_ctx, = wrap_ctx[:return_ctx]  # the Context returned from the wrapped (actual) task.
 
-              application_ctx = wrap_ctx[Pipe::ORIGINAL_CTX_ID] # grab the original ctx from before any In() logic.
+              original_ctx = lib_ctx[Pipe::ORIGINAL_CTX_ID] # grab the original ctx from before any In() logic.
 
               ctx_for_pipe = {
-                application_ctx: application_ctx,
+                application_ctx: original_ctx,
                 aggregate:       {},
-                returned_ctx:    returned_ctx,
+                returned_ctx:    ctx,
               }
 
               # ctx_for_pipe, flow_options = @sequence.(ctx_for_pipe, flow_options, circuit_options)
@@ -116,9 +121,9 @@ module Trailblazer
 
               ctx_from_output = ctx_for_pipe[:aggregate]
 
-              wrap_ctx = wrap_ctx.merge(return_ctx: ctx_from_output)
+              # wrap_ctx = wrap_ctx.merge(return_ctx: ctx_from_output)
 
-              return wrap_ctx, flow_options
+              return ctx_from_output, flow_options, signal, lib_ctx
             end
           end
         end
