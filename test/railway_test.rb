@@ -412,7 +412,7 @@ class RailwayTest < Minitest::Spec
     end
   end
 
-    it "accepts manual {options_for_build} and allows using {Railway.options_for_build}" do
+    it "accepts manual {layout_instructions} and allows using {Railway.options_for_initialize}" do
       railway_options = Activity::Railway::DSL.options_for_initialize
       start_instructions = railway_options[:layout_instructions][0]
 

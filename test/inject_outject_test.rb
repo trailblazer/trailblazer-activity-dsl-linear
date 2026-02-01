@@ -226,7 +226,7 @@ class VariableMappingUnitTest < Minitest::Spec
 
       user_filter = :my_model
 
-      filter = Trailblazer::Activity::Circuit.Step(user_filter, instance_method: true)
+      filter = Trailblazer::Activity::Circuit.Step(user_filter, binary: false)
 
       pipe_task = Trailblazer::Activity::DSL::Linear::VariableMapping::Runtime::FilterStep.build(write_name: :model, filter: filter, user_filter: user_filter, name: :model, wrap_value_with_hash: true)
 

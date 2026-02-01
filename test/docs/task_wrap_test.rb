@@ -5,12 +5,10 @@ class DocsTaskWrapTest < Minitest::Spec
   it "uses {:wrap_runtime} via {TaskWrap.invoke}" do
     #:run-logger
     module TaskWrapLogger
-      def self.log_before(wrap_ctx, flow_options, _)
-        ctx = wrap_ctx[:application_ctx]
+      def self.log_before(ctx, flow_options, _, signal, lib_ctx, task:, **)
+        ctx[:log] << "Before #{task}"
 
-        ctx[:log] << "Before #{wrap_ctx[:task]}"
-
-        return wrap_ctx, flow_options
+        return ctx, flow_options, signal, lib_ctx
       end
     end
     #:run-logger end
@@ -69,19 +67,16 @@ class DocsRuntimeExtensionTest < Minitest::Spec
   #:myapm_start
   module MyAPM # Advanced performance monitoring, done right!
     module Extension
-      def self.start_instrumentation(wrap_ctx, flow_options, circuit_options)
-        ctx = wrap_ctx[:application_ctx]
-
+      def self.start_instrumentation(ctx, flow_options, circuit_options, signal, lib_ctx, task:, **) # {task} is the current "step".
         activity  = circuit_options[:activity] # currently running Activity.
-        task      = wrap_ctx[:task]            # the current "step".
 
         task_id   = Trailblazer::Activity::Introspect.Nodes(activity, task: task).id
 
         span      = MyAPM.start_span("operation.step", payload: {id: task_id})
 
-        wrap_ctx[:span] = span
+        lib_ctx[:span] = span
 
-        return wrap_ctx, flow_options
+        return ctx, flow_options, signal, lib_ctx
       end
     end
   end
@@ -90,13 +85,12 @@ class DocsRuntimeExtensionTest < Minitest::Spec
   #:myapm
   module MyAPM # Advanced performance monitoring, done right!
     module Extension
-      def self.finish_instrumentation(wrap_ctx, flow_options, _)
-        ctx   = wrap_ctx[:application_ctx]
-        span  = wrap_ctx[:span]
+      def self.finish_instrumentation(ctx, flow_options, _, signal, lib_ctx, **)
+        span = lib_ctx[:span]
 
         span.finish(payload: ctx.inspect)
 
-        return wrap_ctx, flow_options
+        return ctx, flow_options, signal, lib_ctx
       end
     end
   end

@@ -35,20 +35,16 @@ Minitest::Spec.class_eval do
 
 
     # taskWrap tester :)
-  def add_1(wrap_ctx, flow_options, _)
-    ctx = wrap_ctx[:application_ctx]
-
+  def add_1(ctx, flow_options, _, signal, lib_ctx, **)
     ctx[:seq] << 1
 
-    return wrap_ctx, flow_options # yay to mutable state. not.
+    return ctx, flow_options, signal, lib_ctx
   end
 
-  def add_2(wrap_ctx, flow_options, _)
-    ctx = wrap_ctx[:application_ctx]
-
+  def add_2(ctx, flow_options, _, signal, lib_ctx, **)
     ctx[:seq] << 2
 
-    return wrap_ctx, flow_options # yay to mutable state. not.
+    return ctx, flow_options, signal, lib_ctx
   end
 
   class MyStep
