@@ -115,13 +115,6 @@ puts "@@@@@ MyCixRunner #{task_name.inspect}"
               # NOTE: called by Circuit::Processor in Pipe::Input.
               def self.call(ctx, flow_options, circuit_options, signal, lib_ctx, **)
                 map = @circuit.to_h[:map]
-                # wildcard signal
-                [:args_for_filter, :call_filter, :wrap_value_with_hash, :merge_variables_into_aggregate].each do |task_name|
-                  # FIXME: somehow we know that those steps use signal as value, and need "wildcard signal"
-                  next_task = map[task_name][Trailblazer::Activity::Right]
-
-                  map = map.merge(task_name => Hash.new(next_task)) # always return next_task, no matter what signal.
-                end
 
                 circuit_processor = Circuit::Circuit___.new(map, @circuit.to_h[:termini], start_task: @circuit.to_h[:start_task])
 
