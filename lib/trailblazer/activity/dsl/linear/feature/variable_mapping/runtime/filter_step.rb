@@ -102,12 +102,11 @@ failure_end = metal_circuit.to_h[:map].keys[-1] # FIXME: we only need this for "
 
 
               class MyCixRunner
+                # NOTE: exactly the same we do elsewhere but we automatically #send (and save the Circuit::Step::InstanceMethod wrap).
                 def self.call(task_name, ctx, flow_options, circuit_options, signal, lib_ctx)
 puts "@@@@@ MyCixRunner #{task_name.inspect}"
                   filter_step_exec_context = lib_ctx[:filter_step_exec_context]
 
-  # FIXME: return real flow_options
-                  # new_ctx, _flow_options, result = filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, **ctx.to_h)
                   filter_step_exec_context.send(task_name, ctx, flow_options, circuit_options, signal, lib_ctx, **lib_ctx) # FIXME: redundant cix call
                 end
               end
@@ -115,10 +114,16 @@ puts "@@@@@ MyCixRunner #{task_name.inspect}"
               # this vv is the FilterStep Activity class.
               # NOTE: called by Circuit::Processor in Pipe::Input.
               def self.call(ctx, flow_options, circuit_options, signal, lib_ctx, **)
-                # @circuit.(ctx, flow_options, circuit_options.merge(runner: MyRunner, filter_step_exec_context: self))
-                # @circuit.(ctx, flow_options, circuit_options.merge(runner: MyCixRunner, filter_step_exec_context: self))
+                map = @circuit.to_h[:map]
+                # wildcard signal
+                [:args_for_filter, :call_filter, :wrap_value_with_hash, :merge_variables_into_aggregate].each do |task_name|
+                  # FIXME: somehow we know that those steps use signal as value, and need "wildcard signal"
+                  next_task = map[task_name][Trailblazer::Activity::Right]
 
-                circuit_processor = Circuit::Circuit___.new(@circuit.to_h[:map], @circuit.to_h[:termini], start_task: @circuit.to_h[:start_task])
+                  map = map.merge(task_name => Hash.new(next_task)) # always return next_task, no matter what signal.
+                end
+
+                circuit_processor = Circuit::Circuit___.new(map, @circuit.to_h[:termini], start_task: @circuit.to_h[:start_task])
 
 signal = Trailblazer::Activity::Right # default signal?
 
@@ -130,8 +135,8 @@ signal = Trailblazer::Activity::Right # default signal?
               end
 
               # FIXME: hack so the MyRunner can "execute" the terminus without logic change.
-              def self.failure(ctx, flow_options, circuit_options, **)
-                return ctx, flow_options, nil
+              def self.failure(ctx, flow_options, circuit_options, signal, lib_ctx, **)
+                return ctx, flow_options, signal, lib_ctx
               end
               def self.success(ctx, flow_options, circuit_options, signal, lib_ctx, **) # FIXME: how do we handle termini, how could we detect "last steps"?
                 return ctx, flow_options, signal, lib_ctx
@@ -144,9 +149,6 @@ signal = Trailblazer::Activity::Right # default signal?
               step :wrap_value_with_hash
               step :merge_variables_into_aggregate
 
-              # def self.args_for_filter(ctx, *, application_ctx:, **)
-              #   ctx[:args_for_filter] = application_ctx
-              # end
               def self.args_for_filter(ctx, flow_options, _, signal, lib_ctx, **)
                 lib_ctx[:args_for_filter] = ctx
 
@@ -158,7 +160,7 @@ signal = Trailblazer::Activity::Right # default signal?
               def self.call_filter(ctx, flow_options, circuit_options, signal, lib_ctx, args_for_filter:, filter: @filter, **)
                 _, flow_options, value = filter.(args_for_filter, flow_options, circuit_options)
 
-                lib_ctx[:value] = value # FIXME: this is a "signal to value" filter, we use that in macro, too.
+                lib_ctx[:value] = value
 
                 return ctx, flow_options, signal, lib_ctx
               end
@@ -170,10 +172,10 @@ signal = Trailblazer::Activity::Right # default signal?
                 return ctx, flow_options, signal, lib_ctx
               end
 
-              def self.merge_variables_into_aggregate(ctx, flow_options, _, signal, lib_ctx, aggregate:, value:, **)
-                lib_ctx[:aggregate] = aggregate.merge(value)
+              def self.merge_variables_into_aggregate(ctx, flow_options, _, signal, lib_ctx, value:, aggregate:,**)
+                aggregate = aggregate.merge(value)
 
-                return ctx, flow_options, signal, lib_ctx
+                return ctx, flow_options, signal, lib_ctx.merge(aggregate: aggregate)
               end
 
               def self.swap_ctx_with_aggregate(ctx, *, aggregate:, **)
@@ -211,12 +213,14 @@ signal = Trailblazer::Activity::Right # default signal?
             class Conditioned < MergeVariables # currently used for Inject.
               step :evaluate_condition, after: :args_for_filter
 
-              def self.evaluate_condition(ctx, flow_options, circuit_options, args_for_filter:, **)
+              def self.evaluate_condition(ctx, flow_options, circuit_options, signal, lib_ctx, args_for_filter:, **)
                 # DISCUSS: should we use #call_filter here?
                 # call_filter({}, flow_options, circuit_options, filter: @condition, args_for_filter: args_for_filter) # result is value.
                 _, flow_options, value = @condition.(args_for_filter, flow_options, circuit_options)
 
-                value == false ? Trailblazer::Activity::Left : value
+                signal = value == false ? Trailblazer::Activity::Left : signal
+
+                return ctx, flow_options, signal, lib_ctx
               end
             end
 
