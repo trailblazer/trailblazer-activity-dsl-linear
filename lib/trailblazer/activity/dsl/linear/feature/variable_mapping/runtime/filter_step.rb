@@ -211,7 +211,7 @@ signal = Trailblazer::Activity::Right # default signal?
                 # call_filter({}, flow_options, circuit_options, filter: @condition, args_for_filter: args_for_filter) # result is value.
                 _, flow_options, value = @condition.(args_for_filter, flow_options, circuit_options)
 
-                signal = value == false ? Trailblazer::Activity::Left : signal
+                signal = Trailblazer::Activity::Left if value == false
 
                 return ctx, flow_options, signal, lib_ctx
               end
