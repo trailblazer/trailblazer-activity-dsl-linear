@@ -23,14 +23,10 @@ module Trailblazer
           end
 
           # TODO: document
-          def self.merge_with_original(wrap_ctx, flow_options, _)
-            application_ctx  = wrap_ctx[:application_ctx]  # outer ctx
-            output_variables = wrap_ctx[:aggregate]
+          def self.merge_with_original(ctx, flow_options, _, signal, lib_ctx, aggregate:, original_ctx:, **)
+            lib_ctx[:aggregate] = original_ctx.merge(aggregate)
 
-            # merge_variables(output_variables, wrap_ctx, original_args, application_ctx)
-            wrap_ctx[:aggregate] = application_ctx.merge(output_variables)
-
-            return wrap_ctx, flow_options
+            return ctx, flow_options, signal, lib_ctx
           end
 
           # @private
@@ -38,25 +34,22 @@ module Trailblazer
           # This means only variables added using {inner_ctx[..]=} are merged on the outside.
           #
           # This unscoping is used when there is no explicit Out() filter.
-          def self.default_output_ctx(wrap_ctx, flow_options, _)
-            new_ctx = wrap_ctx[:returned_ctx]
+          def self.default_output_ctx(ctx, flow_options, _, signal, lib_ctx, aggregate:, **)
+            _wrapped, mutable = ctx.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
 
-            _wrapped, mutable = new_ctx.decompose # `_wrapped` is what the `:input` filter returned, `mutable` is what the task wrote to `scoped`.
+            lib_ctx[:aggregate] = aggregate.merge(mutable)
 
-            # merge_variables(mutable, pipe_ctx, original_args)
-            wrap_ctx[:aggregate] = wrap_ctx[:aggregate].merge(mutable)
-
-            return wrap_ctx, flow_options
+            return ctx, flow_options, signal, lib_ctx
           end
 
           # Merge all original ctx variables into the new input_ctx.
           # This happens when no In() is provided.
-          def self.default_input_ctx(pipe_ctx, flow_options, _)
-            default_ctx = pipe_ctx[:application_ctx]
+          def self.default_input_ctx(ctx, flow_options, _, signal, lib_ctx, aggregate:, **)
+            default_ctx = ctx
 
-            pipe_ctx[:aggregate] = pipe_ctx[:aggregate].merge(default_ctx)
+            lib_ctx[:aggregate] = aggregate.merge(default_ctx)
 
-            return pipe_ctx, flow_options
+            return ctx, flow_options, signal, lib_ctx
           end
         end
 
@@ -90,8 +83,8 @@ module Trailblazer
               # FIXME: remove this and make this another pipeline step.
               # NOTE: call all steps using the cix interface, this includes the Activitys, too. (which currently doesn't work   )
 
-
-              ctx, flow_options, signal, lib_ctx = Circuit::Processor.(@sequence, ctx, flow_options, circuit_options, signal, lib_ctx)
+# FIXME: test {signal}
+              ctx, flow_options, _signal, lib_ctx = Circuit::Processor.(@sequence, ctx, flow_options, circuit_options, signal, lib_ctx)
 
 # FIXME: couldn't we do all the below in the last step of Pipe::Input/Output? that would make this class here unnecessary and everything more concise?
               ctx_from_input    = lib_ctx[:input_ctx]
@@ -106,22 +99,18 @@ module Trailblazer
 
           class Output < Activity::Pipeline
             def call(ctx, flow_options, circuit_options, signal, lib_ctx, **)
-              # returned_ctx, = wrap_ctx[:return_ctx]  # the Context returned from the wrapped (actual) task.
-
               original_ctx = lib_ctx[Pipe::ORIGINAL_CTX_ID] # grab the original ctx from before any In() logic.
 
-              ctx_for_pipe = {
-                application_ctx: original_ctx,
+              lib_ctx = {
+                original_ctx: original_ctx,
                 aggregate:       {},
-                returned_ctx:    ctx,
               }
 
               # ctx_for_pipe, flow_options = @sequence.(ctx_for_pipe, flow_options, circuit_options)
-              ctx_for_pipe, flow_options = super(ctx_for_pipe, flow_options, circuit_options)
+              # ctx_for_pipe, flow_options = super(ctx_for_pipe, flow_options, circuit_options)
+              ctx, flow_options, _signal, lib_ctx = Circuit::Processor.(@sequence, ctx, flow_options, circuit_options, signal, lib_ctx)
 
-              ctx_from_output = ctx_for_pipe[:aggregate]
-
-              # wrap_ctx = wrap_ctx.merge(return_ctx: ctx_from_output)
+              ctx_from_output = lib_ctx[:aggregate]
 
               return ctx_from_output, flow_options, signal, lib_ctx
             end

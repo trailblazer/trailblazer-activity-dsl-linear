@@ -139,8 +139,8 @@ signal = Trailblazer::Activity::Right # default signal?
             class MergeVariables < Activity
               step :args_for_filter # TODO: rename {#ctx_for_filter}.
               pass :call_filter # filter could return an actual {nil} as a value.
-              step :wrap_value_with_hash
-              step :merge_variables_into_aggregate
+              pass :wrap_value_with_hash # DISCUSS: if not pass, this fails in Defaulted.
+              pass :merge_variables_into_aggregate
 
               def self.args_for_filter(ctx, flow_options, _, signal, lib_ctx, **)
                 lib_ctx[:args_for_filter] = ctx
@@ -171,33 +171,41 @@ signal = Trailblazer::Activity::Right # default signal?
                 return ctx, flow_options, signal, lib_ctx.merge(aggregate: aggregate)
               end
 
-              def self.swap_ctx_with_aggregate(ctx, *, aggregate:, **)
-                ctx[:args_for_filter] = aggregate
+              def self.swap_ctx_with_aggregate(ctx, flow_options, _, signal, lib_ctx, aggregate:, **)
+                lib_ctx[:args_for_filter] = aggregate
+
+                return ctx, flow_options, signal, lib_ctx
               end
 
               module Features
-                def pass_aggregate(pipe_ctx, *, aggregate:, args_for_filter:, **)
-                  merge_into_ctx!(pipe_ctx, args_for_filter, {aggregate: aggregate})
+                def pass_aggregate(ctx, flow_options, _, signal, lib_ctx, aggregate:, args_for_filter:, **)
+                  merge_into_ctx!(lib_ctx, args_for_filter, {aggregate: aggregate})
+
+                  return ctx, flow_options, signal, lib_ctx
                 end
 
-                private def merge_into_ctx!(pipe_ctx, target_ctx, merge_variables) # TODO: improve performance?
+                private def merge_into_ctx!(lib_ctx, target_ctx, merge_variables) # TODO: improve performance?
                   new_ctx = target_ctx.merge(merge_variables)
 
-                  pipe_ctx[:args_for_filter] = new_ctx
+                  lib_ctx[:args_for_filter] = new_ctx
                 end
               end
 
               extend Features
 
               class Output < MergeVariables
-                def self.args_for_filter(ctx, *, returned_ctx:, **)
-                  ctx[:args_for_filter] = returned_ctx
+                def self.args_for_filter(ctx, flow_options, _, signal, lib_ctx, **)
+                  lib_ctx[:args_for_filter] = ctx # this is the ctx from {call_task}.
+
+                  return ctx, flow_options, signal, lib_ctx
                 end
 
                 # FIXME: make it {:pass_outer_ctx}.
                 # DISCUSS: {:with_outer_ctx} only makes sense with callable filter.
-                def self.with_outer_ctx(ctx, *, args_for_filter:, application_ctx:, **)
-                  merge_into_ctx!(ctx, args_for_filter, {outer_ctx: application_ctx})
+                def self.with_outer_ctx(ctx, flow_options, _, signal, lib_ctx, args_for_filter:, original_ctx:, **)
+                  merge_into_ctx!(lib_ctx, args_for_filter, {outer_ctx: original_ctx})
+
+                  return ctx, flow_options, signal, lib_ctx
                 end
               end
             end # MergeVariables
@@ -218,10 +226,11 @@ signal = Trailblazer::Activity::Right # default signal?
             end
 
             class Defaulted < Conditioned
-              left :set_default_value, Output(:success) => Id(:wrap_value_with_hash), Output(:failure) => Id(:wrap_value_with_hash)
+              left :set_default_value,  # DISCUSS: place after {evaluate_condition}?
+                Output(:success) => Id(:wrap_value_with_hash), Output(:failure) => Id(:wrap_value_with_hash)
 
-              def self.set_default_value(ctx, flow_options, circuit_options, **options)
-                call_filter(ctx, flow_options, circuit_options, **options, filter: @default_filter)
+              def self.set_default_value(ctx, flow_options, circuit_options, signal, lib_ctx, **options)
+                call_filter(ctx, flow_options, circuit_options, signal, lib_ctx, **options, filter: @default_filter) # FIXME: can we improve this?
               end
             end
 
@@ -229,11 +238,13 @@ signal = Trailblazer::Activity::Right # default signal?
             class DeleteFromAggregate < Activity
               step :delete_from_aggregate
 
-              def self.delete_from_aggregate(ctx, *, aggregate:, **)
+              def self.delete_from_aggregate(ctx, flow_options, _, signal, lib_ctx, aggregate:, **)
                 new_aggregate = aggregate.dup
                 new_aggregate.delete(@write_name)
 
-                ctx[:aggregate] = new_aggregate
+                lib_ctx[:aggregate] = new_aggregate
+
+                return ctx, flow_options, signal, lib_ctx
               end
             end
 
