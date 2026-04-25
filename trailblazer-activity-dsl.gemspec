@@ -1,10 +1,10 @@
 lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "trailblazer/activity/dsl/linear/version"
+require "trailblazer/activity/dsl/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "trailblazer-activity-dsl-linear"
-  spec.version       = Trailblazer::Version::Activity::DSL::Linear::VERSION
+  spec.name          = "trailblazer-activity-dsl"
+  spec.version       = Trailblazer::Version::Activity::DSL::VERSION
   spec.authors       = ["Nick Sutterer"]
   spec.email         = ["apotonick@gmail.com"]
 
@@ -17,8 +17,8 @@ Gem::Specification.new do |spec|
   end
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "trailblazer-activity", ">= 0.18.0", "< 0.19.0"
-  spec.add_dependency "trailblazer-declarative", ">= 0.0.1", "< 0.1.0"
+  # spec.add_dependency "trailblazer-activity", ">= 0.18.0", "< 0.19.0"
+  # spec.add_dependency "trailblazer-declarative", ">= 0.0.1", "< 0.1.0"
 
   spec.add_development_dependency "bundler"
   spec.add_development_dependency "minitest"#, ">= 5.15.0", "< 5.16.0"
