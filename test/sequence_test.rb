@@ -32,7 +32,11 @@ class SequenceTest < Minitest::Spec
       ]
     )
 
-    assert_equal my_seq.flow_map.keys, [:a, :c, :b]
+    assert_equal my_seq.to_a, [
+      [:a, "a"],
+      [:c, Object],
+      [:b, "b"],
+    ]
   end
 
   # DISCUSS: :replace and :delete?

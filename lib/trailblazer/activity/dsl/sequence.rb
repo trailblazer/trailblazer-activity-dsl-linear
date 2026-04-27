@@ -14,10 +14,12 @@ module Trailblazer
         end
 
         def to_a
-          flow_map.values
+          flow_map.collect do |id, _|
+            [id, nodes[id]]
+          end.to_a
         end
 
-        class Row < Struct.new(:magnetic_to, :node, :wirings, :data)
+        class Row < Struct.new(:magnetic_to, :node, :wirings, :data, keyword_init: true)
         end
       end # Sequence
     end
