@@ -13,10 +13,9 @@ module Trailblazer
           super(flow_map, start_tuple, nodes)
         end
 
+        # This is for the Compiler.
         def to_a
-          flow_map.collect do |id, _|
-            [id, nodes[id]]
-          end.to_a
+          flow_map.collect { |id,| [id, nodes[id]] }.to_a
         end
 
         class Row < Struct.new(:magnetic_to, :node, :wirings, :data, keyword_init: true)
