@@ -1,94 +1,101 @@
 module Trailblazer
   class Activity
     module DSL
-      module Linear
-        class Sequence
-          # Compile a {Schema} from a {Sequence} into a {Circuit}.
-          # This is the heart of the `dsl` gem where the user's DSL instructions
-          # finally get transformed into a runnable Activity.
-          module Compiler
-            module_function
+      class Sequence
+        # Compile a {Schema} from a {Sequence} into a {Circuit}.
+        # This is the heart of the `dsl` gem where the user's DSL instructions
+        # finally get transformed into a runnable Activity.
+        module Compiler
+          module_function
 
-            # Default strategy to find out what's a stop event is to inspect the TaskRef's {data[:stop_event]}.
-            def find_termini(sequence_ary)
-              sequence_ary
-                .find_all { |row| row.data[:stop_event] }
-                .collect  { |row| [row.task, row.data.fetch(:semantic)] }
-                .to_h
-            end
+          # Default strategy to find out what's a stop event is to inspect the TaskRef's {data[:stop_event]}.
+          def find_termini_data(sequence_ary) # FIXME: actually, we only need to check if the terminus task has any outgoing connections?
+            sequence_ary
+              .find_all { |id, row| row.data[:terminus] }
+              .collect  { |id, row| [id, [row.node, {semantic: row.data.fetch(:semantic)}]] }
+              .to_h
+          end
 
-            def find_start_task(sequence_ary)
-              sequence_ary[0].task
-            end
+          def find_start_tuple(sequence_ary)
+            id, row = sequence_ary[0]
 
-            # The Compiler retrieves an array of rows composed by the DSL (normalizer).
-            # Per design, it doesn't know about {Sequence < Pipeline}.
-            def call(sequence_ary, find_stops: Compiler.method(:find_termini), find_start: method(:find_start_task))
-              config = {wrap_static: {}} # TODO: where does this come from?
+            [id, row.node]
+          end
 
-              nodes_attributes = []
+          # The Compiler retrieves an array of rows composed by the DSL (normalizer).
+          # Per design, it doesn't know about {Sequence < Pipeline}.
+          def call(sequence, find_start: method(:find_start_tuple))
+            sequence_ary = sequence.to_a # DISCUSS: since we expect a Sequence instance, we have to convert it (instead of #collect).
 
-              wiring = sequence_ary.collect do |seq_row|
-                # raise seq_row.inspect unless seq_row.is_a?(Sequence::Row)
-                _magnetic_to, task, connections, data, task_wrap = seq_row.to_a
-                id = seq_row.data.fetch(:id)
+            nodes_attributes = []
 
-                # execute all {Search}s for one sequence row.
-                connections = find_connections(seq_row, connections, sequence_ary)
+            flow_map = sequence_ary.collect do |id, seq_row|
+              # raise seq_row.inspect unless seq_row.is_a?(Sequence::Row)
+              _magnetic_to, node, connections, data = seq_row.to_a
 
-                circuit_connections = connections.collect { |output, target_task| [output.signal, target_task] }.to_h
+              # execute all {Search}s for one sequence row.
+              connections = find_connections(seq_row, connections, sequence_ary.to_h.values)
 
-                config[:wrap_static][task] = task_wrap
+              connections_for_flow_map = connections.collect { |output, node| [output.signal, node.id] }.to_h # DISCUSS: should a Node really have a
 
-                # nodes_attributes:
-                outputs = connections.keys
-                nodes_attributes << [
-                  id,
-                  task,
-                  data,
-                  outputs
-                ]
 
-                [
-                  task,
-                  circuit_connections
-                ]
-              end.to_h
+              # nodes_attributes:
+              # outputs = connections.keys
 
-              termini = find_stops.(sequence_ary) # {task => semantic}
-              start_task = find_start.(sequence_ary)
+              # nodes_attributes << [
+              #   id,
+              #   task,
+              #   data,
+              #   outputs
+              # ]
 
-              circuit = Trailblazer::Activity::Circuit.new(
-                wiring,
-                termini.keys, # termini
-                start_task: start_task
-              )
+              [
+                node.id,
+                connections_for_flow_map
+              ]
+            end.to_h
 
-              # activity_outputs = [Activity::Output(steps[last_step_i], :success)]
-              activity_outputs = termini.collect { |terminus, semantic| Activity::Output(terminus, semantic) }
+            termini_data = find_termini_data(sequence_ary) # {task => semantic}
+            start_tuple = find_start.(sequence_ary)
 
-              nodes = Schema::Nodes(nodes_attributes)
+            nodes = sequence_ary.collect { |id, row| [id, row.node] }.to_h
 
-              Schema.new(circuit, activity_outputs, nodes, config)
-            end
+# FIXME: termini must have empty outgoing connections in {flow_map}.
 
-            # Execute all search strategies for a row, retrieve outputs and
-            # their respective target IDs.
-            def find_connections(seq_row, searches, sequence_ary)
-              searches.collect do |output, search|
-                target_seq_row = search.(sequence_ary, seq_row) # invoke the node's "connection search" strategy.
+            circuit = Circuit.new(
+              flow_map,
+              start_tuple,
+              nodes
+              # termini.keys, # termini
+            )
 
-                target_seq_row = sequence_ary[-1] if target_seq_row.nil? # connect to an End if target unknown. # DISCUSS: make this configurable, maybe?
+            return circuit
 
-                [
-                  output,
-                  target_seq_row.task
-                ]
-              end.to_h
-            end
-          end # Compiler
-        end # Sequence
-      end
+            pp termini_data
+
+            activity_outputs = termini.collect { |terminus, semantic| Activity::Output(terminus, semantic) }
+
+            nodes = Schema::Nodes(nodes_attributes)
+
+            Schema.new(circuit, activity_outputs, nodes, config)
+          end
+
+          # Execute all search strategies for a row, retrieve outputs and
+          # their respective target IDs.
+          def find_connections(seq_row, searches, sequence_ary)
+            searches.collect do |output, search|
+              target_seq_row = search.(sequence_ary, seq_row) # invoke the node's "connection search" strategy.
+
+              target_seq_row = sequence_ary[-1] if target_seq_row.nil? # connect to an End if target unknown. # DISCUSS: make this configurable, maybe?
+
+              [
+                output,
+                target_seq_row.node
+              ]
+            end.to_h
+          end
+        end # Compiler
+      end # Sequence
     end
   end
 end

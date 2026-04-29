@@ -13,5 +13,13 @@ module Trailblazer
 
       # TODO: compile_circuit_from_sequence
     end
+
+    module DSL
+
+    end # DSL
   end
 end
+
+require "trailblazer/activity/dsl/sequence"
+require "trailblazer/activity/dsl/sequence/search"
+require "trailblazer/activity/dsl/sequence/compiler"
