@@ -1,11 +1,15 @@
-$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require "trailblazer/activity/dsl"
+require "trailblazer/core"
 
 require "minitest/autorun"
-require "trailblazer/core"
 
 CU = Trailblazer::Core::Utils
 T = Trailblazer::Core
+
+class Minitest::Spec
+  include Trailblazer::Core::Utils::AssertEqual
+  include Trailblazer::Core::Utils::AssertRun
+end
 
 # require "trailblazer/developer"
 
