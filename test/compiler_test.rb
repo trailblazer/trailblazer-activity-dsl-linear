@@ -68,10 +68,11 @@ class CompilerTest < Minitest::Spec
       )
     end
 
-    my_activity = DSL::Sequence::Compiler.(my_sequence)
+    my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
     # pp my_activity
+    circuit = my_activity_schema[:circuit]
 
-    assert_run my_activity, seq: [:a, :b], terminus: R
+    assert_run circuit, seq: [:a, :b], terminus: R
   end
 
   it "simple linear approach where a {Sequence} is compiled into an {Activity}" do
@@ -118,16 +119,16 @@ class CompilerTest < Minitest::Spec
         data: {id: :d},
       ),
       sequence::Row.new(
-        magnetic_to: :success,
-        node: id_node_pairs[:success],
-        wirings: {},
-        data: {id: :"End.success", terminus: true, semantic: :success},
-      ),
-      sequence::Row.new(
         magnetic_to: :failure,
         node: id_node_pairs[:failure],
         wirings: {},
         data: {id: :"End.failure", terminus: true, semantic: :failure},
+      ),
+      sequence::Row.new(
+        magnetic_to: :success,
+        node: id_node_pairs[:success],
+        wirings: {},
+        data: {id: :"End.success", terminus: true, semantic: :success},
       ),
     ]
 
@@ -140,7 +141,9 @@ class CompilerTest < Minitest::Spec
     end
 
 
-    my_activity = DSL::Sequence::Compiler.(my_sequence)
+    my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
+    circuit = my_activity_schema[:circuit]
+    my_activity = circuit # FIXME
 
     # pp my_activity
 
@@ -154,7 +157,10 @@ class CompilerTest < Minitest::Spec
     assert_run my_activity, seq: [:a, :b, :d], terminus: id_node_pairs[:failure].task,
       application_ctx: {d: "D/failure"}
 
-    assert_equal my_activity.to_h[:outputs], {1 => 2}
+    assert_equal my_activity_schema.to_h[:outputs], {
+      failure: Trailblazer::Activity::Output.new(id_node_pairs[:failure].task, :failure),
+      success: Trailblazer::Activity::Output.new(id_node_pairs[:success].task, :success),
+    }
 
 # TODO: maybe test the rendered circuit, too?
   end

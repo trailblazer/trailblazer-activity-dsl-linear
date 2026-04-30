@@ -80,15 +80,11 @@ module Trailblazer
               # termini.keys, # termini
             )
 
-            return circuit
+            # return Activity.new(circuit: circuit, outputs: outputs)
+            # return Class.new(Activity)
+            return {circuit: circuit, outputs: outputs} # DISCUSS: introduce Schema?
 
-            pp termini_data
-
-            activity_outputs = termini.collect { |terminus, semantic| Activity::Output(terminus, semantic) }
-
-            nodes = Schema::Nodes(nodes_attributes)
-
-            Schema.new(circuit, activity_outputs, nodes, config)
+            # Schema.new(circuit, activity_outputs, nodes, config)
           end
 
           # Execute all search strategies for a row, retrieve outputs and
