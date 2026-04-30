@@ -9,10 +9,9 @@ module Trailblazer
           module_function
 
           # Default strategy to find out what's a stop event is to inspect the TaskRef's {data[:stop_event]}.
-          def find_termini_data(sequence_ary) # FIXME: actually, we only need to check if the terminus task has any outgoing connections?
+          def find_termini_rows(sequence_ary) # FIXME: actually, we only need to check if the terminus task has any outgoing connections?
             sequence_ary
               .find_all { |id, row| row.data[:terminus] }
-              .collect  { |id, row| [id, [row.node, {semantic: row.data.fetch(:semantic)}]] }
               .to_h
           end
 
@@ -27,14 +26,22 @@ module Trailblazer
           def call(sequence, find_start: method(:find_start_tuple))
             sequence_ary = sequence.to_a # DISCUSS: since we expect a Sequence instance, we have to convert it (instead of #collect).
 
+            termini_rows = find_termini_rows(sequence_ary) # {task => semantic}
+
             nodes_attributes = []
 
             flow_map = sequence_ary.collect do |id, seq_row|
               # raise seq_row.inspect unless seq_row.is_a?(Sequence::Row)
               _magnetic_to, node, connections, data = seq_row.to_a
 
+              is_terminus = termini_rows[id]
+
               # execute all {Search}s for one sequence row.
-              connections = find_connections(seq_row, connections, sequence_ary.to_h.values)
+              if is_terminus
+                connections = {}
+              else
+                connections = find_connections(seq_row, connections, sequence_ary.to_h.values)
+              end
 
               connections_for_flow_map = connections.collect { |output, node| [output.signal, node.id] }.to_h # DISCUSS: should a Node really have a
 
@@ -55,12 +62,16 @@ module Trailblazer
               ]
             end.to_h
 
-            termini_data = find_termini_data(sequence_ary) # {task => semantic}
             start_tuple = find_start.(sequence_ary)
+            nodes       = sequence_ary.collect { |id, row| [id, row.node] }.to_h
 
-            nodes = sequence_ary.collect { |id, row| [id, row.node] }.to_h
-
-# FIXME: termini must have empty outgoing connections in {flow_map}.
+            outputs = termini_rows.collect do |id, seq_row|
+              semantic = seq_row.data.fetch(:semantic)
+              [
+                semantic,
+                Activity::Output.new(seq_row.node.task, semantic)
+              ]
+            end.to_h
 
             circuit = Circuit.new(
               flow_map,

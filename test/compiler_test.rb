@@ -10,13 +10,11 @@ class CompilerTest < Minitest::Spec
   DSL = Trailblazer::Activity::DSL
   Act = Trailblazer::Activity
 
-  it "simple linear approach where a {Sequence} is compiled into an {Activity}" do
-    sequence = Trailblazer::Activity::DSL::Sequence
-
-    my_exec_context = T.def_tasks(:a, :b, :c, :d)
+  let(:id_node_pairs) do
     lib_interface   = Trailblazer::Circuit::Task::Adapter::LibInterface
+    my_exec_context = T.def_tasks(:a, :b, :c, :d)
 
-    id_node_pairs = {
+    {
       a: Trailblazer::Circuit::Node[:a, my_exec_context.method(:a), lib_interface],
       b: Trailblazer::Circuit::Node[:b, my_exec_context.method(:b), lib_interface],
       c: Trailblazer::Circuit::Node[:c, my_exec_context.method(:c), lib_interface],
@@ -24,7 +22,59 @@ class CompilerTest < Minitest::Spec
       failure: Trailblazer::Circuit::Node[:"End.failure", Trailblazer::Activity::Terminus::Failure.new(semantic: :failure), lib_interface],
       success: Trailblazer::Circuit::Node[:"End.success", Trailblazer::Activity::Terminus::Success.new(semantic: :success), lib_interface],
     }
+  end
+  let(:sequence) { Trailblazer::Activity::DSL::Sequence }
 
+  it "set emtpy outputs when {terminus: true}" do
+    seq = [
+      sequence::Row.new(
+        magnetic_to: :success,
+        node: id_node_pairs[:a],
+        wirings:
+          {
+            Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+          },
+        data: {id: :a},
+      ),
+      sequence::Row.new(
+        magnetic_to: :success,
+        node: id_node_pairs[:b],
+        wirings: # those get discarded.
+          {
+            Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+          },
+        data: {
+          id: :b,
+          terminus: true, # we want {b} to be a terminus.
+          semantic: :success
+        },
+      ),
+      sequence::Row.new(
+        magnetic_to: :success,
+        node: id_node_pairs[:c],
+        wirings:
+          {
+          },
+        data: {id: :c},
+      ),
+    ]
+
+    # TODO: make this somewhere else.
+    my_sequence = Trailblazer::Activity::DSL::Sequence.new()
+    my_sequence = seq.inject(my_sequence) do |sequence, row|
+      Trailblazer::Circuit::Adds.(
+        sequence,
+        [row.data[:id], row, :after] # FIXME: this can be done much simpler.
+      )
+    end
+
+    my_activity = DSL::Sequence::Compiler.(my_sequence)
+    # pp my_activity
+
+    assert_run my_activity, seq: [:a, :b], terminus: R
+  end
+
+  it "simple linear approach where a {Sequence} is compiled into an {Activity}" do
     seq = [
       sequence::Row.new(
         magnetic_to: :success, # MinusPole
@@ -32,8 +82,8 @@ class CompilerTest < Minitest::Spec
         node: id_node_pairs[:a],
         wirings:
           {
-            Act::Output(R, :success) => sequence::Search::Forward.new(:success),
-            Act::Output(L, :failure) => sequence::Search::Forward.new(:failure),
+            Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+            Act::Output.new(L, :failure) => sequence::Search::Forward.new(:failure),
           },
         data: {id: :a},
       ),
@@ -42,8 +92,8 @@ class CompilerTest < Minitest::Spec
         node: id_node_pairs[:b],
         wirings:
           {
-            Act::Output(R, :success) => sequence::Search::Forward.new(:success),
-            Act::Output("B/failure", :failure) => sequence::Search::Forward.new(:failure)
+            Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+            Act::Output.new("B/failure", :failure) => sequence::Search::Forward.new(:failure)
           },
         data: {id: :b},
       ),
@@ -52,8 +102,8 @@ class CompilerTest < Minitest::Spec
         node: id_node_pairs[:c],
         wirings:
           {
-            Act::Output(R, :success) => sequence::Search::Forward.new(:failure),
-            Act::Output(L, :failure) => sequence::Search::Forward.new(:failure)
+            Act::Output.new(R, :success) => sequence::Search::Forward.new(:failure),
+            Act::Output.new(L, :failure) => sequence::Search::Forward.new(:failure)
           },
         data: {id: :c},
       ),
@@ -62,8 +112,8 @@ class CompilerTest < Minitest::Spec
         node: id_node_pairs[:d],
         wirings:
           {
-            Act::Output(R, :success) => sequence::Search::Forward.new(:success),
-            Act::Output("D/failure", :failure) => sequence::Search::Forward.new(:failure)
+            Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+            Act::Output.new("D/failure", :failure) => sequence::Search::Forward.new(:failure)
           },
         data: {id: :d},
       ),
@@ -103,6 +153,8 @@ class CompilerTest < Minitest::Spec
       application_ctx: {b: "B/failure"}
     assert_run my_activity, seq: [:a, :b, :d], terminus: id_node_pairs[:failure].task,
       application_ctx: {d: "D/failure"}
+
+    assert_equal my_activity.to_h[:outputs], {1 => 2}
 
 # TODO: maybe test the rendered circuit, too?
   end
