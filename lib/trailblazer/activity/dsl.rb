@@ -5,11 +5,18 @@ module Trailblazer
     setting :sequence
     config.sequence = []
 
-    def self.step(method_name) # FIXME: separate module!
+    setting :normalizer
+
+
+    def self.step(method_name, **options) # FIXME: separate module!
       # add to sequence, then recompile the circuit?
-      sequence_row = [method_name] # TODO: run normalizer here!
+      sequence_row = DSL::Normalizer.(config.normalizer, :step, method_name, **options)
 
       config.sequence += [sequence_row]
+
+      schema = DSL::Sequence::Compiler.(config.sequence)
+
+      pp schema
 
       # TODO: compile_circuit_from_sequence
     end
@@ -19,6 +26,12 @@ module Trailblazer
     end # DSL
   end
 end
+
+require "trailblazer/activity/dsl/normalizer"
+require "trailblazer/activity/dsl/normalizer/step"
+Trailblazer::Activity.config.normalizer = {
+      step: Trailblazer::Activity::DSL::Normalizer::Step
+    }
 
 require "trailblazer/activity/dsl/sequence"
 require "trailblazer/activity/dsl/sequence/search"
