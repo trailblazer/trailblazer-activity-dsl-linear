@@ -8,10 +8,12 @@ module Trailblazer
 
           step_node_for_call_task = Activity::Step.build(provider, id: id, merge_to_lib_ctx: {exec_context: exec_context})
 
-          task_wrap_node = Circuit::Builder.TaskWrap(
+          task_wrap_pipe = Circuit::Builder.TaskWrap( # DISCUSS: should we return a Node::Scoped here?
             [:"task_wrap.call_task", node: step_node_for_call_task],
             # DISCUSS: other taskWrap steps would go here?
           )
+
+          task_wrap_node = Circuit::Node::Scoped[:"task_wrap.#{id}", task_wrap_pipe, Circuit::Processor]
 
           return ctx.merge(node: task_wrap_node), flow_options
         end

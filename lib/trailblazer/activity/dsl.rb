@@ -1,22 +1,26 @@
 require "trailblazer/activity"
 
 module Trailblazer
-  class Activity
+  class Activity # DISCUSS: the Activity class is defined in the activity gem and already got some {setting} directives.
     setting :sequence
-    config.sequence = []
-
     setting :normalizer
-
 
     def self.step(method_name, **options) # FIXME: separate module!
       # add to sequence, then recompile the circuit?
-      sequence_row = DSL::Normalizer.(config.normalizer, :step, method_name, **options)
+      sequence_row_pair = DSL::Normalizer.(config.normalizer, :step, method_name, **options)
 
-      config.sequence += [sequence_row]
+      config.sequence = Circuit::Adds.(
+        config.sequence,
+        sequence_row_pair + [:before, :"End.success"]
+      )
 
       schema = DSL::Sequence::Compiler.(config.sequence)
 
-      pp schema
+      config.circuit = schema[:circuit]
+      config.outputs = schema[:outputs]
+
+
+      # config.node = Circuit::Node
 
       # TODO: compile_circuit_from_sequence
     end
@@ -30,9 +34,33 @@ end
 require "trailblazer/activity/dsl/normalizer"
 require "trailblazer/activity/dsl/normalizer/step"
 Trailblazer::Activity.config.normalizer = {
-      step: Trailblazer::Activity::DSL::Normalizer::Step
-    }
+  step: Trailblazer::Activity::DSL::Normalizer::Step
+}
 
 require "trailblazer/activity/dsl/sequence"
 require "trailblazer/activity/dsl/sequence/search"
 require "trailblazer/activity/dsl/sequence/compiler"
+
+# DISCUSS: where to move this?
+module Trailblazer
+  class Activity
+    config.sequence = DSL::Sequence.new
+
+    # add the default "terminus", a concept from Activity.
+    id_for_success_terminus = :"End.success"
+
+    config.sequence = Circuit::Adds.(
+      config.sequence,
+      [
+        id_for_success_terminus,
+        DSL::Sequence::Row.new(
+          magnetic_to: :success,
+          node: Circuit::Node[id_for_success_terminus, Terminus::Success.new(semantic: :success), Circuit::Task::Adapter::LibInterface],
+          wirings: {},
+          data: {id: id_for_success_terminus, terminus: true, semantic: :success},
+        ),
+        :before
+      ]
+    )
+  end
+end

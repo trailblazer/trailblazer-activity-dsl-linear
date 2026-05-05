@@ -57,7 +57,7 @@ module Trailblazer
               # ]
 
               [
-                node.id,
+                id,
                 connections_for_flow_map
               ]
             end.to_h
