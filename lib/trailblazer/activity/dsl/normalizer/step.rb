@@ -34,7 +34,7 @@ module Trailblazer
 
         Step = Circuit::Builder.Circuit(
           [:build_task_wrap_node, method(:build_task_wrap_node), connections: {nil => :build_sequence_row}],
-          [:build_sequence_row, method(:build_sequence_row), connections: {}],
+          [:build_sequence_row, method(:build_sequence_row), connections: {nil => nil}],
         )
       end
     end
