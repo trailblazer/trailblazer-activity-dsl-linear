@@ -8,13 +8,6 @@ module Trailblazer
         module Compiler
           module_function
 
-          # Default strategy to find out what's a stop event is to inspect the TaskRef's {data[:stop_event]}.
-          def find_termini_rows(sequence_ary) # FIXME: actually, we only need to check if the terminus task has any outgoing connections?
-            sequence_ary
-              .find_all { |id, row| row.data[:terminus] }
-              .to_h
-          end
-
           def find_start_tuple(sequence_ary)
             id, row = sequence_ary[0]
 
@@ -26,58 +19,19 @@ module Trailblazer
           def call(sequence, find_start: method(:find_start_tuple))
             sequence_ary = sequence.to_a # DISCUSS: since we expect a Sequence instance, we have to convert it (instead of #collect).
 
-            termini_rows = find_termini_rows(sequence_ary) # {task => semantic}
-
             nodes_attributes = []
 
-            flow_map = sequence_ary.collect do |id, seq_row|
-              # raise seq_row.inspect unless seq_row.is_a?(Sequence::Row)
-              _magnetic_to, node, connections, data = seq_row.to_a
-
-              is_terminus = termini_rows[id]
-
-              # execute all {Search}s for one sequence row.
-              if is_terminus
-                connections = {}
-              else
-                connections = find_connections(seq_row, connections, sequence_ary.to_h.values)
-              end
-
-              connections_for_flow_map = connections.collect { |output, node| [output.signal, node.id] }.to_h # DISCUSS: should a Node really have a
-
-
-              # nodes_attributes:
-              # outputs = connections.keys
-
-              # nodes_attributes << [
-              #   id,
-              #   task,
-              #   data,
-              #   outputs
-              # ]
-
-              [
-                id,
-                connections_for_flow_map
-              ]
-            end.to_h
+            id_to_connections = compile_connections(sequence_ary)
+            flow_map          = compile_flow_map(id_to_connections)
+            outputs           = compile_outputs(id_to_connections)
 
             start_tuple = find_start.(sequence_ary)
             nodes       = sequence_ary.collect { |id, row| [id, row.node] }.to_h
-
-            outputs = termini_rows.collect do |id, seq_row|
-              semantic = seq_row.data.fetch(:semantic)
-              [
-                semantic,
-                Activity::Output.new(seq_row.node.task, semantic)
-              ]
-            end.to_h
 
             circuit = Circuit.new(
               flow_map,
               start_tuple,
               nodes
-              # termini.keys, # termini
             )
 
             # return Activity.new(circuit: circuit, outputs: outputs)
@@ -87,17 +41,50 @@ module Trailblazer
             # Schema.new(circuit, activity_outputs, nodes, config)
           end
 
+          # Returns {id => {<signal> => target_id}, ...}
+          def compile_connections(sequence_ary)
+            sequence_ary.collect do |id, seq_row|
+              _magnetic_to, node, connections, data = seq_row.to_a
+
+              # execute all {Search}s for one sequence row.
+              connections = find_connections(seq_row, connections, sequence_ary.to_h.values)
+
+              [
+                id,
+                connections
+              ]
+            end
+          end
+
+          def compile_flow_map(id_to_connections)
+            id_to_connections.collect do |id, connections|
+              connections_for_flow_map = connections.collect { |output, target_id| [output.signal, target_id] }.to_h
+
+              [
+                id,
+                connections_for_flow_map
+              ]
+            end.to_h
+          end
+
+          # DISCUSS: currently, we "detect" this activity's outputs by finding all signals that lead to {nil}.
+          def compile_outputs(id_to_connections)
+            id_to_connections.flat_map do |id, connections|
+              connections
+                .find_all { |output, target_id| target_id.nil? }
+                .collect { |output, target_id| [output.semantic, output] }
+            end.to_h
+          end
+
           # Execute all search strategies for a row, retrieve outputs and
           # their respective target IDs.
           def find_connections(seq_row, searches, sequence_ary)
             searches.collect do |output, search|
-              target_seq_row = search.(sequence_ary, seq_row) # invoke the node's "connection search" strategy.
-
-              target_seq_row = sequence_ary[-1] if target_seq_row.nil? # connect to an End if target unknown. # DISCUSS: make this configurable, maybe?
+              target_node_id = search.(sequence_ary, seq_row) # invoke the node's "connection search" strategy.
 
               [
                 output,
-                target_seq_row.node
+                target_node_id
               ]
             end.to_h
           end

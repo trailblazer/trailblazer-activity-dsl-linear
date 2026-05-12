@@ -3,16 +3,36 @@ class Trailblazer::Activity
     # Search strategies are part of the {wirings}, they find the next step
     # for an output.
     class Sequence
-      module Search
-        module_function
+      class Search < Struct.new(:target_color)
+        def call(sequence_ary, me)
+          target_seq_row = find_target_sequence_row(sequence_ary, me)
+
+          if target_seq_row
+            target_node_id = target_seq_row.data.fetch(:id)
+
+            raise if target_node_id != target_seq_row.node.id # FIXME: this is WIP, debugging
+          else
+            raise # FIXME: what to do in this case? we need to cover that for "unfinished" OPs.
+          end
+
+          return target_node_id
+        end
+
+        # Nil "search" is used for a terminal output, since it doesn't go anywhere
+        # we can simply return nil as the {target_node_id}.
+        # This is turn will indicate a terminus in the circuit.
+        class Nil
+          def call(sequence_ary, me)
+            nil
+          end
+        end
+
 
         # From this task onwards, find the next task that's "magnetic to" {target_color}.
         # Note that we only go forward, no back-references are done here.
-        class Forward < Struct.new(:target_color)
-          def call(sequence_ary, me)
-            target_seq_row = find_in_range(sequence_ary[sequence_ary.index(me) + 1..-1], target_color)
-
-            return target_seq_row
+        class Forward < Search
+          def find_target_sequence_row(sequence_ary, me)
+            find_in_range(sequence_ary[sequence_ary.index(me) + 1..-1], target_color)
           end
 
           # @private

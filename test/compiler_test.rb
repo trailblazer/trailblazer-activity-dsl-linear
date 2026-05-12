@@ -25,7 +25,20 @@ class CompilerTest < Minitest::Spec
   end
   let(:sequence) { Trailblazer::Activity::DSL::Sequence }
 
-  it "set emtpy outputs when {terminus: true}" do
+  def build_sequence(seq_rows)
+    # TODO: make this somewhere else.
+    my_sequence = Trailblazer::Activity::DSL::Sequence.new()
+    my_sequence = seq_rows.inject(my_sequence) do |sequence, row|
+      Trailblazer::Circuit::Adds.(
+        sequence,
+        [row.data[:id], row, :after] # FIXME: this can be done much simpler.
+      )
+    end
+  end
+
+  # DISCUSS: we need :outputs and we need :wirings, the later connecting {signal => search}. However, we reuse the Output instances in wirings so we can extract the semantic for terminus outputs.
+
+  it "we got Search::Nil that will point to nil, indicating to Circuit that this is a terminus output" do
     seq = [
       sequence::Row.new(
         magnetic_to: :success,
@@ -36,20 +49,20 @@ class CompilerTest < Minitest::Spec
           },
         data: {id: :a},
       ),
-      sequence::Row.new(
+      sequence::Row.new( # this row represents a terminus as we know it from TRB 2.1, with a dedicated task.
         magnetic_to: :success,
         node: id_node_pairs[:b],
-        wirings: # those get discarded.
+        wirings:
           {
-            Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+            Act::Output.new(R, :success) => sequence::Search::Nil.new, # will result in {Right => nil}
           },
         data: {
           id: :b,
-          terminus: true, # we want {b} to be a terminus.
-          semantic: :success
+          # terminus: true, # we want {b} to be a terminus.
+          # semantic: :success
         },
       ),
-      sequence::Row.new(
+      sequence::Row.new( # we're adding this just to make sure that :b doesn't connect to any descendent.
         magnetic_to: :success,
         node: id_node_pairs[:c],
         wirings:
@@ -59,20 +72,99 @@ class CompilerTest < Minitest::Spec
       ),
     ]
 
-    # TODO: make this somewhere else.
-    my_sequence = Trailblazer::Activity::DSL::Sequence.new()
-    my_sequence = seq.inject(my_sequence) do |sequence, row|
-      Trailblazer::Circuit::Adds.(
-        sequence,
-        [row.data[:id], row, :after] # FIXME: this can be done much simpler.
-      )
-    end
-
+    my_sequence = build_sequence(seq)
     my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
-    # pp my_activity
-    circuit = my_activity_schema[:circuit]
+
+    circuit = my_activity_schema.to_h[:circuit]
 
     assert_run circuit, seq: [:a, :b], terminus: R
+
+    assert_equal my_activity_schema.to_h[:outputs], {
+      success: Trailblazer::Activity::Output.new(R, :success),
+    }
+  end
+
+  it "a sequence_row can have multiple outputs, and some of them can be termini, some can be a connector" do
+    seq = [
+      sequence::Row.new(
+        magnetic_to: :success,
+        node: id_node_pairs[:a],
+        wirings:
+          {
+            Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+            Act::Output.new(L, :failure) => sequence::Search::Nil.new,
+          },
+        data: {id: :a},
+      ),
+      sequence::Row.new( # this row represents a terminus as we know it from TRB 2.1, with a dedicated task.
+        magnetic_to: :success,
+        node: id_node_pairs[:b],
+        wirings:
+          {
+            Act::Output.new(R, :success) => sequence::Search::Nil.new, # will result in {Right => nil}
+          },
+        data: {id: :b},
+      ),
+    ]
+
+    my_sequence = build_sequence(seq)
+    my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
+
+    circuit = my_activity_schema.to_h[:circuit]
+
+    assert_run circuit, seq: [:a, :b], terminus: R
+    assert_run circuit, seq: [:a], terminus: L, flow_options: {application_ctx: {seq: [], a: L}}
+
+    assert_equal my_activity_schema.to_h[:outputs], {
+      failure: Trailblazer::Activity::Output.new(L, :failure),
+      success: Trailblazer::Activity::Output.new(R, :success),
+    }
+  end
+
+  it "empty wiring simply doesn't connect the node" do
+    seq = [
+      sequence::Row.new(
+        magnetic_to: :success,
+        node: id_node_pairs[:a],
+        wirings:
+          {
+            Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+          },
+        data: {id: :a},
+      ),
+      sequence::Row.new( # we're adding this just to make sure that :b doesn't connect to any descendent.
+        magnetic_to: :success,
+        node: id_node_pairs[:c],
+        wirings:
+          {
+          },
+        data: {id: :c},
+      ),
+      sequence::Row.new( # this row represents a terminus as we know it from TRB 2.1, with a dedicated task.
+        magnetic_to: :success,
+        node: id_node_pairs[:b],
+        wirings:
+          {
+            Act::Output.new(R, :success) => sequence::Search::Nil.new, # will result in {Right => nil}
+          },
+        data: {id: :b},
+      ),
+    ]
+
+    my_sequence = build_sequence(seq)
+    my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
+
+    circuit = my_activity_schema.to_h[:circuit]
+
+    assert_raises KeyError do
+      assert_run circuit, seq: [:a, :c]#, terminus: R
+    end
+
+    assert_equal circuit.flow_map, {:a=>{Trailblazer::Activity::Right=>:c}, :c=>{}, :b=>{Trailblazer::Activity::Right=>nil}}
+
+    assert_equal my_activity_schema.to_h[:outputs], {
+      success: Trailblazer::Activity::Output.new(R, :success),
+    }
   end
 
   it "simple linear approach where a {Sequence} is compiled into an {Activity}" do
@@ -121,14 +213,18 @@ class CompilerTest < Minitest::Spec
       sequence::Row.new(
         magnetic_to: :failure,
         node: id_node_pairs[:failure],
-        wirings: {},
-        data: {id: :"End.failure", terminus: true, semantic: :failure},
+        wirings: {
+          Act::Output.new(id_node_pairs[:failure].task, :failure) => sequence::Search::Nil.new
+        },
+        data: {id: :"End.failure"},
       ),
       sequence::Row.new(
         magnetic_to: :success,
         node: id_node_pairs[:success],
-        wirings: {},
-        data: {id: :"End.success", terminus: true, semantic: :success},
+        wirings: {
+          Act::Output.new(id_node_pairs[:success].task, :success) => sequence::Search::Nil.new
+        },
+        data: {id: :"End.success"},
       ),
     ]
 
