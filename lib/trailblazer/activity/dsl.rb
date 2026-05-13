@@ -5,14 +5,16 @@ module Trailblazer
     setting :sequence
     setting :normalizer
 
-    def self.step(method_name, **options) # FIXME: separate module!
+    def self.step(user_provider = nil, **options) # FIXME: separate module!
       # add to sequence, then recompile the circuit?
-      sequence_row_pair = DSL::Normalizer.(config.normalizer, :step, method_name, **options)
+      sequence_row_tuple = DSL::Normalizer.(config.normalizer, :step, user_provider, **options)
 
       config.sequence = Circuit::Adds.(
         config.sequence,
-        sequence_row_pair + [:before, :"End.success"]
+        sequence_row_tuple
       )
+
+      # pp config.sequence
 
       schema = DSL::Sequence::Compiler.(config.sequence)
 
@@ -47,20 +49,20 @@ module Trailblazer
     config.sequence = DSL::Sequence.new
 
     # add the default "terminus", a concept from Activity.
-    id_for_success_terminus = :"End.success"
+    # id_for_success_terminus = :"End.success"
 
-    config.sequence = Circuit::Adds.(
-      config.sequence,
-      [
-        id_for_success_terminus,
-        DSL::Sequence::Row.new(
-          magnetic_to: :success,
-          node: Circuit::Node[id_for_success_terminus, Terminus::Success.new(semantic: :success), Circuit::Task::Adapter::LibInterface],
-          wirings: {},
-          data: {id: id_for_success_terminus, terminus: true, semantic: :success},
-        ),
-        :before
-      ]
-    )
+    # config.sequence = Circuit::Adds.(
+    #   config.sequence,
+    #   [
+    #     id_for_success_terminus,
+    #     DSL::Sequence::Row.new(
+    #       magnetic_to: :success,
+    #       node: Circuit::Node[id_for_success_terminus, Terminus::Success.new(semantic: :success), Circuit::Task::Adapter::LibInterface],
+    #       wirings: {},
+    #       data: {id: id_for_success_terminus, terminus: true, semantic: :success},
+    #     ),
+    #     :before
+    #   ]
+    # )
   end
 end

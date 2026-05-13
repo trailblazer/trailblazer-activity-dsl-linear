@@ -10,6 +10,7 @@ class Trailblazer::Activity
           if target_seq_row
             target_node_id = target_seq_row.data.fetch(:id)
 
+            puts "@@@@@ #{target_node_id} #{target_seq_row.node.id.inspect}"
             raise if target_node_id != target_seq_row.node.id # FIXME: this is WIP, debugging
           else
             raise # FIXME: what to do in this case? we need to cover that for "unfinished" OPs.
