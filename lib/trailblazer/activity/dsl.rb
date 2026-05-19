@@ -7,28 +7,40 @@ module Trailblazer
 
     def self.step(user_provider = nil, **options) # FIXME: separate module!
       # add to sequence, then recompile the circuit?
-      sequence_row_tuple = DSL::Normalizer.(config.normalizer, :step, user_provider, **options)
+      config.sequence = DSL::Step.add_to_sequence(config.sequence, config.normalizer, user_provider, **options)
 
-      config.sequence = Circuit::Adds.(
-        config.sequence,
-        sequence_row_tuple
-      )
-
-      # pp config.sequence
-
-      schema = DSL::Sequence::Compiler.(config.sequence)
-
-      config.circuit = schema[:circuit]
-      config.outputs = schema[:outputs]
-
+      Compile.compile_schema!(config) # DISCUSS: omit this when we're in zeitwerk env.
 
       # config.node = Circuit::Node
 
       # TODO: compile_circuit_from_sequence
     end
 
-    module DSL
+    module Compile # NOTE: this code is unrelated to DSL and *how* the sequence was built.
+      def self.compile_schema!(config)
+        schema = DSL::Sequence::Compiler.(config.sequence)
 
+        config.circuit = schema[:circuit]
+        config.outputs = schema[:outputs]
+      end
+    end
+
+    module DSL
+      module Step
+        module_function
+
+        # DISCUSS: use {config}, make it class method???
+        def add_to_sequence(sequence, normalizer, user_provider, **options)
+          sequence_row_tuple = DSL::Normalizer.(normalizer, :step, user_provider, **options)
+
+          sequence = Circuit::Adds.(
+            sequence,
+            sequence_row_tuple
+          )
+
+          # pp sequence
+        end
+      end # Step
     end # DSL
   end
 end
