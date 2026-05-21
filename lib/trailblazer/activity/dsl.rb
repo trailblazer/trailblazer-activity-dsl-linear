@@ -38,7 +38,7 @@ module Trailblazer
             sequence_row_tuple
           )
 
-          # pp sequence
+          # pp sequence.flow_map; return sequence
         end
       end # Step
     end # DSL

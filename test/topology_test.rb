@@ -13,8 +13,35 @@ class TopologyTest < Minitest::Spec
 
   end
 
-  it "#step accepts {:magnetic_to}" do
+  it "{:adds_insertion_args}" do
 
+  end
+
+  it "#step accepts {:magnetic_to}" do
+    my_topology = Class.new(Trailblazer::Activity) do
+      step :b,# i am a terminus.
+        id: :b, exec_context: new,
+        wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
+        magnetic_to: :failure,
+        adds_insertion_args: [:after]
+
+      step :c, # i am a terminus.
+        id: :c, exec_context: new,
+        wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
+        # magnetic_to: :success,
+        adds_insertion_args: [:after]
+
+      # this is the first step.
+      step task: T.def_tasks(:a).method(:a), # FIXME: we cannot return signals from steps, yet!
+        id: :a, exec_context: new,
+        wirings: TopologyTest.FIXME___DEFAULT_WIRINGS.merge(Trailblazer::Activity::Output.new(Trailblazer::Activity::Left, :failure) => Trailblazer::Activity::DSL::Sequence::Search::Forward.new(:failure)),
+        adds_insertion_args: [:before]
+
+      include T.def_steps(:b, :c)
+    end
+
+    assert_run my_topology.config.circuit, seq: [:a, :c], terminus: Trailblazer::Activity::Right
+    assert_run my_topology.config.circuit, seq: [:a, :b], terminus: Trailblazer::Activity::Right, flow_options: {application_ctx: {a: Trailblazer::Activity::Left, seq: []}}
   end
 
   it "provides #step" do

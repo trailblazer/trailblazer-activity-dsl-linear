@@ -30,9 +30,9 @@ module Trailblazer
           return ctx.merge(node: task_wrap_node), flow_options
         end
 
-        def self.build_sequence_row(ctx, flow_options, _, node:, id:, wirings:, **)
+        def self.build_sequence_row(ctx, flow_options, _, node:, id:, wirings:, magnetic_to:, **)
           row = Sequence::Row.new(
-            magnetic_to: :success,
+            magnetic_to: magnetic_to,
             node: node,
             wirings: wirings,
             data: {id: id},
@@ -46,11 +46,16 @@ module Trailblazer
           return ctx.merge(adds_insertion_args: adds_insertion_args), flow_options
         end
 
+        def self.normalize_magnetic_to(ctx, flow_options, _, magnetic_to: :success, **)
+          return ctx.merge(magnetic_to: magnetic_to), flow_options
+        end
+
         Step = Circuit::Builder.Circuit(
           [:is_step?, method(:is_step?), connections: {Left => :build_node_for_task, Right => :build_node_for_step}],
           [:build_node_for_task, method(:build_node_for_task), connections: {nil => :build_task_wrap_node}],
           [:build_node_for_step, method(:build_node_for_step), connections: {nil => :build_task_wrap_node}],
-          [:build_task_wrap_node, method(:build_task_wrap_node), connections: {nil => :normalize_adds_insertion_args}],
+          [:build_task_wrap_node, method(:build_task_wrap_node), connections: {nil => :normalize_magnetic_to}],
+          [:normalize_magnetic_to, method(:normalize_magnetic_to), connections: {nil => :normalize_adds_insertion_args}], # DISCUSS: position?
           [:normalize_adds_insertion_args, method(:normalize_adds_insertion_args), connections: {nil => :build_sequence_row}], # DISCUSS: position?
           [:build_sequence_row, method(:build_sequence_row), connections: {nil => nil}],
         )

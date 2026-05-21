@@ -47,6 +47,7 @@ module Trailblazer
               _magnetic_to, node, connections, data = seq_row.to_a
 
               # execute all {Search}s for one sequence row.
+              # puts "finding connections for #{id}"
               connections = find_connections(seq_row, connections, sequence_ary.to_h.values)
 
               [
