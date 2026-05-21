@@ -21,6 +21,22 @@ class TopologyTest < Minitest::Spec
 
   end
 
+  it "{:exec_context} is defaulted" do
+
+  end
+
+  it "#step computes {:id} for a step" do
+    my_topology = Class.new(Trailblazer::Activity) do
+      step :b,# i am a terminus.
+        exec_context: new,
+        wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
+        magnetic_to: :successs,
+        adds_insertion_args: [:after]
+    end
+
+    assert_equal my_topology.to_h[:circuit].nodes[:b].id, :b
+  end
+
   it "#step accepts {:id}" do
     my_topology = Class.new(Trailblazer::Activity) do
       step :b,# i am a terminus.

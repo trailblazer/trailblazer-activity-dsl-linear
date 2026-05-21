@@ -50,11 +50,21 @@ module Trailblazer
           return ctx.merge(magnetic_to: magnetic_to), flow_options
         end
 
+        def self.normalize_id_for_step(ctx, flow_options, _, id: nil, first_arg:, **)
+          if id.nil?
+            id = first_arg # TODO: id for callables, etc?
+          end
+
+          return ctx.merge(id: id), flow_options
+        end
+
         Step = Circuit::Builder.Circuit(
-          [:is_step?, method(:is_step?), connections: {Left => :build_node_for_task, Right => :build_node_for_step}],
+          [:is_step?, method(:is_step?), connections: {Left => :build_node_for_task, Right => :normalize_id_for_step}],
+          [:normalize_id_for_step, method(:normalize_id_for_step), connections: {nil => :build_node_for_step}], # DISCUSS: what if we need to know what
           [:build_node_for_task, method(:build_node_for_task), connections: {nil => :build_task_wrap_node}],
           [:build_node_for_step, method(:build_node_for_step), connections: {nil => :build_task_wrap_node}],
           [:build_task_wrap_node, method(:build_task_wrap_node), connections: {nil => :normalize_magnetic_to}],
+          [:normalize_magnetic_to, method(:normalize_magnetic_to), connections: {nil => :normalize_adds_insertion_args}], # DISCUSS: position?
           [:normalize_magnetic_to, method(:normalize_magnetic_to), connections: {nil => :normalize_adds_insertion_args}], # DISCUSS: position?
           [:normalize_adds_insertion_args, method(:normalize_adds_insertion_args), connections: {nil => :build_sequence_row}], # DISCUSS: position?
           [:build_sequence_row, method(:build_sequence_row), connections: {nil => nil}],
