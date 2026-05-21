@@ -1,6 +1,14 @@
 require "test_helper"
 
 class TopologyTest < Minitest::Spec
+  def self.FIXME___DEFAULT_WIRINGS
+    {
+      Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Forward.new(:success),
+      # Output.new(Left, :failure) => Sequence::Search::Forward.new(:failure)
+    }
+  end
+
+
   it "#step accepts {:task}" do
 
   end
@@ -16,7 +24,7 @@ class TopologyTest < Minitest::Spec
         adds_insertion_args: [:after],
         wirings: {Trailblazer::Activity::Output.new(success, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new}
 
-      step :a, id: :a, exec_context: new
+      step :a, id: :a, exec_context: new, wirings: TopologyTest.FIXME___DEFAULT_WIRINGS
 
       include T.def_steps(:a)
     end
@@ -42,14 +50,14 @@ class TopologyTest < Minitest::Spec
 
   it "inheritance doesn't bleed into parents" do
     my_topology = Class.new(Trailblazer::Activity) do
-      step :a, id: :a, exec_context: new
+      step :a, id: :a, exec_context: new, wirings: TopologyTest.FIXME___DEFAULT_WIRINGS
 
       include T.def_steps(:a)
     end
 
     my_child_activity = Class.new(my_topology)
     my_child_activity_with_b_step = Class.new(my_topology) do
-      step :b, id: :b, exec_context: new
+      step :b, id: :b, exec_context: new, wirings: TopologyTest.FIXME___DEFAULT_WIRINGS
 
       include T.def_steps(:b)
     end
@@ -64,7 +72,7 @@ class TopologyTest < Minitest::Spec
   it "we can compile the Circuit only once" do
     my_topology = Class.new(Trailblazer::Activity) do
       step :a, id: :a, exec_context: nil, adds_insertion_args: [:before], wirings: {}
-      step :b, id: :b, exec_context: nil, adds_insertion_args: [:before]
+      step :b, id: :b, exec_context: nil, adds_insertion_args: [:before], wirings: TopologyTest.FIXME___DEFAULT_WIRINGS
     end
 
     class MyConfig < Struct.new(:config, :circuit_count)
@@ -91,7 +99,7 @@ class TopologyTest < Minitest::Spec
       end
 
       step :a, id: :a, exec_context: nil, adds_insertion_args: [:before], wirings: {}
-      step :b, id: :b, exec_context: nil, adds_insertion_args: [:before]
+      step :b, id: :b, exec_context: nil, adds_insertion_args: [:before], wirings: TopologyTest.FIXME___DEFAULT_WIRINGS
     end
 
     my_topology.finalize

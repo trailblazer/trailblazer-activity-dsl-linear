@@ -30,14 +30,7 @@ module Trailblazer
           return ctx.merge(node: task_wrap_node), flow_options
         end
 
-        def self.FIXME___DEFAULT_WIRINGS
-          {
-            Output.new(Right, :success) => Sequence::Search::Forward.new(:success),
-            # Output.new(Left, :failure) => Sequence::Search::Forward.new(:failure)
-          }
-        end
-
-        def self.build_sequence_row(ctx, flow_options, _, node:, id:, wirings: FIXME___DEFAULT_WIRINGS(), **)
+        def self.build_sequence_row(ctx, flow_options, _, node:, id:, wirings:, **)
           row = Sequence::Row.new(
             magnetic_to: :success,
             node: node,
