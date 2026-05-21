@@ -8,6 +8,10 @@ class TopologyTest < Minitest::Spec
     }
   end
 
+  it "#to_h" do
+
+  end
+
 
   it "#step accepts {:task}" do
 
@@ -15,6 +19,32 @@ class TopologyTest < Minitest::Spec
 
   it "{:adds_insertion_args}" do
 
+  end
+
+  it "#step accepts {:id}" do
+    my_topology = Class.new(Trailblazer::Activity) do
+      step :b,# i am a terminus.
+        id: :terminus_success, exec_context: new,
+        wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
+        magnetic_to: :successs,
+        adds_insertion_args: [:after]
+    end
+
+    assert_equal my_topology.to_h[:circuit].nodes[:terminus_success].id, :terminus_success
+  end
+
+  it "#step raises error with {:id} already used" do
+    my_topology = Class.new(Trailblazer::Activity) do
+      step :b,# i am a terminus.
+        id: :b, exec_context: new,
+        wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
+        magnetic_to: :failure,
+        adds_insertion_args: [:after]
+    end
+
+    assert_raises Trailblazer::Circuit::Adds::IllegalIdError do
+      my_topology.step :B, id: :b, exec_context: nil, wirings: {}
+    end
   end
 
   it "#step accepts {:magnetic_to}" do
