@@ -60,4 +60,49 @@ class TopologyTest < Minitest::Spec
     pp my_child_activity_with_b_step.config.circuit.flow_map
     assert_run my_child_activity_with_b_step.config.circuit, seq: [:a], terminus: my_child_activity_with_b_step.config.circuit.nodes.values.last.task
   end
+
+  it "we can compile the Circuit only once" do
+    my_topology = Class.new(Trailblazer::Activity) do
+      step :a, id: :a, exec_context: nil, adds_insertion_args: [:before], wirings: {}
+      step :b, id: :b, exec_context: nil, adds_insertion_args: [:before]
+    end
+
+    class MyConfig < Struct.new(:config, :circuit_count)
+      def circuit=(value)
+        self.circuit_count += 1
+
+        config.circuit = value
+      end
+
+      def sequence; config.sequence end
+      def sequence=(value); config.sequence=(value) end
+      def outputs=(value); config.outputs=(value) end
+      def normalizer; config.normalizer end
+    end
+
+    require "trailblazer/activity/finalize"
+    my_topology = Class.new(Trailblazer::Activity) do
+      # DISCUSS: is extend the only way? can we use something like another pipe?
+      extend Trailblazer::Activity::Finalize # DISCUSS: Feature::Finalize, or where would that go?
+
+      @my_config = MyConfig.new(config, 0)
+      def self.config
+        @my_config
+      end
+
+      step :a, id: :a, exec_context: nil, adds_insertion_args: [:before], wirings: {}
+      step :b, id: :b, exec_context: nil, adds_insertion_args: [:before]
+    end
+
+    my_topology.finalize
+
+    assert_equal my_topology.config.circuit_count, 1
+
+    # my_topology = Class.new(Trailblazer::Activity) do
+    #   wiring do
+    #     step :a
+    #     step :b
+    #   end # => this would allow compiling once
+    # end
+  end
 end
