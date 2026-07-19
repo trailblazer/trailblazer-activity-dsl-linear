@@ -113,7 +113,7 @@ class CompilerTest < Minitest::Spec
     circuit = my_activity_schema.to_h[:circuit]
 
     assert_run circuit, seq: [:a, :b], terminus: R
-    assert_run circuit, seq: [:a], terminus: L, flow_options: {application_ctx: {seq: [], a: L}}
+    assert_run circuit, seq: [:a], terminus: L, target_ctx: {seq: [], a: L}
 
     assert_equal my_activity_schema.to_h[:outputs], {
       failure: Trailblazer::Activity::Output.new(L, :failure),
@@ -160,7 +160,7 @@ class CompilerTest < Minitest::Spec
       assert_run circuit, seq: [:a, :c]#, terminus: R
     end
 
-    assert_equal circuit.flow_map, {:a=>{Trailblazer::Activity::Right=>:c}, :c=>{}, :b=>{Trailblazer::Activity::Right=>nil}}
+    assert_equal circuit.flow_map, {:a=>{Trailblazer::Activity::Right=>[:c, Trailblazer::Activity::Right]}, :c=>{}, :b=>{Trailblazer::Activity::Right=>[nil, Trailblazer::Activity::Right]}}
 
     assert_equal my_activity_schema.to_h[:outputs], {
       success: Trailblazer::Activity::Output.new(R, :success),
@@ -245,13 +245,13 @@ class CompilerTest < Minitest::Spec
 
     assert_run my_activity, seq: [:a, :b, :d], terminus: id_node_pairs[:success].task
     assert_run my_activity, seq: [:a, :c], terminus: id_node_pairs[:failure].task,
-      application_ctx: {a: Trailblazer::Activity::Left}
+      target_ctx: {seq: [], a: Trailblazer::Activity::Left}
     assert_run my_activity, seq: [:a, :c], terminus: id_node_pairs[:failure].task,
-      application_ctx: {a: Trailblazer::Activity::Left, c: Trailblazer::Activity::Left}
+      target_ctx: {seq: [], a: Trailblazer::Activity::Left, c: Trailblazer::Activity::Left}
     assert_run my_activity, seq: [:a, :b, :c], terminus: id_node_pairs[:failure].task,
-      application_ctx: {b: "B/failure"}
+      target_ctx: {seq: [], b: "B/failure"}
     assert_run my_activity, seq: [:a, :b, :d], terminus: id_node_pairs[:failure].task,
-      application_ctx: {d: "D/failure"}
+      target_ctx: {seq: [], d: "D/failure"}
 
     assert_equal my_activity_schema.to_h[:outputs], {
       failure: Trailblazer::Activity::Output.new(id_node_pairs[:failure].task, :failure),

@@ -8,7 +8,7 @@ module Trailblazer
         end
 
         def self.build_node_for_step(ctx, flow_options, _, first_arg:, id:, exec_context:, **) # FIXME: {:exec_context} is not mandatory.
-          step_node_for_call_task = Activity::Step.build(first_arg, id: id, merge_to_lib_ctx: {exec_context: exec_context})
+          step_node_for_call_task = Activity::Step.build(first_arg, id: id, exec_context: exec_context)
 
           return ctx.merge(node_for_call_task: step_node_for_call_task), flow_options
         end
@@ -25,7 +25,8 @@ module Trailblazer
             # DISCUSS: other taskWrap steps would go here?
           )
 
-          task_wrap_node = Circuit::Node::Scoped[:"#{id}", task_wrap_pipe, Circuit::Processor]
+          # task_wrap_node = Circuit::Node::Scoped[:"#{id}", task_wrap_pipe, Circuit::Processor, merge_to_lib_ctx: [:target_ctx]]
+          task_wrap_node = Circuit::Node[:"#{id}", task_wrap_pipe, Circuit::Processor]
 
           return ctx.merge(node: task_wrap_node), flow_options
         end

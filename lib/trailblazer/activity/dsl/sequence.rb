@@ -8,7 +8,7 @@ module Trailblazer
       #
 
       #
-      class Sequence < Circuit::Pipeline # A Sequence inherits from Pipeline so we can use ADDS.
+      class Sequence < Circuit # A Sequence inherits from Circuit so we can use ADDS.
         def initialize(flow_map = {}, start_tuple = nil, nodes = {})
           super(flow_map, start_tuple, nodes)
         end
@@ -18,6 +18,7 @@ module Trailblazer
           flow_map.collect { |id,| [id, nodes[id]] }.to_a
         end
 
+        # DISCUSS: {wirings} could be named "outputs to searches" or "output mappings".
         class Row < Struct.new(:magnetic_to, :node, :wirings, :data, keyword_init: true)
         end
       end # Sequence

@@ -34,11 +34,7 @@ module Trailblazer
               nodes
             )
 
-            # return Activity.new(circuit: circuit, outputs: outputs)
-            # return Class.new(Activity)
-            return {circuit: circuit, outputs: outputs} # DISCUSS: introduce Schema?
-
-            # Schema.new(circuit, activity_outputs, nodes, config)
+            return Activity.new(circuit, outputs)
           end
 
           # Returns {id => {<signal> => target_id}, ...}
@@ -59,7 +55,12 @@ module Trailblazer
 
           def compile_flow_map(id_to_connections)
             id_to_connections.collect do |id, connections|
-              connections_for_flow_map = connections.collect { |output, target_id| [output.signal, target_id] }.to_h
+              connections_for_flow_map = connections.collect { |output, target_id|
+                [
+                  output.signal,
+                  [target_id, output.signal]
+                ]
+              }.to_h
 
               [
                 id,
