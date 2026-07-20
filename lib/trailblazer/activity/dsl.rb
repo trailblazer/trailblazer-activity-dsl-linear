@@ -41,6 +41,10 @@ module Trailblazer
   end
 end
 
+require "trailblazer/activity/dsl/sequence"
+require "trailblazer/activity/dsl/sequence/search"
+require "trailblazer/activity/dsl/sequence/compiler"
+
 require "trailblazer/activity/dsl/topology"
 require "trailblazer/activity/dsl/normalizer"
 require "trailblazer/activity/dsl/normalizer/step"
@@ -48,20 +52,8 @@ Trailblazer::Activity::DSL::Topology.config.normalizer = {
   step: Trailblazer::Activity::DSL::Normalizer::Step
 }
 
-require "trailblazer/activity/dsl/sequence"
-require "trailblazer/activity/dsl/sequence/search"
-require "trailblazer/activity/dsl/sequence/compiler"
 
 # DISCUSS: where to move this?
-module Trailblazer
-  class Activity
-    module DSL
-      class Topology
-        config.sequence = DSL::Sequence.new
-
-        extend DSL::Step
-      end
-    end
 
     # add the default "terminus", a concept from Activity.
     # id_for_success_terminus = :"End.success"
@@ -79,5 +71,3 @@ module Trailblazer
     #     :before
     #   ]
     # )
-  end
-end

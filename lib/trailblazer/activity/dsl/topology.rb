@@ -9,8 +9,11 @@ module Trailblazer
         extend Dry::Configurable
         setting :sequence
         setting :normalizer
-
         setting :activity
+
+        config.sequence = Sequence.new
+
+        extend DSL::Step
 
         def self.to_h
           {
