@@ -80,7 +80,7 @@ class TopologyTest < Minitest::Spec
 
       # this is the first step.
       step task: T.def_tasks(:a).method(:a),
-        id: :a, exec_context: new,
+        id: :a, #exec_context: new,
         wirings: TopologyTest.FIXME___DEFAULT_WIRINGS.merge(Trailblazer::Activity::Output.new(Trailblazer::Activity::Left, :failure) => Trailblazer::Activity::DSL::Sequence::Search::Forward.new(:failure)),
         adds_insertion_args: [:before]
 
@@ -129,7 +129,12 @@ class TopologyTest < Minitest::Spec
   end
 
   it "inheritance doesn't bleed into parents" do
+    success = nil
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      step task: success = Trailblazer::Activity::Terminus::Success.new(semantic: :success), id: :"task_wrap.End.success",
+         wirings: {Trailblazer::Activity::Output.new(success, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
+        adds_insertion_args: [:after]
+
       step :a, id: :a, exec_context: new, wirings: TopologyTest.FIXME___DEFAULT_WIRINGS
 
       include T.def_steps(:a)
@@ -143,10 +148,10 @@ class TopologyTest < Minitest::Spec
     end
 
 
-    assert_run my_topology.to_h[:circuit], seq: [:a], terminus: my_topology.to_h[:circuit].nodes.values.last.task
-    assert_run my_child_activity.config.circuit, seq: [:a], terminus: my_child_activity.config.circuit.nodes.values.last.task
-    pp my_child_activity_with_b_step.config.circuit.flow_map
-    assert_run my_child_activity_with_b_step.config.circuit, seq: [:a], terminus: my_child_activity_with_b_step.config.circuit.nodes.values.last.task
+    assert_run my_topology.to_h[:circuit], seq: [:a], terminus: my_topology.to_h[:circuit].nodes.values.last.task, terminus: success
+    assert_run my_child_activity.to_h[:circuit], seq: [:a], terminus: success
+
+    assert_run my_child_activity_with_b_step.to_h[:circuit], seq: [:a, :b], terminus: success
   end
 
   it "we can compile the Circuit only once" do
