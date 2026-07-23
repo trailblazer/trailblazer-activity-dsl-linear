@@ -29,9 +29,9 @@ module Trailblazer
               Target::Track.new(color, [], wrap_around: wrap_around).freeze
             end
 
-            # def Id(id)
-            #   Id.new(id).freeze
-            # end
+            def Id(id)
+              Target::Id.new(id).freeze
+            end
           end # Helper
         end
       end

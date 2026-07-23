@@ -119,4 +119,30 @@ class OutputTuplesTest < Minitest::Spec
     assert_run my_topology.to_h[:circuit], seq: [:a], terminus: MyFailure, target_ctx: {seq: [], a: Trailblazer::Activity::Left}
     assert_run my_topology.to_h[:circuit], seq: [:a], terminus: my_finished, target_ctx: {seq: [], a: Object}
   end
+
+  it "Id()" do
+    my_exec_context = T.def_tasks(:a, :b)
+
+    my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      step **MyTest.options_for_mock_terminus
+
+      my_generic_outputs = {
+        success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success),
+        failure: Trailblazer::Activity::Output.new(Trailblazer::Activity::Left, :failure),
+      }
+
+      step task: my_exec_context.method(:a), id: :a,
+        outputs: my_generic_outputs,
+        MyHelper.Output(:failure) => MyHelper.Id(:b),
+        MyHelper.Output(:success) => MyHelper.Track(:success)
+
+      step task: my_exec_context.method(:b), id: :b,
+        magnetic_to: :random,
+        outputs: my_generic_outputs,
+        MyHelper.Output(:success) => MyHelper.Track(:success)
+    end
+
+    assert_run my_topology.to_h[:circuit], seq: [:a], terminus: MyTest::MySuccess
+    assert_run my_topology.to_h[:circuit], seq: [:a, :b], terminus: MyTest::MySuccess, target_ctx: {seq: [], a: Trailblazer::Activity::Left}
+  end
 end

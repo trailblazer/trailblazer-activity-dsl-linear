@@ -10,7 +10,7 @@ class Trailblazer::Activity
           if target_seq_row
             target_node_id = target_seq_row.data.fetch(:id)
 
-            puts "@@@@@ #{target_node_id.inspect} #{target_seq_row.node.id.inspect}"
+            # puts "@@@@@> #{target_node_id.inspect} #{target_seq_row.node.id.inspect}"
             raise if target_node_id != target_seq_row.node.id # FIXME: this is WIP, debugging
           else
             raise # FIXME: what to do in this case? we need to cover that for "unfinished" OPs.
@@ -58,7 +58,7 @@ class Trailblazer::Activity
 
         # Find the seq_row with {id} and connect the current node to it.
         class ById < Forward
-          def call(sequence_ary, me)
+          def find_target_sequence_row(sequence_ary, me)
             target_seq_row = sequence_ary.find { |row| row.data.fetch(:id) == target_color } or return sequence_ary[0] # FIXME # or raise "Couldn't find {#{id}}"
 
             return target_seq_row

@@ -260,4 +260,55 @@ class CompilerTest < Minitest::Spec
 
 # TODO: maybe test the rendered circuit, too?
   end
+
+  # TODO: explicitely test ById
+
+  it "Search::ById where {:a} points to an yet existing {:b}" do
+    my_seq = [
+      sequence::Row.new(
+        magnetic_to: :success,
+        node: id_node_pairs[:a],
+        wirings:
+          {
+            Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+            Act::Output.new(L, :failure) => sequence::Search::ById.new(:b),
+          },
+        data: {id: :a},
+      ),
+
+      sequence::Row.new(
+        magnetic_to: nil,
+        node: id_node_pairs[:b],
+        wirings:
+          {
+            Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+          },
+        data: {id: :b},
+      ),
+
+      sequence::Row.new(
+        magnetic_to: :success,
+        node: id_node_pairs[:success],
+        wirings: {
+          Act::Output.new(id_node_pairs[:success].task, :success) => sequence::Search::Nil.new
+        },
+        data: {id: :"End.success"},
+      ),
+    ]
+
+    my_sequence = build_sequence(my_seq)
+    my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
+
+    assert_equal my_activity_schema.to_h[:outputs], {
+      # failure: Trailblazer::Activity::Output.new(id_node_pairs[:failure].task, :failure),
+      success: Trailblazer::Activity::Output.new(id_node_pairs[:success].task, :success),
+    }
+
+    assert_run my_activity_schema.to_h[:circuit], seq: [:a], terminus: id_node_pairs[:success].task
+    assert_run my_activity_schema.to_h[:circuit], seq: [:a, :b], terminus: id_node_pairs[:success].task, target_ctx: {seq: [], a: L}
+  end
+
+  it "if a Search cannot find its target ?????????" do
+    raise "test me"
+  end
 end

@@ -21,6 +21,13 @@ module Trailblazer
                 return search_strategy.new(color), adds
               end
             end
+
+            # Connector when using Id(:validate).
+            class Id < Struct.new(:value)
+              def call(*)
+                return Sequence::Search::ById.new(value), [] # {value} is the "target".
+              end
+            end
           end
         end
       end
