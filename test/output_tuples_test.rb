@@ -145,4 +145,6 @@ class OutputTuplesTest < Minitest::Spec
     assert_run my_topology.to_h[:circuit], seq: [:a], terminus: MyTest::MySuccess
     assert_run my_topology.to_h[:circuit], seq: [:a, :b], terminus: MyTest::MySuccess, target_ctx: {seq: [], a: Trailblazer::Activity::Left}
   end
+
+
 end

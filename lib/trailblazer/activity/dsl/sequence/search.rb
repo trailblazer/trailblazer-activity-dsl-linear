@@ -4,19 +4,21 @@ class Trailblazer::Activity
     # for an output.
     class Sequence
       class Search < Struct.new(:target_color)
+        class TargetNotFound
+        end
+
         def call(sequence_ary, me)
           target_seq_row = find_target_sequence_row(sequence_ary, me)
 
           if target_seq_row
             target_node_id = target_seq_row.data.fetch(:id)
+            return target_node_id
 
             # puts "@@@@@> #{target_node_id.inspect} #{target_seq_row.node.id.inspect}"
-            raise if target_node_id != target_seq_row.node.id # FIXME: this is WIP, debugging
+            # raise if target_node_id != target_seq_row.node.id # FIXME: this is WIP, debugging
           else
-            raise # FIXME: what to do in this case? we need to cover that for "unfinished" OPs.
+            return TargetNotFound # this is part of the interface between Search and Compiler.
           end
-
-          return target_node_id
         end
 
         # Nil "search" is used for a terminal output, since it doesn't go anywhere
@@ -59,9 +61,7 @@ class Trailblazer::Activity
         # Find the seq_row with {id} and connect the current node to it.
         class ById < Forward
           def find_target_sequence_row(sequence_ary, me)
-            target_seq_row = sequence_ary.find { |row| row.data.fetch(:id) == target_color } or return sequence_ary[0] # FIXME # or raise "Couldn't find {#{id}}"
-
-            return target_seq_row
+            sequence_ary.find { |row| row.data.fetch(:id) == target_color }
           end
         end
       end # Search

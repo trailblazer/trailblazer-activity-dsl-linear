@@ -7,7 +7,7 @@ end
 class CompilerTest < Minitest::Spec
   R = Trailblazer::Activity::Right
   L = Trailblazer::Activity::Left
-  DSL = Trailblazer::Activity::DSL
+  DSL = Trailblazer::Activity::DSL # FIXME: remove!
   Act = Trailblazer::Activity
 
   let(:id_node_pairs) do
@@ -73,13 +73,13 @@ class CompilerTest < Minitest::Spec
     ]
 
     my_sequence = build_sequence(seq)
-    my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
+    my_activity = DSL::Sequence::Compiler.(my_sequence)
 
-    circuit = my_activity_schema.to_h[:circuit]
+    circuit = my_activity.to_h[:circuit]
 
     assert_run circuit, seq: [:a, :b], terminus: R
 
-    assert_equal my_activity_schema.to_h[:outputs], {
+    assert_equal my_activity.to_h[:outputs], {
       success: Trailblazer::Activity::Output.new(R, :success),
     }
   end
@@ -108,14 +108,14 @@ class CompilerTest < Minitest::Spec
     ]
 
     my_sequence = build_sequence(seq)
-    my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
+    my_activity = DSL::Sequence::Compiler.(my_sequence)
 
-    circuit = my_activity_schema.to_h[:circuit]
+    circuit = my_activity.to_h[:circuit]
 
     assert_run circuit, seq: [:a, :b], terminus: R
     assert_run circuit, seq: [:a], terminus: L, target_ctx: {seq: [], a: L}
 
-    assert_equal my_activity_schema.to_h[:outputs], {
+    assert_equal my_activity.to_h[:outputs], {
       failure: Trailblazer::Activity::Output.new(L, :failure),
       success: Trailblazer::Activity::Output.new(R, :success),
     }
@@ -152,9 +152,9 @@ class CompilerTest < Minitest::Spec
     ]
 
     my_sequence = build_sequence(seq)
-    my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
+    my_activity = DSL::Sequence::Compiler.(my_sequence)
 
-    circuit = my_activity_schema.to_h[:circuit]
+    circuit = my_activity.to_h[:circuit]
 
     assert_raises KeyError do
       assert_run circuit, seq: [:a, :c]#, terminus: R
@@ -162,7 +162,7 @@ class CompilerTest < Minitest::Spec
 
     assert_equal circuit.flow_map, {:a=>{Trailblazer::Activity::Right=>[:c, Trailblazer::Activity::Right]}, :c=>{}, :b=>{Trailblazer::Activity::Right=>[nil, Trailblazer::Activity::Right]}}
 
-    assert_equal my_activity_schema.to_h[:outputs], {
+    assert_equal my_activity.to_h[:outputs], {
       success: Trailblazer::Activity::Output.new(R, :success),
     }
   end
@@ -237,23 +237,20 @@ class CompilerTest < Minitest::Spec
     end
 
 
-    my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
-    circuit = my_activity_schema[:circuit]
-    my_activity = circuit # FIXME
+    my_activity = DSL::Sequence::Compiler.(my_sequence)
 
-    # pp my_activity
-
-    assert_run my_activity, seq: [:a, :b, :d], terminus: id_node_pairs[:success].task
-    assert_run my_activity, seq: [:a, :c], terminus: id_node_pairs[:failure].task,
+    assert_run my_activity.to_h[:circuit], seq: [:a, :b, :d], terminus: id_node_pairs[:success].task
+    assert_run my_activity.to_h[:circuit], seq: [:a, :c], terminus: id_node_pairs[:failure].task,
       target_ctx: {seq: [], a: Trailblazer::Activity::Left}
-    assert_run my_activity, seq: [:a, :c], terminus: id_node_pairs[:failure].task,
+    assert_run my_activity.to_h[:circuit], seq: [:a, :c], terminus: id_node_pairs[:failure].task,
       target_ctx: {seq: [], a: Trailblazer::Activity::Left, c: Trailblazer::Activity::Left}
-    assert_run my_activity, seq: [:a, :b, :c], terminus: id_node_pairs[:failure].task,
+    assert_run my_activity.to_h[:circuit], seq: [:a, :b, :c], terminus: id_node_pairs[:failure].task,
       target_ctx: {seq: [], b: "B/failure"}
-    assert_run my_activity, seq: [:a, :b, :d], terminus: id_node_pairs[:failure].task,
+    assert_run my_activity.to_h[:circuit], seq: [:a, :b, :d], terminus: id_node_pairs[:failure].task,
       target_ctx: {seq: [], d: "D/failure"}
 
-    assert_equal my_activity_schema.to_h[:outputs], {
+
+    assert_equal my_activity.to_h[:outputs], {
       failure: Trailblazer::Activity::Output.new(id_node_pairs[:failure].task, :failure),
       success: Trailblazer::Activity::Output.new(id_node_pairs[:success].task, :success),
     }
@@ -297,18 +294,64 @@ class CompilerTest < Minitest::Spec
     ]
 
     my_sequence = build_sequence(my_seq)
-    my_activity_schema = DSL::Sequence::Compiler.(my_sequence)
+    my_activity = DSL::Sequence::Compiler.(my_sequence)
 
-    assert_equal my_activity_schema.to_h[:outputs], {
+    assert_equal my_activity.to_h[:outputs], {
       # failure: Trailblazer::Activity::Output.new(id_node_pairs[:failure].task, :failure),
       success: Trailblazer::Activity::Output.new(id_node_pairs[:success].task, :success),
     }
 
-    assert_run my_activity_schema.to_h[:circuit], seq: [:a], terminus: id_node_pairs[:success].task
-    assert_run my_activity_schema.to_h[:circuit], seq: [:a, :b], terminus: id_node_pairs[:success].task, target_ctx: {seq: [], a: L}
+    assert_run my_activity.to_h[:circuit], seq: [:a], terminus: id_node_pairs[:success].task
+    assert_run my_activity.to_h[:circuit], seq: [:a, :b], terminus: id_node_pairs[:success].task, target_ctx: {seq: [], a: L}
   end
 
-  it "if a Search cannot find its target ?????????" do
-    raise "test me"
+  it "Forward() can't find its target" do
+    my_seq = [
+      sequence::Row.new(
+        magnetic_to: :success,
+        node: id_node_pairs[:a],
+        wirings:
+          {
+            # Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+            Act::Output.new(R, :failure) => sequence::Search::Forward.new(:unknown),
+          },
+        data: {id: :a},
+      ),
+    ]
+
+    my_sequence = build_sequence(my_seq)
+    my_activity = DSL::Sequence::Compiler.(my_sequence)
+
+    assert_equal my_activity.to_h[:circuit].to_h[:flow_map].to_h, {:a => {R => [DSL::Sequence::Search::TargetNotFound, R]}}
+
+    # FIXME: we don't get an exception here, yet.
+    assert_run my_activity.to_h[:circuit], seq: [:a], terminus: R
+  end
+
+  it "Id() can't find its target" do
+    my_seq = [
+      sequence::Row.new(
+        magnetic_to: :success,
+        node: id_node_pairs[:a],
+        wirings:
+          {
+            # Act::Output.new(R, :success) => sequence::Search::Forward.new(:success),
+            Act::Output.new(R, :failure) => sequence::Search::ById.new(:unknown),
+          },
+        data: {id: :a},
+      ),
+    ]
+
+    my_sequence = build_sequence(my_seq)
+    my_activity = DSL::Sequence::Compiler.(my_sequence)
+
+    assert_equal my_activity.to_h[:circuit].to_h[:flow_map].to_h, {:a => {R => [DSL::Sequence::Search::TargetNotFound, R]}}
+
+    # FIXME: we don't get an exception here, yet.
+    assert_run my_activity.to_h[:circuit], seq: [:a], terminus: R
+  end
+
+  it "End() or :adds" do
+
   end
 end
