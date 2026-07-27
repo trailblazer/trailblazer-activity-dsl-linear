@@ -93,6 +93,10 @@ class TopologyTest < Minitest::Spec
     assert_run my_topology.to_h[:circuit], seq: [:a, :b], terminus: Trailblazer::Activity::Right, target_ctx: {a: Trailblazer::Activity::Left, seq: []}
   end
 
+  it "#step accepts {:adds_for_sequence} where we can add additional steps" do
+    raise
+  end
+
   it "provides #step" do
     success = nil
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do

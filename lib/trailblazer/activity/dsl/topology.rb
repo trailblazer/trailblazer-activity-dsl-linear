@@ -18,6 +18,7 @@ module Trailblazer
         def self.to_h
           {
             circuit: config.activity.circuit,
+            outputs: config.activity.outputs # TODO: test me.
           }
         end
       end

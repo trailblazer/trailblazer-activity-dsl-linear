@@ -9,6 +9,12 @@ T = Trailblazer::Core
 class Minitest::Spec
   include Trailblazer::Core::Utils::AssertEqual
   include Trailblazer::Core::Utils::AssertRun
+
+  def assert_outputs(activity, **tuples)
+    outputs = tuples.collect { |semantic, signal| [semantic, Trailblazer::Activity::Output.new(signal, semantic)] }.to_h
+
+    assert_equal activity.to_h[:outputs], outputs
+  end
 end
 
 module MyTest

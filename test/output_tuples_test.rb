@@ -163,9 +163,30 @@ class OutputTuplesTest < Minitest::Spec
 
     assert_run my_topology.to_h[:circuit], seq: [:a], terminus: MyTest::MySuccess, target_ctx: {seq: [], a: Trailblazer::Activity::Left}
 
-    assert_equal
+    assert_outputs my_topology, success: MyTest::MySuccess
+  end
 
+  it "Terminus() points to new terminus" do
+    my_exec_context = T.def_tasks(:a, :b)
 
+    my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      step **MyTest.options_for_mock_terminus # success.
+
+      my_generic_outputs = {
+        failure: Trailblazer::Activity::Output.new(Trailblazer::Activity::Left, :failure),
+      }
+
+      step task: my_exec_context.method(:a), id: :a,
+        outputs: my_generic_outputs,
+        MyHelper.Output(:failure) => MyHelper.Terminus(:timeout)
+    end
+
+    timeout_terminus = my_topology.to_h[:outputs][:timeout].signal
+    assert_equal timeout_terminus.semantic, :timeout # make sure we got the right terminus! :)
+
+    assert_run my_topology.to_h[:circuit], seq: [:a], terminus: timeout_terminus, target_ctx: {seq: [], a: Trailblazer::Activity::Left}
+
+    assert_outputs my_topology, success: MyTest::MySuccess, timeout: timeout_terminus
   end
 
   it "End()" do

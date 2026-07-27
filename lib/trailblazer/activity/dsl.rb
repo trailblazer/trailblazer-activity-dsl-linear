@@ -28,14 +28,19 @@ module Trailblazer
 
       # DISCUSS: use {config}, make it class method???
       def self.add_to_sequence(sequence, normalizer, user_provider, **options)
-        sequence_row_tuple = DSL::Normalizer.(normalizer, :step, user_provider, **options)
+        adds_for_sequence = DSL::Normalizer.(normalizer, :step, user_provider,
+          **options,
+          sequence: sequence # TODO: explicitely test that we pass {:sequence}.
+        )
 
         sequence = Circuit::Adds.(
           sequence,
-          sequence_row_tuple
+          *adds_for_sequence
         )
+      end
 
-        # pp sequence.flow_map; return sequence
+      def self.id_for_terminus(semantic:, **)
+        "End.#{semantic}" # TODO: use everywhere
       end
     end # DSL
   end
@@ -50,6 +55,25 @@ require "trailblazer/activity/dsl/normalizer"
 require "trailblazer/activity/dsl/normalizer/step"
 Trailblazer::Activity::DSL::Topology.config.normalizer = {
   step: Trailblazer::Activity::DSL::Normalizer::Step
+}
+
+require "trailblazer/activity/dsl/feature/output_tuples"
+require "trailblazer/activity/dsl/feature/output_tuples/helper"
+require "trailblazer/activity/dsl/feature/output_tuples/normalizer"
+
+# TODO: introduce normalizer patching.
+step_normalizer = Trailblazer::Activity::DSL::Topology.config.normalizer.fetch(:step)
+
+step_normalizer = Trailblazer::Circuit::Adds.(
+  step_normalizer,
+  [
+    :normalize_wirings, Trailblazer::Activity::DSL::Feature::OutputTuples::Normalizer::Node,
+    :before, :build_sequence_row
+  ],
+)
+
+Trailblazer::Activity::DSL::Topology.config.normalizer = {
+  step: step_normalizer,
 }
 
 

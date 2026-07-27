@@ -43,16 +43,25 @@ module Trailblazer
                 adds = []
 
                 unless end_exists
-                  new_terminus = Activity::Terminus.new(semantic)
+                  new_terminus = Activity::Terminus.new(semantic: semantic)
+
+                  row_for_sequence = Sequence::Row.new(
+                    magnetic_to: semantic,
+                    node: Circuit::Node[id_for_terminus_task_wrap, new_terminus, Circuit::Task::Adapter::LibInterface],
+                    wirings: {Activity::Output.new(new_terminus, semantic) => Sequence::Search::Nil.new}, # DISCUSS: redundant with #options_for_mock_terminus.
+                    data: {id: id_for_terminus_task_wrap},
+                  )
 
                   adds = [
                     [
-                      Circuit::Node[id_for_terminus_task_wrap, new_terminus, Circuit::Task::Adapter::LibInterface],
+                      id_for_terminus_task_wrap,
+                      row_for_sequence,
+                      :after
                     ]
                   ]
                 end
 
-                return Sequence::Search::ById.new(id_for_terminus_task_wrap), [adds]
+                return Sequence::Search::ById.new(id_for_terminus_task_wrap), adds
               end
             end
           end

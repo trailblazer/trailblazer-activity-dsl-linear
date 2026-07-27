@@ -54,7 +54,7 @@ module Trailblazer
 
             # we want this in the end:
             # {output.semantic => search strategy}
-            def compile_wirings(ctx, flow_options, _, adds: [], output_tuples:, outputs:, id:, **)
+            def compile_wirings(ctx, flow_options, _, adds_for_sequence: [], output_tuples:, outputs:, id:, **)
               # DISCUSS: how could we add another magnetic_to to an end?
               # Go through all {Output() => Track()/Id()/End()} tuples.
               wirings =
@@ -64,14 +64,14 @@ module Trailblazer
 
                   search, connector_adds = target.(ctx)
 
-                  adds += connector_adds
+                  adds_for_sequence += connector_adds
 
                   [output, search]
                 end
 
               ctx = ctx.merge(
-                wirings: wirings.to_h,
-                adds: adds# FIXME: this is not used, currently.
+                wirings:           wirings.to_h,
+                adds_for_sequence: adds_for_sequence
               )
 
               return ctx, flow_options
