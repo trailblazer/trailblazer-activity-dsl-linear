@@ -11,11 +11,7 @@ class Trailblazer::Activity
           target_seq_row = find_target_sequence_row(sequence_ary, me)
 
           if target_seq_row
-            target_node_id = target_seq_row.data.fetch(:id)
-            return target_node_id
-
-            # puts "@@@@@> #{target_node_id.inspect} #{target_seq_row.node.id.inspect}"
-            # raise if target_node_id != target_seq_row.node.id # FIXME: this is WIP, debugging
+            target_seq_row.data.fetch(:id) # target_node_id
           else
             return TargetNotFound # this is part of the interface between Search and Compiler.
           end

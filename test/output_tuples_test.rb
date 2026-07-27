@@ -146,5 +146,29 @@ class OutputTuplesTest < Minitest::Spec
     assert_run my_topology.to_h[:circuit], seq: [:a, :b], terminus: MyTest::MySuccess, target_ctx: {seq: [], a: Trailblazer::Activity::Left}
   end
 
+  it "Terminus() points to existing terminus" do
+    my_exec_context = T.def_tasks(:a, :b)
 
+    my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      step **MyTest.options_for_mock_terminus # success.
+
+      my_generic_outputs = {
+        failure: Trailblazer::Activity::Output.new(Trailblazer::Activity::Left, :failure),
+      }
+
+      step task: my_exec_context.method(:a), id: :a,
+        outputs: my_generic_outputs,
+        MyHelper.Output(:failure) => MyHelper.Terminus(:success)
+    end
+
+    assert_run my_topology.to_h[:circuit], seq: [:a], terminus: MyTest::MySuccess, target_ctx: {seq: [], a: Trailblazer::Activity::Left}
+
+    assert_equal
+
+
+  end
+
+  it "End()" do
+
+  end
 end

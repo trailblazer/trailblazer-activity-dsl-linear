@@ -17,13 +17,10 @@ module Trailblazer
               Output::Semantic.new(semantic)
             end
 
-            # def End(semantic)
-            #   End.new(semantic).freeze
-            # end
-
-            # def end_id(semantic:, **)
-            #   "End.#{semantic}" # TODO: use everywhere
-            # end
+            def Terminus(semantic)
+              Target::Terminus.new(semantic).freeze
+            end
+            # TODO: End()
 
             def Track(color, wrap_around: false)
               Target::Track.new(color, [], wrap_around: wrap_around).freeze

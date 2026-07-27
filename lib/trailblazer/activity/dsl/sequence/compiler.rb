@@ -86,7 +86,7 @@ module Trailblazer
 
               [
                 output,
-                target_node_id
+                target_node_id # in non-finalize mode, this could be {Search::TargetNotFound}. # DISCUSS: this could be overridden in finalize mode to make sure all targets have been found.
               ]
             end.to_h
           end

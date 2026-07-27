@@ -3,6 +3,7 @@ module Trailblazer
     module DSL
       module Feature
         module OutputTuples
+          # Extract all "output tuples", compile a {:wirings} hash.
           module Normalizer
             module_function
 
