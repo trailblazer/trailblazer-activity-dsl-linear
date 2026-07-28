@@ -87,14 +87,38 @@ class TopologyTest < Minitest::Spec
       include T.def_steps(:b, :c)
     end
 
-    pp my_topology.to_h[:circuit]
-
     assert_run my_topology.to_h[:circuit], seq: [:a, :c], terminus: Trailblazer::Activity::Right
     assert_run my_topology.to_h[:circuit], seq: [:a, :b], terminus: Trailblazer::Activity::Right, target_ctx: {a: Trailblazer::Activity::Left, seq: []}
   end
 
-  it "#step accepts {:adds_for_sequence} where we can add additional steps" do
-    raise
+  it "#step accepts {:adds_for_sequence} which is used in {#compile_wirings} to add rows to the {Sequence}" do
+    my_exec_context = T.def_steps(:a)
+
+    new_terminus = Trailblazer::Activity::Terminus.new(semantic: :success)
+
+    my_adds_for_sequence = [
+      [
+        :my_success,
+        row_for_sequence = Trailblazer::Activity::DSL::Sequence::Row.new(
+          magnetic_to: :success,
+          node: Trailblazer::Circuit::Node[:my_success, new_terminus, Trailblazer::Circuit::Task::Adapter::LibInterface],
+          wirings: {Trailblazer::Activity::Output.new(new_terminus, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
+          data: {id: :my_success},
+        ),
+        :after
+      ]
+    ]
+
+    my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      step :a, # i am a terminus.
+        exec_context: my_exec_context,
+        wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Forward.new(:success)},
+        adds_insertion_args: [:before],
+        adds_for_sequence: my_adds_for_sequence
+    end
+
+    assert_outputs my_topology, success: new_terminus
+    assert_run my_topology.to_h[:circuit], seq: [:a], terminus: new_terminus
   end
 
   it "provides #step" do
