@@ -41,6 +41,15 @@ module Trailblazer
           return ctx.merge(sequence_row: row), flow_options
         end
 
+        def self.compile_adds_for_sequence(ctx, flow_options, _, id:, sequence_row:, adds_insertion_args:, adds_for_sequence: [], **)
+          adds_for_sequence = [
+            [id, sequence_row, *adds_insertion_args], # this is the actual row representing the step we're compiling here.
+            *adds_for_sequence
+          ]
+
+          return ctx.merge(adds_for_sequence: adds_for_sequence), flow_options
+        end
+
         DEFAULT_ADDS_INSERTION_ARGS = [:before, :"task_wrap.End.success"]
 
         def self.normalize_adds_insertion_args(ctx, flow_options, _, adds_insertion_args: DEFAULT_ADDS_INSERTION_ARGS, **)
@@ -65,11 +74,11 @@ module Trailblazer
           [:normalize_id_for_step, method(:normalize_id_for_step), connections: {nil => :build_node_for_step}], # DISCUSS: what if we need to know what
           [:build_node_for_task, method(:build_node_for_task), connections: {nil => :build_task_wrap_node}],
           [:build_node_for_step, method(:build_node_for_step), connections: {nil => :build_task_wrap_node}],
-          [:build_task_wrap_node, method(:build_task_wrap_node), connections: {nil => :normalize_magnetic_to}],
-          [:normalize_magnetic_to, method(:normalize_magnetic_to), connections: {nil => :normalize_adds_insertion_args}], # DISCUSS: position?
-          # [:normalize_magnetic_to, method(:normalize_magnetic_to), connections: {nil => :normalize_adds_insertion_args}], # DISCUSS: position?
-          [:normalize_adds_insertion_args, method(:normalize_adds_insertion_args), connections: {nil => :build_sequence_row}], # DISCUSS: position?
-          [:build_sequence_row, method(:build_sequence_row), connections: {nil => nil}],
+          [:build_task_wrap_node, method(:build_task_wrap_node)],
+          [:normalize_magnetic_to, method(:normalize_magnetic_to)], # DISCUSS: position?
+          [:normalize_adds_insertion_args, method(:normalize_adds_insertion_args)], # DISCUSS: position?
+          [:build_sequence_row, method(:build_sequence_row)],
+          [:compile_adds_for_sequence, method(:compile_adds_for_sequence)],
         )
       end
     end
