@@ -10,9 +10,9 @@ module Trailblazer
     # end
 
     module DSL
-      class Builder < Struct.new(:normalizers, :sequence) # DISCUSS: do we want the {activity} here?
-        def initialize(normalizers:, sequence: Sequence.new)
-          super(normalizers, sequence)
+      class Builder < Struct.new(:normalizers, :sequence, :default_options, keyword_init: true) # DISCUSS: do we want the {activity} here?
+        def initialize(sequence: Sequence.new, default_options: {}, **)
+          super
         end
 
         # @public
@@ -25,15 +25,18 @@ module Trailblazer
 
           # self.activity = Compile.compile_activity!(config) # DISCUSS: omit this when we're in zeitwerk env.
           # Compile.compile_activity!(config) # DISCUSS: omit this when we're in zeitwerk env.
-
+# pp sequence.nodes.collect { |id, row| [id, row.magnetic_to, row.wirings] }
           Sequence::Compiler.(sequence)
         end
 
         # NOTE: we only update sequence here, compiling is the job of the caller.
         def step!(user_provider = nil, **options) # TODO: make generic
           self.sequence =
-            DSL.add_to_sequence(self.sequence, self.normalizers, user_provider,
-              exec_context: self,
+            DSL.add_to_sequence(self.sequence, self.normalizers,
+
+              user_provider,
+              exec_context: self, # DISCUSS: where do we need this?
+              **self.default_options, # these are settings such as {magnetic_to:}, settable per builder.
               **options
             ) # TODO: add {type: :step}
         end
