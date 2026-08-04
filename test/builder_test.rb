@@ -25,7 +25,7 @@ class DslBuilderTest < Minitest::Spec
       # sequence: Trailblazer::Activity::DSL::Sequence.new
     )
 
-    my_activity = builder.(&my_block)
+    my_activity, sequence = builder.(&my_block)
 
     # builder.finalize! # or do we do this in #call?
 
@@ -67,8 +67,10 @@ class DslBuilderTest < Minitest::Spec
       }
     )
 
-    my_activity = builder.(&my_block)
+    my_activity, sequence = builder.(&my_block)
 
     assert_run my_activity.to_h[:circuit], seq: [:a, :c], terminus: Trailblazer::Activity::Right
+
+    assert_equal sequence.nodes.keys, [:a, :b, :c]
   end
 end

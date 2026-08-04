@@ -26,7 +26,9 @@ module Trailblazer
           # self.activity = Compile.compile_activity!(config) # DISCUSS: omit this when we're in zeitwerk env.
           # Compile.compile_activity!(config) # DISCUSS: omit this when we're in zeitwerk env.
 # pp sequence.nodes.collect { |id, row| [id, row.magnetic_to, row.wirings] }
-          Sequence::Compiler.(sequence)
+          activity = Sequence::Compiler.(sequence)
+
+          return activity, sequence
         end
 
         # NOTE: we only update sequence here, compiling is the job of the caller.
