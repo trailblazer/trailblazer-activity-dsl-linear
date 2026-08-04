@@ -10,8 +10,10 @@ module Trailblazer
     # end
 
     module DSL
+      # The point of Builder is: encapsulating how to produce a Sequence from a DSL block.
+      # DISCUSS: not sure if it should always produce an Activity, though, or run the Compiler.
       class Builder < Struct.new(:normalizers, :sequence, :default_options, keyword_init: true) # DISCUSS: do we want the {activity} here?
-        def initialize(sequence: Sequence.new, default_options: {}, **)
+        def initialize(sequence: Sequence.new, **)
           super
         end
 
@@ -34,11 +36,11 @@ module Trailblazer
         # NOTE: we only update sequence here, compiling is the job of the caller.
         def step!(user_provider = nil, **options) # TODO: make generic
           self.sequence =
-            DSL.add_to_sequence(self.sequence, self.normalizers,
+            DSL.add_to_sequence(self.sequence, self.normalizers[:step],
 
               user_provider,
               exec_context: self, # DISCUSS: where do we need this?
-              **self.default_options, # these are settings such as {magnetic_to:}, settable per builder.
+              **self.default_options[:step], # these are settings such as {magnetic_to:}, settable per builder.
               **options
             ) # TODO: add {type: :step}
         end
