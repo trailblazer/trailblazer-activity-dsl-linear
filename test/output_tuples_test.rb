@@ -7,8 +7,35 @@ class OutputTuplesTest < Minitest::Spec
   MyFailure = Trailblazer::Activity::Terminus::Success.new(semantic: :failure)
   MyHelper = Trailblazer::Activity::DSL::Feature::OutputTuples::Helper
 
+  def self.my_options_for_builder
+    normalizer_for_step = Trailblazer::Activity::DSL::Normalizer::Step
+
+    extended_normalizer_for_step = Trailblazer::Circuit::Adds.(
+      normalizer_for_step,
+      [
+        :normalize_wirings, Trailblazer::Activity::DSL::Feature::OutputTuples::Normalizer::Node,
+        :before, :build_sequence_row
+      ],
+    )
+
+    normalizers = {
+      # step: Trailblazer::Activity::DSL::Normalizer::Step
+      step: extended_normalizer_for_step,
+    }
+
+    {
+      normalizers: normalizers,
+        # sequence: Trailblazer::Activity::DSL::Sequence.new
+      default_options: {
+        step: {}
+      }
+    }
+  end
+
   it "doesn't override existing {:wirings} because feature is skipped" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**OutputTuplesTest.my_options_for_builder)
+
       step **MyTest.options_for_mock_terminus
       step :a,
         # magnetic_to: :success,
@@ -23,6 +50,8 @@ class OutputTuplesTest < Minitest::Spec
 
   it "without a specific layout normalizer, we can pass any tuples and get the appropriate {:wirings} for it" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**OutputTuplesTest.my_options_for_builder)
+
       step **MyTest.options_for_mock_terminus
       step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
 
@@ -51,6 +80,8 @@ class OutputTuplesTest < Minitest::Spec
     my_exec_context = T.def_tasks(:a)
 
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**OutputTuplesTest.my_options_for_builder)
+
       step **MyTest.options_for_mock_terminus
       step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
 
@@ -76,6 +107,8 @@ class OutputTuplesTest < Minitest::Spec
     my_finished = Trailblazer::Activity::Terminus::Success.new(semantic: :finished)
 
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**OutputTuplesTest.my_options_for_builder)
+
       step **MyTest.options_for_mock_terminus
       step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
       step **MyTest.options_for_mock_terminus(task: my_finished, semantic: :finished)
@@ -100,6 +133,8 @@ class OutputTuplesTest < Minitest::Spec
     my_finished = Trailblazer::Activity::Terminus::Success.new(semantic: :finished)
 
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**OutputTuplesTest.my_options_for_builder)
+
       step **MyTest.options_for_mock_terminus
       step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
       step **MyTest.options_for_mock_terminus(task: my_finished, semantic: :finished)
@@ -124,6 +159,8 @@ class OutputTuplesTest < Minitest::Spec
     my_exec_context = T.def_tasks(:a, :b)
 
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**OutputTuplesTest.my_options_for_builder)
+
       step **MyTest.options_for_mock_terminus
 
       my_generic_outputs = {
@@ -150,6 +187,8 @@ class OutputTuplesTest < Minitest::Spec
     my_exec_context = T.def_tasks(:a, :b)
 
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**OutputTuplesTest.my_options_for_builder)
+
       step **MyTest.options_for_mock_terminus # success.
 
       my_generic_outputs = {
@@ -170,6 +209,8 @@ class OutputTuplesTest < Minitest::Spec
     my_exec_context = T.def_tasks(:a, :b)
 
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**OutputTuplesTest.my_options_for_builder)
+
       step **MyTest.options_for_mock_terminus # success.
 
       my_generic_outputs = {
@@ -187,6 +228,10 @@ class OutputTuplesTest < Minitest::Spec
     assert_run my_topology.to_h[:circuit], seq: [:a], terminus: timeout_terminus, target_ctx: {seq: [], a: Trailblazer::Activity::Left}
 
     assert_outputs my_topology, success: MyTest::MySuccess, timeout: timeout_terminus
+  end
+
+  it "Terminus() doesn't override existing {:adds_for_sequence}" do
+
   end
 
   it "End()" do

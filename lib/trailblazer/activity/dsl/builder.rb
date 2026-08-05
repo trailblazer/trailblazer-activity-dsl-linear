@@ -12,6 +12,9 @@ module Trailblazer
     module DSL
       # The point of Builder is: encapsulating how to produce a Sequence from a DSL block.
       # DISCUSS: not sure if it should always produce an Activity, though, or run the Compiler.
+      #
+      # we currently store the sequence and the default_options for the normalizers in this instance,
+      # which then can be deleted once we're finalized.
       class Builder < Struct.new(:normalizers, :sequence, :default_options, keyword_init: true) # DISCUSS: do we want the {activity} here?
         def initialize(sequence: Sequence.new, **)
           super
@@ -19,18 +22,23 @@ module Trailblazer
 
         # @public
         def call(&block)
-          call!(&block)
+          self.sequence = update_sequence!(&block)
+
+          activity = compile_activity
+
+          return activity, self.sequence
         end
 
-        def call!(&block)
+        # #update_sequence!
+        def update_sequence!(&block)
           instance_exec(&block) # this calls #step --> #step!.
 
-          # self.activity = Compile.compile_activity!(config) # DISCUSS: omit this when we're in zeitwerk env.
-          # Compile.compile_activity!(config) # DISCUSS: omit this when we're in zeitwerk env.
-# pp sequence.nodes.collect { |id, row| [id, row.magnetic_to, row.wirings] }
-          activity = Sequence::Compiler.(sequence)
+          # pp sequence.nodes.collect { |id, row| [id, row.magnetic_to, row.wirings] }
+          sequence
+        end
 
-          return activity, sequence
+        def compile_activity
+          _activity = Sequence::Compiler.(sequence)
         end
 
         # NOTE: we only update sequence here, compiling is the job of the caller.

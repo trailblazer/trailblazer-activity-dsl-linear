@@ -22,9 +22,7 @@ class DslBuilderTest < Minitest::Spec
     }
   end
 
-  let(:wirings_for_terminus) { {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new()} }
-
-  it "what" do
+  it "{#call} returns {activity, sequence}" do
     my_block = -> do
       step :a, wirings: DslBuilderTest.FIXME___DEFAULT_WIRINGS, adds_insertion_args: [:after, nil]
       step :b, wirings: DslBuilderTest.FIXME___DEFAULT_WIRINGS, adds_insertion_args: [:after, nil]
@@ -39,6 +37,20 @@ class DslBuilderTest < Minitest::Spec
     # builder.finalize! # or do we do this in #call?
 
     assert_run my_activity.to_h[:circuit], seq: [:a, :b], terminus: Trailblazer::Activity::Right
+  end
+
+  # Internal unit test to guarantee Finalize compat.
+  it "{#update_sequence!} returns {sequence} and doesn't compile anything" do
+    my_block = -> do
+      step :a, wirings: DslBuilderTest.FIXME___DEFAULT_WIRINGS, adds_insertion_args: [:after, nil]
+    end
+
+    builder = Trailblazer::Activity::DSL::Builder.new(**my_options)
+
+    sequence = builder.update_sequence!(&my_block)
+
+    assert_equal sequence.to_h[:nodes].keys, [:a]
+    # assert_run my_activity.to_h[:circuit], seq: [:a, :b], terminus: Trailblazer::Activity::Right
   end
 
   it "#new accepts {:sequence}" do
@@ -66,13 +78,11 @@ class DslBuilderTest < Minitest::Spec
         Trailblazer::Activity::DSL::Sequence::Search::Forward.new(:purple),
     }
 
-    wirings_for_terminus = self.wirings_for_terminus
-
     my_block= -> do
       step :a, wirings: wirings_for_right_to_purple#, adds_insertion_args: [:after, nil]
       step :b, wirings: DslBuilderTest.FIXME___DEFAULT_WIRINGS, #adds_insertion_args: [:after, nil],
         magnetic_to: :failure
-      step :c, wirings: wirings_for_terminus#, adds_insertion_args: [:after, nil]
+      step :c, wirings: MyTest.wirings_for_terminus#, adds_insertion_args: [:after, nil]
 
       extend T.def_steps(:a, :b, :c) # FIXME: include is not possible here!
     end

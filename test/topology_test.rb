@@ -28,6 +28,8 @@ class TopologyTest < Minitest::Spec
 
   it "#step computes {:id} for a step" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+
       step :b,# i am a terminus.
         exec_context: new,
         wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
@@ -40,6 +42,8 @@ class TopologyTest < Minitest::Spec
 
   it "#step accepts {:id}" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+
       step :b,# i am a terminus.
         id: :terminus_success, exec_context: new,
         wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
@@ -52,6 +56,8 @@ class TopologyTest < Minitest::Spec
 
   it "#step raises error with {:id} already used" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+
       step :b,# i am a terminus.
         id: :b, exec_context: new,
         wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
@@ -66,6 +72,8 @@ class TopologyTest < Minitest::Spec
 
   it "#step accepts {:magnetic_to}" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+
       step :b,# i am a terminus.
         id: :b, exec_context: new,
         wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
@@ -110,6 +118,8 @@ class TopologyTest < Minitest::Spec
     ]
 
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+
       step :a, # i am a terminus.
         exec_context: my_exec_context,
         wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Forward.new(:success)},
@@ -121,9 +131,30 @@ class TopologyTest < Minitest::Spec
     assert_run my_topology.to_h[:circuit], seq: [:a], terminus: new_terminus
   end
 
+  it "TODO: empty Topology has an empty Activity?" do
+
+  end
+
+  def self.my_options_for_builder
+    normalizers = {
+      step: Trailblazer::Activity::DSL::Normalizer::Step
+    }
+
+    {
+      normalizers: normalizers,
+        # sequence: Trailblazer::Activity::DSL::Sequence.new
+      default_options: {
+        step: {}
+      }
+    }
+  end
+
   it "provides #step" do
     success = nil
+
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+
       step task: success = Trailblazer::Activity::Terminus::Success.new(semantic: :success), id: :"task_wrap.End.success", magnetic_to: :success,
         adds_insertion_args: [:after],
         wirings: {Trailblazer::Activity::Output.new(success, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new}
@@ -137,8 +168,6 @@ class TopologyTest < Minitest::Spec
     # pp my_topology.to_h[:circuit]
 
     my_topology_node = Trailblazer::Circuit::Node[:create, my_topology.to_h[:circuit], Trailblazer::Circuit::Processor]
-
-    pp my_topology_node
 
     lib_ctx, flow_options, signal = Trailblazer::Circuit::Node::Runner.(
       my_topology_node,
@@ -159,6 +188,8 @@ class TopologyTest < Minitest::Spec
   it "inheritance doesn't bleed into parents" do
     success = nil
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+
       step task: success = Trailblazer::Activity::Terminus::Success.new(semantic: :success), id: :"task_wrap.End.success",
          wirings: {Trailblazer::Activity::Output.new(success, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
         adds_insertion_args: [:after]
@@ -183,48 +214,38 @@ class TopologyTest < Minitest::Spec
   end
 
   it "we can compile the Circuit only once" do
-    my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
-      step :a, id: :a, exec_context: nil, adds_insertion_args: [:before], wirings: {}
-      step :b, id: :b, exec_context: nil, adds_insertion_args: [:before], wirings: TopologyTest.FIXME___DEFAULT_WIRINGS
-    end
-
-    class MyConfig < Struct.new(:config, :activity_count)
-      def activity=(value)
-        self.activity_count += 1
-
-        config.activity = value
-      end
-
-      def activity; config.activity end
-
-      def sequence; config.sequence end
-      def sequence=(value); config.sequence=(value) end
-      def normalizer; config.normalizer end
-    end
-
     require "trailblazer/activity/finalize"
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
       # DISCUSS: is extend the only way? can we use something like another pipe?
       extend Trailblazer::Activity::Finalize # DISCUSS: Feature::Finalize, or where would that go?
+      config.builder = Trailblazer::Activity::Finalize::Builder.new(**TopologyTest.my_options_for_builder)
 
-      @my_config = MyConfig.new(config, 0)
-      def self.config
-        @my_config
+      config.builder.instance_eval do
+        def compile_activity
+          @compiled = true
+          super
+        end
       end
 
-      step :a, id: :a, exec_context: nil, adds_insertion_args: [:before], wirings: {}
-      step :b, id: :b, exec_context: nil, adds_insertion_args: [:before], wirings: TopologyTest.FIXME___DEFAULT_WIRINGS
+      step :a, id: :a, exec_context: self.new, adds_insertion_args: [:before], wirings: MyTest.wirings_for_terminus
+      step :b, id: :b, exec_context: self.new, adds_insertion_args: [:before], wirings: TopologyTest.FIXME___DEFAULT_WIRINGS
+
+      include T.def_steps(:a, :b)
     end
+
+    assert_nil my_topology.config.builder.instance_variable_get(:@compiled)
+    assert_equal my_topology.config.activity, nil
 
     my_topology.finalize
 
-    assert_equal my_topology.config.activity_count, 1
-
+    assert_equal my_topology.config.builder.instance_variable_get(:@compiled), true
     # my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
     #   wiring do
     #     step :a
     #     step :b
     #   end # => this would allow compiling once
     # end
+
+    assert_run my_topology.to_h[:circuit], seq: [:b, :a], terminus: Trailblazer::Activity::Right
   end
 end
