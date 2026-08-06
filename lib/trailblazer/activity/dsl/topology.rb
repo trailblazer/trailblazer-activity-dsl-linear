@@ -7,13 +7,9 @@ module Trailblazer
       # NOTE: This used to be named Strategy.
       class Topology
         extend Dry::Configurable
-        # setting :sequence
-        setting :activity
 
         setting :builder # this keeps the Sequence instance.
-        # setting :normalizer # fixme: remove
-
-        # config.sequence = Sequence.new
+        setting :activity
 
         extend DSL::Step
 

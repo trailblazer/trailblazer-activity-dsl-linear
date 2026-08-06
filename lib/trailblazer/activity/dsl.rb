@@ -6,7 +6,7 @@ module Trailblazer
     module DSL
       module Step
         def step(user_provider = nil, **options) # FIXME: separate module!
-          activity, sequence = config.builder.() { step user_provider, **options }
+          activity, _sequence = config.builder.() { step user_provider, **options }
 
           self.config.activity = activity
         end
@@ -27,7 +27,7 @@ module Trailblazer
       end
 
       def self.id_for_terminus(semantic:, **)
-        "End.#{semantic}" # TODO: use everywhere
+        "End.#{semantic}" # TODO: use everywhere # FIXME: symbol
       end
     end # DSL
   end
@@ -50,6 +50,7 @@ require "trailblazer/activity/dsl/feature/output_tuples"
 require "trailblazer/activity/dsl/feature/output_tuples/helper"
 require "trailblazer/activity/dsl/feature/output_tuples/normalizer"
 
+require "trailblazer/activity/path"
 
 # TODO: introduce normalizer patching.
 # step_normalizer = Trailblazer::Activity::DSL::Topology.config.normalizer.fetch(:step)
