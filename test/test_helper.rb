@@ -21,8 +21,8 @@ end
 module MyTest
   MySuccess = Trailblazer::Activity::Terminus::Success.new(semantic: :success)
 
-  def self.wirings_for_terminus
-    {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new()}
+  def self.wirings_for_terminus(signal: Trailblazer::Activity::Right)
+    {Trailblazer::Activity::Output.new(signal, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new()}
   end
 
   def self.options_for_mock_terminus(task: MySuccess, semantic: :success)

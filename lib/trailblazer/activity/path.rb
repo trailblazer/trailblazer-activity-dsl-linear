@@ -1,5 +1,32 @@
 module Trailblazer
   class Activity
+    def self.Path(track_name: :success, &block)
+      builder = DSL::Builder.new(
+        normalizers: {
+          step: DSL::Normalizer::Step, # DISCUSS: make this {DSL::Topology::Normalizer}?
+        },
+        default_options: {
+          step: {
+            magnetic_to: track_name,
+            # FIXME/TODO: outgoing wiring default?
+          },
+        }
+      )
+
+      options_for_terminus = {
+        task:        success_terminus = Trailblazer::Activity::Terminus::Success.new(semantic: track_name),
+        wirings:     Path.wirings_for_terminus(signal: success_terminus, semantic: track_name),
+        id:          DSL.id_for_terminus(semantic: track_name),
+        magnetic_to: track_name
+      }
+
+      activity, _ = builder.() do
+        step **options_for_terminus
+      end
+
+      return activity
+    end
+
     class Path < DSL::Topology
       def self.wirings_for_terminus(signal:, semantic:)
         {
@@ -7,30 +34,8 @@ module Trailblazer
         }
       end
 
-      builder = DSL::Builder.new(
-        normalizers: {
-          step: DSL::Normalizer::Step, # DISCUSS: make this {DSL::Topology::Normalizer}?
-        },
-        default_options: {
-          step: {
-            magnetic_to: :success,
-            # FIXME/TODO: outgoing wiring default?
-          },
-        }
-      )
 
-      options_for_terminus = {
-        task:        success_terminus = Trailblazer::Activity::Terminus::Success.new(semantic: :success),
-        wirings:     wirings_for_terminus(signal: success_terminus, semantic: :success),
-        id:          DSL.id_for_terminus(semantic: :success),
-        magnetic_to: :success
-      }
-
-      activity, _ = builder.() do
-        step **options_for_terminus
-      end
-
-      config.activity = activity
+      config.activity = Activity.Path()
     end # Path
   end
 end
