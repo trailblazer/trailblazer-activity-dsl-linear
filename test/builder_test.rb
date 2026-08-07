@@ -15,9 +15,10 @@ class DslBuilderTest < Minitest::Spec
 
     {
       normalizers: normalizers,
-        # sequence: Trailblazer::Activity::DSL::Sequence.new
       default_options: {
-        step: {}
+        step: {
+          exec_context: T.def_steps(:a, :b),
+        }
       }
     }
   end
@@ -26,8 +27,6 @@ class DslBuilderTest < Minitest::Spec
     my_block = -> do
       step :a, wirings: DslBuilderTest.FIXME___DEFAULT_WIRINGS, adds_insertion_args: [:after, nil]
       step :b, wirings: DslBuilderTest.FIXME___DEFAULT_WIRINGS, adds_insertion_args: [:after, nil]
-
-      extend T.def_steps(:a, :b) # FIXME: include is not possible here!
     end
 
     builder = Trailblazer::Activity::DSL::Builder.new(**my_options)
@@ -83,8 +82,6 @@ class DslBuilderTest < Minitest::Spec
       step :b, wirings: DslBuilderTest.FIXME___DEFAULT_WIRINGS, #adds_insertion_args: [:after, nil],
         magnetic_to: :failure
       step :c, wirings: MyTest.wirings_for_terminus#, adds_insertion_args: [:after, nil]
-
-      extend T.def_steps(:a, :b, :c) # FIXME: include is not possible here!
     end
 
     normalizers = {
@@ -100,7 +97,9 @@ class DslBuilderTest < Minitest::Spec
         step: {
           magnetic_to: :purple,
 
-          adds_insertion_args: [:after, nil]
+          adds_insertion_args: [:after, nil],
+
+          exec_context: T.def_steps(:a, :b, :c)
         }
       }
     )

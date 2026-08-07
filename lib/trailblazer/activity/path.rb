@@ -1,6 +1,6 @@
 module Trailblazer
   class Activity
-    def self.Path(track_name: :success, &block)
+    def self.Path(track_name: :success, **options, &block) # FIXME: test {options}.
       builder = DSL::Builder.new(
         normalizers: {
           step: DSL::Normalizer::Step, # DISCUSS: make this {DSL::Topology::Normalizer}?
@@ -11,6 +11,8 @@ module Trailblazer
             # FIXME/TODO: outgoing wiring default?
             track_name: track_name,
             outputs: {},
+
+            # **options
           },
         }
       )

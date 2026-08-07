@@ -42,6 +42,7 @@ module Trailblazer
         end
 
         def self.compile_adds_for_sequence(ctx, flow_options, _, id:, sequence_row:, adds_insertion_args:, adds_for_sequence: [], **)
+          # puts "@@@@@ #{adds_insertion_args.inspect}"
           adds_for_sequence = [
             [id, sequence_row, *adds_insertion_args], # this is the actual row representing the step we're compiling here.
             *adds_for_sequence
@@ -50,7 +51,7 @@ module Trailblazer
           return ctx.merge(adds_for_sequence: adds_for_sequence), flow_options
         end
 
-        DEFAULT_ADDS_INSERTION_ARGS = [:before, :"task_wrap.End.success"]
+        DEFAULT_ADDS_INSERTION_ARGS = [:before, :"End.success"]
 
         def self.normalize_adds_insertion_args(ctx, flow_options, _, adds_insertion_args: DEFAULT_ADDS_INSERTION_ARGS, **)
           return ctx.merge(adds_insertion_args: adds_insertion_args), flow_options

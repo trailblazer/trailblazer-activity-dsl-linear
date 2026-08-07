@@ -1,14 +1,6 @@
 module Trailblazer
   class Activity # DISCUSS: the Activity class is defined in the activity gem and already got some {setting} directives.
 
-    # module Compile # NOTE: this code is unrelated to DSL and *how* the sequence was built.
-    #   def self.compile_activity!(config)
-    #     activity = DSL::Sequence::Compiler.(config.sequence)
-
-    #     config.activity = activity
-    #   end
-    # end
-
     module DSL
       # The point of Builder is: encapsulating how to produce a Sequence from a DSL block.
       # DISCUSS: not sure if it should always produce an Activity, though, or run the Compiler.
@@ -47,7 +39,6 @@ module Trailblazer
             DSL.add_to_sequence(self.sequence, self.normalizers[:step],
 
               user_provider,
-              exec_context: self, # DISCUSS: where do we need this?
               **self.default_options[:step], # these are settings such as {magnetic_to:}, settable per builder.
               **options
             ) # TODO: add {type: :step}

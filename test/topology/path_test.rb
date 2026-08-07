@@ -45,6 +45,10 @@ class TopologyPathTest < Minitest::Spec
     my_path = Class.new(Trailblazer::Activity::Path) do
       config.builder.normalizers = normalizers # FIXME: this must be done in a neat way!
 
+      config.builder = config.builder.clone
+      default_options_for_step = config.builder.default_options[:step].merge(exec_context: new.freeze) # TODO: do this when inheriting?
+      config.builder[:default_options][:step] = default_options_for_step
+
       step :a
       step :b
 
