@@ -9,6 +9,8 @@ module Trailblazer
           step: {
             magnetic_to: track_name,
             # FIXME/TODO: outgoing wiring default?
+            track_name: track_name,
+            outputs: {},
           },
         }
       )
@@ -24,7 +26,7 @@ module Trailblazer
         step **options_for_terminus
       end
 
-      return activity
+      return activity, builder
     end
 
     class Path < DSL::Topology
@@ -34,8 +36,33 @@ module Trailblazer
         }
       end
 
+      config.activity, config.builder = Activity.Path() # Activity::Path is just a simple, pre-configured frontend.
 
-      config.activity = Activity.Path()
+      module Normalizer
+        module_function
+
+        def normalize_magnetic_to(ctx, flow_options, _, track_name:, magnetic_to: track_name, **)
+          return ctx.merge(magnetic_to: magnetic_to), flow_options
+        end
+
+        def add_success_connector(ctx, flow_options, _, track_name:, **)
+          helper = DSL::Feature::OutputTuples::Helper
+
+          connectors = {
+            helper.Output(:success, signal: Right) => helper.Track(track_name)
+          }
+
+          return connectors.merge(ctx), flow_options
+        end
+
+        circuit = Circuit::Builder.Circuit(
+          [:normalize_magnetic_to, method(:normalize_magnetic_to)],
+          [:add_success_connector, method(:add_success_connector)],
+        )
+
+        Node = Circuit::Node[:bla_FIXME, circuit, Circuit::Processor]
+      end # Normalizer
+
     end # Path
   end
 end
@@ -77,19 +104,6 @@ end
 #           return ctx, flow_options
 #         end
 
-#         def add_success_connector(ctx, flow_options, _, track_name:, **)
-#           connectors = {Linear::Normalizer::OutputTuples.Output(:success) => Linear::Strategy.Track(track_name)}
-
-#           ctx = connectors.merge(ctx)
-
-#           return ctx, flow_options
-#         end
-
-#         def normalize_magnetic_to(ctx, flow_options, _, track_name:, **) # TODO: merge with Railway.merge_magnetic_to
-#           ctx = ctx.merge(magnetic_to: ctx.key?(:magnetic_to) ? ctx[:magnetic_to] : track_name) # FIXME: can we be magnetic_to {nil}?
-
-#           return ctx, flow_options
-#         end
 
 #         # This is slow and should be done only once at compile-time,
 #         # These are the normalizers for an {Activity}, to be injected into a State.

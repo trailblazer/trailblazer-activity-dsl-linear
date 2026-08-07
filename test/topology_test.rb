@@ -136,12 +136,10 @@ class TopologyTest < Minitest::Spec
   end
 
   def self.my_options_for_builder
-    normalizers = {
-      step: Trailblazer::Activity::DSL::Normalizer::Step
-    }
-
     {
-      normalizers: normalizers,
+      normalizers: {
+        step: Trailblazer::Activity::DSL::Normalizer::Step,
+      },
         # sequence: Trailblazer::Activity::DSL::Sequence.new
       default_options: {
         step: {}
@@ -155,7 +153,7 @@ class TopologyTest < Minitest::Spec
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
       self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
 
-      step task: success = Trailblazer::Activity::Terminus::Success.new(semantic: :success), id: :"task_wrap.End.success", magnetic_to: :success,
+      step task: success = Trailblazer::Activity::Terminus::Success.new(semantic: :success), id: :"End.success", magnetic_to: :success,
         adds_insertion_args: [:after],
         wirings: {Trailblazer::Activity::Output.new(success, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new}
 
@@ -190,7 +188,7 @@ class TopologyTest < Minitest::Spec
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
       self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
 
-      step task: success = Trailblazer::Activity::Terminus::Success.new(semantic: :success), id: :"task_wrap.End.success",
+      step task: success = Trailblazer::Activity::Terminus::Success.new(semantic: :success), id: :"End.success",
          wirings: {Trailblazer::Activity::Output.new(success, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
         adds_insertion_args: [:after]
 

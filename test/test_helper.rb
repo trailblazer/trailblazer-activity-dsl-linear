@@ -28,7 +28,7 @@ module MyTest
   def self.options_for_mock_terminus(task: MySuccess, semantic: :success)
     {
       task: task,
-      id: :"task_wrap.End.#{semantic}",
+      id: :"End.#{semantic}",
       magnetic_to: semantic,
       adds_insertion_args: [:after],
       wirings: {Trailblazer::Activity::Output.new(task, semantic) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},

@@ -36,9 +36,7 @@ module Trailblazer
                 sequence = ctx[:sequence]
 
                 end_id     = DSL.id_for_terminus(semantic: semantic)
-                id_for_terminus_task_wrap = :"task_wrap.#{end_id}" # TODO: implement that in Activity.
-
-                end_exists = sequence.find { |id, row| id == id_for_terminus_task_wrap }
+                end_exists = sequence.find { |id, row| id == end_id }
 
                 adds = []
 
@@ -47,21 +45,21 @@ module Trailblazer
 
                   row_for_sequence = Sequence::Row.new(
                     magnetic_to: semantic,
-                    node: Circuit::Node[id_for_terminus_task_wrap, new_terminus, Circuit::Task::Adapter::LibInterface],
+                    node: Circuit::Node[end_id, new_terminus, Circuit::Task::Adapter::LibInterface],
                     wirings: {Activity::Output.new(new_terminus, semantic) => Sequence::Search::Nil.new}, # DISCUSS: redundant with #options_for_mock_terminus.
-                    data: {id: id_for_terminus_task_wrap},
+                    data: {id: end_id},
                   )
 
                   adds = [
                     [
-                      id_for_terminus_task_wrap,
+                      end_id,
                       row_for_sequence,
                       :after
                     ]
                   ]
                 end
 
-                return Sequence::Search::ById.new(id_for_terminus_task_wrap), adds
+                return Sequence::Search::ById.new(end_id), adds
               end
             end
           end

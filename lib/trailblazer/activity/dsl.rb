@@ -27,7 +27,7 @@ module Trailblazer
       end
 
       def self.id_for_terminus(semantic:, **)
-        "End.#{semantic}" # TODO: use everywhere # FIXME: symbol
+        :"End.#{semantic}" # TODO: use everywhere
       end
     end # DSL
   end
