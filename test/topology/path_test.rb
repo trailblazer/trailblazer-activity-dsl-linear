@@ -16,35 +16,8 @@ class TopologyPathTest < Minitest::Spec
   end
 
   it "step can return Right" do
-    canonical_normalizer_for_step = Trailblazer::Activity::DSL::Normalizer::Step
-
-    # add the Output() feature:
-    extended_canonical_normalizer_for_step = Trailblazer::Circuit::Adds.(
-      canonical_normalizer_for_step,
-      [
-        :normalize_wirings, Trailblazer::Activity::DSL::Feature::OutputTuples::Normalizer::Node,
-        :before, :build_sequence_row
-      ],
-    )
-
-    # add Path specific behavior:
-    extended_canonical_normalizer_for_step = Trailblazer::Circuit::Adds.(
-      extended_canonical_normalizer_for_step,
-      [
-        :add_path_options, Trailblazer::Activity::Path::Normalizer::Node,
-        :before, :normalize_wirings # we're dependent on {OutputTuples}!
-      ],
-    )
-
-    normalizers = {
-      # step: Trailblazer::Activity::DSL::Normalizer::Step
-      step: extended_canonical_normalizer_for_step,
-    }
-
 
     my_path = Class.new(Trailblazer::Activity::Path) do
-      config.builder.normalizers = normalizers # FIXME: this must be done in a neat way!
-
       config.builder = config.builder.clone(merge: {exec_context: new.freeze})
 
       step :a

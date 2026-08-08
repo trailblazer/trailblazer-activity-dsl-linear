@@ -1,10 +1,8 @@
 module Trailblazer
   class Activity
-    def self.Path(track_name: :success, **options, &block) # FIXME: test {options}.
+    def self.Path(track_name: :success, normalizers: {step: Path::Normalizer::Step}, **options, &block) # FIXME: test {options}.
       builder = DSL::Builder.new(
-        normalizers: {
-          step: DSL::Normalizer::Step, # DISCUSS: make this {DSL::Topology::Normalizer}?
-        },
+        normalizers: normalizers,
         default_options: {
           step: {
             magnetic_to: track_name,
@@ -38,8 +36,6 @@ module Trailblazer
         }
       end
 
-      config.activity, config.builder = Activity.Path() # Activity::Path is just a simple, pre-configured frontend.
-
       module Normalizer
         module_function
 
@@ -63,8 +59,35 @@ module Trailblazer
         )
 
         Node = Circuit::Node[:bla_FIXME, circuit, Circuit::Processor]
+
+
+
+
+
+        # DISCUSS: needs to be global constant so other topologies can use it?
+        Step = DSL::Normalizer::Step # canonical normalizer for Path's #step.
+
+        # add the Output() feature:
+        # FIXME: move to somewhere else, in dsl.rb.
+        Step = Circuit::Adds.(
+          Step,
+          [
+            :normalize_wirings, DSL::Feature::OutputTuples::Normalizer::Node,
+            :before, :build_sequence_row
+          ],
+        )
+
+        # add Path specific behavior:
+        Step = Circuit::Adds.(
+          Step,
+          [
+            :add_path_options, Node,
+            :before, :normalize_wirings # we're dependent on {OutputTuples}!
+          ],
+        )
       end # Normalizer
 
+      config.activity, config.builder = Activity.Path() # Activity::Path is just a simple, pre-configured frontend.
     end # Path
   end
 end
