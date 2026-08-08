@@ -52,7 +52,6 @@ module Trailblazer
 
         # @private
         def alter_sequence(sequence, normalizers, user_provider, **options)
-          # here, we can inject an :exec_context that keeps configuration.
           adds_for_sequence = Normalizer.(normalizers, :step, user_provider,
             **options,
             sequence: sequence # TODO: explicitely test that we pass {:sequence}.
@@ -62,6 +61,13 @@ module Trailblazer
             sequence,
             *adds_for_sequence
           )
+        end
+
+        def clone(merge:)
+          builder = super()
+          builder.default_options = builder.default_options.collect { |k,v| [k, v.merge(merge)] }.to_h
+
+          return builder
         end
       end
     end

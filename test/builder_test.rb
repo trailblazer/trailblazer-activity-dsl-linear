@@ -110,4 +110,32 @@ class DslBuilderTest < Minitest::Spec
 
     assert_equal sequence.nodes.keys, [:a, :b, :c]
   end
+
+  it "{#clone} accepts {:merge} that merges to all {:default_options} subkeys (:step, etc)" do
+    my_builder = Trailblazer::Activity::DSL::Builder.new(
+      normalizers: {step: Object},
+      default_options: {
+        step: {
+          magnetic_to: :purple,
+        },
+        fail: {
+          magnetic_to: :failure
+        }
+      }
+    )
+
+    my_builder_clone = my_builder.clone(merge: {exec_context: Module})
+
+    assert_equal my_builder.default_options,
+      {
+        step: {magnetic_to: :purple},
+        fail: {magnetic_to: :failure}
+      }
+
+    assert_equal my_builder_clone.default_options,
+      {
+        step: {magnetic_to: :purple, exec_context: Module},
+        fail: {magnetic_to: :failure, exec_context: Module}
+      }
+  end
 end
