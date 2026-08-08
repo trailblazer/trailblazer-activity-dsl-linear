@@ -35,18 +35,33 @@ module Trailblazer
 
         # NOTE: we only update sequence here, compiling is the job of the caller.
         def step!(user_provider = nil, **options) # TODO: make generic
-          self.sequence =
-            DSL.add_to_sequence(self.sequence, self.normalizers[:step],
+          self.sequence = alter_sequence(
+            self.sequence,
+            self.normalizers[:step],
 
-              user_provider,
-              **self.default_options[:step], # these are settings such as {magnetic_to:}, settable per builder.
-              **options
-            ) # TODO: add {type: :step}
+            user_provider,
+            **self.default_options[:step], # these are settings such as {magnetic_to:}, settable per builder.
+            **options
+          ) # TODO: add {type: :step}
         end
 
         # TODO: generate from configuration
         def step(*args, **options, &block)
           step!(*args, **options, &block)
+        end
+
+        # @private
+        def alter_sequence(sequence, normalizers, user_provider, **options)
+          # here, we can inject an :exec_context that keeps configuration.
+          adds_for_sequence = Normalizer.(normalizers, :step, user_provider,
+            **options,
+            sequence: sequence # TODO: explicitely test that we pass {:sequence}.
+          )
+
+          sequence = Circuit::Adds.(
+            sequence,
+            *adds_for_sequence
+          )
         end
       end
     end

@@ -12,20 +12,6 @@ module Trailblazer
         end
       end # Step
 
-      # DISCUSS: use {config}, make it class method???
-      def self.add_to_sequence(sequence, normalizers, user_provider, **options)
-        # here, we can inject an :exec_context that keeps configuration.
-        adds_for_sequence = DSL::Normalizer.(normalizers, :step, user_provider,
-          **options,
-          sequence: sequence # TODO: explicitely test that we pass {:sequence}.
-        )
-
-        sequence = Circuit::Adds.(
-          sequence,
-          *adds_for_sequence
-        )
-      end
-
       def self.id_for_terminus(semantic:, **)
         :"End.#{semantic}" # TODO: use everywhere
       end
