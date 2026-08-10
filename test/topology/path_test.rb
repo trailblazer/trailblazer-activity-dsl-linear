@@ -16,9 +16,8 @@ class TopologyPathTest < Minitest::Spec
   end
 
   it "step can return Right" do
-
     my_path = Class.new(Trailblazer::Activity::Path) do
-      config.builder = config.builder.clone(merge: {exec_context: new.freeze})
+      # config.builder = config.builder.clone(merge: {exec_context: new.freeze}) # done via {Topology.inherited}.
 
       step :a
       step :b

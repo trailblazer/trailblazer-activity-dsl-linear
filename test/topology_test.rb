@@ -183,6 +183,16 @@ class TopologyTest < Minitest::Spec
       use_application_ctx: false # FIXME
   end
 
+  it "empty builder is present with {:exec_context} set (because of {#inherited} hook)" do
+    my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      config.builder = Trailblazer::Activity::DSL::Builder.new(default_options: {step: {}})
+    end
+
+    my_topology_subclass = Class.new(my_topology)
+
+    assert_equal my_topology_subclass.config.builder.default_options[:step][:exec_context].class, my_topology_subclass
+  end
+
   it "inheritance doesn't bleed into parents" do
     success = nil
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do

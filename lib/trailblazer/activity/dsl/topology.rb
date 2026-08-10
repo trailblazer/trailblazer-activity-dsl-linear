@@ -19,6 +19,14 @@ module Trailblazer
             outputs: config.activity.outputs # TODO: test me.
           }
         end
+
+        def self.inherited(subclass)
+          super
+          # raise subclass.inspect
+          subclass.config.builder = config.builder.clone(merge: {exec_context: subclass.new.freeze})
+        end
+
+        config.builder = Builder.new(default_options: {})
       end
     end # DSL
   end
