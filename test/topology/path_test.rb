@@ -26,6 +26,8 @@ class TopologyPathTest < Minitest::Spec
     end
 
     assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [:a, :b]
+
+    assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [1, :a, :b], target_ctx: {seq: [1], a: Trailblazer::Activity::Left}
   end
 
   it "step can return Left" do
