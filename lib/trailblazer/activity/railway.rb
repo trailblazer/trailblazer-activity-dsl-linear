@@ -25,20 +25,6 @@ module Trailblazer
         }
       )
 
-      options_for_terminus = { # TODO: get from Path.
-        task:        success_terminus = Trailblazer::Activity::Terminus::Success.new(semantic: track_name),
-        wirings:     Path.wirings_for_terminus(signal: success_terminus, semantic: track_name),
-        id:          DSL.id_for_terminus(semantic: track_name),
-        magnetic_to: track_name
-      }
-
-      options_for_failure_terminus = {
-        task:        failure_terminus = Trailblazer::Activity::Terminus::Failure.new(semantic: :failure),
-        wirings:     Path.wirings_for_terminus(signal: failure_terminus, semantic: :failure),
-        id:          DSL.id_for_terminus(semantic: :failure),
-        magnetic_to: :failure
-      }
-
       activity, _ = builder.() do
         step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success)
         step **DSL.options_for_terminus_step(semantic: :failure, terminus_class: Terminus::Failure),
