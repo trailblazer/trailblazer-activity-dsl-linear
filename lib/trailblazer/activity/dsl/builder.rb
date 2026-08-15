@@ -54,6 +54,10 @@ module Trailblazer
           step!(:left, *args, **options, &block)
         end
 
+        def pass(*args, **options, &block)
+          step!(:pass, *args, **options, &block)
+        end
+
         # @private
         def alter_sequence(sequence, normalizers, user_provider, **options)
           adds_for_sequence = Normalizer.(normalizers, :step, user_provider,

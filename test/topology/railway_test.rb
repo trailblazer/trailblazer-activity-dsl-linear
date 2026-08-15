@@ -40,4 +40,22 @@ class TopologyRailwayTest < Minitest::Spec
     # {#b} --> Left
     assert_run my_railway.to_h[:circuit], seq: [1, :a, :b, :c], terminus: my_railway.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], a: false, b: false}
   end
+
+  it "#pass" do
+    my_railway = Class.new(Trailblazer::Activity::Railway) do
+      pass :a
+      step :b
+      left :c
+      # pp config.builder.sequence
+      include T.def_steps(:a, :b, :c, :d)
+    end
+
+    # {#a} --> Right
+    assert_run my_railway.to_h[:circuit], seq: [:a, :b], terminus: my_railway.to_h[:outputs].fetch(:success).signal
+    # {#a} --> Left
+    assert_run my_railway.to_h[:circuit], seq: [:a, :b], terminus: my_railway.to_h[:outputs].fetch(:success).signal
+
+    # {#b} --> Left
+    assert_run my_railway.to_h[:circuit], seq: [1, :a, :b, :c], terminus: my_railway.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], b: false}
+  end
 end

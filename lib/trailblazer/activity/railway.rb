@@ -19,6 +19,7 @@ module Trailblazer
           pass: {
             magnetic_to: track_name,
             track_name: track_name,
+            failure_track_name: track_name,
             outputs: {}
           }
         }
@@ -48,6 +49,7 @@ module Trailblazer
 
     class Railway < DSL::Topology
       extend DSL::Left
+      extend DSL::Pass
 
       module Normalizer
         # normalizer_for_fail = Circuit::Builder.Circuit(
@@ -62,7 +64,7 @@ module Trailblazer
       NORMALIZERS = {
         step: Path::Normalizer::Step,
         left: Path::Normalizer::Step,
-        # pass: Railway::Normalizer::Step
+        pass: Path::Normalizer::Step
       }.freeze
 
 
