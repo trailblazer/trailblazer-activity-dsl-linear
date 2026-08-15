@@ -31,6 +31,21 @@ module Trailblazer
       def self.id_for_terminus(semantic:, **)
         :"End.#{semantic}" # TODO: use everywhere
       end
+
+      def self.options_for_terminus_step(semantic:, terminus_class: Terminus::Success)
+        {
+          task:        terminus = terminus_class.new(semantic: semantic),
+          wirings:     wirings_for_terminus(signal: terminus, semantic: semantic),
+          id:          DSL.id_for_terminus(semantic: semantic),
+          magnetic_to: semantic
+        }
+      end
+
+      def self.wirings_for_terminus(signal:, semantic:)
+        {
+          Output.new(signal, semantic) => DSL::Sequence::Search::Nil.new
+        }
+      end
     end # DSL
   end
 end
