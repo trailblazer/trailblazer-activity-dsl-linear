@@ -7,6 +7,7 @@ module Trailblazer
           step: {
             magnetic_to:        track_name,
             track_name:         track_name,
+            failure_track_name: track_name,
             outputs: {},
 
             # **options
@@ -42,22 +43,14 @@ module Trailblazer
           return ctx.merge(magnetic_to: magnetic_to), flow_options
         end
 
-        def add_success_connector(ctx, flow_options, _, connector_semantic:, connector_signal:, track_name:, **)
-          helper = DSL::Feature::OutputTuples::Helper
-
-          connectors = {
-            helper.Output(connector_semantic, signal: connector_signal) => helper.Track(track_name)
-          }
-
-          return connectors.merge(ctx), flow_options
-        end
-
-        class AddConnection < Struct.new(:semantic, :signal)
-          def call(ctx, flow_options, _, track_name:, **)
+        # variable_name_for_track_name is so we don't have to build a new circuit if a track_name changes.
+        class AddConnection < Struct.new(:semantic, :signal, :variable_name_for_track_name)
+          def call(ctx, flow_options, _, **)
             helper = DSL::Feature::OutputTuples::Helper
 
+# puts "@@@@@ #{track_name.inspect}"
             connectors = {
-              helper.Output(semantic, signal: signal) => helper.Track(track_name) # Translates to Output(:success, Right) => Track(:success)
+              helper.Output(semantic, signal: signal) => helper.Track(ctx[variable_name_for_track_name]) # Translates to Output(:success, Right) => Track(:success)
             }
 
             return connectors.merge(ctx), flow_options
@@ -67,9 +60,9 @@ module Trailblazer
         circuit = Circuit::Builder.Circuit(
           [:normalize_magnetic_to, method(:normalize_magnetic_to)],
           # [:add_success_connector, method(:add_success_connector)],
-          [:add_success_connector, AddConnection.new(:success, Right)],
+          [:add_success_connector, AddConnection.new(:success, Right, :track_name)],
           # [:add_failure_connector, method(:add_success_connector), merge_to_lib_ctx: {connector_signal: Left, connector_semantic: :failure}],
-          [:add_failure_connector, AddConnection.new(:failure, Left)],
+          [:add_failure_connector, AddConnection.new(:failure, Left, :failure_track_name)],
         )
 
         Node = Circuit::Node[:bla_FIXME, circuit, Circuit::Processor]

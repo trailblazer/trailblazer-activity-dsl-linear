@@ -4,13 +4,29 @@ require "dry/configurable"
 module Trailblazer
   class Activity # DISCUSS: the Activity class is defined in the activity gem and already got some {setting} directives.
     module DSL
-      module Step
-        def step(user_provider = nil, **options) # FIXME: separate module!
-          activity, _sequence = config.builder.() { step user_provider, **options }
+      def forward_to_builder!(normalizer_name, user_provider = nil, **options) # FIXME: separate module!
+        activity, _sequence = config.builder.() { send(normalizer_name, user_provider, **options) }
 
-          self.config.activity = activity
+        self.config.activity = activity
+      end
+
+      module Step
+        def step(*args, **options)
+          forward_to_builder!(:step, *args, **options)
         end
       end # Step
+
+      module Left
+        def left(*args, **options)
+          forward_to_builder!(:left, *args, **options)
+        end
+      end
+
+      module Pass
+        def pass(*args, **options)
+          forward_to_builder!(:pass, *args, **options)
+        end
+      end
 
       def self.id_for_terminus(semantic:, **)
         :"End.#{semantic}" # TODO: use everywhere
@@ -37,6 +53,7 @@ require "trailblazer/activity/dsl/feature/output_tuples/helper"
 require "trailblazer/activity/dsl/feature/output_tuples/normalizer"
 
 require "trailblazer/activity/path"
+require "trailblazer/activity/railway"
 
 # TODO: introduce normalizer patching.
 # step_normalizer = Trailblazer::Activity::DSL::Topology.config.normalizer.fetch(:step)

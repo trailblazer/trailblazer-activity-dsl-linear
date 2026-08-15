@@ -15,10 +15,9 @@ class TopologyPathTest < Minitest::Spec
     assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: []
   end
 
-  it "step can return Right" do
+  it "step can return Right and Left" do
     my_path = Class.new(Trailblazer::Activity::Path) do
       # config.builder = config.builder.clone(merge: {exec_context: new.freeze}) # done via {Topology.inherited}.
-
       step :a
       step :b
 
@@ -31,6 +30,6 @@ class TopologyPathTest < Minitest::Spec
   end
 
   it "step can return Left" do
-
+    # see above
   end
 end

@@ -11,7 +11,8 @@ module Trailblazer
         setting :builder # this keeps the Sequence instance.
         setting :activity
 
-        extend DSL::Step
+        extend DSL # #forward_to_builder!
+        extend DSL::Step # #step
 
         def self.to_h
           {

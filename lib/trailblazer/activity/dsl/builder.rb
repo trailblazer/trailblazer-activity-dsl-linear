@@ -34,20 +34,24 @@ module Trailblazer
         end
 
         # NOTE: we only update sequence here, compiling is the job of the caller.
-        def step!(user_provider = nil, **options) # TODO: make generic
+        def step!(type, user_provider = nil, **options)
           self.sequence = alter_sequence(
             self.sequence,
-            self.normalizers[:step],
+            self.normalizers.fetch(type),
 
             user_provider,
-            **self.default_options[:step], # these are settings such as {magnetic_to:}, settable per builder.
+            **self.default_options.fetch(type), # these are settings such as {magnetic_to:}, settable per builder.
             **options
-          ) # TODO: add {type: :step}
+          )
         end
 
         # TODO: generate from configuration
         def step(*args, **options, &block)
-          step!(*args, **options, &block)
+          step!(:step, *args, **options, &block)
+        end
+
+        def left(*args, **options, &block)
+          step!(:left, *args, **options, &block)
         end
 
         # @private
