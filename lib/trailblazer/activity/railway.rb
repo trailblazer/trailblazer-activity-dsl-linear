@@ -8,19 +8,19 @@ module Trailblazer
             magnetic_to:        track_name,
             track_name:         track_name,
             failure_track_name: :failure,
-            outputs: {},
+            outputs: DSL::RIGHT_LEFT_OUTPUTS,
           },
           left: {
             magnetic_to: :failure,
             track_name: :failure,
             failure_track_name: :failure,
-            outputs: {}
+            outputs: DSL::RIGHT_LEFT_OUTPUTS
           },
           pass: {
             magnetic_to: track_name,
             track_name: track_name,
             failure_track_name: track_name,
-            outputs: {}
+            outputs: DSL::RIGHT_LEFT_OUTPUTS
           }
         }
       )

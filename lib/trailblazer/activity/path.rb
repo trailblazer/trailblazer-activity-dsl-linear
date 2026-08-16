@@ -8,7 +8,7 @@ module Trailblazer
             magnetic_to:        track_name,
             track_name:         track_name,
             failure_track_name: track_name,
-            outputs: {},
+            outputs: DSL::RIGHT_LEFT_OUTPUTS,
 
             # **options
           },
@@ -23,12 +23,6 @@ module Trailblazer
     end
 
     class Path < DSL::Topology
-      def self.wirings_for_terminus(signal:, semantic:)
-        {
-          Output.new(signal, semantic) => DSL::Sequence::Search::Nil.new
-        }
-      end
-
       module Normalizer
         module_function
 
@@ -43,7 +37,7 @@ module Trailblazer
 
 # puts "@@@@@ #{track_name.inspect}"
             connectors = {
-              helper.Output(semantic, signal: signal) => helper.Track(ctx[variable_name_for_track_name]) # Translates to Output(:success, Right) => Track(:success)
+              helper.Output(semantic) => helper.Track(ctx[variable_name_for_track_name]) # Translates to Output(:success, Right) => Track(:success)
             }
 
             return connectors.merge(ctx), flow_options

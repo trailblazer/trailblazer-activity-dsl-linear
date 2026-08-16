@@ -46,6 +46,11 @@ module Trailblazer
           Output.new(signal, semantic) => DSL::Sequence::Search::Nil.new
         }
       end
+
+      RIGHT_LEFT_OUTPUTS = {
+        success: Output.new(Activity::Right, :success),
+        failure: Output.new(Activity::Left, :failure),
+      }
     end # DSL
   end
 end
@@ -69,6 +74,7 @@ require "trailblazer/activity/dsl/feature/output_tuples/normalizer"
 
 require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
+require "trailblazer/activity/fast_track"
 
 # TODO: introduce normalizer patching.
 # step_normalizer = Trailblazer::Activity::DSL::Topology.config.normalizer.fetch(:step)

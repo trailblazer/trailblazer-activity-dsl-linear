@@ -32,4 +32,21 @@ class TopologyPathTest < Minitest::Spec
   it "step can return Left" do
     # see above
   end
+
+  it "we can use OutputTuples feature" do # DISCUSS: where do we want those tests?
+    my_helper = Trailblazer::Activity::DSL::Feature::OutputTuples::Helper
+
+    my_path = Class.new(Trailblazer::Activity::Path) do
+      step :a,
+        my_helper.Output(:success) => my_helper.Id(:c)
+      step :b
+      step :c
+
+      include T.def_steps(:a, :b, :c)
+    end
+
+    assert_equal my_path.to_h[:outputs].keys, [:success]
+
+    assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [:a, :c]
+  end
 end

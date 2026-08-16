@@ -155,6 +155,27 @@ class OutputTuplesTest < Minitest::Spec
     assert_run my_topology.to_h[:circuit], seq: [:a], terminus: my_finished, target_ctx: {seq: [], a: Object}
   end
 
+  it "no {:outputs}" do
+    my_exec_context = T.def_tasks(:a)
+
+    my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**OutputTuplesTest.my_options_for_builder)
+
+      step **MyTest.options_for_mock_terminus
+      # step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
+      # step **MyTest.options_for_mock_terminus(task: my_finished, semantic: :finished)
+
+      step task: my_exec_context.method(:a), id: :a,
+        MyHelper.Output(:success, signal: Trailblazer::Activity::Right) => MyHelper.Track(:success),
+
+        MyHelper.Output(:failure) => MyHelper.Track(:failure),
+        MyHelper.Output(:success) => MyHelper.Track(:success),
+        outputs: {}
+    end
+
+    assert_run my_topology.to_h[:circuit], seq: [:a], terminus: MyTest::MySuccess
+  end
+
   it "Id()" do
     my_exec_context = T.def_tasks(:a, :b)
 
