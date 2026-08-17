@@ -36,7 +36,7 @@ module Trailblazer
                 sequence = ctx[:sequence]
 
                 end_id     = DSL.id_for_terminus(semantic: semantic)
-                end_exists = sequence.find { |id, row| id == end_id }
+                end_exists = sequence.to_a.find { |id, row| id == end_id }
 
                 adds = []
 
