@@ -1,6 +1,8 @@
 require "test_helper"
 
 class TopologyFastTrackTest < Minitest::Spec
+  MyHelper = Trailblazer::Activity::DSL::Feature::OutputTuples::Helper # FIXME: remove.
+
   it "empty FastTrack" do
     my_activity = Class.new(Trailblazer::Activity::FastTrack) do
     end
@@ -68,8 +70,6 @@ class TopologyFastTrackTest < Minitest::Spec
   end
 
   it "we can reference the existing FastTrack termini" do
-    MyHelper = Trailblazer::Activity::DSL::Feature::OutputTuples::Helper
-
     my_activity = Class.new(Trailblazer::Activity::FastTrack) do
       step :a, MyHelper.Output(:success) => MyHelper.Terminus(:fail_fast)
       step :b
@@ -99,7 +99,7 @@ class TopologyFastTrackTest < Minitest::Spec
     assert_run my_activity.to_h[:circuit], seq: [1, :a], terminus: my_activity.to_h[:outputs].fetch(:pass_fast).signal, target_ctx: {seq: [1], a: false}
   end
 
-  it "#fail, fail_fast: true" do
+  it "#left, fail_fast: true" do
     my_activity = Class.new(Trailblazer::Activity::FastTrack) do
       step :a
       left :b, fail_fast: true
@@ -115,6 +115,20 @@ class TopologyFastTrackTest < Minitest::Spec
     assert_run my_activity.to_h[:circuit], seq: [1, :a, :b], terminus: my_activity.to_h[:outputs].fetch(:fail_fast).signal, target_ctx: {seq: [1], a: false}
   end
 
+  it "{#left} is alias for {#fail}" do
+    my_activity = Class.new(Trailblazer::Activity::FastTrack) do
+      step :a
+      fail :b
+
+      include T.def_steps(:a, :b)
+    end
+
+    # {#a} --> Right
+    assert_run my_activity.to_h[:circuit], seq: [:a], terminus: my_activity.to_h[:outputs].fetch(:success).signal
+    # {#b} --> Left
+    assert_run my_activity.to_h[:circuit], seq: [1, :a, :b], terminus: my_activity.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], a: false}
+  end
+
   it "#step, fast_track: true" do
     my_activity = Class.new(Trailblazer::Activity::FastTrack) do
       step :a, fast_track: true
@@ -124,7 +138,9 @@ class TopologyFastTrackTest < Minitest::Spec
       include T.def_steps(:a, :b, :c)
     end
 
+    # a --> true
     assert_run my_activity.to_h[:circuit], seq: [:a, :c], terminus: my_activity.to_h[:outputs].fetch(:success).signal, target_ctx: {seq: []}
+    # a --> false
     assert_run my_activity.to_h[:circuit], seq: [1, :a, :b], terminus: my_activity.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], a: false}
     # a --> PassFast
     assert_run my_activity.to_h[:circuit], seq: [1, :a], terminus: my_activity.to_h[:outputs].fetch(:pass_fast).signal,
@@ -141,5 +157,16 @@ class TopologyFastTrackTest < Minitest::Spec
 
   it "returning a FastTrack signal" do
   raise "also, from a ciccuit interface task"
+  end
+
+  # DISCUSS: this test is not really necessary.
+  it "without {fast_track: true} there is no {Output(:pass_fast)} for scalar task" do
+    exception = assert_raises do
+      activity = Class.new(Trailblazer::Activity::FastTrack) do
+        step :model, MyHelper.Output(:pass_fast) => MyHelper.Track(:success)
+      end
+    end
+
+    assert_equal CU.inspect(exception.message), %{No `pass_fast` output found for :model and outputs {:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>, :failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>}}
   end
 end

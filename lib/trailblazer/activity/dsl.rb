@@ -20,6 +20,8 @@ module Trailblazer
         def left(*args, **options)
           forward_to_builder!(:left, *args, **options)
         end
+
+        alias fail left
       end
 
       module Pass

@@ -41,6 +41,20 @@ class TopologyRailwayTest < Minitest::Spec
     assert_run my_railway.to_h[:circuit], seq: [1, :a, :b, :c], terminus: my_railway.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], a: false, b: false}
   end
 
+  it "{#left} is alias for {#fail}" do
+    my_activity = Class.new(Trailblazer::Activity::Railway) do
+      step :a
+      fail :b
+
+      include T.def_steps(:a, :b)
+    end
+
+    # {#a} --> Right
+    assert_run my_activity.to_h[:circuit], seq: [:a], terminus: my_activity.to_h[:outputs].fetch(:success).signal
+    # {#b} --> Left
+    assert_run my_activity.to_h[:circuit], seq: [1, :a, :b], terminus: my_activity.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], a: false}
+  end
+
   it "#pass" do
     my_railway = Class.new(Trailblazer::Activity::Railway) do
       pass :a
