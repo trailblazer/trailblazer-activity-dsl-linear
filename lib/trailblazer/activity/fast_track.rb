@@ -68,7 +68,7 @@ module Trailblazer
           [:add_fail_fast_tuple, method(:add_fail_fast_tuple)],
         )
 
-        Node = Trailblazer::Circuit::Node[:bla_FIXME, circuit, Circuit::Processor]
+        Node = Circuit::Node[:bla_FIXME, circuit, Circuit::Processor]
 
         Step = Circuit::Adds.(
           Path::Normalizer::Step,
@@ -77,12 +77,45 @@ module Trailblazer
             :before, :normalize_wirings
           ]
         )
+
+        # module Pass
+          module_function
+          def add_pass_fast_tuple_for_failure(ctx, flow_options, _, pass_fast: nil, **)
+            return ctx, flow_options unless pass_fast # FIXME: sort this out in a higher node.
+
+            return ctx.merge(Helper.Output(:failure) => Helper.Track(:pass_fast)), flow_options
+          end
+
+          def add_fail_fast_tuple_for_success(ctx, flow_options, _, fail_fast: nil, **)
+            return ctx, flow_options unless fail_fast # FIXME: sort this out in a higher node.
+
+            return ctx.merge(Helper.Output(:success) => Helper.Track(:fail_fast)), flow_options
+          end
+        # end
+
+        # DISCUSS: this could be done much cooler by adding this step to the above circuit, etc.
+        Pass = Circuit::Adds.(
+          Step,
+          [
+            :add_pass_fast_tuple_for_failure, Circuit::Node[:bla_FIXME, method(:add_pass_fast_tuple_for_failure), Circuit::Task::Adapter::LibInterface],
+            :after, :normalize_fast_track_options
+          ]
+        )
+
+        Fail = Circuit::Adds.(
+          Step,
+          [
+            :add_fail_fast_tuple_for_success, Circuit::Node[:bla_FIXME, method(:add_fail_fast_tuple_for_success), Circuit::Task::Adapter::LibInterface],
+            :after, :normalize_fast_track_options
+          ]
+        )
       end # Normalizer
+
 
       NORMALIZERS = {
         step: FastTrack::Normalizer::Step,
-        left: FastTrack::Normalizer::Step,
-        pass: FastTrack::Normalizer::Step
+        left: FastTrack::Normalizer::Fail,
+        pass: FastTrack::Normalizer::Pass
       }.freeze
 
       module Terminus
