@@ -1,32 +1,9 @@
 module Trailblazer
   class Activity
     def self.FastTrack(track_name: :success, normalizers: FastTrack::NORMALIZERS, &block)
-
-      # DISCUSS: should we reuse the Railway builder?
-
-
       builder = DSL::Builder.new(
         normalizers: normalizers,
-        default_options: { # FIXME: use from Railway!
-          step: {
-            magnetic_to:        track_name,
-            track_name:         track_name,
-            failure_track_name: :failure,
-            outputs: DSL::RIGHT_LEFT_OUTPUTS,
-          },
-          left: {
-            magnetic_to: :failure,
-            track_name: :failure,
-            failure_track_name: :failure,
-            outputs: DSL::RIGHT_LEFT_OUTPUTS
-          },
-          pass: {
-            magnetic_to: track_name,
-            track_name: track_name,
-            failure_track_name: track_name,
-            outputs: DSL::RIGHT_LEFT_OUTPUTS
-          }
-        }
+        default_options: Railway.default_options(track_name: track_name)
       )
 
       activity, _ = builder.() do
@@ -162,113 +139,5 @@ end
         #   return ctx, flow_options
         # end
 
-    #     def add_fail_fast_output(ctx, flow_options, _, outputs:, fail_fast: nil, **)
-    #       return ctx, flow_options unless fail_fast
 
-    #       ctx = ctx.merge(outputs: FAIL_FAST_OUTPUT.merge(outputs))
 
-    #       return ctx, flow_options
-    #     end
-
-    #     def add_fast_track_outputs(ctx, flow_options, _, outputs:, fast_track: nil, **)
-    #       return ctx, flow_options unless fast_track
-
-    #       ctx = ctx.merge(outputs: FAIL_FAST_OUTPUT.merge(PASS_FAST_OUTPUT).merge(outputs))
-
-    #       return ctx, flow_options
-    #     end
-
-    #     PASS_FAST_OUTPUT = {pass_fast: Activity.Output(Activity::FastTrack::PassFast, :pass_fast)}
-    #     FAIL_FAST_OUTPUT = {fail_fast: Activity.Output(Activity::FastTrack::FailFast, :fail_fast)}
-
-    #     def add_fast_track_tuples(ctx, flow_options, _, fast_track: nil, **)
-    #       ctx = merge_connections_for(ctx, :fast_track, :pass_fast, :pass_fast)
-    #       ctx = merge_connections_for(ctx, :fast_track, :fail_fast, :fail_fast)
-
-    #       return ctx, flow_options
-    #     end
-
-    #     def pass_fast_option(ctx, flow_options, _, outputs:, **)
-    #       ctx = merge_connections_for(ctx, :pass_fast, :success)
-
-    #       ctx = merge_connections_for(ctx, :pass_fast, :pass_fast, :pass_fast) if outputs[:pass_fast]
-
-    #       return ctx, flow_options
-    #     end
-
-    #     def pass_fast_option_for_pass(ctx, flow_options, _, **)
-    #       ctx = merge_connections_for(ctx, :pass_fast, :failure)
-    #       ctx = merge_connections_for(ctx, :pass_fast, :success)
-
-    #       return ctx, flow_options
-    #     end
-
-    #     def fail_fast_option(ctx, flow_options, _, outputs:, **)
-    #       ctx = merge_connections_for(ctx, :fail_fast, :failure)
-
-    #       # DISCUSS: instead of checking outputs here, we could introduce something like Output(non_strict: true)
-    #       ctx = merge_connections_for(ctx, :fail_fast, :fail_fast, :fail_fast) if outputs[:fail_fast]
-
-    #       return ctx, flow_options
-    #     end
-
-    #     def fail_fast_option_for_fail(ctx, flow_options, _, **)
-    #       ctx = merge_connections_for(ctx, :fail_fast, :failure)
-    #       ctx = merge_connections_for(ctx, :fail_fast, :success)
-
-    #       return ctx, flow_options
-    #     end
-
-    #     def merge_connections_for(ctx, option_name, semantic, magnetic_to = option_name, **)
-    #       return ctx unless ctx[option_name]
-
-    #       connector = {Linear::Normalizer::OutputTuples.Output(semantic) => Linear::Strategy.Track(magnetic_to)}
-
-    #       connector.merge(ctx)
-    #     end
-
-    #     # Normalizer pipelines taking care of processing your DSL options.
-    #     Normalizers = Linear::Normalizer::Normalizers.new(
-    #       step: FastTrack::DSL.Normalizer(),
-    #       fail: FastTrack::DSL::Fail.Normalizer(),
-    #       pass: FastTrack::DSL::Pass.Normalizer(),
-    #       terminus: Linear::Normalizer::Terminus.Normalizer(),
-    #     )
-
-    #     # Default options for build.
-    #     def self.options_for_initialize(fail_fast_end: Activity::End.new(semantic: :fail_fast), pass_fast_end: Activity::End.new(semantic: :pass_fast), **options)
-    #       options = Railway::DSL.options_for_initialize(**options)
-
-    #       layout_instructions = options[:layout_instructions] + [
-    #         [:terminus, task: fail_fast_end, magnetic_to: :fail_fast, id: "End.fail_fast", after: nil],
-    #         [:terminus, task: pass_fast_end, magnetic_to: :pass_fast, id: "End.pass_fast", after: nil],
-    #       ]
-
-    #       normalizer_options = options[:normalizer_options].merge(fail_fast_end: fail_fast_end, pass_fast_end: pass_fast_end) # FIXME: do we need this?
-
-    #       {
-    #         layout_instructions: layout_instructions,
-    #         normalizers: Normalizers,
-    #         normalizer_options: normalizer_options
-    #       }
-    #     end
-
-    #   end # DSL
-
-    #   class << self
-    #     private def fail(*args, &block)# FIXME: what about Railway?
-    #       recompile_activity_for(:fail, *args, &block) # from Path::Strategy
-    #     end
-    #     alias left fail
-
-    #     private def pass(*args, &block)
-    #       recompile_activity_for(:pass, *args, &block) # from Path::Strategy
-    #     end
-    #   end
-
-    #   compile_strategy!(DSL)
-    # end # FastTrack
-
-    # def self.FastTrack(**kws, &block)
-    #   Activity::DSL::Linear::Strategy::DSL.Build(FastTrack, **kws, &block)
-    # end
