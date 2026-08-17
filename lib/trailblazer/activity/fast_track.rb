@@ -6,14 +6,19 @@ module Trailblazer
         default_options: Railway.default_options(track_name: track_name)
       )
 
+      fast_track_termini = {
+        success: Terminus::Success,
+        failure: Terminus::Failure,
+        pass_fast: FastTrack::Terminus::PassFast,
+        fail_fast: FastTrack::Terminus::FailFast
+      }
+
       activity, _ = builder.() do
-        step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success)
-        step **DSL.options_for_terminus_step(semantic: :failure, terminus_class: Terminus::Failure),
-          adds_insertion_args: [:after]
-        step **DSL.options_for_terminus_step(semantic: :pass_fast, terminus_class: FastTrack::Terminus::PassFast),
-          adds_insertion_args: [:after]
-        step **DSL.options_for_terminus_step(semantic: :fail_fast, terminus_class: FastTrack::Terminus::FailFast),
-          adds_insertion_args: [:after]
+        # add the four termini to the FastTrack topology by simply using #step.
+        fast_track_termini.each do |semantic, terminus_class|
+          step **DSL.options_for_terminus_step(semantic: semantic, terminus_class: terminus_class),
+            adds_insertion_args: [:after]
+        end
       end
 
       return activity, builder
