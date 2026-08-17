@@ -83,6 +83,30 @@ class TopologyFastTrackTest < Minitest::Spec
     assert_run my_activity.to_h[:circuit], seq: [1, :a, :b], terminus: my_activity.to_h[:outputs].fetch(:fail_fast).signal, target_ctx: {seq: [1], a: false}
   end
 
+  it "#step, fast_track: true" do
+    my_activity = Class.new(Trailblazer::Activity::FastTrack) do
+      step :a, fast_track: true
+      left :b
+      step :c
+
+      include T.def_steps(:a, :b, :c)
+    end
+
+    assert_run my_activity.to_h[:circuit], seq: [:a, :c], terminus: my_activity.to_h[:outputs].fetch(:success).signal, target_ctx: {seq: []}
+    assert_run my_activity.to_h[:circuit], seq: [1, :a, :b], terminus: my_activity.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], a: false}
+    # a --> PassFast
+    assert_run my_activity.to_h[:circuit], seq: [1, :a], terminus: my_activity.to_h[:outputs].fetch(:pass_fast).signal,
+      target_ctx: {seq: [1], a: Trailblazer::Activity::FastTrack::Signal::PassFast}
+    # a --> FailFast
+    assert_run my_activity.to_h[:circuit], seq: [1, :a], terminus: my_activity.to_h[:outputs].fetch(:fail_fast).signal,
+      target_ctx: {seq: [1], a: Trailblazer::Activity::FastTrack::Signal::FailFast}
+  end
+
+  # DISCUSS: what happens here?
+  it "#fail, pass_fast: true" do
+
+  end
+
   it "returning a FastTrack signal" do
   raise "also, from a ciccuit interface task"
   end

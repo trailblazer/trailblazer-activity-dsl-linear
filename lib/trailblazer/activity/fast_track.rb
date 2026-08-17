@@ -63,9 +63,19 @@ module Trailblazer
           return ctx.merge(Helper.Output(:failure) => Helper.Track(:fail_fast)), flow_options
         end
 
+        def add_fast_track_tuples(ctx, flow_options, _, fast_track: nil, **)
+          return ctx, flow_options unless fast_track
+
+          return ctx.merge(
+            Helper.Output(:pass_fast, signal: FastTrack::Signal::PassFast) => Helper.Track(:pass_fast),
+            Helper.Output(:fail_fast, signal: FastTrack::Signal::FailFast) => Helper.Track(:fail_fast)
+          ), flow_options
+        end
+
         circuit = Circuit::Builder.Circuit(
           [:add_pass_fast_tuple, method(:add_pass_fast_tuple)],
           [:add_fail_fast_tuple, method(:add_fail_fast_tuple)],
+          [:add_fast_track_tuples, method(:add_fast_track_tuples)],
         )
 
         Node = Circuit::Node[:bla_FIXME, circuit, Circuit::Processor]
@@ -121,6 +131,11 @@ module Trailblazer
       module Terminus
         PassFast = Class.new(Activity::Terminus::Success)
         FailFast = Class.new(Activity::Terminus::Failure)
+      end
+
+      module Signal
+        PassFast = Class.new(Activity::Signal)
+        FailFast = Class.new(Activity::Signal)
       end
 
       config.activity, config.builder = Activity.FastTrack()

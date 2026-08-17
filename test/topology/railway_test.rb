@@ -35,9 +35,9 @@ class TopologyRailwayTest < Minitest::Spec
 
     # {#a} --> Right
     assert_run my_railway.to_h[:circuit], seq: [:a, :d], terminus: my_railway.to_h[:outputs].fetch(:success).signal
-    # {#a} --> Left
+    # {#a} --> Left, {b} --> Right
     assert_run my_railway.to_h[:circuit], seq: [1, :a, :b, :c], terminus: my_railway.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], a: false}
-    # {#b} --> Left
+    # {#b} --> Left, {b} --> Left
     assert_run my_railway.to_h[:circuit], seq: [1, :a, :b, :c], terminus: my_railway.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], a: false, b: false}
   end
 
