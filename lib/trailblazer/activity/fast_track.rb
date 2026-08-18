@@ -16,8 +16,7 @@ module Trailblazer
       activity, _ = builder.() do
         # add the four termini to the FastTrack topology by simply using #step.
         fast_track_termini.each do |semantic, terminus_class|
-          step **DSL.options_for_terminus_step(semantic: semantic, terminus_class: terminus_class),
-            adds_insertion_args: [:after]
+          step **DSL.options_for_terminus_step(semantic: semantic, terminus_class: terminus_class)
         end
       end
 

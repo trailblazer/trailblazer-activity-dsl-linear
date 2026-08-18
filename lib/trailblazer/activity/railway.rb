@@ -8,8 +8,7 @@ module Trailblazer
 
       activity, _ = builder.() do
         step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success)
-        step **DSL.options_for_terminus_step(semantic: :failure, terminus_class: Terminus::Failure),
-          adds_insertion_args: [:after]
+        step **DSL.options_for_terminus_step(semantic: :failure, terminus_class: Terminus::Failure)
       end
 
       return activity, builder
@@ -18,6 +17,7 @@ module Trailblazer
     class Railway < DSL::Topology
       extend DSL::Left
       extend DSL::Pass
+      extend DSL::Feature::Terminus
 
       NORMALIZERS = {
         step: Path::Normalizer::Step,

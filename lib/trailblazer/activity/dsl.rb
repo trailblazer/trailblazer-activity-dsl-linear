@@ -39,7 +39,8 @@ module Trailblazer
           task:        terminus = terminus_class.new(semantic: semantic),
           wirings:     wirings_for_terminus(signal: terminus, semantic: semantic),
           id:          DSL.id_for_terminus(semantic: semantic),
-          magnetic_to: semantic
+          magnetic_to: semantic,
+          adds_insertion_args: [:after]
         }
       end
 
@@ -73,6 +74,8 @@ require "trailblazer/activity/dsl/normalizer/step"
 require "trailblazer/activity/dsl/feature/output_tuples"
 require "trailblazer/activity/dsl/feature/output_tuples/helper"
 require "trailblazer/activity/dsl/feature/output_tuples/normalizer"
+
+require "trailblazer/activity/dsl/feature/terminus"
 
 require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
