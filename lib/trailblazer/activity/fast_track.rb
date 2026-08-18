@@ -26,6 +26,7 @@ module Trailblazer
     class FastTrack < DSL::Topology
       extend DSL::Left
       extend DSL::Pass
+      extend DSL::Feature::Terminus
 
       module Normalizer
         Helper = DSL::Feature::OutputTuples::Helper
