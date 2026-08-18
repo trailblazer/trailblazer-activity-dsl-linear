@@ -23,12 +23,17 @@ module Trailblazer
 
         def self.inherited(subclass)
           super
-          # raise subclass.inspect
+
           subclass.config.builder = config.builder.clone(merge: {exec_context: subclass.new.freeze})
         end
 
         config.builder = Builder.new(default_options: {})
+
+        require "trailblazer/activity/dsl/topology/helper"
+        extend Helper # import {Subprocess()} and friends as class methods. creates shortcuts to {Output()} etc.
+        include Helper::Constants
       end
     end # DSL
   end
 end
+

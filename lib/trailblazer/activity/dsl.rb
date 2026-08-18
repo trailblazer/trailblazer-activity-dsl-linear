@@ -74,12 +74,14 @@ require "trailblazer/activity/dsl/normalizer/step"
 require "trailblazer/activity/dsl/feature/output_tuples"
 require "trailblazer/activity/dsl/feature/output_tuples/helper"
 require "trailblazer/activity/dsl/feature/output_tuples/normalizer"
+Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::OutputTuples::Helper)
 
 require "trailblazer/activity/dsl/feature/terminus"
 
 require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"
+
 
 # TODO: introduce normalizer patching.
 # step_normalizer = Trailblazer::Activity::DSL::Topology.config.normalizer.fetch(:step)

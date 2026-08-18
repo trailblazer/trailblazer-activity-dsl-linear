@@ -5,7 +5,7 @@ class OutputTuplesTest < Minitest::Spec
 
   MyExecContext = T.def_steps(:a) # TODO: use method(:a) instead of :a and remove {:exec_context} option, not part of this test!
   MyFailure = Trailblazer::Activity::Terminus::Success.new(semantic: :failure)
-  MyHelper = Trailblazer::Activity::DSL::Feature::OutputTuples::Helper
+  # MyHelper = Trailblazer::Activity::DSL::Feature::OutputTuples::Helper
 
   def self.my_options_for_builder
     normalizer_for_step = Trailblazer::Activity::DSL::Normalizer::Step
@@ -57,8 +57,8 @@ class OutputTuplesTest < Minitest::Spec
 
       step :a,
         exec_context: MyExecContext,
-        MyHelper.Output(:failure) => MyHelper.Track(:success), # failure becomes success.
-        MyHelper.Output(:success) => MyHelper.Track(:failure),
+        Output(:failure) => Track(:success), # failure becomes success.
+        Output(:success) => Track(:failure),
         outputs: {
           # the concrete signals here will be used for the wirings.
           success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success),
@@ -86,8 +86,8 @@ class OutputTuplesTest < Minitest::Spec
       step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
 
       step task: my_exec_context.method(:a), id: :a,
-        MyHelper.Output(:failure) => MyHelper.Track(:failure),
-        MyHelper.Output(:success, signal: Object) => MyHelper.Track(:success),
+        Output(:failure) => Track(:failure),
+        Output(:success, signal: Object) => Track(:success),
         outputs: {
           # the concrete signals here will be used for the wirings.
           success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success), # we override this one.
@@ -114,9 +114,9 @@ class OutputTuplesTest < Minitest::Spec
       step **MyTest.options_for_mock_terminus(task: my_finished, semantic: :finished)
 
       step task: my_exec_context.method(:a), id: :a,
-        MyHelper.Output(:failure) => MyHelper.Track(:failure),
-        MyHelper.Output(:success) => MyHelper.Track(:success),
-        MyHelper.Output(:finished, signal: Object) => MyHelper.Track(:finished),
+        Output(:failure) => Track(:failure),
+        Output(:success) => Track(:success),
+        Output(:finished, signal: Object) => Track(:finished),
         outputs: {
           success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success), # we override this one.
           failure: Trailblazer::Activity::Output.new(Trailblazer::Activity::Left, :failure),
@@ -140,9 +140,9 @@ class OutputTuplesTest < Minitest::Spec
       step **MyTest.options_for_mock_terminus(task: my_finished, semantic: :finished)
 
       step task: my_exec_context.method(:a), id: :a,
-        MyHelper.Output(:failure) => MyHelper.Track(:failure),
-        MyHelper.Output(:success) => MyHelper.Track(:success),
-        MyHelper.Output(:finished) => MyHelper.Track(:finished), # we don't specify the "custom" signal here.
+        Output(:failure) => Track(:failure),
+        Output(:success) => Track(:success),
+        Output(:finished) => Track(:finished), # we don't specify the "custom" signal here.
         outputs: {
           success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success), # we override this one.
           failure: Trailblazer::Activity::Output.new(Trailblazer::Activity::Left, :failure),
@@ -166,10 +166,10 @@ class OutputTuplesTest < Minitest::Spec
       # step **MyTest.options_for_mock_terminus(task: my_finished, semantic: :finished)
 
       step task: my_exec_context.method(:a), id: :a,
-        MyHelper.Output(:success, signal: Trailblazer::Activity::Right) => MyHelper.Track(:success),
+        Output(:success, signal: Trailblazer::Activity::Right) => Track(:success),
 
-        MyHelper.Output(:failure) => MyHelper.Track(:failure),
-        MyHelper.Output(:success) => MyHelper.Track(:success),
+        Output(:failure) => Track(:failure),
+        Output(:success) => Track(:success),
         outputs: {}
     end
 
@@ -191,13 +191,13 @@ class OutputTuplesTest < Minitest::Spec
 
       step task: my_exec_context.method(:a), id: :a,
         outputs: my_generic_outputs,
-        MyHelper.Output(:failure) => MyHelper.Id(:b),
-        MyHelper.Output(:success) => MyHelper.Track(:success)
+        Output(:failure) => Id(:b),
+        Output(:success) => Track(:success)
 
       step task: my_exec_context.method(:b), id: :b,
         magnetic_to: :random,
         outputs: my_generic_outputs,
-        MyHelper.Output(:success) => MyHelper.Track(:success)
+        Output(:success) => Track(:success)
     end
 
     assert_run my_topology.to_h[:circuit], seq: [:a], terminus: MyTest::MySuccess
@@ -218,7 +218,7 @@ class OutputTuplesTest < Minitest::Spec
 
       step task: my_exec_context.method(:a), id: :a,
         outputs: my_generic_outputs,
-        MyHelper.Output(:failure) => MyHelper.Terminus(:success)
+        Output(:failure) => Terminus(:success)
     end
 
     assert_run my_topology.to_h[:circuit], seq: [:a], terminus: MyTest::MySuccess, target_ctx: {seq: [], a: Trailblazer::Activity::Left}
@@ -240,7 +240,7 @@ class OutputTuplesTest < Minitest::Spec
 
       step task: my_exec_context.method(:a), id: :a,
         outputs: my_generic_outputs,
-        MyHelper.Output(:failure) => MyHelper.Terminus(:timeout)
+        Output(:failure) => Terminus(:timeout)
     end
 
     timeout_terminus = my_topology.to_h[:outputs][:timeout].signal

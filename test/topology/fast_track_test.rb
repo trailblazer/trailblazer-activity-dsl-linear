@@ -1,8 +1,6 @@
 require "test_helper"
 
 class TopologyFastTrackTest < Minitest::Spec
-  MyHelper = Trailblazer::Activity::DSL::Feature::OutputTuples::Helper # FIXME: remove.
-
   it "empty FastTrack" do
     my_activity = Class.new(Trailblazer::Activity::FastTrack) do
     end
@@ -71,7 +69,7 @@ class TopologyFastTrackTest < Minitest::Spec
 
   it "we can reference the existing FastTrack termini" do
     my_activity = Class.new(Trailblazer::Activity::FastTrack) do
-      step :a, MyHelper.Output(:success) => MyHelper.Terminus(:fail_fast)
+      step :a, Output(:success) => Terminus(:fail_fast)
       step :b
       left :c
 
@@ -163,7 +161,7 @@ class TopologyFastTrackTest < Minitest::Spec
   it "without {fast_track: true} there is no {Output(:pass_fast)} for scalar task" do
     exception = assert_raises do
       activity = Class.new(Trailblazer::Activity::FastTrack) do
-        step :model, MyHelper.Output(:pass_fast) => MyHelper.Track(:success)
+        step :model, Output(:pass_fast) => Track(:success)
       end
     end
 

@@ -34,11 +34,9 @@ class TopologyPathTest < Minitest::Spec
   end
 
   it "we can use OutputTuples feature" do # DISCUSS: where do we want those tests?
-    my_helper = Trailblazer::Activity::DSL::Feature::OutputTuples::Helper
-
     my_path = Class.new(Trailblazer::Activity::Path) do
       step :a,
-        my_helper.Output(:success) => my_helper.Id(:c)
+        Output(:success) => Id(:c)
       step :b
       step :c
 
