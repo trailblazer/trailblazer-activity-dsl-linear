@@ -14,7 +14,7 @@ module Trailblazer
         end
 
         def self.build_node_for_task(ctx, flow_options, _, task:, id:, **) # FIXME: nodes shouldn't have ids!
-          node_for_task = Circuit::Node[id, task, Circuit::Task::Adapter::LibInterface] # DISCUSS: do we need to change the interface adapter?
+          node_for_task = Circuit::Node[task, Circuit::Task::Adapter::LibInterface] # DISCUSS: do we need to change the interface adapter?
 
           return ctx.merge(node_for_call_task: node_for_task), flow_options
         end
@@ -26,7 +26,7 @@ module Trailblazer
           )
 
           # task_wrap_node = Circuit::Node::Scoped[:"#{id}", task_wrap_pipe, Circuit::Processor, merge_to_lib_ctx: [:target_ctx]]
-          task_wrap_node = Circuit::Node[:"#{id}", task_wrap_pipe, Circuit::Processor]
+          task_wrap_node = Circuit::Node[task_wrap_pipe, Circuit::Processor]
 
           return ctx.merge(node: task_wrap_node), flow_options
         end

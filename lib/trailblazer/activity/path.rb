@@ -52,7 +52,7 @@ module Trailblazer
           [:add_failure_connector, AddConnection.new(:failure, Left, :failure_track_name)],
         )
 
-        Node = Circuit::Node[:bla_FIXME, circuit, Circuit::Processor]
+        Node = Circuit::Node[circuit, Circuit::Processor]
 
 
 

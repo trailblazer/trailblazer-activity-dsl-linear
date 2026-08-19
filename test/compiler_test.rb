@@ -15,12 +15,12 @@ class CompilerTest < Minitest::Spec
     my_exec_context = T.def_tasks(:a, :b, :c, :d)
 
     {
-      a: Trailblazer::Circuit::Node[:a, my_exec_context.method(:a), lib_interface],
-      b: Trailblazer::Circuit::Node[:b, my_exec_context.method(:b), lib_interface],
-      c: Trailblazer::Circuit::Node[:c, my_exec_context.method(:c), lib_interface],
-      d: Trailblazer::Circuit::Node[:d, my_exec_context.method(:d), lib_interface],
-      failure: Trailblazer::Circuit::Node[:"End.failure", Trailblazer::Activity::Terminus::Failure.new(semantic: :failure), lib_interface],
-      success: Trailblazer::Circuit::Node[:"End.success", Trailblazer::Activity::Terminus::Success.new(semantic: :success), lib_interface],
+      a: Trailblazer::Circuit::Node[my_exec_context.method(:a), lib_interface],
+      b: Trailblazer::Circuit::Node[my_exec_context.method(:b), lib_interface],
+      c: Trailblazer::Circuit::Node[my_exec_context.method(:c), lib_interface],
+      d: Trailblazer::Circuit::Node[my_exec_context.method(:d), lib_interface],
+      failure: Trailblazer::Circuit::Node[Trailblazer::Activity::Terminus::Failure.new(semantic: :failure), lib_interface],
+      success: Trailblazer::Circuit::Node[Trailblazer::Activity::Terminus::Success.new(semantic: :success), lib_interface],
     }
   end
   let(:sequence) { Trailblazer::Activity::DSL::Sequence }

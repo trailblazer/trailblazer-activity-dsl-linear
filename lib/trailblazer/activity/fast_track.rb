@@ -60,7 +60,7 @@ module Trailblazer
           [:add_fast_track_tuples, method(:add_fast_track_tuples)],
         )
 
-        Node = Circuit::Node[:bla_FIXME, circuit, Circuit::Processor]
+        Node = Circuit::Node[circuit, Circuit::Processor]
 
         Step = Circuit::Adds.(
           Path::Normalizer::Step,
@@ -89,7 +89,7 @@ module Trailblazer
         Pass = Circuit::Adds.(
           Step,
           [
-            :add_pass_fast_tuple_for_failure, Circuit::Node[:bla_FIXME, method(:add_pass_fast_tuple_for_failure), Circuit::Task::Adapter::LibInterface],
+            :add_pass_fast_tuple_for_failure, Circuit::Node[method(:add_pass_fast_tuple_for_failure), Circuit::Task::Adapter::LibInterface],
             :after, :normalize_fast_track_options
           ]
         )
@@ -97,7 +97,7 @@ module Trailblazer
         Fail = Circuit::Adds.(
           Step,
           [
-            :add_fail_fast_tuple_for_success, Circuit::Node[:bla_FIXME, method(:add_fail_fast_tuple_for_success), Circuit::Task::Adapter::LibInterface],
+            :add_fail_fast_tuple_for_success, Circuit::Node[method(:add_fail_fast_tuple_for_success), Circuit::Task::Adapter::LibInterface],
             :after, :normalize_fast_track_options
           ]
         )

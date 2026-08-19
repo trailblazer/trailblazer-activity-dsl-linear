@@ -45,7 +45,7 @@ module Trailblazer
 
                   row_for_sequence = Sequence::Row.new(
                     magnetic_to: semantic,
-                    node: Circuit::Node[end_id, new_terminus, Circuit::Task::Adapter::LibInterface],
+                    node: Circuit::Node[new_terminus, Circuit::Task::Adapter::LibInterface],
                     wirings: {Activity::Output.new(new_terminus, semantic) => Sequence::Search::Nil.new}, # DISCUSS: redundant with #options_for_mock_terminus.
                     data: {id: end_id},
                   )

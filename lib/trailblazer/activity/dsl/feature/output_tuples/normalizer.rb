@@ -68,7 +68,7 @@ module Trailblazer
 
                   [output, search]
                 end
-
+# pp wirings
               ctx = ctx.merge(
                 wirings:           wirings.to_h,
                 adds_for_sequence: adds_for_sequence
@@ -85,7 +85,7 @@ module Trailblazer
               [:compile_wirings, method(:compile_wirings)],
             )
 
-            Node = Trailblazer::Circuit::Node[:bla_FIXME, circuit, Circuit::Processor]
+            Node = Trailblazer::Circuit::Node[circuit, Circuit::Processor]
           end # Normalizer
         end
       end

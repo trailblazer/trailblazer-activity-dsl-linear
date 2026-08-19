@@ -31,13 +31,17 @@ class TopologyTest < Minitest::Spec
       self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
 
       step :b,# i am a terminus.
-        exec_context: new,
+        exec_context: T.def_steps(:b),
         wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
         magnetic_to: :successs,
         adds_insertion_args: [:after]
     end
 
-    assert_equal my_topology.to_h[:circuit].nodes[:b].id, :b
+    # nothing returned when querying non-existant ID.
+    assert_nil my_topology.to_h[:circuit].nodes[:bla]
+
+    # we simply run the {:b} task to see if it's {#b} :)
+    assert_run my_topology.to_h[:circuit].nodes[:b].task, seq: [:b], terminus: Trailblazer::Activity::Right
   end
 
   it "#step accepts {:id}" do
@@ -45,13 +49,15 @@ class TopologyTest < Minitest::Spec
       self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
 
       step :b,# i am a terminus.
-        id: :terminus_success, exec_context: new,
+        exec_context: T.def_steps(:b),
+        id: :terminus_success,
         wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
         magnetic_to: :successs,
         adds_insertion_args: [:after]
     end
 
-    assert_equal my_topology.to_h[:circuit].nodes[:terminus_success].id, :terminus_success
+    # we simply run the {:terminus_success} task to see if it's {#terminus_success} :)
+    assert_run my_topology.to_h[:circuit].nodes[:terminus_success].task, seq: [:b], terminus: Trailblazer::Activity::Right
   end
 
   it "#step raises error with {:id} already used" do
@@ -66,7 +72,7 @@ class TopologyTest < Minitest::Spec
     end
 
     assert_raises Trailblazer::Circuit::Adds::IllegalIdError do
-      my_topology.step :B, id: :b, exec_context: nil, wirings: {}
+      my_topology.step :B, id: :b, exec_context: nil, wirings: {}, adds_insertion_args: [:after]
     end
   end
 
@@ -109,7 +115,7 @@ class TopologyTest < Minitest::Spec
         :my_success,
         row_for_sequence = Trailblazer::Activity::DSL::Sequence::Row.new(
           magnetic_to: :success,
-          node: Trailblazer::Circuit::Node[:my_success, new_terminus, Trailblazer::Circuit::Task::Adapter::LibInterface],
+          node: Trailblazer::Circuit::Node[new_terminus, Trailblazer::Circuit::Task::Adapter::LibInterface],
           wirings: {Trailblazer::Activity::Output.new(new_terminus, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
           data: {id: :my_success},
         ),
@@ -165,7 +171,7 @@ class TopologyTest < Minitest::Spec
     # pp my_topology.config.sequence
     # pp my_topology.to_h[:circuit]
 
-    my_topology_node = Trailblazer::Circuit::Node[:create, my_topology.to_h[:circuit], Trailblazer::Circuit::Processor]
+    my_topology_node = Trailblazer::Circuit::Node[my_topology.to_h[:circuit], Trailblazer::Circuit::Processor]
 
     lib_ctx, flow_options, signal = Trailblazer::Circuit::Node::Runner.(
       my_topology_node,
