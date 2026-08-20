@@ -9,10 +9,30 @@ class TopologyTest < Minitest::Spec
     }
   end
 
+
+  def self.my_options_for_builder
+    {
+      normalizers: {
+        step: Trailblazer::Activity::DSL::Normalizer::Step,
+      },
+        # sequence: Trailblazer::Activity::DSL::Sequence.new
+      default_options: {
+        step: {}
+      }
+    }
+  end
+
+  it "#to_h with empty Topology" do
+    skip "there is no use case for this to be working"
+    my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+    end
+
+    assert_equal my_topology.to_h.keys, [:activity, :outputs]
+  end
+
   it "#to_h" do
 
   end
-
 
   it "#step accepts {:task}" do
 
@@ -141,18 +161,6 @@ class TopologyTest < Minitest::Spec
 
   end
 
-  def self.my_options_for_builder
-    {
-      normalizers: {
-        step: Trailblazer::Activity::DSL::Normalizer::Step,
-      },
-        # sequence: Trailblazer::Activity::DSL::Sequence.new
-      default_options: {
-        step: {}
-      }
-    }
-  end
-
   it "provides #step" do
     success = nil
 
@@ -187,6 +195,23 @@ class TopologyTest < Minitest::Spec
       seq: [:a],
       terminus: success,
       use_application_ctx: false # FIXME
+  end
+
+  # TODO: these are all kinda normalizer tests.
+  it "#step accepts hash as first argument (called macro style)" do
+    my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+
+      step(
+        { # explicit hash, not kwargs!
+          task: T.def_tasks(:a).method(:a),
+          id: :a,
+          wirings: {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new}
+        }
+      )
+    end
+
+    assert_run my_topology, seq: [:a], terminus: Trailblazer::Activity::Right
   end
 
   it "empty builder is present with {:exec_context} set (because of {#inherited} hook)" do
