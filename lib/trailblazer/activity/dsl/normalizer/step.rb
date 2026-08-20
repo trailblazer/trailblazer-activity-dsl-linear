@@ -22,8 +22,8 @@ module Trailblazer
           return ctx.merge(node_for_call_task: step_node_for_call_task), flow_options
         end
 
-        def self.build_node_for_task(ctx, flow_options, _, task:, **)
-          node_for_task = Circuit::Node[task, Circuit::Task::Adapter::LibInterface] # DISCUSS: do we need to change the interface adapter?
+        def self.build_node_for_task(ctx, flow_options, _, task:, adapter: Circuit::Task::Adapter::LibInterface, **)
+          node_for_task = Circuit::Node[task, adapter] # FIXME: teST interface adapter!
 
           return ctx.merge(node_for_call_task: node_for_task), flow_options
         end
