@@ -214,6 +214,25 @@ class TopologyTest < Minitest::Spec
     assert_run my_topology, seq: [:a], terminus: Trailblazer::Activity::Right
   end
 
+  it "accepts {:adapter}" do
+    my_adapter = ->(task, ctx, flow_options, *) do
+      T.def_steps(:a).method(:a).(ctx[:target_ctx], **ctx[:target_ctx]) # mutability sucks.
+
+      return ctx, flow_options, "signal"
+    end
+
+    my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+
+      step task: nil,
+        adapter: my_adapter,
+        id: :a,
+        wirings: {Trailblazer::Activity::Output.new("signal", :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new}
+    end
+
+    assert_run my_topology, seq: [:a], terminus: "signal"
+  end
+
   it "empty builder is present with {:exec_context} set (because of {#inherited} hook)" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
       config.builder = Trailblazer::Activity::DSL::Builder.new(default_options: {step: {}})
