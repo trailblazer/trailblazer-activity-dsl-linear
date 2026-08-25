@@ -258,4 +258,31 @@ class OutputTuplesTest < Minitest::Spec
   it "End()" do
 
   end
+
+  it "Path only wires [:success, :failure] output automatically" do
+    topology_classes = {Trailblazer::Activity::Path => [:success, [1, :a, :b]], Trailblazer::Activity::Railway=> [:failure, [1, :a]], Trailblazer::Activity::FastTrack=> [:failure, [1, :a]]}
+
+    my_received_signal = Class.new(Trailblazer::Activity::Signal)
+
+    for topology_class, (expected_terminus, expected_seq) in topology_classes
+      # puts "@@@@@ #{topology_class.inspect}"
+      my_path = Class.new(topology_class) do
+        step :a,
+          outputs: {
+            success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success),
+            failure: Trailblazer::Activity::Output.new(Trailblazer::Activity::Left, :failure),
+            received: Trailblazer::Activity::Output.new(my_received_signal, :received), # this doesn't get wired, even though it's here.
+          }
+        step :b
+
+        include T.def_steps(:a, :b)
+      end
+
+      assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [:a, :b]
+      assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(expected_terminus).signal, seq: expected_seq, target_ctx: {seq: [1], a: Trailblazer::Activity::Left}
+      assert_raises KeyError do
+        assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: expected_seq, target_ctx: {seq: [1], a: my_received_signal}
+      end
+    end
+  end
 end
