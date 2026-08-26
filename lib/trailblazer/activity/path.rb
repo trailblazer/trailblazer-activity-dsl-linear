@@ -54,11 +54,6 @@ module Trailblazer
 
         Node = Circuit::Node[circuit, Circuit::Processor]
 
-
-
-
-
-        # DISCUSS: needs to be global constant so other topologies can use it?
         Step = DSL::Normalizer::Step # canonical normalizer for Path's #step.
 
         # add the Output() feature:

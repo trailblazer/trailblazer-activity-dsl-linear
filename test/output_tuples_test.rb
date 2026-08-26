@@ -259,7 +259,9 @@ class OutputTuplesTest < Minitest::Spec
 
   end
 
-  it "Path only wires [:success, :failure] output automatically" do
+  # Idea here is to make sure that features don't leak into other Topologys.
+  # We test this here since the {:outputs} option is an OutputTuples feature.
+  it "Path only wires [:success, :failure] {:outputs} automatically, the {received} output isn't connected" do
     topology_classes = {Trailblazer::Activity::Path => [:success, [1, :a, :b]], Trailblazer::Activity::Railway=> [:failure, [1, :a]], Trailblazer::Activity::FastTrack=> [:failure, [1, :a]]}
 
     my_received_signal = Class.new(Trailblazer::Activity::Signal)

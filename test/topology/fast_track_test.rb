@@ -127,13 +127,41 @@ class TopologyFastTrackTest < Minitest::Spec
     assert_run my_activity.to_h[:circuit], seq: [1, :a, :b], terminus: my_activity.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], a: false}
   end
 
-  it "#step, fast_track: true" do
+  it "#step, fast_track: true, step returns a FastTrack::Signal" do
     my_activity = Class.new(Trailblazer::Activity::FastTrack) do
       step :a, fast_track: true
       left :b
       step :c
 
       include T.def_steps(:a, :b, :c)
+    end
+
+    # a --> true
+    assert_run my_activity.to_h[:circuit], seq: [:a, :c], terminus: my_activity.to_h[:outputs].fetch(:success).signal, target_ctx: {seq: []}
+    # a --> false
+    assert_run my_activity.to_h[:circuit], seq: [1, :a, :b], terminus: my_activity.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], a: false}
+    # a --> PassFast
+    assert_run my_activity.to_h[:circuit], seq: [1, :a], terminus: my_activity.to_h[:outputs].fetch(:pass_fast).signal,
+      target_ctx: {seq: [1], a: Trailblazer::Activity::FastTrack::Signal::PassFast}
+    # a --> FailFast
+    assert_run my_activity.to_h[:circuit], seq: [1, :a], terminus: my_activity.to_h[:outputs].fetch(:fail_fast).signal,
+      target_ctx: {seq: [1], a: Trailblazer::Activity::FastTrack::Signal::FailFast}
+  end
+
+  it "#step, fast_track: true, step returns a FastTrack::Terminus (Subprocess)" do
+    my_fast_track_activity = Class.new(Trailblazer::Activity::FastTrack) do
+      step :a, fast_track: true # we may return four different signals.
+
+      include T.def_steps(:a)
+    end
+
+    my_activity = Class.new(Trailblazer::Activity::FastTrack) do
+      step task: my_fast_track_activity, outputs: my_fast_track_activity.to_h[:outputs],
+        fast_track: true, id: :a, adapter: Trailblazer::Circuit::Processor
+      left :b
+      step :c
+
+      include T.def_steps(:b, :c)
     end
 
     # a --> true

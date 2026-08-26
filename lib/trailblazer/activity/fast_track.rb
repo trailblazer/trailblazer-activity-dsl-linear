@@ -45,12 +45,19 @@ module Trailblazer
           return ctx.merge(Helper.Output(:failure) => Helper.Track(:fail_fast)), flow_options
         end
 
-        def add_fast_track_tuples(ctx, flow_options, _, fast_track: nil, **)
+        def add_fast_track_tuples(ctx, flow_options, _, fast_track: nil, outputs:, **)
           return ctx, flow_options unless fast_track
 
+          # Merge existing :outputs over our "suggestion", so {Subprocess et al} overrides us.
+          outputs = {
+            pass_fast: Output.new(FastTrack::Signal::PassFast, :pass_fast),
+            fail_fast: Output.new(FastTrack::Signal::FailFast, :fail_fast),
+          }.merge(outputs)
+
           return ctx.merge(
-            Helper.Output(:pass_fast, signal: FastTrack::Signal::PassFast) => Helper.Track(:pass_fast),
-            Helper.Output(:fail_fast, signal: FastTrack::Signal::FailFast) => Helper.Track(:fail_fast)
+            outputs: outputs,
+            Helper.Output(:pass_fast) => Helper.Track(:pass_fast),
+            Helper.Output(:fail_fast) => Helper.Track(:fail_fast)
           ), flow_options
         end
 
