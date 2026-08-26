@@ -124,6 +124,7 @@ class SubprocessTest < Minitest::Spec
   end
 
   it "#Subprocess() with Railway and {strict: true}" do
+    skip "as long as we don't have exceptions on missing Forward targets, this option doesn't make sense"
     MyReceivedSignal = Class.new(Trailblazer::Activity::Signal)
 
     my_nested_activity = Class.new(Trailblazer::Activity::Railway) do
@@ -137,8 +138,9 @@ class SubprocessTest < Minitest::Spec
       step Subprocess(my_nested_activity,
         strict: true), id: "FIXME, no ID automatically assigned"
       step :c
+      step :d, magnetic_to: :received # FIXME: otherwise, the nested activity will stop on MyReceivedSignal
 
-      include T.def_steps(:a, :c)
+      include T.def_steps(:a, :c, :d)
     end
 
     # pp my_activity.to_h

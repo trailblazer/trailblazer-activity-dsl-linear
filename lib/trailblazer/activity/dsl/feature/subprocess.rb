@@ -11,17 +11,21 @@ module Trailblazer
 
               outputs  = activity.to_h[:outputs]
 
+              options = {}
               # if strict
-              #   options.merge!(
-              #     outputs.collect { |output| [Normalizer::OutputTuples::Output::Semantic.new(output.semantic, true), Track(output.semantic)] }.to_h
-              #   )
+              #   options =
+              #     outputs.collect { |semantic, output|
+              #       [Output(output.semantic), Track(output.semantic)]
+              #     }.to_h
               # end
+
 
               {
                 task:       activity,
-                outputs:    outputs,#.collect { |output| [output.semantic, output] }.to_h,
+                outputs:    outputs,
                 subprocess: true,
                 adapter:    Circuit::Processor,
+                **options
               }
             end
           end
