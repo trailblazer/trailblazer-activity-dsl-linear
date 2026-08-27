@@ -259,9 +259,12 @@ class OutputTuplesTest < Minitest::Spec
 
   end
 
+  # Here, the {:outputs} contains "too many" outputs, the :received output connector isn't configured,
+  # and, eventually, not connected.
+  #
   # Idea here is to make sure that features don't leak into other Topologys.
   # We test this here since the {:outputs} option is an OutputTuples feature.
-  it "Path only wires [:success, :failure] {:outputs} automatically, the {received} output isn't connected" do
+  it "Topology only wires [:success, :failure] {:outputs} automatically, the {received} output isn't connected" do
     topology_classes = {Trailblazer::Activity::Path => [:success, [1, :a, :b]], Trailblazer::Activity::Railway=> [:failure, [1, :a]], Trailblazer::Activity::FastTrack=> [:failure, [1, :a]]}
 
     my_received_signal = Class.new(Trailblazer::Activity::Signal)
@@ -286,5 +289,28 @@ class OutputTuplesTest < Minitest::Spec
         assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: expected_seq, target_ctx: {seq: [1], a: my_received_signal}
       end
     end
+  end
+
+  # Here, the {:outputs} contains less outputs than in the Topology's defaults.
+  # However, our :outputs overrides the default one ...
+  it "currently breaks when we don't have a {:failure} output" do
+    # RuntimeError: No `failure` output found for :a and outputs {:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}
+    # DISCUSS: should we introduce a {failure: false} option, similar to FastTrack options?
+    # DISCUSS: this should be tested in railway_test.
+    assert_raises do
+      Class.new(Trailblazer::Activity::Railway) do
+        step :a,
+          outputs: {
+            success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success),
+            # no :failure output
+          }
+        step :b
+
+        include T.def_steps(:a, :b)
+      end
+    end
+
+    # assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [:a, :b]
+    # assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(expected_terminus).signal, seq: expected_seq, target_ctx: {seq: [1], a: Trailblazer::Activity::Left}
   end
 end
