@@ -32,7 +32,9 @@ module Trailblazer
 
         # variable_name_for_track_name is so we don't have to build a new circuit if a track_name changes.
         class AddConnection < Struct.new(:semantic, :signal, :variable_name_for_track_name)
-          def call(ctx, flow_options, _, **)
+          def call(ctx, flow_options, _, outputs:, **)
+            return ctx, flow_options unless outputs.key?(semantic) # Don't add a connector when there's no corresponding output.
+
             helper = DSL::Feature::OutputTuples::Helper
 
 # puts "@@@@@ #{track_name.inspect}"

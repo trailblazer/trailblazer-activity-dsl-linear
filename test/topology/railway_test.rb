@@ -1,5 +1,7 @@
 require "test_helper"
 
+# Topology is a frontend, it uses a well-defined configuration to produce a builder and then leverages this.
+
 class TopologyRailwayTest < Minitest::Spec
   it "empty Railway" do
     my_railway = Class.new(Trailblazer::Activity::Railway) do
@@ -71,5 +73,30 @@ class TopologyRailwayTest < Minitest::Spec
 
     # {#b} --> Left
     assert_run my_railway.to_h[:circuit], seq: [1, :a, :b, :c], terminus: my_railway.to_h[:outputs].fetch(:failure).signal, target_ctx: {seq: [1], b: false}
+  end
+
+  # Here, the {:outputs} contains less outputs than in the Topology's defaults.
+  # However, our :outputs overrides the default one ...
+  it "doesn't add a :success and :failure Output() if they aren't in {:outputs}" do
+    my_winning_signal = Class.new(Trailblazer::Activity::Signal)
+
+    my_railway = Class.new(Trailblazer::Activity::Railway) do
+      step :a,
+        outputs: {
+          winning: Trailblazer::Activity::Output.new(my_winning_signal, :winning),
+        }, Output(:winning) => Track(:winning)
+      step :b
+      step :c, magnetic_to: :winning
+
+      include T.def_steps(:a, :b, :c)
+    end
+
+    # We return Right and Left, which are unknown:
+    _ = assert_raises(KeyError) { assert_run my_railway, seq: [] }
+    assert_equal _.message, %(key not found: Trailblazer::Activity::Right)
+    _ = assert_raises(KeyError) { assert_run my_railway, seq: [], target_ctx: {seq: [], a: Trailblazer::Activity::Left} }
+    assert_equal _.message, %(key not found: Trailblazer::Activity::Left)
+    # This works, it's the only :outputs configured.
+    assert_run my_railway, seq: [1, :a, :c], terminus: my_railway.to_h[:outputs][:success].signal, target_ctx: {seq: [1], a: my_winning_signal}
   end
 end
