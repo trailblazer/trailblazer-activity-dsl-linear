@@ -60,6 +60,54 @@ module Trailblazer
           return ctx.merge(adds_for_sequence: adds_for_sequence), flow_options
         end
 
+        # Translate {:before} et al to "native" {:adds_insertion_args}.
+        def self.normalize_prepositions(ctx, flow_options, _, **)
+          preposition = ctx.keys & [:before, :after, :replace, :delete]
+          preposition = preposition[0]
+
+          return ctx, flow_options unless preposition
+
+          target = ctx[preposition]
+
+          ctx = ctx.merge(
+            adds_insertion_args: [preposition, target] # DISCUSS: what if {:adds_insertion_args} is given, too?
+          )
+
+          return ctx, flow_options
+        end
+
+                  # Processes {:before, :after, :replace, :delete} options and
+          # defaults to {before: "End.success"} which, yeah.
+          def normalize_sequence_insert(ctx, flow_options, _, end_id:, **)
+            # Find out whether there's a {before: :model} or anything in the user DSL options.
+            insertion = ctx.keys & dsl_insertion_option_to_adds.keys
+            insertion = insertion[0]
+
+            insertion, target =
+              insertion ? [insertion, ctx[insertion]] : [:before, end_id]
+# TODO: test {after: nil}
+
+            adds_insertion = dsl_insertion_option_to_adds[insertion]
+
+            ctx = ctx.merge(
+              sequence_insert: {adds_insertion => target}
+            )
+
+            return ctx, flow_options
+          end
+
+          # Translate DSL option to "friendly interface" option.
+          # @private
+          # FIXME: make constant.
+          def dsl_insertion_option_to_adds
+            {
+              before:   :prepend,
+              after:    :append,
+              replace:  :replace,
+              delete:   :delete
+            }
+          end
+
         DEFAULT_ADDS_INSERTION_ARGS = [:before, :"End.success"]
 
         def self.normalize_adds_insertion_args(ctx, flow_options, _, adds_insertion_args: DEFAULT_ADDS_INSERTION_ARGS, **)
@@ -87,6 +135,7 @@ module Trailblazer
           [:build_node_for_step, method(:build_node_for_step), connections: {nil => :build_task_wrap_node}],
           [:build_task_wrap_node, method(:build_task_wrap_node)],
           [:normalize_magnetic_to, method(:normalize_magnetic_to)], # DISCUSS: position?
+          [:normalize_prepositions, method(:normalize_prepositions)],
           [:normalize_adds_insertion_args, method(:normalize_adds_insertion_args)], # DISCUSS: position?
           [:build_sequence_row, method(:build_sequence_row)],
           [:compile_adds_for_sequence, method(:compile_adds_for_sequence)],

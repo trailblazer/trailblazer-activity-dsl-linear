@@ -1,31 +1,6 @@
 require "test_helper"
 
 class SubprocessTest < Minitest::Spec
-  def self.my_options_for_builder(exec_context:)
-    my_normalizer = Trailblazer::Circuit::Adds.(
-      Trailblazer::Activity::DSL::Normalizer::Step,
-      [
-        :normalize_wirings, Trailblazer::Activity::DSL::Feature::OutputTuples::Normalizer::Node,
-        :before, :build_sequence_row
-      ],
-    )
-
-    {
-      normalizers: {
-        step: my_normalizer,
-      },
-      default_options: {
-        step: {
-          exec_context: exec_context,
-          # wirings: {
-          #   Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Forward.new(:success),
-          # },
-          adds_insertion_args: [:after]
-        }
-      }
-    }
-  end
-
   def self.my_nested_activity(termini: [:success, :failure])
     Class.new(Trailblazer::Activity::FastTrack) do
       step :b, fast_track: true
@@ -100,7 +75,7 @@ class SubprocessTest < Minitest::Spec
   end
 
   # NOTE: This test is not really necessary and could be moved to test/docs.
-  it "Subprocess with custom output" do
+  it "Subprocess with custom output obviously overrides the step's default {:outputs}" do
     MyReceivedSignal = Class.new(Trailblazer::Activity::Signal)
 
     my_nested_activity = Class.new(Trailblazer::Activity::Railway) do
@@ -149,4 +124,53 @@ class SubprocessTest < Minitest::Spec
     assert_run my_activity, terminus: my_activity.to_h[:outputs][:failure].signal, seq: [:a, :b], target_ctx: {seq: [], b: Trailblazer::Activity::Left}
     assert_run my_activity, terminus: my_activity.to_h[:outputs][:success].signal, seq: [:a, :b], target_ctx: {seq: [], b: MyReceivedSignal}
   end
+
+  describe "{:patch}" do
+    it "replaces deeply nested activity" do
+      advance = Class.new(Trailblazer::Activity::Path) do
+        step :g
+        step :f
+
+        include T.def_steps(:g, :f)
+      end
+
+      controller = Class.new(Trailblazer::Activity::Path) do
+        step Subprocess(advance), id: :advance
+        step :d
+
+        include T.def_steps(:d)
+      end
+
+      my_controller = Class.new(Trailblazer::Activity::Path) do
+        step :c
+        step Subprocess(controller), id: :controller
+
+        include T.def_steps(:c)
+      end
+
+      our_controller = Class.new(Trailblazer::Activity::Path) do
+        step Subprocess(my_controller, patch: {[:controller, :advance] => -> { step T.def_steps(:a).method(:a), before: :f }}), id: :my_controller
+      end
+
+      whole_controller = Class.new(Trailblazer::Activity::Path) do
+        # patch our_controller itself
+        step Subprocess(our_controller, patch: -> { step :b, after: :my_controller }), id: :our_controller
+      end
+
+      assert_run our_controller, seq: [:g, :a, :f], terminus: our_controller.to_h[:outputs][:success].signal
+
+  # all existing activities are untouched
+# FIXME: what do we test here?
+      # oc = find(whole_controller, :our_controller)
+      # mc = find(our_controller, :my_controller)
+      #  c = find(mc, :controller)
+      #  a = find( c, :advance)
+
+    end
+
+    it "retains wirings in patched activity" do
+      raise
+    end
+  end
+
 end

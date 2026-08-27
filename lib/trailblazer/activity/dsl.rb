@@ -82,39 +82,7 @@ require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"
 
+require "trailblazer/activity/dsl/feature/subprocess"
+Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::Subprocess::Helper)
 
-# TODO: introduce normalizer patching.
-# step_normalizer = Trailblazer::Activity::DSL::Topology.config.normalizer.fetch(:step)
-
-# step_normalizer = Trailblazer::Circuit::Adds.(
-#   step_normalizer,
-#   [
-#     :normalize_wirings, Trailblazer::Activity::DSL::Feature::OutputTuples::Normalizer::Node,
-#     :before, :build_sequence_row
-#   ],
-# )
-
-# Trailblazer::Activity::DSL::Topology.config.normalizer = {
-#   step: step_normalizer,
-# }
-
-# require "trailblazer/activity/dsl/railway"
-
-# DISCUSS: where to move this?
-
-    # add the default "terminus", a concept from Activity.
-    # id_for_success_terminus = :"End.success"
-
-    # config.sequence = Circuit::Adds.(
-    #   config.sequence,
-    #   [
-    #     id_for_success_terminus,
-    #     DSL::Sequence::Row.new(
-    #       magnetic_to: :success,
-    #       node: Circuit::Node[id_for_success_terminus, Terminus::Success.new(semantic: :success), Circuit::Task::Adapter::LibInterface],
-    #       wirings: {},
-    #       data: {id: id_for_success_terminus, terminus: true, semantic: :success},
-    #     ),
-    #     :before
-    #   ]
-    # )
+require "trailblazer/activity/dsl/feature/patch"
