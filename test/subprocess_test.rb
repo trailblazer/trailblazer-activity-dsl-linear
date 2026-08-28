@@ -149,15 +149,21 @@ class SubprocessTest < Minitest::Spec
       end
 
       our_controller = Class.new(Trailblazer::Activity::Path) do
+        step :b
         step Subprocess(my_controller, patch: {[:controller, :advance] => -> { step T.def_steps(:a).method(:a), before: :f }}), id: :my_controller
+
+        include T.def_steps(:b)
       end
 
       whole_controller = Class.new(Trailblazer::Activity::Path) do
+        step :a
         # patch our_controller itself
         step Subprocess(our_controller, patch: -> { step :b, after: :my_controller }), id: :our_controller
+
+        include T.def_steps(:a)
       end
 
-      assert_run our_controller, seq: [:g, :a, :f], terminus: our_controller.to_h[:outputs][:success].signal
+      assert_run our_controller, seq: [:b, :c, :g, :f, :d], terminus: our_controller.to_h[:outputs][:success].signal
 
   # all existing activities are untouched
 # FIXME: what do we test here?

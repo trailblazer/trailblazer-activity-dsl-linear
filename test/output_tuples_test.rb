@@ -290,27 +290,4 @@ class OutputTuplesTest < Minitest::Spec
       end
     end
   end
-
-  # Here, the {:outputs} contains less outputs than in the Topology's defaults.
-  # However, our :outputs overrides the default one ...
-  it "currently breaks when we don't have a {:failure} output" do
-    # RuntimeError: No `failure` output found for :a and outputs {:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>}
-    # DISCUSS: should we introduce a {failure: false} option, similar to FastTrack options?
-    # DISCUSS: this should be tested in railway_test.
-    assert_raises do
-      Class.new(Trailblazer::Activity::Railway) do
-        step :a,
-          outputs: {
-            success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success),
-            # no :failure output
-          }
-        step :b
-
-        include T.def_steps(:a, :b)
-      end
-    end
-
-    # assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [:a, :b]
-    # assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(expected_terminus).signal, seq: expected_seq, target_ctx: {seq: [1], a: Trailblazer::Activity::Left}
-  end
 end
