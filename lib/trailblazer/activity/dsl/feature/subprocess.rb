@@ -4,10 +4,8 @@ module Trailblazer
       module Feature
         module Subprocess
           module Helper
-            # @param :strict If true, all outputs of {activity} will be wired to the track named after the
-            #   output's semantic.
             def Subprocess(activity, patch: {}, strict: false)
-              # activity = Linear::Patch.customize(activity, options: patch)
+              activity = Subprocess.apply_patches(activity, patch)
 
               outputs  = activity.to_h[:outputs]
 
@@ -19,7 +17,6 @@ module Trailblazer
               #     }.to_h
               # end
 
-
               {
                 task:       activity,
                 outputs:    outputs,
@@ -27,6 +24,14 @@ module Trailblazer
                 adapter:    Circuit::Processor,
                 **options
               }
+            end
+          end
+
+          # Simply apply the patches in the hash to {activity}, replacing activity
+          # with every iteration.
+          def self.apply_patches(activity, patches)
+            patches.inject(activity) do |activity, (path, patch)|
+              Patch.(activity, path, patch)
             end
           end
         end

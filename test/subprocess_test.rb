@@ -150,33 +150,23 @@ class SubprocessTest < Minitest::Spec
 
       our_controller = Class.new(Trailblazer::Activity::Path) do
         step :b
-        step Subprocess(my_controller, patch: {[:controller, :advance] => -> { step T.def_steps(:a).method(:a), before: :f }}), id: :my_controller
+        step Subprocess(
+            my_controller,
+            patch: {
+              [:controller, :advance] => -> { step T.def_steps(:a).method(:a), before: :f },
+              [:controller] => -> { step T.def_steps(:x).method(:x), after: :advance },
+            }
+          ), id: :my_controller
 
         include T.def_steps(:b)
       end
 
-      whole_controller = Class.new(Trailblazer::Activity::Path) do
-        step :a
-        # patch our_controller itself
-        step Subprocess(our_controller, patch: -> { step :b, after: :my_controller }), id: :our_controller
-
-        include T.def_steps(:a)
-      end
-
-      assert_run our_controller, seq: [:b, :c, :g, :f, :d], terminus: our_controller.to_h[:outputs][:success].signal
-
-  # all existing activities are untouched
-# FIXME: what do we test here?
-      # oc = find(whole_controller, :our_controller)
-      # mc = find(our_controller, :my_controller)
-      #  c = find(mc, :controller)
-      #  a = find( c, :advance)
-
-    end
-
-    it "retains wirings in patched activity" do
-      raise
+      # We added {:a} and {:x}.
+      assert_run our_controller, seq: [:b, :c, :g, :a, :f, :x, :d], terminus: our_controller.to_h[:outputs][:success].signal
     end
   end
 
+  it "adds {subprocess: true} to normalizer ctx" do
+    raise
+  end
 end
