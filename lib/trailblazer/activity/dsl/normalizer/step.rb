@@ -40,12 +40,15 @@ module Trailblazer
           return ctx.merge(node: task_wrap_node), flow_options
         end
 
-        def self.build_sequence_row(ctx, flow_options, _, node:, id:, wirings:, magnetic_to:, **)
+        def self.build_sequence_row(ctx, flow_options, _, node:, id:, wirings:, magnetic_to:, data: {}, **)
           row = Sequence::Row.new(
             magnetic_to: magnetic_to,
             node: node,
             wirings: wirings,
-            data: {id: id},
+            data: {
+              id: id,
+              **data
+            },
           )
           return ctx.merge(sequence_row: row), flow_options
         end
