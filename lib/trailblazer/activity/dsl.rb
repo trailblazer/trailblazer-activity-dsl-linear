@@ -77,6 +77,8 @@ require "trailblazer/activity/dsl/feature/output_tuples/normalizer"
 Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::OutputTuples::Helper)
 
 require "trailblazer/activity/dsl/feature/terminus"
+require "trailblazer/activity/dsl/feature/inherit" # DISCUSS: needs to be loaded before Path, currently.
+require "trailblazer/activity/dsl/feature/data"
 
 require "trailblazer/activity/path"
 require "trailblazer/activity/railway"

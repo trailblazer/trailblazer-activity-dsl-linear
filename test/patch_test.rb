@@ -57,6 +57,7 @@ class PatchTest < Minitest::Spec
     end
 
     assert_run controller, terminus: controller.to_h[:outputs][:g_failure].signal, seq: [:g], target_ctx: {seq: [], g: false}
-    assert_run my_controller, terminus: my_controller.to_h[:outputs][:g_failure].signal, seq: [:c, :g, :h], target_ctx: {seq: [], g: false}
+    assert_run my_controller, terminus: my_controller.to_h[:outputs][:success].signal, seq: [:c, :g, :f, :h, :d], target_ctx: {seq: []}
+    assert_run my_controller, terminus: my_controller.to_h[:outputs][:g_failure].signal, seq: [:c, :g], target_ctx: {seq: [], g: false}
   end
 end

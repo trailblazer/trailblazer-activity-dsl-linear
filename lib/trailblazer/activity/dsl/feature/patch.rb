@@ -3,19 +3,6 @@ module Trailblazer
     module DSL
       module Feature # DISCUSS: this is Topology-specific and should probably reside there?
         module Patch
-          # Currently, this is called from the Subprocess() helper.
-          # def self.customize(activity, options:)
-          #   options = options.is_a?(Proc) ?
-          #     {[] => options} : # hash-wrapping with empty path, for patching given activity itself
-          #     options
-
-          #   options.each do |path, patch|
-          #     activity = call(activity, path, patch) # TODO: test if multiple patches works!
-          #   end
-
-          #   activity
-          # end
-
           def self.call(activity, path, block, patched_activity: Class.new(activity))
             task_id, *path = path
 
