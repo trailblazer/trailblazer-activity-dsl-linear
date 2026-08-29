@@ -46,6 +46,10 @@ class TopologyTest < Minitest::Spec
 
   end
 
+  it "#step can add the same callable multiple times" do
+
+  end
+
   it "#step computes {:id} for a step" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
       self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)

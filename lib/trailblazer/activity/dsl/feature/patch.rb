@@ -2,6 +2,7 @@ module Trailblazer
   class Activity
     module DSL
       module Feature # DISCUSS: this is Topology-specific and should probably reside there?
+        # Uses {:inherit} feature.
         module Patch
           def self.call(activity, path, block, patched_activity: Class.new(activity))
             task_id, *path = path
