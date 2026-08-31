@@ -9,10 +9,20 @@ class TopologyPathTest < Minitest::Spec
   end
 
   it "empty Path() can be run" do
-    my_path, _ = Trailblazer::Activity::Path() do
+    my_path, _ = Trailblazer::Activity.Path() do
     end
 
     assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: []
+  end
+
+  it "Path() accepts a block" do
+    my_exec_context = T.def_steps(:a)
+
+    my_path, _ = Trailblazer::Activity.Path(exec_context: my_exec_context) do
+      step :a
+    end
+
+    assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [:a]
   end
 
   it "step can return Right and Left" do

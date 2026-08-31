@@ -10,7 +10,7 @@ module Trailblazer
             failure_track_name: track_name,
             outputs: DSL::RIGHT_LEFT_OUTPUTS,
 
-            # **options
+            **options
           },
         }
       )
@@ -18,6 +18,8 @@ module Trailblazer
       activity, _ = builder.() do
         step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success)
       end
+
+      activity, _ = builder.(&block) if block_given? # TODO: implement for Railway and FastTrack?
 
       return activity, builder
     end
