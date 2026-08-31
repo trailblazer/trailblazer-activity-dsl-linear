@@ -15,7 +15,7 @@ module Trailblazer
           module Target
             # Connector when using Track(:success).
             class Track < Struct.new(:color, :adds, :options)
-              def call(*)
+              def call(**)
                 search_strategy = options[:wrap_around] ? Sequence::Search::WrapAround : Sequence::Search::Forward
 
                 return search_strategy.new(color), adds
@@ -24,7 +24,7 @@ module Trailblazer
 
             # Connector when using Id(:validate).
             class Id < Struct.new(:value)
-              def call(*)
+              def call(**)
                 return Sequence::Search::ById.new(value), [] # {value} is the "target".
               end
             end
@@ -32,9 +32,7 @@ module Trailblazer
 
             # Connector representing a (to-be-created?) terminus when using End(:semantic).
             class Terminus < Struct.new(:semantic)
-              def call(ctx)
-                sequence = ctx[:sequence]
-
+              def call(sequence:, **ctx)
                 end_id     = DSL.id_for_terminus(semantic: semantic)
                 end_exists = sequence.to_a.find { |id, row| id == end_id }
 

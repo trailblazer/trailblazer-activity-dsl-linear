@@ -62,7 +62,7 @@ module Trailblazer
                   semantic = output.semantic
                   output   = outputs[semantic] || raise("No `#{semantic}` output found for #{id.inspect} and outputs #{outputs.inspect}")
 
-                  search, connector_adds = target.(ctx)
+                  search, connector_adds = target.(**ctx)
 
                   adds_for_sequence += connector_adds
 
