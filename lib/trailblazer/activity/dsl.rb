@@ -4,29 +4,29 @@ require "dry/configurable"
 module Trailblazer
   class Activity # DISCUSS: the Activity class is defined in the activity gem and already got some {setting} directives.
     module DSL
-      def forward_to_builder!(normalizer_name, user_provider = nil, **options) # FIXME: separate module!
-        activity, _sequence = config.builder.() { send(normalizer_name, user_provider, **options) }
+      def forward_to_builder!(normalizer_name, user_provider = nil, **options, &block) # FIXME: separate module!
+        activity, _sequence = config.builder.() { send(normalizer_name, user_provider, **options, &block) }
 
         self.config.activity = activity
       end
 
       module Step
-        def step(*args, **options)
-          forward_to_builder!(:step, *args, **options)
+        def step(*args, **options, &block)
+          forward_to_builder!(:step, *args, **options, &block)
         end
       end # Step
 
       module Left
-        def left(*args, **options)
-          forward_to_builder!(:left, *args, **options)
+        def left(*args, **options, &block)
+          forward_to_builder!(:left, *args, **options, &block)
         end
 
         alias fail left
       end
 
       module Pass
-        def pass(*args, **options)
-          forward_to_builder!(:pass, *args, **options)
+        def pass(*args, **options, &block)
+          forward_to_builder!(:pass, *args, **options, &block)
         end
       end
 
@@ -88,3 +88,6 @@ require "trailblazer/activity/dsl/feature/subprocess"
 Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::Subprocess::Helper)
 
 require "trailblazer/activity/dsl/feature/patch"
+
+require "trailblazer/activity/dsl/feature/path"
+Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::Path::Helper)
