@@ -68,6 +68,30 @@ module Trailblazer
           ],
         )
 
+        # add the {inherit: true} feature:
+        # FIXME: move to somewhere else, in dsl.rb.
+        Step = Circuit::Adds.(
+          Step,
+          [
+            :record_options, DSL::Feature::Inherit::Normalizer::Node::Record,
+            :after, :build_task_wrap_node
+          ],
+          [
+            :replay_options, DSL::Feature::Inherit::Normalizer::Node::Replay,
+            :after, :build_task_wrap_node
+          ],
+        )
+
+        # add the {Data.Variable} feature:
+        # FIXME: move to somewhere else, in dsl.rb.
+        Step = Circuit::Adds.(
+          Step,
+          [
+            :compile_data, DSL::Feature::Data::Normalizer::Node,
+            :before, :build_sequence_row
+          ],
+        )
+
         # add Path specific behavior:
         Step = Circuit::Adds.(
           Step,
