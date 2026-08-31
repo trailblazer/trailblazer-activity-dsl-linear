@@ -34,7 +34,9 @@ module Trailblazer
         end
 
         # NOTE: we only update sequence here, compiling is the job of the caller.
-        def step!(type, user_provider = nil, **options)
+        def step!(type, user_provider = nil, **options, &block)
+          options = options.merge(block_arg: block) if block_given?
+
           self.sequence = alter_sequence(
             self.sequence,
             self.normalizers.fetch(type),

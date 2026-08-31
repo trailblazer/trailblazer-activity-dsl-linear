@@ -50,6 +50,18 @@ class TopologyTest < Minitest::Spec
 
   end
 
+  it "we can access {:block_argument} if given" do
+    my_block = ->(*) { snippet }
+
+    my_activity = Class.new(Trailblazer::Activity::Path) do
+      step :a,
+        Trailblazer::Activity::DSL::Feature::Data.Variable() => [:block_arg],
+        &my_block
+    end
+
+    assert_equal my_activity.config.builder.sequence.nodes[:a].data[:block_arg], my_block
+  end
+
   it "#step computes {:id} for a step" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
       self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
