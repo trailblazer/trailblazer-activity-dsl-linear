@@ -32,11 +32,9 @@ module Trailblazer
 
             # Connector representing a (to-be-created?) terminus when using End(:semantic).
             class Terminus < Struct.new(:semantic)
-              def call(sequence:, **ctx)
+              def call(sequence:, adds: [], **ctx) # DISCUSS: should we allow :adds from outside?
                 end_id     = DSL.id_for_terminus(semantic: semantic)
                 end_exists = sequence.to_a.find { |id, row| id == end_id }
-
-                adds = []
 
                 unless end_exists
                   new_terminus = Activity::Terminus.new(semantic: semantic)
