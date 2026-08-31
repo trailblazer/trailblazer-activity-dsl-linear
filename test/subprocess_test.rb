@@ -167,6 +167,12 @@ class SubprocessTest < Minitest::Spec
   end
 
   it "adds {subprocess: true} to normalizer ctx" do
-    raise
+    my_activity = Class.new(Trailblazer::Activity::Path) do
+      step Subprocess(Trailblazer::Activity::Path),
+        id: :a,
+        Trailblazer::Activity::DSL::Feature::Data.Variable() => [:subprocess]
+    end
+
+    assert_equal my_activity.config.builder.sequence.nodes[:a].data[:subprocess], true
   end
 end
