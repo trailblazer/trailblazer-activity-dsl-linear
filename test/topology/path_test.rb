@@ -1,13 +1,6 @@
 require "test_helper"
 
-class TopologyPathTest < Minitest::Spec
-  it "empty Path can be run" do
-    my_path = Class.new(Trailblazer::Activity::Path) do
-    end
-
-    assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: []
-  end
-
+class TopologyPathFunctionTest < Minitest::Spec
   it "empty Path() can be run" do
     my_path, _ = Trailblazer::Activity.Path() do
     end
@@ -23,6 +16,32 @@ class TopologyPathTest < Minitest::Spec
     end
 
     assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [:a]
+  end
+
+  it "we can use OutputTuples feature in Path(), once we include the Helper" do
+    my_exec_context = T.def_steps(:a, :b, :c)
+
+    my_path, _ = Trailblazer::Activity::Path(exec_context: my_exec_context) do
+      extend Trailblazer::Activity::DSL::Topology::Helper
+
+      step :a,
+        Output(:success) => Id(:c)
+      step :b
+      step :c
+    end
+
+    assert_equal my_path.to_h[:outputs].keys, [:success]
+
+    assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [:a, :c]
+  end
+end
+
+class TopologyPathTest < Minitest::Spec
+  it "empty Path can be run" do
+    my_path = Class.new(Trailblazer::Activity::Path) do
+    end
+
+    assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: []
   end
 
   it "step can return Right and Left" do
