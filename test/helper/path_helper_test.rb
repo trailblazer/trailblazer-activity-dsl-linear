@@ -129,4 +129,59 @@ class PathHelperTest < Minitest::Spec
     assert_run my_activity, terminus: :failure, seq: [1, :a, :b, :c, :d, :f], target_ctx: {seq: [1], b: false, d: false}
     assert_run my_activity, terminus: :failure, seq: [1, :a, :b, :e, :f], target_ctx: {seq: [1], e: false}
   end
+
+  it "deprecates :terminus" do
+    # step :a, Output(:failure) => Path(terminus: :roundtrip) do
+  end
+
+  # it "allows creating an empty Path()" do
+
+  # end
+
+  # it "allows inserting steps onto an empty Path() at a later point" do
+  #   # DISCUSS: this only works with a dedicated Terminus, though.
+  #   my_activity = Class.new(Trailblazer::Activity::Railway) do
+  #     step :a
+  #     step :c, Output(:success) => Path(track_name: :green, connect_to: Terminus(:roundtrip)) do
+  #     end
+  #     step :e
+  #   #@ Add {:f} to empty path.
+  #     step :f, magnetic_to: :green, Output(:success) => Track(:green) # FIXME: we obviously have two outputs here.
+
+  #     include T.def_steps(:a, :c, :e, :f)
+  #   end
+
+  #   assert_run my_activity, terminus: :success, seq: [:a, :c]
+  # end
+
+  it "allows inserting steps onto an existing Path()" do
+    my_activity = Class.new(Trailblazer::Activity::Railway) do
+      step :a
+      step :c, Output(:success) => Path(track_name: :green, connect_to: Terminus(:roundtrip)) do
+        step :d  # look for the next {magnetic_to: :green} occurrence.
+      end
+      step :e
+      step :f, before: :d, magnetic_to: :green, Output(:success) => Track(:green)
+
+      include T.def_steps(:a, :c, :d, :e, :f)
+    end
+
+    assert_run my_activity, terminus: :roundtrip, seq: [:a, :c, :f, :d]
+    assert_run my_activity, terminus: :failure, seq: [:a, :c], target_ctx: {seq: [], c: false}
+  end
+
+  it "{Path()} allows connecting to the outer step using {Output() => Id()}" do
+    my_activity = Class.new(Trailblazer::Activity::Railway) do
+      step :c, Output(:success) => Path(connect_to: Track(:success)) do
+        step :d, Output(:success) => Id(:f)
+        step :e
+      end
+      step :f
+
+      include T.def_steps(:c, :d, :e, :f)
+    end
+
+    assert_run my_activity, terminus: :success, seq: [:c, :d, :f]
+    assert_run my_activity, terminus: :success, seq: [:c, :d, :e, :f], target_ctx: {seq: [], d: false}
+  end
 end
