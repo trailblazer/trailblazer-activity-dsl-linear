@@ -28,14 +28,16 @@ module Trailblazer
           return ctx.merge(node_for_call_task: node_for_task), flow_options
         end
 
-        def self.build_task_wrap_node(ctx, flow_options, _, node_for_call_task:, id:, **)
-          task_wrap_pipe = Circuit::Builder.Pipeline( # DISCUSS: should we return a Node::Scoped here?
+        def self.build_task_wrap_pipeline(ctx, flow_options, _, node_for_call_task:, **)
+          task_wrap_pipeline = Circuit::Builder.Pipeline( # DISCUSS: should we return a Node::Scoped here?
             [:"task_wrap.call_task", node: node_for_call_task],
-            # DISCUSS: other taskWrap steps would go here?
           )
 
-          # task_wrap_node = Circuit::Node::Scoped[:"#{id}", task_wrap_pipe, Circuit::Processor, merge_to_lib_ctx: [:target_ctx]]
-          task_wrap_node = Circuit::Node[task_wrap_pipe, Circuit::Processor]
+          return ctx.merge(task_wrap_pipeline: task_wrap_pipeline), flow_options
+        end
+
+        def self.build_task_wrap_node(ctx, flow_options, _, task_wrap_pipeline:, **)
+          task_wrap_node = Circuit::Node[task_wrap_pipeline, Circuit::Processor]
 
           return ctx.merge(node: task_wrap_node), flow_options
         end
@@ -102,8 +104,9 @@ module Trailblazer
           [:normalize_macro_interface, method(:normalize_macro_interface)],
           [:is_step?, method(:is_step?), connections: {Left => [:build_node_for_task, Left], Right => [:normalize_id_for_step, Right]}],
           [:normalize_id_for_step, method(:normalize_id_for_step), connections: {nil => :build_node_for_step}], # DISCUSS: what if we need to know what
-          [:build_node_for_task, method(:build_node_for_task), connections: {nil => :build_task_wrap_node}],
-          [:build_node_for_step, method(:build_node_for_step), connections: {nil => :build_task_wrap_node}],
+          [:build_node_for_task, method(:build_node_for_task), connections: {nil => :build_task_wrap_pipeline}],
+          [:build_node_for_step, method(:build_node_for_step), connections: {nil => :build_task_wrap_pipeline}],
+          [:build_task_wrap_pipeline, method(:build_task_wrap_pipeline)],
           [:build_task_wrap_node, method(:build_task_wrap_node)],
           [:normalize_magnetic_to, method(:normalize_magnetic_to)], # DISCUSS: position?
           [:normalize_prepositions, method(:normalize_prepositions)],
