@@ -22,11 +22,7 @@ module Trailblazer
           # TODO: deprecate {:terminus} etc.
           def build_path(track_name: "track_#{rand}", connect_to:, block_arg:, exec_context:, **options)
             # DISCUSS:  if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.
-            _block_arg = -> {
-              extend Trailblazer::Activity::DSL::Topology::Helper
-              instance_exec(&block_arg)
-            }
-            activity, builder = Activity.Path(track_name: track_name, exec_context: exec_context, &_block_arg)
+            activity, builder = Activity.Path(track_name: track_name, exec_context: exec_context, extends: [Topology::Helper], &block_arg)
 
             seq = builder.sequence
             seq = seq.to_a.to_h # FIXME: introduce canonical way to work on Sequence.

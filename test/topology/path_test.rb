@@ -18,12 +18,10 @@ class TopologyPathFunctionTest < Minitest::Spec
     assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [:a]
   end
 
-  it "we can use OutputTuples feature in Path(), once we include the Helper" do
+  it "we can use OutputTuples feature in Path(), once we include the Helper using {:extends}" do
     my_exec_context = T.def_steps(:a, :b, :c)
 
-    my_path, _ = Trailblazer::Activity::Path(exec_context: my_exec_context) do
-      extend Trailblazer::Activity::DSL::Topology::Helper
-
+    my_path, _ = Trailblazer::Activity::Path(exec_context: my_exec_context, extends: [Trailblazer::Activity::DSL::Topology::Helper]) do
       step :a,
         Output(:success) => Id(:c)
       step :b

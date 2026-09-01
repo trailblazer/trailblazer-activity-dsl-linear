@@ -1,6 +1,6 @@
 module Trailblazer
   class Activity
-    def self.Path(track_name: :success, normalizers: {step: Path::Normalizer::Step}, **options, &block) # FIXME: test {options}.
+    def self.Path(track_name: :success, normalizers: {step: Path::Normalizer::Step}, extends: nil, **options, &block) # FIXME: test {options}.
       builder = DSL::Builder.new(
         normalizers: normalizers,
         default_options: {
@@ -14,6 +14,8 @@ module Trailblazer
           },
         }
       )
+
+      builder.extend(*extends) if extends # DISCUSS: where to put this?
 
       activity, _ = builder.() do
         step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success)
