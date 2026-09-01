@@ -29,7 +29,7 @@ module Trailblazer
         end
 
         def self.build_task_wrap_node(ctx, flow_options, _, node_for_call_task:, id:, **)
-          task_wrap_pipe = Circuit::Builder.TaskWrap( # DISCUSS: should we return a Node::Scoped here?
+          task_wrap_pipe = Circuit::Builder.Pipeline( # DISCUSS: should we return a Node::Scoped here?
             [:"task_wrap.call_task", node: node_for_call_task],
             # DISCUSS: other taskWrap steps would go here?
           )
