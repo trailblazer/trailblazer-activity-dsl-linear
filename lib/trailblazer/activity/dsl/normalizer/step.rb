@@ -79,38 +79,6 @@ module Trailblazer
           return ctx, flow_options
         end
 
-                  # Processes {:before, :after, :replace, :delete} options and
-          # defaults to {before: "End.success"} which, yeah.
-          def normalize_sequence_insert(ctx, flow_options, _, end_id:, **)
-            # Find out whether there's a {before: :model} or anything in the user DSL options.
-            insertion = ctx.keys & dsl_insertion_option_to_adds.keys
-            insertion = insertion[0]
-
-            insertion, target =
-              insertion ? [insertion, ctx[insertion]] : [:before, end_id]
-# TODO: test {after: nil}
-
-            adds_insertion = dsl_insertion_option_to_adds[insertion]
-
-            ctx = ctx.merge(
-              sequence_insert: {adds_insertion => target}
-            )
-
-            return ctx, flow_options
-          end
-
-          # Translate DSL option to "friendly interface" option.
-          # @private
-          # FIXME: make constant.
-          def dsl_insertion_option_to_adds
-            {
-              before:   :prepend,
-              after:    :append,
-              replace:  :replace,
-              delete:   :delete
-            }
-          end
-
         DEFAULT_ADDS_INSERTION_ARGS = [:before, :"End.success"]
 
         def self.normalize_adds_insertion_args(ctx, flow_options, _, adds_insertion_args: DEFAULT_ADDS_INSERTION_ARGS, **)
