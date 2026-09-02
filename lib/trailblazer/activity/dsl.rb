@@ -91,3 +91,6 @@ require "trailblazer/activity/dsl/feature/patch"
 
 require "trailblazer/activity/dsl/feature/path"
 Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::Path::Helper)
+
+require "trailblazer/activity/dsl/feature/extension/task_wrap"
+require "trailblazer/activity/dsl/feature/extension/options"
