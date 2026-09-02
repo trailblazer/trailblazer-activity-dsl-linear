@@ -68,7 +68,7 @@ module Trailblazer
           Step,
           [
             :normalize_wirings, DSL::Feature::OutputTuples::Normalizer::Node,
-            :before, :build_sequence_row
+            :before, :build_task_wrap_node
           ],
         )
 
@@ -78,11 +78,11 @@ module Trailblazer
           Step,
           [
             :record_options, DSL::Feature::Inherit::Normalizer::Node::Record,
-            :after, :build_task_wrap_node
+            :after, :build_task_wrap_pipeline
           ],
           [
             :replay_options, DSL::Feature::Inherit::Normalizer::Node::Replay,
-            :after, :build_task_wrap_node
+            :after, :build_task_wrap_pipeline
           ],
         )
 

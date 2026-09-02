@@ -13,7 +13,7 @@ module Trailblazer
 
         # if the {first_arg} is something not nil, we need to convert it to a real Step (node).
         def self.is_step?(ctx, flow_options, _, first_arg:, **)
-          return ctx, flow_options, first_arg ? Right : Left
+          return ctx, flow_options, first_arg ? Activity::Right : Activity::Left
         end
 
         def self.build_node_for_step(ctx, flow_options, _, first_arg:, id:, exec_context:, **) # FIXME: {:exec_context} is not mandatory.
@@ -102,15 +102,15 @@ module Trailblazer
         # DISCUSS: should we use proper {:connections} hashes here? it seems to work like that.
         Step = Circuit::Builder.Circuit(
           [:normalize_macro_interface, method(:normalize_macro_interface)],
-          [:is_step?, method(:is_step?), connections: {Left => [:build_node_for_task, Left], Right => [:normalize_id_for_step, Right]}],
+          [:is_step?, method(:is_step?), connections: {Activity::Left => [:build_node_for_task, Activity::Left], Activity::Right => [:normalize_id_for_step, Activity::Right]}],
           [:normalize_id_for_step, method(:normalize_id_for_step), connections: {nil => :build_node_for_step}], # DISCUSS: what if we need to know what
           [:build_node_for_task, method(:build_node_for_task), connections: {nil => :build_task_wrap_pipeline}],
           [:build_node_for_step, method(:build_node_for_step), connections: {nil => :build_task_wrap_pipeline}],
           [:build_task_wrap_pipeline, method(:build_task_wrap_pipeline)],
-          [:build_task_wrap_node, method(:build_task_wrap_node)],
           [:normalize_magnetic_to, method(:normalize_magnetic_to)], # DISCUSS: position?
           [:normalize_prepositions, method(:normalize_prepositions)],
           [:normalize_adds_insertion_args, method(:normalize_adds_insertion_args)], # DISCUSS: position?
+          [:build_task_wrap_node, method(:build_task_wrap_node)],
           [:build_sequence_row, method(:build_sequence_row)],
           [:compile_adds_for_sequence, method(:compile_adds_for_sequence)],
         )
