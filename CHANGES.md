@@ -1,5 +1,7 @@
 # 1.3.0
 
+
+
 Railway(:termini ) is deprecated
 
 ## Normalizer
@@ -52,7 +54,9 @@ Activity subclasses maintain a field {:task_wrap_extensions} that can be used to
 * Removed deprecated :override. Use :replace.
 *  Removed Inject () => { ... }
 * Removed :row, use ADDS [row, id: row.id, ...]
-* Remove formerly deprecated `:end_id` and `:end_task` options for `Path()` helper. Use `:terminus`, see https://trailblazer.to/2.1/docs/activity/deprecated/#operation-wiring-api-path-end_task-end_id
+* Remove formerly deprecated `:end_id` and `:end_task` options for `Path()` helper. Use `:terminus`, see https://trailblazer.to/2.1/docs/activity/deprecated/#operation-wiring-api-path-end_task-end_id.
+  Rename :track_color to :track_name
+* Path(){} removed :terminus etc, only :connect_to left.
 
 # 1.2.7
 
