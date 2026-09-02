@@ -34,6 +34,19 @@ module MyTest
       wirings: {Trailblazer::Activity::Output.new(task, semantic) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
     }
   end
+
+
+  def self.my_options_for_builder(step_normalizer: Trailblazer::Activity::DSL::Normalizer::Step)
+    {
+      normalizers: {
+        step: step_normalizer,
+      },
+        # sequence: Trailblazer::Activity::DSL::Sequence.new
+      default_options: {
+        step: {}
+      }
+    }
+  end
 end
 
 # require "trailblazer/developer"
