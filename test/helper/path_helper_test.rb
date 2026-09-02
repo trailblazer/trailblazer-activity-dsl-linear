@@ -170,7 +170,7 @@ class PathHelperTest < Minitest::Spec
     assert_run my_activity, terminus: :failure, seq: [:a, :c], target_ctx: {seq: [], c: false}
   end
 
-  it "{Path()} allows connecting to the outer step using {Output() => Id()}" do
+  it "{Path()} allows connecting to the outer steps using {Output() => Id()}" do
     my_activity = Class.new(Trailblazer::Activity::Railway) do
       step :c, Output(:success) => Path(connect_to: Track(:success)) do
         step :d, Output(:success) => Id(:f)
