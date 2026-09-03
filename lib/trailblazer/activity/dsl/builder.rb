@@ -74,10 +74,10 @@ module Trailblazer
         end
 
         # DISCUSS: this should be the only interface to alter a Builder.
-        def clone(merge:, adds: nil)
+        def clone(defaults:, adds: nil)
           builder = super()
 
-          builder.default_options = builder.default_options.collect { |k,v| [k, v.merge(merge)] }.to_h
+          builder.default_options = builder.default_options.collect { |k,v| [k, v.merge(defaults)] }.to_h
 
           if adds
             builder.normalizers = update_normalizers(builder.normalizers, adds: adds)

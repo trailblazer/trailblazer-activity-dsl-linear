@@ -111,7 +111,7 @@ class DslBuilderTest < Minitest::Spec
     assert_equal sequence.nodes.keys, [:a, :b, :c]
   end
 
-  it "{#clone} accepts {:merge} that merges to all {:default_options} subkeys (:step, etc)" do
+  it "{#clone} accepts {:defaults} that merges to all {:default_options} subkeys (:step, etc)" do
     my_builder = Trailblazer::Activity::DSL::Builder.new(
       normalizers: {step: Object},
       default_options: {
@@ -124,7 +124,7 @@ class DslBuilderTest < Minitest::Spec
       }
     )
 
-    my_builder_clone = my_builder.clone(merge: {exec_context: Module})
+    my_builder_clone = my_builder.clone(defaults: {exec_context: Module})
 
     assert_equal my_builder.default_options,
       {
@@ -168,7 +168,7 @@ class DslBuilderTest < Minitest::Spec
     # This is the actual test.
     #
     my_configured_builder = my_builder.clone(
-      merge: {
+      defaults: {
         adds_insertion_args: [:before]
       },
       adds: [

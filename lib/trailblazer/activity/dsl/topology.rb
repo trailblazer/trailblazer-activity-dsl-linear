@@ -11,7 +11,7 @@ module Trailblazer
         setting :builder # this keeps the Sequence instance.
         setting :activity
 
-        extend DSL # #forward_to_builder!
+        extend DSL # {#forward_to_builder!}
         extend DSL::Step # #step
 
         def self.to_h
@@ -20,11 +20,18 @@ module Trailblazer
             outputs: config.activity.outputs # TODO: test me.
           }
         end
+# FIXME: test this behavior (Runtime module_.
+        def self.start_tuple # FIXME: make this nicer, for Processor
+          config.activity.circuit.start_tuple
+        end
+        def self.resolve(*args) # FIXME: make this nicer, for Processor
+          config.activity.circuit.resolve(*args)
+        end
 
         def self.inherited(subclass)
           super
 
-          subclass.config.builder = config.builder.clone(merge: {exec_context: subclass.new.freeze})
+          subclass.config.builder = config.builder.clone(defaults: {exec_context: subclass.new.freeze})
         end
 
         config.builder = Builder.new(default_options: {})
