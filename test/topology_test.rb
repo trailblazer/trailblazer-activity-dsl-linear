@@ -9,19 +9,6 @@ class TopologyTest < Minitest::Spec
     }
   end
 
-
-  def self.my_options_for_builder
-    {
-      normalizers: {
-        step: Trailblazer::Activity::DSL::Normalizer::Step,
-      },
-        # sequence: Trailblazer::Activity::DSL::Sequence.new
-      default_options: {
-        step: {}
-      }
-    }
-  end
-
   it "#to_h with empty Topology" do
     skip "there is no use case for this to be working"
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
@@ -64,7 +51,7 @@ class TopologyTest < Minitest::Spec
 
   it "#step computes {:id} for a step" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
-      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**MyTest.my_options_for_builder)
 
       step :b,# i am a terminus.
         exec_context: T.def_steps(:b),
@@ -82,7 +69,7 @@ class TopologyTest < Minitest::Spec
 
   it "#step accepts {:id}" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
-      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**MyTest.my_options_for_builder)
 
       step :b,# i am a terminus.
         exec_context: T.def_steps(:b),
@@ -98,7 +85,7 @@ class TopologyTest < Minitest::Spec
 
   it "#step raises error with {:id} already used" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
-      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**MyTest.my_options_for_builder)
 
       step :b,# i am a terminus.
         id: :b, exec_context: new,
@@ -114,7 +101,7 @@ class TopologyTest < Minitest::Spec
 
   it "#step accepts {:magnetic_to}" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
-      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**MyTest.my_options_for_builder)
 
       step :b,# i am a terminus.
         id: :b, exec_context: new,
@@ -160,7 +147,7 @@ class TopologyTest < Minitest::Spec
     ]
 
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
-      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**MyTest.my_options_for_builder)
 
       step :a, # i am a terminus.
         exec_context: my_exec_context,
@@ -181,7 +168,7 @@ class TopologyTest < Minitest::Spec
     success = nil
 
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
-      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**MyTest.my_options_for_builder)
 
       step task: success = Trailblazer::Activity::Terminus::Success.new(semantic: :success), id: :"End.success", magnetic_to: :success,
         adds_insertion_args: [:after],
@@ -216,7 +203,7 @@ class TopologyTest < Minitest::Spec
   # TODO: these are all kinda normalizer tests.
   it "#step accepts hash as first argument (called macro style)" do
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
-      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**MyTest.my_options_for_builder)
 
       step(
         { # explicit hash, not kwargs!
@@ -238,7 +225,7 @@ class TopologyTest < Minitest::Spec
     end
 
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
-      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**MyTest.my_options_for_builder)
 
       step task: nil,
         adapter: my_adapter,
@@ -262,7 +249,7 @@ class TopologyTest < Minitest::Spec
   it "inheritance doesn't bleed into parents" do
     success = nil
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
-      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**TopologyTest.my_options_for_builder)
+      self.config.builder = Trailblazer::Activity::DSL::Builder.new(**MyTest.my_options_for_builder)
 
       step task: success = Trailblazer::Activity::Terminus::Success.new(semantic: :success), id: :"End.success",
          wirings: {Trailblazer::Activity::Output.new(success, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new},
@@ -292,7 +279,7 @@ class TopologyTest < Minitest::Spec
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
       # DISCUSS: is extend the only way? can we use something like another pipe?
       extend Trailblazer::Activity::Finalize # DISCUSS: Feature::Finalize, or where would that go?
-      config.builder = Trailblazer::Activity::Finalize::Builder.new(**TopologyTest.my_options_for_builder)
+      config.builder = Trailblazer::Activity::Finalize::Builder.new(**MyTest.my_options_for_builder)
 
       config.builder.instance_eval do
         def compile_activity
