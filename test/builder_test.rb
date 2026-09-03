@@ -138,4 +138,60 @@ class DslBuilderTest < Minitest::Spec
         fail: {magnetic_to: :failure, exec_context: Module}
       }
   end
+
+  # Emulate building a node for the user's step logic.
+  def my_build_sequence_row(ctx, flow_options, _, **)
+    return ctx.merge(sequence_row: Module), flow_options
+  end
+
+  it "#clone accepts {:adds} for all normalizers" do
+    my_normalizer = Trailblazer::Circuit::Builder.Pipeline(
+      # --> we add {#my_build_sequence_row} here via the {Builder#clone} call. <--
+      [:compile_adds_for_sequence, Trailblazer::Activity::DSL::Normalizer.method(:compile_adds_for_sequence)]
+    )
+
+    my_builder = Trailblazer::Activity::DSL::Builder.new(
+      normalizers: {
+        step: my_normalizer
+        # TODO: test multiple.
+      },
+      default_options: {
+        step: {
+          magnetic_to: :success,
+        },
+      }
+    )
+
+    right_to_nil = {Trailblazer::Activity::Output.new(Trailblazer::Activity::Right, :success) => Trailblazer::Activity::DSL::Sequence::Search::Nil.new}
+
+    #
+    # This is the actual test.
+    #
+    my_configured_builder = my_builder.clone(
+      merge: {
+        adds_insertion_args: [:before]
+      },
+      adds: [
+        [:my_build_sequence_row, Trailblazer::Circuit::Node[method(:my_build_sequence_row), Trailblazer::Circuit::Task::Adapter::LibInterface], :before],
+      ]
+    )
+
+    # the original builder is not altered:
+    exception = assert_raises ArgumentError do
+      my_builder.step id: :a # missing :wirings, :node
+    end
+
+    assert exception.message, /:sequence_row/
+    assert exception.message, /:adds_insertion_args/
+
+    # the original builder needs lots of options, because almost not configured.
+    my_builder.step id: :a, adds_insertion_args: :before, sequence_row: Object
+
+    assert_equal my_builder.sequence.to_a.to_h[:a], Object
+
+    # the new builder has all options set, well, most of them.
+    my_configured_builder.step id: :a # everything preconfigured!
+
+    assert_equal my_configured_builder.sequence.to_a.to_h[:a], Module
+  end
 end

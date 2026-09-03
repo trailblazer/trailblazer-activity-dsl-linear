@@ -73,11 +73,28 @@ module Trailblazer
           )
         end
 
-        def clone(merge:)
+        # DISCUSS: this should be the only interface to alter a Builder.
+        def clone(merge:, adds: nil)
           builder = super()
+
           builder.default_options = builder.default_options.collect { |k,v| [k, v.merge(merge)] }.to_h
 
+          if adds
+            builder.normalizers = update_normalizers(builder.normalizers, adds: adds)
+          end
+
           return builder
+        end
+
+        # @private
+        def update_normalizers(normalizers, adds:)
+          normalizers.collect do |name, circuit|
+            circuit = Circuit::Adds.(circuit, *adds)
+
+            [name, circuit]
+          end
+          .to_h
+          .freeze
         end
       end
     end
