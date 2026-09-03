@@ -50,7 +50,7 @@ class OptionsExtensionsTest < Minitest::Spec
 
   # TODO: add extension that adds {:adds_for_task_wrap}
 
-  it "what" do
+  it "we can pass {:options_extensions} and alter the step's normalizer ctx" do
     my_normalizer = Trailblazer::Circuit::Adds.(
       Trailblazer::Activity::DSL::Normalizer::Step,
       [:bla, Trailblazer::Activity::DSL::Feature::Extension::TaskWrap::Normalizer::Node, :after, :build_task_wrap_pipeline],
