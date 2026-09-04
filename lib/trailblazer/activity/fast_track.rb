@@ -1,25 +1,7 @@
 module Trailblazer
   class Activity
-    def self.FastTrack(normalizers: FastTrack.config.builder.normalizers, helpers: nil, adds:, **default_options,  &block)
-      default_options = Railway.default_options_for_builder(**default_options)
-
-      fast_track_termini = {
-        success: Terminus::Success,
-        failure: Terminus::Failure,
-        pass_fast: FastTrack::Terminus::PassFast,
-        fail_fast: FastTrack::Terminus::FailFast
-      }
-
-      activity, builder, helper = DSL.Topology(normalizers: normalizers, adds: adds, default_options: default_options, helper_forwarder: Path.config.helper_forwarder, helpers: helpers) do
-        # add the four termini to the FastTrack topology by simply using #step.
-        fast_track_termini.each do |semantic, terminus_class|
-          step **DSL.options_for_terminus_step(semantic: semantic, terminus_class: terminus_class)
-        end
-      end
-
-      activity, _ = builder.(&block) if block_given? # FIXME: do that in Topology!    implement for Railway and FastTrack?
-
-      return activity, builder, helper
+    def self.FastTrack(normalizers: FastTrack.config.builder.normalizers, **options, &block)
+      Path(normalizers: normalizers, **options, &block)
     end
 
     class FastTrack < DSL::Topology
@@ -119,19 +101,25 @@ module Trailblazer
         FailFast = Class.new(Activity::Signal)
       end
 
-      options = {
-        # default_options: default_options_for_builder,
-        normalizers: {
-          step: FastTrack::Normalizer::Step,
-          left: FastTrack::Normalizer::Fail,
-          pass: FastTrack::Normalizer::Pass
-        },
-        adds: [],
+      normalizers = {
+        step: FastTrack::Normalizer::Step,
+        left: FastTrack::Normalizer::Fail,
+        pass: FastTrack::Normalizer::Pass
       }
 
-      config.activity, config.builder, config.helper_forwarder = Activity.FastTrack(**options)
+      # By cloning Railway's builder, we "inherit" the imported helpers.
+      fast_track_builder = Railway.config.builder.clone( # we inherit everything (set up sequence, helpers, normalizers)
+        defaults: {}
+      )
+      fast_track_builder.normalizers = fast_track_builder.normalizers.merge(normalizers) # DISCUSS: not entirely sure this must be covered by #clone?
+
+      config.activity, config.builder = Activity.Path(builder: fast_track_builder) do
+        step **DSL.options_for_terminus_step(semantic: :pass_fast, terminus_class: FastTrack::Terminus::PassFast)
+        step **DSL.options_for_terminus_step(semantic: :fail_fast, terminus_class: FastTrack::Terminus::FailFast)
+      end
+
       # Trailblazer::Developer.puts(config.builder.normalizers[:step])
-      extend config.helper_forwarder # forward Output() and friends to {builder}.
+      extend Path.config.helper_forwarder # forward Output() and friends to {builder}.
     end
   end
 end

@@ -233,4 +233,13 @@ class TopologyFastTrackTest < Minitest::Spec
     assert_run my_activity.to_h[:circuit], seq: [1, :a], terminus: my_activity.to_h[:outputs].fetch(:failure).signal,
       target_ctx: {seq: [1], a: Trailblazer::Activity::FastTrack::Signal::PassFast}
   end
+
+  describe "#FastTrack()" do
+    it "FastTrack() always has one terminus" do
+      my_path, _ = Trailblazer::Activity.FastTrack() do
+      end
+
+      assert_equal my_path.to_h[:outputs].inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
+    end
+  end
 end
