@@ -1,29 +1,15 @@
 module Trailblazer
   class Activity
-    def self.Path(track_name: :success, normalizers: {step: Path::Normalizer::Step}, extends: nil, **options, &block) # FIXME: test {options}.
-      builder = DSL::Builder.new(
-        normalizers: normalizers,
-        default_options: {
-          step: {
-            magnetic_to:        track_name,
-            track_name:         track_name,
-            failure_track_name: track_name,
-            outputs: DSL::RIGHT_LEFT_OUTPUTS,
+    def self.Path(normalizers: Path.config.builder.normalizers, helpers: nil, adds: [], **default_options, &block)
+      default_options = Path.default_options_for_builder(**default_options)
 
-            **options
-          },
-        }
-      )
-
-      builder.extend(*extends) if extends # DISCUSS: where to put this?
-
-      activity, _ = builder.() do
+      activity, builder, helper = DSL.Topology(normalizers: normalizers, adds: adds, default_options: default_options, helper_forwarder: Path.config.helper, helpers: helpers) do
         step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success)
       end
 
-      activity, _ = builder.(&block) if block_given? # TODO: implement for Railway and FastTrack?
+      activity, _ = builder.(&block) if block_given? # FIXME: do that in Topology!    implement for Railway and FastTrack?
 
-      return activity, builder
+      return activity, builder, helper
     end
 
     class Path < DSL::Topology
@@ -59,54 +45,51 @@ module Trailblazer
         )
 
         Node = Circuit::Node[circuit, Circuit::Processor]
+      end # Normalizer
 
-        Step = DSL::Normalizer::Step # canonical normalizer for Path's #step.
+      def self.default_options_for_builder(track_name: :success, **options)
+        {
+          step: {
+            magnetic_to:        track_name,
+            track_name:         track_name,
+            failure_track_name: track_name,
+            outputs: DSL::RIGHT_LEFT_OUTPUTS,
 
-        # add the Output() feature:
-        # FIXME: move to somewhere else, in dsl.rb.
-        Step = Circuit::Adds.(
-          Step,
+            **options
+          }
+        }
+      end
+
+      options = {
+        normalizers: {step: DSL::Normalizer::Step},
+        # default_options: default_options_for_builder(track_name: :success),
+        # Path always has Wiring API and its own normalizer extensions enabled.
+        adds: [
+          # add the Output() feature:
           [
             :normalize_wirings, DSL::Feature::OutputTuples::Normalizer::Node,
             :before, :build_task_wrap_node
           ],
-        )
 
-        # add the {inherit: true} feature:
-        # FIXME: move to somewhere else, in dsl.rb.
-        Step = Circuit::Adds.(
-          Step,
+          # add Path specific behavior:
           [
-            :record_options, DSL::Feature::Inherit::Normalizer::Node::Record,
-            :after, :build_task_wrap_pipeline
-          ],
-          [
-            :replay_options, DSL::Feature::Inherit::Normalizer::Node::Replay,
-            :after, :build_task_wrap_pipeline
-          ],
-        )
-
-        # add the {Data.Variable} feature:
-        # FIXME: move to somewhere else, in dsl.rb.
-        Step = Circuit::Adds.(
-          Step,
-          [
-            :compile_data, DSL::Feature::Data::Normalizer::Node,
-            :before, :build_sequence_row
-          ],
-        )
-
-        # add Path specific behavior:
-        Step = Circuit::Adds.(
-          Step,
-          [
-            :add_path_options, Node,
+            :add_path_options, Normalizer::Node,
             :before, :normalize_wirings # we're dependent on {OutputTuples}!
           ],
-        )
-      end # Normalizer
+        ],
+        helpers: {
+          DSL::Feature::OutputTuples::Helper => [:Output, :Id, :Track, :Terminus]
+        }
+      }
 
-      config.activity, config.builder = Activity.Path() # Activity::Path is just a simple, pre-configured frontend.
+      config.activity, config.builder, config.helper = Activity.Path(**options) # Activity::Path is just a simple, pre-configured frontend.
+      # Trailblazer::Developer.puts(config.builder.normalizers[:step])
+
+      def self._builder
+        config.builder
+      end
+
+      extend config.helper # forward Output() and friends to {builder}.
     end # Path
   end
 end

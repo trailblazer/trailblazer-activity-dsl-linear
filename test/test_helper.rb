@@ -1,3 +1,5 @@
+require "trailblazer/developer"
+
 require "trailblazer/activity/dsl"
 require "trailblazer/core"
 

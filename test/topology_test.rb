@@ -9,6 +9,59 @@ class TopologyTest < Minitest::Spec
     }
   end
 
+  def default_options_for_builder(track_name:, **options)
+        {
+          step: {
+            magnetic_to:        track_name,
+            track_name:         track_name,
+            failure_track_name: track_name,
+            outputs: Trailblazer::Activity::DSL::RIGHT_LEFT_OUTPUTS,
+
+            **options
+          }
+        }
+      end
+  it "what" do
+    options = {
+      normalizers: {step: Trailblazer::Activity::DSL::Normalizer::Step},
+      adds: [
+        # add the Output() feature:
+        [
+          :normalize_wirings, Trailblazer::Activity::DSL::Feature::OutputTuples::Normalizer::Node,
+          :before, :build_task_wrap_node
+        ],
+
+        # add Path specific behavior:
+        # [
+        #   # :add_path_options, Trailblazer::Activity::Path::Normalizer::Node,
+        #   :add_path_options, Trailblazer::Activity::DSL::Normalizer::Step,
+        #   :before, :normalize_wirings # we're dependent on {OutputTuples}!
+        # ],
+      ],
+      helpers: {
+        Trailblazer::Activity::DSL::Feature::OutputTuples::Helper => [:Output, :Id, :Track, :Terminus]
+      },
+      default_options: default_options_for_builder(track_name: :success)
+    }
+
+    activity, builder, helper = Trailblazer::Activity::DSL.Topology(**options) {
+      step **Trailblazer::Activity::DSL.options_for_terminus_step(semantic: :success, terminus_class: Trailblazer::Activity::Terminus::Success)
+    }
+
+    # TODO: delegate #resolve and #start_tuple, so we can omit {#to_h}
+    assert_run activity.to_h[:circuit], seq: [], terminus: activity.to_h[:outputs][:success].signal
+
+    output = builder.instance_exec { Output(:success) }
+    assert_equal output.inspect, "#<struct Trailblazer::Activity::DSL::Feature::OutputTuples::Output::Semantic semantic=:success, :generic?=nil>"
+
+    output = Struct.new(:_builder) do
+      include helper
+
+    end.new(builder).Output(:success)
+
+    assert_equal output.inspect, "#<struct Trailblazer::Activity::DSL::Feature::OutputTuples::Output::Semantic semantic=:success, :generic?=nil>"
+  end
+
   it "#to_h with empty Topology" do
     skip "there is no use case for this to be working"
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
