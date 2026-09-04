@@ -1,15 +1,10 @@
 module Trailblazer
   class Activity
-    def self.Path(normalizers: Path.config.builder.normalizers, helpers: nil, adds: [], **default_options, &block)
-      default_options = Path.default_options_for_builder(**default_options)
-
-      activity, builder, helper = DSL.Topology(normalizers: normalizers, adds: adds, default_options: default_options, helper_forwarder: Path.config.helper_forwarder, helpers: helpers) do
-        step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success)
-      end
+    def self.Path(builder: Path.config.builder, normalizers: builder.normalizers, helpers: nil, adds: [], **default_options, &block)
+      activity, builder, helper_forwarder = DSL.Topology(builder: builder, normalizers: normalizers, adds: adds, default_options: default_options, helpers: helpers)
 
       activity, _ = builder.(&block) if block_given? # FIXME: do that in Topology!    implement for Railway and FastTrack?
-
-      return activity, builder, helper
+      return activity, builder, helper_forwarder
     end
 
     class Path < DSL::Topology
@@ -61,7 +56,7 @@ module Trailblazer
       end
 
       options = {
-        normalizers: {step: DSL::Normalizer::Step},
+        # normalizers: {step: DSL::Normalizer::Step},
         # Path always has Wiring API and its own normalizer extensions enabled.
         adds: [
           # add the Output() feature:
@@ -81,7 +76,12 @@ module Trailblazer
         }
       }
 
-      config.activity, config.builder, config.helper_forwarder = Activity.Path(**options) # Activity::Path is just a simple, pre-configured frontend.
+      path_builder = DSL::Builder.new(normalizers: {step: DSL::Normalizer::Step}, default_options: default_options_for_builder)
+
+      config.activity, config.builder, config.helper_forwarder = Activity.Path(**options, builder: path_builder) do
+        step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success) # Activity::Path is just a simple, pre-configured frontend.
+      end
+
       # Trailblazer::Developer.puts(config.builder.normalizers[:step])
       extend config.helper_forwarder # forward Output() and friends to {builder}.
     end # Path

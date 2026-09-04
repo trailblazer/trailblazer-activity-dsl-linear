@@ -10,7 +10,7 @@ module Trailblazer
 
         setting :builder # this keeps the Sequence instance.
         setting :activity
-        setting :helper_forwarder # Where we delegate Subprocess(, Output() etc. # DIS
+        setting :helper_forwarder # Where we delegate Subprocess(, Output() etc.
 
         extend DSL # {#forward_to_builder!}
         extend DSL::Step # #step
@@ -53,9 +53,12 @@ module Trailblazer
 
 
       # TODO: this logic is build, not creating a Topology!
-      def self.Topology(normalizers:, default_options:, helper_forwarder: false, helpers: false, adds:, &block)
+      def self.Topology(builder:, normalizers:, default_options:, helpers: false, adds:, &block)
         helper_modules = nil # FIXME: extract to separate method.
-        unless helper_forwarder
+
+        helper_forwarder = Module.new
+
+        if helpers
           helper_modules = helpers.keys
           helper_functions = helpers.values.flatten.uniq
 
@@ -67,18 +70,14 @@ module Trailblazer
           end
         end
 
-        builder = DSL::Builder.new(
-          normalizers: normalizers,
-          default_options: default_options
-        )
-        # FIXME: improve Builder.new, make it accept :adds too?
         builder = builder.clone(
-          defaults: {}, # FIXME: MAKE default/
+          defaults: default_options,
+          # default_options: default_options,
           adds: adds,
           helpers: helper_modules
         )
 
-        activity, _ = builder.(&block)
+        activity, _ = builder.(&block) if block_given?
 
         return activity, builder, helper_forwarder
       end

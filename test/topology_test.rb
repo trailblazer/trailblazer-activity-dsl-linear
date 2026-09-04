@@ -54,7 +54,7 @@ class TopologyTest < Minitest::Spec
     output = builder.instance_exec { Output(:success) }
     assert_equal output.inspect, "#<struct Trailblazer::Activity::DSL::Feature::OutputTuples::Output::Semantic semantic=:success, :generic?=nil>"
 
-    output = Struct.new(:_builder) do
+    output = Struct.new(:helper_forwarder_target) do
       include helper
 
     end.new(builder).Output(:success)

@@ -8,6 +8,13 @@ class TopologyPathFunctionTest < Minitest::Spec
     assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: []
   end
 
+  it "Path() always has one terminus" do
+    my_path, _ = Trailblazer::Activity.Path() do
+    end
+
+    assert_equal my_path.to_h[:outputs].inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
+  end
+
   it "Path() accepts a block" do
     my_exec_context = T.def_steps(:a)
 
@@ -35,11 +42,21 @@ class TopologyPathFunctionTest < Minitest::Spec
 end
 
 class TopologyPathTest < Minitest::Spec
+  it "Path always has one terminus" do
+    my_path = Class.new(Trailblazer::Activity::Path)
+
+    assert_equal my_path.to_h[:outputs].inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
+  end
+
   it "empty Path can be run" do
     my_path = Class.new(Trailblazer::Activity::Path) do
     end
 
     assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: []
+  end
+
+  it "we can use OutputTuples features per default" do
+    assert_equal Class.new(Trailblazer::Activity::Path).Output(:success).semantic, :success
   end
 
   it "step can return Right and Left" do

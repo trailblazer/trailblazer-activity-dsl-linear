@@ -99,4 +99,13 @@ class TopologyRailwayTest < Minitest::Spec
     # This works, it's the only :outputs configured.
     assert_run my_railway, seq: [1, :a, :c], terminus: my_railway.to_h[:outputs][:success].signal, target_ctx: {seq: [1], a: my_winning_signal}
   end
+
+  describe "#Railway()" do
+    it "Railway() always has one terminus" do
+      my_path, _ = Trailblazer::Activity.Railway() do
+      end
+
+      assert_equal my_path.to_h[:outputs].inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
+    end
+  end
 end
