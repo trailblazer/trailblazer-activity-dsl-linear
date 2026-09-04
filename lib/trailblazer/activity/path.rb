@@ -3,7 +3,7 @@ module Trailblazer
     def self.Path(normalizers: Path.config.builder.normalizers, helpers: nil, adds: [], **default_options, &block)
       default_options = Path.default_options_for_builder(**default_options)
 
-      activity, builder, helper = DSL.Topology(normalizers: normalizers, adds: adds, default_options: default_options, helper_forwarder: Path.config.helper, helpers: helpers) do
+      activity, builder, helper = DSL.Topology(normalizers: normalizers, adds: adds, default_options: default_options, helper_forwarder: Path.config.helper_forwarder, helpers: helpers) do
         step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success)
       end
 
@@ -62,7 +62,6 @@ module Trailblazer
 
       options = {
         normalizers: {step: DSL::Normalizer::Step},
-        # default_options: default_options_for_builder(track_name: :success),
         # Path always has Wiring API and its own normalizer extensions enabled.
         adds: [
           # add the Output() feature:
@@ -82,14 +81,9 @@ module Trailblazer
         }
       }
 
-      config.activity, config.builder, config.helper = Activity.Path(**options) # Activity::Path is just a simple, pre-configured frontend.
+      config.activity, config.builder, config.helper_forwarder = Activity.Path(**options) # Activity::Path is just a simple, pre-configured frontend.
       # Trailblazer::Developer.puts(config.builder.normalizers[:step])
-
-      def self._builder
-        config.builder
-      end
-
-      extend config.helper # forward Output() and friends to {builder}.
+      extend config.helper_forwarder # forward Output() and friends to {builder}.
     end # Path
   end
 end

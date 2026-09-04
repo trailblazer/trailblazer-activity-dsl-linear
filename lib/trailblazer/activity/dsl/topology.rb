@@ -10,7 +10,7 @@ module Trailblazer
 
         setting :builder # this keeps the Sequence instance.
         setting :activity
-        setting :helper # Where we delegate Subprocess(, Output() etc.
+        setting :helper_forwarder # Where we delegate Subprocess(, Output() etc. # DIS
 
         extend DSL # {#forward_to_builder!}
         extend DSL::Step # #step
@@ -37,9 +37,14 @@ module Trailblazer
 
         config.builder = Builder.new(default_options: {}) # FIXME: use Topology()
 
-        require "trailblazer/activity/dsl/topology/helper"
-        extend Helper # import {Subprocess()} and friends as class methods. creates shortcuts to {Output()} etc.
+        require "trailblazer/activity/dsl/topology/helper" # FIXME: remove.
+        # extend Helper # import {Subprocess()} and friends as class methods. creates shortcuts to {Output()} etc.
         include Helper::Constants
+
+        # DISCUSS: keep this here? We use it as a target in helper_forwarder.
+        def self.helper_forwarder_target
+          config.builder
+        end
       end
 
 
@@ -58,7 +63,7 @@ module Trailblazer
           require "forwardable"
           helper_forwarder = Module.new do
             extend Forwardable
-            def_delegators :_builder, *helper_functions
+            def_delegators :helper_forwarder_target, *helper_functions
           end
         end
 

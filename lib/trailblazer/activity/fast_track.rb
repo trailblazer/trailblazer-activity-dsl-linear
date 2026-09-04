@@ -1,10 +1,7 @@
 module Trailblazer
   class Activity
-    def self.FastTrack(track_name: :success, normalizers: FastTrack::NORMALIZERS, &block)
-      builder = DSL::Builder.new(
-        normalizers: normalizers,
-        default_options: Railway.default_options(track_name: track_name)
-      )
+    def self.FastTrack(normalizers: FastTrack.config.builder.normalizers, helpers: nil, adds:, **default_options,  &block)
+      default_options = Railway.default_options_for_builder(**default_options)
 
       fast_track_termini = {
         success: Terminus::Success,
@@ -13,14 +10,16 @@ module Trailblazer
         fail_fast: FastTrack::Terminus::FailFast
       }
 
-      activity, _ = builder.() do
+      activity, builder, helper = DSL.Topology(normalizers: normalizers, adds: adds, default_options: default_options, helper_forwarder: Path.config.helper_forwarder, helpers: helpers) do
         # add the four termini to the FastTrack topology by simply using #step.
         fast_track_termini.each do |semantic, terminus_class|
           step **DSL.options_for_terminus_step(semantic: semantic, terminus_class: terminus_class)
         end
       end
 
-      return activity, builder
+      activity, _ = builder.(&block) if block_given? # FIXME: do that in Topology!    implement for Railway and FastTrack?
+
+      return activity, builder, helper
     end
 
     class FastTrack < DSL::Topology
@@ -70,7 +69,7 @@ module Trailblazer
         Node = Circuit::Node[circuit, Circuit::Processor]
 
         Step = Circuit::Adds.(
-          Path::Normalizer::Step,
+          Path.config.builder.normalizers[:step], # DISCUSS: or Railway?
           [
             :normalize_fast_track_options, Node,
             :before, :normalize_wirings
@@ -110,13 +109,6 @@ module Trailblazer
         )
       end # Normalizer
 
-
-      NORMALIZERS = {
-        step: FastTrack::Normalizer::Step,
-        left: FastTrack::Normalizer::Fail,
-        pass: FastTrack::Normalizer::Pass
-      }.freeze
-
       module Terminus
         PassFast = Class.new(Activity::Terminus::Success)
         FailFast = Class.new(Activity::Terminus::Failure)
@@ -127,29 +119,21 @@ module Trailblazer
         FailFast = Class.new(Activity::Signal)
       end
 
-      config.activity, config.builder = Activity.FastTrack()
+      options = {
+        # default_options: default_options_for_builder,
+        normalizers: {
+          step: FastTrack::Normalizer::Step,
+          left: FastTrack::Normalizer::Fail,
+          pass: FastTrack::Normalizer::Pass
+        },
+        adds: [],
+      }
+
+      config.activity, config.builder, config.helper_forwarder = Activity.FastTrack(**options)
+      # Trailblazer::Developer.puts(config.builder.normalizers[:step])
+      extend config.helper_forwarder # forward Output() and friends to {builder}.
     end
   end
 end
-
-
-
-        # inherit: true
-        # RECORD_OPTIONS = [:pass_fast, :fail_fast, :fast_track]
-
-        # *If* {fast_track: true} (or :pass_fast or :fail_fast), record it using Normalizer::Inherit mechanics.
-        # def record_options(ctx, flow_options, _, **)
-        #   recorded_options =
-        #     RECORD_OPTIONS.collect { |option| ctx.key?(option) ? [option, ctx[option]] : nil }
-        #       .compact
-        #       .to_h
-
-        #   ctx = ctx.merge(
-        #     Linear::Normalizer::Inherit.Record(recorded_options, type: :fast_track)
-        #   )
-
-        #   return ctx, flow_options
-        # end
-
 
 

@@ -68,14 +68,10 @@ require "trailblazer/activity/dsl/topology"
 require "trailblazer/activity/dsl/topology/configure"
 require "trailblazer/activity/dsl/normalizer"
 require "trailblazer/activity/dsl/normalizer/step"
-# Trailblazer::Activity::DSL::Topology.config.normalizer = {
-#   step: Trailblazer::Activity::DSL::Normalizer::Step
-# }
 
 require "trailblazer/activity/dsl/feature/output_tuples"
 require "trailblazer/activity/dsl/feature/output_tuples/helper"
 require "trailblazer/activity/dsl/feature/output_tuples/normalizer"
-Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::OutputTuples::Helper)
 
 require "trailblazer/activity/dsl/feature/terminus"
 require "trailblazer/activity/dsl/feature/inherit" # DISCUSS: needs to be loaded before Path, currently.
@@ -88,10 +84,42 @@ require "trailblazer/activity/fast_track"
 require "trailblazer/activity/dsl/feature/subprocess"
 Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::Subprocess::Helper)
 
-require "trailblazer/activity/dsl/feature/patch"
-
 require "trailblazer/activity/dsl/feature/path"
 Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::Path::Helper)
 
 require "trailblazer/activity/dsl/feature/extension/task_wrap"
 require "trailblazer/activity/dsl/feature/extension/options"
+
+# Trailblazer::Activity::DSL::Topology::Configure.call!(
+#   Trailblazer::Activity::Path,
+#   adds: [
+
+    # # add the Output() feature:
+    # [
+    #   :normalize_wirings, Trailblazer::Activity::DSL::Feature::OutputTuples::Normalizer::Node,
+    #   :before, :build_task_wrap_node
+    # ],
+
+    # # add Path specific behavior:
+    # [
+    #   :add_path_options, Node,
+    #   :before, :normalize_wirings # we're dependent on {OutputTuples}!
+    # ],
+
+    # add the {inherit: true} feature:
+    # [
+    #   :record_options, Trailblazer::Activity::DSL::Feature::Inherit::Normalizer::Node::Record,
+    #   :after, :build_task_wrap_pipeline
+    # ],
+    # [
+    #   :replay_options, Trailblazer::Activity::DSL::Feature::Inherit::Normalizer::Node::Replay,
+    #   :after, :build_task_wrap_pipeline
+    # ],
+
+    # # add the {Data.Variable} feature:
+    # [
+    #   :compile_data, Trailblazer::Activity::DSL::Feature::Data::Normalizer::Node,
+    #   :before, :build_sequence_row
+    # ],
+#   ]
+# )
