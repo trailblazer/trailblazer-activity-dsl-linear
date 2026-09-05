@@ -7,14 +7,14 @@ module Trailblazer
           module Helper
             def Path(**options)
               options = {
-                exec_context: config.builder.default_options.fetch(:step).fetch(:exec_context)
+                exec_context: default_options.fetch(:step).fetch(:exec_context)
               }.merge(options)
 
               Path.new(options)
             end
           end
 
-          # FIXME: we're defauting adds_for_sequence, which is redundant, see DSL::Normalizer::Step.
+          # FIXME: we're defaulting {:adds_for_sequence}, which is redundant, see DSL::Normalizer::Step.
           def call(block_arg: -> {}, adds_for_sequence: [], sequence:, **ctx) # This is called in OutputTuples::Normalizer#
             build_path(block_arg: block_arg, sequence: sequence, **options)
           end
@@ -22,7 +22,13 @@ module Trailblazer
           # TODO: deprecate {:terminus} etc.
           def build_path(track_name: "track_#{rand}", connect_to:, block_arg:, exec_context:, **options)
             # DISCUSS:  if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.
-            activity, builder = Activity.Path(track_name: track_name, exec_context: exec_context, extends: [Topology::Helper], &block_arg)
+            activity, builder = Activity.Path(
+              track_name: track_name,
+              magnetic_to: track_name,
+              failure_track_name: track_name,
+              exec_context: exec_context,
+              &block_arg
+            )
 
             seq = builder.sequence
             seq = seq.to_a.to_h # FIXME: introduce canonical way to work on Sequence.

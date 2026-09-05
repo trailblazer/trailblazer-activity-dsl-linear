@@ -4,6 +4,13 @@ class PathHelperTest < Minitest::Spec
   # it "{Path()} connects to {End.failure} when no {:terminus} given" do
 
   it "Path(connect_to: Track(:success))" do
+#     ─────────────────────────────────────────────────────────────┐
+# │                             a ▶ b ▶ f                                    │
+# │                             b ▶ e ▶ c                                    │
+# │                             c ▶ d ▶ d                                    │
+# │                             d ▶ e ▶ e                                    │
+# │                             e ▶ End.success ▶ f                          │
+# │                             f ▶ End.failure ▶ End.failure
     my_activity = Class.new(Trailblazer::Activity::Railway) do
       step :a
       step :b, Output(:failure) => Path(connect_to: Track(:success)) do
@@ -15,6 +22,8 @@ class PathHelperTest < Minitest::Spec
 
       include T.def_steps(:a, :b, :c, :d, :e, :f)
     end
+
+    # Trailblazer::Developer.puts(my_activity.to_h[:circuit])
 
     assert_run my_activity, terminus: :success, seq: [:a, :b, :e]
     assert_run my_activity, terminus: :success, seq: [1, :a, :b, :c, :d, :e], target_ctx: {seq: [1], b: false}
