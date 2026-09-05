@@ -73,6 +73,58 @@ class TopologyTest < Minitest::Spec
     assert_equal output.inspect, "#<struct Trailblazer::Activity::DSL::Feature::OutputTuples::Output::Semantic semantic=:success, :generic?=nil>"
   end
 
+  it "Topology.build {:helpers} can also import constants like Policy::Guard()" do
+    my_builder = Trailblazer::Activity::DSL::Builder.new(
+      normalizers: {step: Trailblazer::Activity::DSL::Normalizer::Step},
+      default_options: Trailblazer::Activity::Path.default_options_for_builder
+    )
+
+    module MyExtension
+      def Policy
+        MyExtension::Policy
+      end
+
+      module Policy
+        def self.Guard(action:)
+          {task: "guarding #{action}"}
+        end
+      end
+    end
+
+    options = {
+      builder: my_builder,
+      adds: [],
+      default_options: {},
+      helpers: {
+        MyExtension => [:Policy],
+        # Module.new => [],
+      },
+    }
+
+    activity, builder, helper = Trailblazer::Activity::DSL::Topology.build(**options) {
+      step **Trailblazer::Activity::DSL.options_for_terminus_step(semantic: :success, terminus_class: Trailblazer::Activity::Terminus::Success)
+    }
+
+    # # the builder basically knows builder::Policy.Guard
+    output = builder.Policy::Guard(action: :create)
+
+    assert_equal output, {task: "guarding create"}
+
+    my_topology_simulator = Class.new do
+      @builder = builder
+
+      extend helper
+
+      def self.helper_forwarder_target
+        @builder
+      end
+    end
+
+    output = my_topology_simulator.Policy.Guard(action: :success)
+
+    assert_equal output, {task: "guarding success"}
+  end
+
   it "#to_h with empty Topology" do
     skip "there is no use case for this to be working"
     my_topology = Class.new(Trailblazer::Activity::DSL::Topology) do
