@@ -37,10 +37,6 @@ module Trailblazer
 
         config.builder = Builder.new(default_options: {}) # FIXME: use Topology()
 
-        require "trailblazer/activity/dsl/topology/helper" # FIXME: remove.
-        # extend Helper # import {Subprocess()} and friends as class methods. creates shortcuts to {Output()} etc.
-        include Helper::Constants
-
         # DISCUSS: keep this here? We use it as a target in helper_forwarder.
         def self.helper_forwarder_target
           config.builder
@@ -59,6 +55,7 @@ module Trailblazer
               def_delegators :helper_forwarder_target, *helper_functions
             end
           end
+
           builder = builder.clone(
             defaults: default_options,
             # default_options: default_options,
