@@ -11,7 +11,7 @@ class OutputTuplesTest < Minitest::Spec
       default_options: Trailblazer::Activity::Path.default_options_for_builder
     )
 
-    activity, builder, helper_forwarder = Trailblazer::Activity::DSL.Topology(
+    activity, builder, helper_forwarder = Trailblazer::Activity::DSL::Topology.build(
       builder: path_builder,
       default_options: {},
       helpers: {

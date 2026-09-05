@@ -21,7 +21,8 @@ class TopologyTest < Minitest::Spec
           }
         }
       end
-  it "what" do
+
+  it "Topology.build" do
     options = {
       normalizers: {step: Trailblazer::Activity::DSL::Normalizer::Step},
       adds: [
@@ -44,7 +45,7 @@ class TopologyTest < Minitest::Spec
       default_options: default_options_for_builder(track_name: :success)
     }
 
-    activity, builder, helper = Trailblazer::Activity::DSL.Topology(**options) {
+    activity, builder, helper = Trailblazer::Activity::DSL::Topology.build(**options) {
       step **Trailblazer::Activity::DSL.options_for_terminus_step(semantic: :success, terminus_class: Trailblazer::Activity::Terminus::Success)
     }
 

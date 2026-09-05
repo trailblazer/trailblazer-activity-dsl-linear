@@ -1,5 +1,6 @@
 require "trailblazer/activity"
 require "dry/configurable"
+require "forwardable"
 
 module Trailblazer
   class Activity # DISCUSS: the Activity class is defined in the activity gem and already got some {setting} directives.
@@ -90,7 +91,7 @@ require "trailblazer/activity/dsl/feature/extension/task_wrap"
 require "trailblazer/activity/dsl/feature/extension/options"
 
 [Trailblazer::Activity::Path, Trailblazer::Activity::Railway, Trailblazer::Activity::FastTrack].each do |topology|
-  activity, builder, helper_forwarder = Trailblazer::Activity::DSL.Topology(
+  activity, builder, helper_forwarder = Trailblazer::Activity::DSL::Topology.build(
     builder: topology.config.builder, default_options: {},
 
     helpers: {

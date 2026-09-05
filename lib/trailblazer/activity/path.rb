@@ -1,7 +1,7 @@
 module Trailblazer
   class Activity
     def self.Path(builder: Path.config.builder, helpers: nil, adds: [], **default_options, &block)
-      activity, builder, helper_forwarder = DSL.Topology(builder: builder, adds: adds, default_options: default_options, helpers: helpers)
+      activity, builder, helper_forwarder = DSL::Topology.build(builder: builder, adds: adds, default_options: default_options, helpers: helpers)
 
       activity, _ = builder.(&block) if block_given? # FIXME: do that in Topology!    implement for Railway and FastTrack?
       return activity, builder, helper_forwarder
