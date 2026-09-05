@@ -25,6 +25,26 @@ class TopologyPathFunctionTest < Minitest::Spec
     assert_run my_path.to_h[:circuit], terminus: my_path.to_h[:outputs].fetch(:success).signal, seq: [:a]
   end
 
+  it "accepts {:track_name}, but you also need to pass :magnetic_to and :failure_track_name to make it work" do
+    my_exec_context = T.def_steps(:a, :b, :d)
+
+    # A lot of options necessary here, but this is because no one will ever use this.
+    my_path, builder, _ = Trailblazer::Activity.Path(track_name: :green, magnetic_to: :green, failure_track_name: :green, exec_context: my_exec_context) do # DISCUSS:DISCUSS we could shortcut that with Path.default_options_for_builder.
+      step :a
+      step :b # hopefully, {magnetic_to: :green}.
+      step :c, magnetic_to: :success # this shouldn't be part of the path due to wrong track_name.
+      step :d, # hopefully, {magnetic_to: :green}.
+        wirings: MyTest.wirings_for_terminus
+    end
+
+    # First step must be {:magnetic_to} {track_name}.
+    assert_equal builder.sequence.to_a.to_h[:a][:magnetic_to], :green
+
+    assert_run my_path.to_h[:circuit], terminus: Trailblazer::Activity::Right, seq: [:a, :b, :d]
+    assert_run my_path.to_h[:circuit], terminus: Trailblazer::Activity::Right, seq: [:a, :b, :d], target_ctx: {seq: [], a: false}
+    assert_run my_path.to_h[:circuit], terminus: Trailblazer::Activity::Right, seq: [:a, :b, :d], target_ctx: {seq: [], b: false}
+  end
+
   it "we can use OutputTuples feature in Path(), once we include the Helper using {:extends}" do
     my_exec_context = T.def_steps(:a, :b, :c)
 
