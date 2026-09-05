@@ -53,9 +53,8 @@ module Trailblazer
 
 
       # TODO: this logic is build, not creating a Topology!
-      def self.Topology(builder:, normalizers:, default_options:, helpers: false, adds:, &block)
+      def self.Topology(builder:, default_options:, helpers: false, adds:, &block)
         helper_modules = nil # FIXME: extract to separate method.
-
         helper_forwarder = Module.new
 
         if helpers
@@ -69,7 +68,6 @@ module Trailblazer
             def_delegators :helper_forwarder_target, *helper_functions
           end
         end
-
         builder = builder.clone(
           defaults: default_options,
           # default_options: default_options,
