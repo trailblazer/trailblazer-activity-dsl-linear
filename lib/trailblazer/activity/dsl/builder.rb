@@ -73,21 +73,6 @@ module Trailblazer
           )
         end
 
-        # DISCUSS: this sits between Topology and Builder#new, maybe move?
-        # def self.build(normalizers:, default_options:, helper_modules: nil, adds: [])
-        #   # the idea is to *not* clone the builder (we would get helpers for free) but to always instantiate.
-        #   # if adds
-        #   normalizers = update_normalizers(normalizers, adds: adds)
-        #   # end
-
-        #   builder = Builder.new(normalizers: normalizers, default_options: default_options)
-
-        #   builder.extend(*helpers) if helper_modules
-
-        #   # TODO: run block?
-        #   return builder
-        # end
-
         # DISCUSS: this should be the only interface to alter a Builder.
         def clone(defaults:, adds: nil, helpers: nil)
           builder = super()
@@ -105,8 +90,7 @@ module Trailblazer
           return builder
         end
 
-        # @private
-        def update_normalizers(normalizers, adds:)
+        private def update_normalizers(normalizers, adds:)
           normalizers.collect do |name, circuit|
             circuit = Circuit::Adds.(circuit, *adds)
 
