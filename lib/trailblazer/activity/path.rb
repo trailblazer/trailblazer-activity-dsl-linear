@@ -41,15 +41,13 @@ module Trailblazer
         Node = Circuit::Node[circuit, Circuit::Processor]
       end # Normalizer
 
-      def self.default_options_for_builder(track_name: :success, **options)
+      def self.default_options_for_builder(track_name: :success)
         {
           step: {
             magnetic_to:        track_name,
             track_name:         track_name,
             failure_track_name: track_name,
             outputs: DSL::RIGHT_LEFT_OUTPUTS,
-
-            **options
           }
         }
       end
@@ -63,7 +61,6 @@ module Trailblazer
             :normalize_wirings, DSL::Feature::OutputTuples::Normalizer::Node,
             :before, :build_task_wrap_node
           ],
-
           # add Path specific behavior:
           [
             :add_path_options, Normalizer::Node,
