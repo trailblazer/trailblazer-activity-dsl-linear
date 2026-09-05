@@ -81,45 +81,42 @@ require "trailblazer/activity/path"
 require "trailblazer/activity/railway"
 require "trailblazer/activity/fast_track"
 
+require "trailblazer/activity/dsl/feature/patch"
 require "trailblazer/activity/dsl/feature/subprocess"
-Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::Subprocess::Helper)
 
 require "trailblazer/activity/dsl/feature/path"
-Trailblazer::Activity::DSL::Topology::Helper.include(Trailblazer::Activity::DSL::Feature::Path::Helper)
 
 require "trailblazer/activity/dsl/feature/extension/task_wrap"
 require "trailblazer/activity/dsl/feature/extension/options"
 
-# Trailblazer::Activity::DSL::Topology::Configure.call!(
-#   Trailblazer::Activity::Path,
-#   adds: [
+[Trailblazer::Activity::Path, Trailblazer::Activity::Railway, Trailblazer::Activity::FastTrack].each do |topology|
+  activity, builder, helper_forwarder = Trailblazer::Activity::DSL.Topology(
+    builder: topology.config.builder, default_options: {},
 
-    # # add the Output() feature:
-    # [
-    #   :normalize_wirings, Trailblazer::Activity::DSL::Feature::OutputTuples::Normalizer::Node,
-    #   :before, :build_task_wrap_node
-    # ],
+    helpers: {
+      Trailblazer::Activity::DSL::Feature::Subprocess::Helper => [:Subprocess], # no :adds.
+      Trailblazer::Activity::DSL::Feature::Path::Helper => [:Path], # no :adds.
+    },
+    adds: [
+      # add the {inherit: true} feature:
+      [
+        :record_options, Trailblazer::Activity::DSL::Feature::Inherit::Normalizer::Node::Record,
+        :after, :build_task_wrap_pipeline
+      ],
+      [
+        :replay_options, Trailblazer::Activity::DSL::Feature::Inherit::Normalizer::Node::Replay,
+        :after, :build_task_wrap_pipeline
+      ],
 
-    # # add Path specific behavior:
-    # [
-    #   :add_path_options, Node,
-    #   :before, :normalize_wirings # we're dependent on {OutputTuples}!
-    # ],
+      # add the {Data.Variable} feature:
+      [
+        :compile_data, Trailblazer::Activity::DSL::Feature::Data::Normalizer::Node,
+        :before, :build_sequence_row
+      ],
 
-    # add the {inherit: true} feature:
-    # [
-    #   :record_options, Trailblazer::Activity::DSL::Feature::Inherit::Normalizer::Node::Record,
-    #   :after, :build_task_wrap_pipeline
-    # ],
-    # [
-    #   :replay_options, Trailblazer::Activity::DSL::Feature::Inherit::Normalizer::Node::Replay,
-    #   :after, :build_task_wrap_pipeline
-    # ],
+    ],
+  )
 
-    # # add the {Data.Variable} feature:
-    # [
-    #   :compile_data, Trailblazer::Activity::DSL::Feature::Data::Normalizer::Node,
-    #   :before, :build_sequence_row
-    # ],
-#   ]
-# )
+  topology.config.builder = builder
+  topology.extend helper_forwarder
+end
