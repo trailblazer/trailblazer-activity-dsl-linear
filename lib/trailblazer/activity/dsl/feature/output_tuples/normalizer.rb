@@ -28,7 +28,7 @@ module Trailblazer
 
             # Take all Output(signal, semantic), convert to OutputSemantic and extend {:outputs}.
             # Since only users use this style, we don't have to filter.
-            def register_additional_outputs(ctx, flow_options, _, output_tuples:, outputs:, id:,**)
+            def register_additional_outputs(ctx, flow_options, _, output_tuples:, outputs:, id:, **)
               # We need to preserve the order when replacing Output with OutputSemantic,
               # that's why we recreate {output_tuples} here.
               output_tuples =
