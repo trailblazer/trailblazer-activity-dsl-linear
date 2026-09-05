@@ -1,7 +1,7 @@
 module Trailblazer
   class Activity
-    def self.Path(builder: Path.config.builder, normalizers: builder.normalizers, helpers: nil, adds: [], **default_options, &block)
-      activity, builder, helper_forwarder = DSL.Topology(builder: builder, normalizers: normalizers, adds: adds, default_options: default_options, helpers: helpers)
+    def self.Path(builder: Path.config.builder, helpers: nil, adds: [], **default_options, &block)
+      activity, builder, helper_forwarder = DSL.Topology(builder: builder, adds: adds, default_options: default_options, helpers: helpers)
 
       activity, _ = builder.(&block) if block_given? # FIXME: do that in Topology!    implement for Railway and FastTrack?
       return activity, builder, helper_forwarder
@@ -11,7 +11,7 @@ module Trailblazer
       module Normalizer
         module_function
 
-        def normalize_magnetic_to(ctx, flow_options, _, track_name:, magnetic_to: track_name, **)
+        def normalize_magnetic_to(ctx, flow_options, _, track_name:, magnetic_to:, **)
           return ctx.merge(magnetic_to: magnetic_to), flow_options
         end
 
@@ -22,7 +22,6 @@ module Trailblazer
 
             helper = DSL::Feature::OutputTuples::Helper
 
-# puts "@@@@@ #{track_name.inspect}"
             connectors = {
               helper.Output(semantic) => helper.Track(ctx[variable_name_for_track_name]) # Translates to Output(:success, Right) => Track(:success)
             }
