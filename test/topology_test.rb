@@ -23,8 +23,17 @@ class TopologyTest < Minitest::Spec
       end
 
   it "Topology.build" do
-    options = {
+    # Here, we currently test all at once:
+    #   * :helpers
+    #   * :adds
+    #   * we DON'T test default_options
+    my_builder = Trailblazer::Activity::DSL::Builder.new(
       normalizers: {step: Trailblazer::Activity::DSL::Normalizer::Step},
+      default_options: Trailblazer::Activity::Path.default_options_for_builder
+    )
+
+    options = {
+      builder: my_builder,
       adds: [
         # add the Output() feature:
         [
@@ -42,7 +51,8 @@ class TopologyTest < Minitest::Spec
       helpers: {
         Trailblazer::Activity::DSL::Feature::OutputTuples::Helper => [:Output, :Id, :Track, :Terminus]
       },
-      default_options: default_options_for_builder(track_name: :success)
+      # default_options: default_options_for_builder(track_name: :success)
+      default_options: {} # FIXME: test these options!
     }
 
     activity, builder, helper = Trailblazer::Activity::DSL::Topology.build(**options) {
