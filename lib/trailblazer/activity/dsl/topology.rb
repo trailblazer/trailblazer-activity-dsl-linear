@@ -35,7 +35,7 @@ module Trailblazer
           subclass.config.builder = config.builder.clone(defaults: {exec_context: subclass.new.freeze})
         end
 
-        config.builder = Builder.new(default_options: {}) # FIXME: use Topology()
+        config.builder = Builder.new(default_options: {})
 
         # DISCUSS: keep this here? We use it as a target in helper_forwarder.
         def self.helper_forwarder_target

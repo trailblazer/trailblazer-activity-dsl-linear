@@ -3,38 +3,12 @@ require "test_helper"
 class OutputTuplesTest < Minitest::Spec
   let(:my_exec_context) { T.def_steps(:a) }
 
-  class MyExtendedTopology < Trailblazer::Activity::DSL::Topology
-    # Since we're in a pure Topology, we don't have any normalizers to extend, yet.
-    # This is library-level and won't be needed from any user (I hope :).
-    path_builder = Trailblazer::Activity::DSL::Builder.new(
-      normalizers: {step: Trailblazer::Activity::DSL::Normalizer::Step}, # the pristine untouched normalizer.
-      default_options: Trailblazer::Activity::Path.default_options_for_builder
-    )
-
-    activity, builder, helper_forwarder = Trailblazer::Activity::DSL::Topology.build(
-      builder: path_builder,
-      default_options: {},
-      helpers: {
-        Trailblazer::Activity::DSL::Feature::OutputTuples::Helper => [:Output, :Id, :Track, :Terminus]
-      },
-      adds: [
-        [
-          :normalize_wirings, Trailblazer::Activity::DSL::Feature::OutputTuples::Normalizer::Node,
-          :before, :build_task_wrap_node
-        ],
-      ],
-    )
-
-    config.builder = builder
-    extend helper_forwarder
-  end
-
   MyExecContext = T.def_steps(:a) # TODO: use method(:a) instead of :a and remove {:exec_context} option, not part of this test!
   MyFailure = Trailblazer::Activity::Terminus::Success.new(semantic: :failure)
   # MyHelper = Trailblazer::Activity::DSL::Feature::OutputTuples::Helper
 
   it "doesn't override existing {:wirings} because feature is skipped" do
-    my_topology = Class.new(MyExtendedTopology) do
+    my_topology = Class.new(MyTest.my_extended_topology) do
       step **MyTest.options_for_mock_terminus
       step :a,
         # magnetic_to: :success,
@@ -48,7 +22,7 @@ class OutputTuplesTest < Minitest::Spec
   end
 
   it "without a specific layout normalizer, we can pass any tuples and get the appropriate {:wirings} for it" do
-    my_topology = Class.new(MyExtendedTopology) do
+    my_topology = Class.new(MyTest.my_extended_topology) do
       step **MyTest.options_for_mock_terminus
       step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
 
@@ -76,7 +50,7 @@ class OutputTuplesTest < Minitest::Spec
   it "output with custom signal" do
     my_exec_context = T.def_tasks(:a)
 
-    my_topology = Class.new(MyExtendedTopology) do
+    my_topology = Class.new(MyTest.my_extended_topology) do
       step **MyTest.options_for_mock_terminus
       step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
 
@@ -101,7 +75,7 @@ class OutputTuplesTest < Minitest::Spec
     my_exec_context = T.def_tasks(:a)
     my_finished = Trailblazer::Activity::Terminus::Success.new(semantic: :finished)
 
-    my_topology = Class.new(MyExtendedTopology) do
+    my_topology = Class.new(MyTest.my_extended_topology) do
       step **MyTest.options_for_mock_terminus
       step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
       step **MyTest.options_for_mock_terminus(task: my_finished, semantic: :finished)
@@ -125,7 +99,7 @@ class OutputTuplesTest < Minitest::Spec
     my_exec_context = T.def_tasks(:a)
     my_finished = Trailblazer::Activity::Terminus::Success.new(semantic: :finished)
 
-    my_topology = Class.new(MyExtendedTopology) do
+    my_topology = Class.new(MyTest.my_extended_topology) do
       step **MyTest.options_for_mock_terminus
       step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
       step **MyTest.options_for_mock_terminus(task: my_finished, semantic: :finished)
@@ -149,7 +123,7 @@ class OutputTuplesTest < Minitest::Spec
   it "no {:outputs}" do
     my_exec_context = T.def_tasks(:a)
 
-    my_topology = Class.new(MyExtendedTopology) do
+    my_topology = Class.new(MyTest.my_extended_topology) do
       step **MyTest.options_for_mock_terminus
       # step **MyTest.options_for_mock_terminus(task: MyFailure, semantic: :failure)
       # step **MyTest.options_for_mock_terminus(task: my_finished, semantic: :finished)
@@ -168,7 +142,7 @@ class OutputTuplesTest < Minitest::Spec
   it "Id()" do
     my_exec_context = T.def_tasks(:a, :b)
 
-    my_topology = Class.new(MyExtendedTopology) do
+    my_topology = Class.new(MyTest.my_extended_topology) do
       step **MyTest.options_for_mock_terminus
 
       my_generic_outputs = {
@@ -194,7 +168,7 @@ class OutputTuplesTest < Minitest::Spec
   it "Terminus() points to existing terminus" do
     my_exec_context = T.def_tasks(:a, :b)
 
-    my_topology = Class.new(MyExtendedTopology) do
+    my_topology = Class.new(MyTest.my_extended_topology) do
       step **MyTest.options_for_mock_terminus # success.
 
       my_generic_outputs = {
@@ -214,7 +188,7 @@ class OutputTuplesTest < Minitest::Spec
   it "Terminus() points to new terminus" do
     my_exec_context = T.def_tasks(:a, :b)
 
-    my_topology = Class.new(MyExtendedTopology) do
+    my_topology = Class.new(MyTest.my_extended_topology) do
       step **MyTest.options_for_mock_terminus # success.
 
       my_generic_outputs = {

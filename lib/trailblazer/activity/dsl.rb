@@ -66,7 +66,6 @@ require "trailblazer/activity/dsl/sequence/compiler"
 require "trailblazer/activity/dsl/builder"
 
 require "trailblazer/activity/dsl/topology"
-require "trailblazer/activity/dsl/topology/configure"
 require "trailblazer/activity/dsl/normalizer"
 require "trailblazer/activity/dsl/normalizer/step"
 

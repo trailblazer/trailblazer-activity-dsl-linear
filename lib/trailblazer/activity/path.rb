@@ -53,7 +53,6 @@ module Trailblazer
       end
 
       options = {
-        # normalizers: {step: DSL::Normalizer::Step},
         # Path always has Wiring API and its own normalizer extensions enabled.
         adds: [
           # add the Output() feature:
@@ -72,7 +71,10 @@ module Trailblazer
         }
       }
 
-      path_builder = DSL::Builder.new(normalizers: {step: DSL::Normalizer::Step}, default_options: default_options_for_builder)
+      path_builder = DSL::Builder.new(
+        normalizers:     {step: DSL::Normalizer::Step},
+        default_options: default_options_for_builder
+      )
 
       config.activity, config.builder, config.helper_forwarder = Activity.Path(**options, builder: path_builder) do
         step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success) # Activity::Path is just a simple, pre-configured frontend.
