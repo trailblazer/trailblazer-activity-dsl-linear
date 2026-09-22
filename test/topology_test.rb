@@ -301,13 +301,13 @@ class TopologyTest < Minitest::Spec
     my_topology_node = Trailblazer::Circuit::Node[my_topology.to_h[:circuit], Trailblazer::Circuit::Processor]
 
     lib_ctx, flow_options, signal = Trailblazer::Circuit::Node::Runner.(
-      my_topology_node,
       {target_ctx: {seq: []}},
       # {application_ctx: },
       {},
       nil,
       runner: Trailblazer::Circuit::Node::Runner,
-      context_implementation: Trailblazer::Circuit::Context
+      context_implementation: Trailblazer::Circuit::Context,
+      node: my_topology_node,
     )
 
     assert_run my_topology_node, node: true,

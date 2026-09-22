@@ -1,6 +1,6 @@
+require "trailblazer/activity/dsl"
 require "trailblazer/developer"
 
-require "trailblazer/activity/dsl"
 require "trailblazer/core"
 
 require "minitest/autorun"
