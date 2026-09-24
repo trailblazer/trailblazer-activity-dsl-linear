@@ -17,13 +17,14 @@ module Trailblazer
         end
 
         def self.build_node_for_step(ctx, flow_options, _, first_arg:, id:, exec_context:, **) # FIXME: {:exec_context} is not mandatory.
-          step_node_for_call_task = Activity::Step.build(first_arg, id: id, exec_context: exec_context)
+          step_node_for_call_task = Activity::Step.build(first_arg, id: id, exec_context: exec_context, options: {business_step: true, label: id}) # FIXME: test business_step and also for task!
 
           return ctx.merge(node_for_call_task: step_node_for_call_task), flow_options
         end
 
-        def self.build_node_for_task(ctx, flow_options, _, task:, adapter: Circuit::Task::Adapter::LibInterface, **)
-          node_for_task = Circuit::Node[task, adapter] # FIXME: teST interface adapter!
+        # FIXME: test label etc
+        def self.build_node_for_task(ctx, flow_options, _, task:, adapter: Circuit::Task::Adapter::LibInterface, id:, **)
+          node_for_task = Circuit::Node[task, adapter, options: {business_step: true, label: id}] # FIXME: teST interface adapter!
 
           return ctx.merge(node_for_call_task: node_for_task), flow_options
         end
