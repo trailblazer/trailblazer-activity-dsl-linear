@@ -52,7 +52,7 @@ module MyTest
 
   # A minimalistically configured test Topology that uses the pristine Normalizer::Step
   # plus Output() Wiring API.
-  def self.my_extended_topology(adds: [])
+  def self.my_extended_topology(adds: [], default_options: {})
     Class.new(Trailblazer::Activity::DSL::Topology) do
       # Since we're in a pure Topology, we don't have any normalizers to extend, yet.
       # This is library-level and won't be needed from any user (I hope :).
@@ -63,7 +63,7 @@ module MyTest
 
       activity, builder, helper_forwarder = Trailblazer::Activity::DSL::Topology.build(
         builder: my_builder,
-        default_options: {},
+        default_options: default_options,
         helpers: {
           Trailblazer::Activity::DSL::Feature::OutputTuples::Helper => [:Output, :Id, :Track, :Terminus]
         },

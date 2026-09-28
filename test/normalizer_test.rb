@@ -7,6 +7,7 @@ class Normalizer_Step_Test < Minitest::Spec
       adds: [
         [:apply_adds_to_task_wrap_pipeline, Trailblazer::Activity::DSL::Feature::Extension::TaskWrap::Normalizer::Node, :before, :build_task_wrap_node]
       ],
+      default_options: {adds_for_task_wrap: []} # this has to be added by the user.
     )
 
     my_topology = Class.new(my_extended_topology) do
@@ -19,8 +20,9 @@ class Normalizer_Step_Test < Minitest::Spec
           ]
         ],
         wirings: MyTest.wirings_for_terminus
+      step :c, adds_insertion_args: [:after] # {:adds_for_task_wrap} gets defaulted.
 
-      include T.def_steps(:a)
+      include T.def_steps(:a, :c)
     end
 
     assert_run my_topology, seq: [:b, :a], terminus: Trailblazer::Activity::Right
