@@ -114,7 +114,15 @@ require "trailblazer/activity/dsl/feature/extension/options"
         :before, :build_sequence_row
       ],
 
+      # add the :adds_for_task_wrap feature:
+      [
+        :apply_adds_to_task_wrap_pipeline, Trailblazer::Activity::DSL::Feature::Extension::TaskWrap::Normalizer::Node,
+        :before, :build_task_wrap_node
+      ]
     ],
+    default_options: {
+      adds_for_task_wrap: [] # {:adds_for_task_wrap} feature.
+    }
   )
 
   topology.config.builder = builder
