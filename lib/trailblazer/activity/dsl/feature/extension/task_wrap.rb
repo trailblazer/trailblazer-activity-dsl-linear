@@ -17,20 +17,6 @@ module Trailblazer
                 return ctx.merge(task_wrap_pipeline: task_wrap_pipeline), flow_options
               end
 
-              # def sort_task_wrap_extensions(task_wrap_extension_tuples)
-              #   # FIXME: make this faster and less clumsy, I suck at algorithms!
-              #   to_sort = task_wrap_extension_tuples.find_all { |left_ext, _| left_ext.append }
-              #   sorted_task_wrap_extension_tuples = task_wrap_extension_tuples - to_sort
-
-              #   exts_pipeline = sorted_task_wrap_extension_tuples.collect { |left_ext, ext| [left_ext.id, ext] }
-
-              #   to_sort_adds = to_sort.collect { |left_ext, ext| [ext, id: left_ext.id, append: left_ext.append] }
-
-              #   exts_pipeline = Activity::Adds.(exts_pipeline, *to_sort_adds) # FIXME: this doesn't cover all cases of sorting
-
-              #   exts_pipeline.collect { |row| row[1] }
-              # end
-
               Node = Circuit::Node[method(:apply_adds_to_task_wrap_pipeline), Circuit::Task::Adapter::LibInterface]
             end
           end # TaskWrap
