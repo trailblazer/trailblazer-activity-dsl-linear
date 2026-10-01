@@ -42,7 +42,7 @@ module Trailblazer
       railway_builder.default_options = railway_builder.default_options.merge(options) # DISCUSS: not entirely sure this must be covered by #clone?
       railway_builder.normalizers = railway_builder.normalizers.merge(normalizers) # DISCUSS: not entirely sure this must be covered by #clone?
 
-      config.activity, config.builder = Activity.Path(builder: railway_builder) do
+      config.circuit, config.outputs, config.builder = Activity.Path(builder: railway_builder) do
         # we inherit the {:success} terminus from cloning Path's builder (and obviously, its Sequence).
         step **DSL.options_for_terminus_step(semantic: :failure, terminus_class: Terminus::Failure)
       end

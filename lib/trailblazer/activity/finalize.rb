@@ -11,9 +11,9 @@ module Trailblazer
       end
 
       def finalize
-        activity = config.builder.compile_activity
+        circuit, outputs = config.builder.compile_activity
 
-        config.activity = activity
+        config.circuit, config.outputs = circuit, outputs
       end
     end
   end

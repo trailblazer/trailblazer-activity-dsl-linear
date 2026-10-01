@@ -73,13 +73,12 @@ class CompilerTest < Minitest::Spec
     ]
 
     my_sequence = build_sequence(seq)
-    my_activity = DSL::Sequence::Compiler.(my_sequence)
+    circuit, outputs = DSL::Sequence::Compiler.(my_sequence)
 
-    circuit = my_activity.to_h[:circuit]
 
     assert_run circuit, seq: [:a, :b], terminus: R
 
-    assert_equal my_activity.to_h[:outputs], {
+    assert_equal outputs, {
       success: Trailblazer::Activity::Output.new(R, :success),
     }
   end
@@ -108,14 +107,13 @@ class CompilerTest < Minitest::Spec
     ]
 
     my_sequence = build_sequence(seq)
-    my_activity = DSL::Sequence::Compiler.(my_sequence)
+    circuit, outputs = DSL::Sequence::Compiler.(my_sequence)
 
-    circuit = my_activity.to_h[:circuit]
 
     assert_run circuit, seq: [:a, :b], terminus: R
     assert_run circuit, seq: [:a], terminus: L, target_ctx: {seq: [], a: L}
 
-    assert_equal my_activity.to_h[:outputs], {
+    assert_equal outputs, {
       failure: Trailblazer::Activity::Output.new(L, :failure),
       success: Trailblazer::Activity::Output.new(R, :success),
     }
@@ -152,9 +150,8 @@ class CompilerTest < Minitest::Spec
     ]
 
     my_sequence = build_sequence(seq)
-    my_activity = DSL::Sequence::Compiler.(my_sequence)
+    circuit, outputs = DSL::Sequence::Compiler.(my_sequence)
 
-    circuit = my_activity.to_h[:circuit]
 
     assert_raises KeyError do
       assert_run circuit, seq: [:a, :c]#, terminus: R
@@ -162,7 +159,7 @@ class CompilerTest < Minitest::Spec
 
     assert_equal circuit.flow_map, {:a=>{Trailblazer::Activity::Right=>[:c, Trailblazer::Activity::Right]}, :c=>{}, :b=>{Trailblazer::Activity::Right=>[nil, Trailblazer::Activity::Right]}}
 
-    assert_equal my_activity.to_h[:outputs], {
+    assert_equal outputs, {
       success: Trailblazer::Activity::Output.new(R, :success),
     }
   end
@@ -237,20 +234,20 @@ class CompilerTest < Minitest::Spec
     end
 
 
-    my_activity = DSL::Sequence::Compiler.(my_sequence)
+    circuit, outputs = DSL::Sequence::Compiler.(my_sequence)
 
-    assert_run my_activity.to_h[:circuit], seq: [:a, :b, :d], terminus: id_node_pairs[:success].task
-    assert_run my_activity.to_h[:circuit], seq: [:a, :c], terminus: id_node_pairs[:failure].task,
+    assert_run circuit, seq: [:a, :b, :d], terminus: id_node_pairs[:success].task
+    assert_run circuit, seq: [:a, :c], terminus: id_node_pairs[:failure].task,
       target_ctx: {seq: [], a: Trailblazer::Activity::Left}
-    assert_run my_activity.to_h[:circuit], seq: [:a, :c], terminus: id_node_pairs[:failure].task,
+    assert_run circuit, seq: [:a, :c], terminus: id_node_pairs[:failure].task,
       target_ctx: {seq: [], a: Trailblazer::Activity::Left, c: Trailblazer::Activity::Left}
-    assert_run my_activity.to_h[:circuit], seq: [:a, :b, :c], terminus: id_node_pairs[:failure].task,
+    assert_run circuit, seq: [:a, :b, :c], terminus: id_node_pairs[:failure].task,
       target_ctx: {seq: [], b: "B/failure"}
-    assert_run my_activity.to_h[:circuit], seq: [:a, :b, :d], terminus: id_node_pairs[:failure].task,
+    assert_run circuit, seq: [:a, :b, :d], terminus: id_node_pairs[:failure].task,
       target_ctx: {seq: [], d: "D/failure"}
 
 
-    assert_equal my_activity.to_h[:outputs], {
+    assert_equal outputs, {
       failure: Trailblazer::Activity::Output.new(id_node_pairs[:failure].task, :failure),
       success: Trailblazer::Activity::Output.new(id_node_pairs[:success].task, :success),
     }
@@ -294,15 +291,15 @@ class CompilerTest < Minitest::Spec
     ]
 
     my_sequence = build_sequence(my_seq)
-    my_activity = DSL::Sequence::Compiler.(my_sequence)
+    circuit, outputs = DSL::Sequence::Compiler.(my_sequence)
 
-    assert_equal my_activity.to_h[:outputs], {
+    assert_equal outputs, {
       # failure: Trailblazer::Activity::Output.new(id_node_pairs[:failure].task, :failure),
       success: Trailblazer::Activity::Output.new(id_node_pairs[:success].task, :success),
     }
 
-    assert_run my_activity.to_h[:circuit], seq: [:a], terminus: id_node_pairs[:success].task
-    assert_run my_activity.to_h[:circuit], seq: [:a, :b], terminus: id_node_pairs[:success].task, target_ctx: {seq: [], a: L}
+    assert_run circuit, seq: [:a], terminus: id_node_pairs[:success].task
+    assert_run circuit, seq: [:a, :b], terminus: id_node_pairs[:success].task, target_ctx: {seq: [], a: L}
   end
 
   it "Forward() can't find its target" do
@@ -320,12 +317,12 @@ class CompilerTest < Minitest::Spec
     ]
 
     my_sequence = build_sequence(my_seq)
-    my_activity = DSL::Sequence::Compiler.(my_sequence)
+    circuit, outputs = DSL::Sequence::Compiler.(my_sequence)
 
-    assert_equal my_activity.to_h[:circuit].to_h[:flow_map].to_h, {:a => {R => [DSL::Sequence::Search::TargetNotFound, R]}}
+    assert_equal circuit.to_h[:flow_map].to_h, {:a => {R => [DSL::Sequence::Search::TargetNotFound, R]}}
 
     # FIXME: we don't get an exception here, yet.
-    assert_run my_activity.to_h[:circuit], seq: [:a], terminus: R
+    assert_run circuit, seq: [:a], terminus: R
   end
 
   it "Id() can't find its target" do
@@ -343,12 +340,12 @@ class CompilerTest < Minitest::Spec
     ]
 
     my_sequence = build_sequence(my_seq)
-    my_activity = DSL::Sequence::Compiler.(my_sequence)
+    circuit, outputs = DSL::Sequence::Compiler.(my_sequence)
 
-    assert_equal my_activity.to_h[:circuit].to_h[:flow_map].to_h, {:a => {R => [DSL::Sequence::Search::TargetNotFound, R]}}
+    assert_equal circuit.to_h[:flow_map].to_h, {:a => {R => [DSL::Sequence::Search::TargetNotFound, R]}}
 
     # FIXME: we don't get an exception here, yet.
-    assert_run my_activity.to_h[:circuit], seq: [:a], terminus: R
+    assert_run circuit, seq: [:a], terminus: R
   end
 
   it "End() or :adds" do

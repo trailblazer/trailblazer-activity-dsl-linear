@@ -16,9 +16,9 @@ module Trailblazer
         def call(&block)
           self.sequence = update_sequence!(&block)
 
-          activity = compile_activity
+          circuit, outputs = compile_activity
 
-          return activity, self.sequence
+          return circuit, outputs, self.sequence
         end
 
         # #update_sequence!
@@ -30,7 +30,7 @@ module Trailblazer
         end
 
         def compile_activity
-          _activity = Sequence::Compiler.(sequence)
+          _circuit, _outputs = Sequence::Compiler.(sequence)
         end
 
         # NOTE: we only update sequence here, compiling is the job of the caller.

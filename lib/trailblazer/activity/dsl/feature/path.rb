@@ -22,7 +22,7 @@ module Trailblazer
           # TODO: deprecate {:terminus} etc.
           def build_path(track_name: "track_#{rand}", connect_to:, block_arg:, exec_context:, **options)
             # DISCUSS:  if anyone overrides `#step` in the "outer" activity, this won't be applied inside the branch.
-            activity, builder = Activity.Path(
+            circuit, outputs, builder = Activity.Path(
               track_name: track_name,
               magnetic_to: track_name,
               failure_track_name: track_name,

@@ -102,10 +102,10 @@ class TopologyRailwayTest < Minitest::Spec
 
   describe "#Railway()" do
     it "Railway() always has one terminus" do
-      my_path, _ = Trailblazer::Activity.Railway() do
+      circuit, outputs, _ = Trailblazer::Activity.Railway() do
       end
 
-      assert_equal my_path.to_h[:outputs].inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
+      assert_equal outputs.inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
     end
   end
 end

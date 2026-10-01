@@ -1,10 +1,10 @@
 module Trailblazer
   class Activity
     def self.Path(builder: Path.config.builder, helpers: nil, adds: [], **default_options, &block)
-      activity, builder, helper_forwarder = DSL::Topology.build(builder: builder, adds: adds, default_options: default_options, helpers: helpers)
+      circuit, outputs, builder, helper_forwarder = DSL::Topology.build(builder: builder, adds: adds, default_options: default_options, helpers: helpers)
 
-      activity, _ = builder.(&block) if block_given? # FIXME: do that in Topology!    implement for Railway and FastTrack?
-      return activity, builder, helper_forwarder
+      circuit, outputs, _ = builder.(&block) if block_given? # FIXME: do that in Topology!    implement for Railway and FastTrack?
+      return circuit, outputs, builder, helper_forwarder
     end
 
     class Path < DSL::Topology
@@ -76,7 +76,7 @@ module Trailblazer
         default_options: default_options_for_builder
       )
 
-      config.activity, config.builder, config.helper_forwarder = Activity.Path(**options, builder: path_builder) do
+      config.circuit, config.outputs, config.builder, config.helper_forwarder = Activity.Path(**options, builder: path_builder) do
         step **DSL.options_for_terminus_step(semantic: :success, terminus_class: Terminus::Success) # Activity::Path is just a simple, pre-configured frontend.
       end
 

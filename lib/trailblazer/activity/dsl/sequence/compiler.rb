@@ -34,7 +34,8 @@ module Trailblazer
               nodes
             )
 
-            return Activity.new(circuit, outputs)
+            return [circuit, outputs] # DISCUSS: do we want to introduce a data structure a la Activity for this?
+            # return Activity.new(circuit, outputs)
           end
 
           # Returns {id => {<signal> => target_id}, ...}

@@ -6,9 +6,9 @@ module Trailblazer
   class Activity # DISCUSS: the Activity class is defined in the activity gem and already got some {setting} directives.
     module DSL
       def forward_to_builder!(normalizer_name, user_provider = nil, **options, &block) # FIXME: separate module!
-        activity, _sequence = config.builder.() { send(normalizer_name, user_provider, **options, &block) }
+        circuit, outputs, _sequence = config.builder.() { send(normalizer_name, user_provider, **options, &block) }
 
-        self.config.activity = activity
+        self.config.circuit, self.config.outputs = circuit, outputs
       end
 
       module Step
@@ -90,9 +90,10 @@ require "trailblazer/activity/dsl/feature/extension/task_wrap"
 require "trailblazer/activity/dsl/feature/extension/options"
 
 [Trailblazer::Activity::Path, Trailblazer::Activity::Railway, Trailblazer::Activity::FastTrack].each do |topology|
-  activity, builder, helper_forwarder = Trailblazer::Activity::DSL::Topology.build(
+  circuit, outputs, builder, helper_forwarder = Trailblazer::Activity::DSL::Topology.build(
     builder: topology.config.builder, default_options: {},
 
+    # DISCUSS: we introduced VariableMapping::TOPOLOGY_BUILD_OPTIONS, should we do that here with all features?
     helpers: {
       Trailblazer::Activity::DSL::Feature::Subprocess::Helper => [:Subprocess], # no :adds.
       Trailblazer::Activity::DSL::Feature::Path::Helper => [:Path], # no :adds.

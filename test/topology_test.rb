@@ -55,12 +55,12 @@ class TopologyTest < Minitest::Spec
       default_options: {} # FIXME: test these options!
     }
 
-    activity, builder, helper = Trailblazer::Activity::DSL::Topology.build(**options) {
+    circuit, outputs, builder, helper = Trailblazer::Activity::DSL::Topology.build(**options) {
       step **Trailblazer::Activity::DSL.options_for_terminus_step(semantic: :success, terminus_class: Trailblazer::Activity::Terminus::Success)
     }
 
     # TODO: delegate #resolve and #start_tuple, so we can omit {#to_h}
-    assert_run activity.to_h[:circuit], seq: [], terminus: activity.to_h[:outputs][:success].signal
+    assert_run circuit, seq: [], terminus: outputs[:success].signal
 
     output = builder.instance_exec { Output(:success) }
     assert_equal output.inspect, "#<struct Trailblazer::Activity::DSL::Feature::OutputTuples::Output::Semantic semantic=:success, :generic?=nil>"
@@ -101,7 +101,7 @@ class TopologyTest < Minitest::Spec
       },
     }
 
-    activity, builder, helper = Trailblazer::Activity::DSL::Topology.build(**options) {
+    circuit, outputs, builder, helper = Trailblazer::Activity::DSL::Topology.build(**options) {
       step **Trailblazer::Activity::DSL.options_for_terminus_step(semantic: :success, terminus_class: Trailblazer::Activity::Terminus::Success)
     }
 
@@ -411,7 +411,7 @@ class TopologyTest < Minitest::Spec
     end
 
     assert_nil my_topology.config.builder.instance_variable_get(:@compiled)
-    assert_equal my_topology.config.activity, nil
+    assert_equal my_topology.config.circuit, nil
 
     my_topology.finalize
 

@@ -211,7 +211,7 @@ class TopologyFastTrackTest < Minitest::Spec
       end
     end
 
-    assert_equal CU.inspect(exception.message), %{No `pass_fast` output found for :model and outputs {:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>, :failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>}}
+    assert_equal exception.message, %{No `pass_fast` output found for :model and outputs {:success=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Right, semantic=:success>, :failure=>#<struct Trailblazer::Activity::Output signal=Trailblazer::Activity::Left, semantic=:failure>}}
   end
 
   it "you can add the {:pass_fast}/{:fail_fast} outputs manually, but only for {Subprocess} or when the {:outputs} contains those special semantics." do
@@ -236,10 +236,10 @@ class TopologyFastTrackTest < Minitest::Spec
 
   describe "#FastTrack()" do
     it "FastTrack() always has one terminus" do
-      my_path, _ = Trailblazer::Activity.FastTrack() do
+      circuit, outputs, _ = Trailblazer::Activity.FastTrack() do
       end
 
-      assert_equal my_path.to_h[:outputs].inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
+      assert_equal outputs.inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
     end
   end
 end

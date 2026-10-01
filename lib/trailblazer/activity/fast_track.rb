@@ -96,7 +96,7 @@ module Trailblazer
         FailFast = Class.new(Activity::Terminus::Failure)
       end
 
-      module Signal
+      module Signal # FIXME: isn't that redundant? terminus *is* the signal
         PassFast = Class.new(Activity::Signal)
         FailFast = Class.new(Activity::Signal)
       end
@@ -113,7 +113,7 @@ module Trailblazer
       )
       fast_track_builder.normalizers = fast_track_builder.normalizers.merge(normalizers) # DISCUSS: not entirely sure this must be covered by #clone?
 
-      config.activity, config.builder = Activity.Path(builder: fast_track_builder) do
+      config.circuit, config.outputs, config.builder = Activity.Path(builder: fast_track_builder) do
         step **DSL.options_for_terminus_step(semantic: :pass_fast, terminus_class: FastTrack::Terminus::PassFast)
         step **DSL.options_for_terminus_step(semantic: :fail_fast, terminus_class: FastTrack::Terminus::FailFast)
       end

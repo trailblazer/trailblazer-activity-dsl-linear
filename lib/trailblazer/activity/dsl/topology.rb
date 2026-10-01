@@ -9,7 +9,8 @@ module Trailblazer
         extend Dry::Configurable
 
         setting :builder # this keeps the Sequence instance.
-        setting :activity
+        setting :circuit
+        setting :outputs
         setting :helper_forwarder # Where we delegate Subprocess(, Output() etc.
 
         extend DSL # {#forward_to_builder!}
@@ -17,16 +18,16 @@ module Trailblazer
 
         def self.to_h
           {
-            circuit: config.activity.circuit,
-            outputs: config.activity.outputs # TODO: test me.
+            circuit: config.circuit,
+            outputs: config.outputs # TODO: test me.
           }
         end
 # FIXME: test this behavior (Runtime module_.
         def self.start_tuple # FIXME: make this nicer, for Processor
-          config.activity.circuit.start_tuple
+          config.circuit.start_tuple
         end
         def self.resolve(*args) # FIXME: make this nicer, for Processor
-          config.activity.circuit.resolve(*args)
+          config.circuit.resolve(*args)
         end
 
         def self.inherited(subclass)
@@ -63,9 +64,9 @@ module Trailblazer
             helpers: helper_modules
           )
 
-          activity, _ = builder.(&block) if block_given?
+          circuit, outputs, _ = builder.(&block) if block_given?
 
-          return activity, builder, helper_forwarder
+          return circuit, outputs, builder, helper_forwarder
         end
       end
     end # DSL

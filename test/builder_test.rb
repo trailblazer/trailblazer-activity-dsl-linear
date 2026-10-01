@@ -31,11 +31,11 @@ class DslBuilderTest < Minitest::Spec
 
     builder = Trailblazer::Activity::DSL::Builder.new(**my_options)
 
-    my_activity, sequence = builder.(&my_block)
+    circuit, outputs, sequence = builder.(&my_block)
 
     # builder.finalize! # or do we do this in #call?
 
-    assert_run my_activity.to_h[:circuit], seq: [:a, :b], terminus: Trailblazer::Activity::Right
+    assert_run circuit, seq: [:a, :b], terminus: Trailblazer::Activity::Right
   end
 
   # Internal unit test to guarantee Finalize compat.
@@ -49,7 +49,7 @@ class DslBuilderTest < Minitest::Spec
     sequence = builder.update_sequence!(&my_block)
 
     assert_equal sequence.to_h[:nodes].keys, [:a]
-    # assert_run my_activity.to_h[:circuit], seq: [:a, :b], terminus: Trailblazer::Activity::Right
+    # assert_run circuit, seq: [:a, :b], terminus: Trailblazer::Activity::Right
   end
 
   it "#new accepts {:sequence}" do
@@ -68,7 +68,7 @@ class DslBuilderTest < Minitest::Spec
   #   my_activity, sequence = builder.step :b,
   #     wirings: wirings_for_terminus, adds_insertion_args: [:after, nil]
 
-  #   assert_run my_activity.to_h[:circuit], seq: [:a, :b], terminus: Trailblazer::Activity::Right
+  #   assert_run circuit, seq: [:a, :b], terminus: Trailblazer::Activity::Right
   # end
 
   it "#new accepts {:default_options} that are passed via the ctx but can be overridden by the user" do
@@ -104,9 +104,9 @@ class DslBuilderTest < Minitest::Spec
       }
     )
 
-    my_activity, sequence = builder.(&my_block)
+    circuit, outputs, sequence = builder.(&my_block)
 
-    assert_run my_activity.to_h[:circuit], seq: [:a, :c], terminus: Trailblazer::Activity::Right
+    assert_run circuit, seq: [:a, :c], terminus: Trailblazer::Activity::Right
 
     assert_equal sequence.nodes.keys, [:a, :b, :c]
   end
