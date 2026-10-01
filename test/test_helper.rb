@@ -1,5 +1,5 @@
 require "trailblazer/activity/dsl"
-require "trailblazer/developer"
+# require "trailblazer/developer"
 
 require "trailblazer/core"
 
