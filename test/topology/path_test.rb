@@ -12,7 +12,7 @@ class TopologyPathFunctionTest < Minitest::Spec
     circuit, outputs, _ = Trailblazer::Activity.Path() do
     end
 
-    assert_equal outputs.inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
+    assert_equal outputs, {success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Terminus::Success.new(semantic: :success), :success)}# %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
   end
 
   it "Path() accepts a block" do
@@ -66,7 +66,7 @@ class TopologyPathTest < Minitest::Spec
   it "Path always has one terminus" do
     my_path = Class.new(Trailblazer::Activity::Path)
 
-    assert_equal my_path.to_h[:outputs].inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
+    assert_equal my_path.to_h[:outputs], {success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Terminus::Success.new(semantic: :success), :success)}
   end
 
   it "empty Path can be run" do

@@ -4,6 +4,7 @@ module Trailblazer
       circuit, outputs, builder, helper_forwarder = DSL::Topology.build(builder: builder, adds: adds, default_options: default_options, helpers: helpers)
 
       circuit, outputs, _ = builder.(&block) if block_given? # FIXME: do that in Topology!    implement for Railway and FastTrack?
+
       return circuit, outputs, builder, helper_forwarder
     end
 

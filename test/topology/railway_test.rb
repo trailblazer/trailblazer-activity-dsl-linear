@@ -102,10 +102,11 @@ class TopologyRailwayTest < Minitest::Spec
 
   describe "#Railway()" do
     it "Railway() always has one terminus" do
+      # DISCUSS: this is wrong on purpose, since we don't make this public.
       circuit, outputs, _ = Trailblazer::Activity.Railway() do
       end
 
-      assert_equal outputs.inspect, %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
+      assert_equal outputs, {success: Trailblazer::Activity::Output.new(Trailblazer::Activity::Terminus::Success.new(semantic: :success), :success)}# %({:success=>#<struct Trailblazer::Activity::Output signal=#<struct Trailblazer::Activity::Terminus::Success semantic=:success>, semantic=:success>})
     end
   end
 end
